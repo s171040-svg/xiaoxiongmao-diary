@@ -3,7 +3,8 @@
   "frameCountBySprite": {
     "chew": 14,
     "dizzy": 8,
-    "tail-chase": 5
+    "tail-chase": 5,
+    "dirty-grab-lift": 6
   },
   "frameIntervalMs": {
     "idle": 420,
@@ -14,7 +15,8 @@
     "jump": 180,
     "cuddle": 230,
     "dizzy": 140,
-    "tail-chase": 160
+    "tail-chase": 160,
+    "dirty-grab-lift": 140
   },
   "motionSprites": {
     "idle": "idle",

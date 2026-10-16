@@ -1,7 +1,7 @@
 export type MemoryKind = 'worry' | 'idea' | 'action';
 export type PerformanceAction = 'bamboo' | 'roll' | 'jump' | 'spin' | 'somersault' | 'tail' | 'tumble' | 'cuddle';
 export type DeveloperPose = 'idle' | 'lying' | 'sleeping' | 'peeking';
-export type DeveloperEvent = 'startle' | 'grab' | 'dizzy-drop' | 'world-fall' | 'bath-drop' | 'bath-rub' | 'dirty-bath' | 'dirty-bath-rub' | 'dirty-fly-chase';
+export type DeveloperEvent = 'startle' | 'grab' | 'dirty-grab' | 'dizzy-drop' | 'world-fall' | 'bath-drop' | 'bath-rub' | 'dirty-bath' | 'dirty-bath-rub' | 'dirty-fly-chase';
 export type ChatMessage = {
   id: string; role: 'user' | 'assistant'; text: string; createdAt: number;
   photo?: string; status?: 'pending' | 'interrupted' | 'failed' | 'sent'; failureReason?: string;

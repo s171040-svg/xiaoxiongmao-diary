@@ -170,6 +170,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const [activityState, setActivityState] = useState<RoomActivityState>('roaming');
   const [sleepingOnBed, setSleepingOnBed] = useState(false);
   const [hangingOnRack, setHangingOnRack] = useState(false);
+  const [dirtyGrabLiftComplete, setDirtyGrabLiftComplete] = useState(false);
   const [activityTransition, setActivityTransition] = useState<'settling' | 'entering' | 'waking' | 'frames-entering' | 'frames-waking' | null>(null);
   const [pixelTransitionDirection, setPixelTransitionDirection] = useState<'entering' | 'waking' | null>(null);
   const [transitionFrameSrc, setTransitionFrameSrc] = useState<string | null>(null);
@@ -186,12 +187,15 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const [developerGrab, setDeveloperGrab] = useState(false);
   const [dizzyPhase, setDizzyPhase] = useState<'none' | 'falling' | 'dazed'>('none');
   const [worldFallPhase, setWorldFallPhase] = useState<WorldFallPhase>('none');
+  const worldFallPhaseRef = useRef(worldFallPhase);
+  worldFallPhaseRef.current = worldFallPhase;
   const [worldFallMessageVisible, setWorldFallMessageVisible] = useState(false);
   const [dirtyPleaText, setDirtyPleaText] = useState<string | null>(null);
   const [flyChaseActive, setFlyChaseActive] = useState(false);
   const [flyChaseSide, setFlyChaseSide] = useState<'left' | 'right'>('left');
   const worldAway = showInteractionBubble && worldFallPhase === 'away';
   const dirtyReturn = showInteractionBubble && (worldFallPhase === 'returning' || worldFallPhase === 'dirty');
+  const dirtyGrab = dirtyReturn && (isDragging || developerGrab || hangingOnRack);
   const isFlyChasing = flyChaseActive && bathPhase === 'none' && interactionState === 'roaming'
     && activityState === 'roaming' && !isDragging && !hangingOnRack && !hidden;
   const [nightWakeOverride, setNightWakeOverride] = useState(false);
@@ -258,7 +262,9 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       || (showInteractionBubble && (activityState === 'sleeping' || (activityState === 'roaming' && motion === 'sleep' && !nightWakeOverride))));
   const isSleepingRef = useRef(isSleeping);
   isSleepingRef.current = isSleeping;
-  const sprite = showInteractionBubble && dizzyPhase !== 'none'
+  const sprite = dirtyGrab
+    ? dirtyGrabLiftComplete ? 'dirty-grab' : 'dirty-grab-lift'
+    : showInteractionBubble && dizzyPhase !== 'none'
     ? 'dizzy'
     : showInteractionBubble && (isDragging || developerGrab || hangingOnRack)
     ? 'grab'
@@ -636,6 +642,17 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
           setDeveloperGrab(false);
         }, 2500);
         break;
+      case 'dirty-grab': {
+        const restoreWorldFallPhase = worldFallPhaseRef.current;
+        setWorldFallPhase('dirty');
+        setDeveloperGrab(true);
+        developerEventTimerRef.current = window.setTimeout(() => {
+          developerEventTimerRef.current = 0;
+          setDeveloperGrab(false);
+          setWorldFallPhase(restoreWorldFallPhase);
+        }, 2500);
+        break;
+      }
       case 'dizzy-drop':
         setFrame(0);
         setDizzyPhase('falling');
@@ -985,28 +1002,38 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       setFrame(DIZZY_FRAME_COUNT);
       return;
     }
+    if (sprite === 'dirty-grab-lift' && motionPreference.matches) {
+      setDirtyGrabLiftComplete(true);
+      setFrame(0);
+      return;
+    }
     let next = motionPreference.matches ? reducedMotionFrame : 0;
     setFrame(next);
-    if (sprite === 'grab') return;
+    if (sprite === 'grab' || sprite === 'dirty-grab') return;
     const frameCount = animationManifest.frameCountBySprite[sprite as keyof typeof animationManifest.frameCountBySprite]
       ?? animationManifest.frameCount;
     const frameIntervalMs = animationManifest.frameIntervalMs[sprite as keyof typeof animationManifest.frameIntervalMs];
     let timer = 0;
+    const isDirtyPickupTransition = sprite === 'dirty-grab-lift';
     const isTransitioningFrames = activityTransition === 'frames-entering' || activityTransition === 'frames-waking';
     const waitingForSnack = pet.stage === 'performing' && pet.action === 'bamboo' && bambooPhase !== 'eating';
     const start = () => {
       if (hidden || interactionState === 'chat' || document.visibilityState === 'hidden' || motionPreference.matches || timer
         || waitingForSnack
-        || (showInteractionBubble && (activityState === 'lying' || isTransitioningFrames))) return;
+        || (showInteractionBubble && (activityState === 'lying' || isTransitioningFrames) && !isDirtyPickupTransition)) return;
       timer = window.setInterval(() => {
         const isBambooEating = sprite === 'chew' && pet.stage === 'performing'
           && pet.action === 'bamboo' && bambooPhase === 'eating';
         const isDizzyFalling = sprite === 'dizzy' && dizzyPhase === 'falling';
-        next = isBambooEating || isDizzyFalling
+        next = isBambooEating || isDizzyFalling || isDirtyPickupTransition
           ? Math.min(next + 1, frameCount)
           : (next + 1) % (frameCount + 1);
         setFrame(next);
-        if ((isBambooEating || isDizzyFalling) && next >= frameCount) {
+        if (isDirtyPickupTransition && next >= frameCount) {
+          setDirtyGrabLiftComplete(true);
+          window.clearInterval(timer);
+          timer = 0;
+        } else if ((isBambooEating || isDizzyFalling) && next >= frameCount) {
           window.clearInterval(timer);
           timer = 0;
         }
@@ -1017,6 +1044,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       timer = 0;
       next = reducedMotionFrame;
       setFrame(next);
+      if (isDirtyPickupTransition) setDirtyGrabLiftComplete(true);
     };
     const onMotionPreferenceChange = (event: MediaQueryListEvent) => event.matches ? stop() : start();
     const onVisibilityChange = () => document.visibilityState === 'hidden' ? stop() : start();
@@ -1028,7 +1056,12 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       motionPreference.removeEventListener('change', onMotionPreferenceChange);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, [activityState, activityTransition, bambooPhase, dizzyPhase, hidden, interactionState, motion, pet.action, pet.stage, pet.token, setFrame, showInteractionBubble, sprite]);
+  }, [activityState, activityTransition, bambooPhase, dirtyGrab, dizzyPhase, hidden, interactionState, motion, pet.action, pet.stage, pet.token, setFrame, setDirtyGrabLiftComplete, showInteractionBubble, sprite]);
+
+  useEffect(() => {
+    if (dirtyGrab) return;
+    setDirtyGrabLiftComplete(false);
+  }, [dirtyGrab]);
 
   useEffect(() => {
     if (!showInteractionBubble || developerPose || activityState === 'roaming'
@@ -1553,7 +1586,13 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     worldFallPhase,
   ]);
 
-  const image = hangingOnRack && showInteractionBubble
+  const image = dirtyGrab && sprite === 'dirty-grab-lift'
+    ? frame === 0
+      ? pandaStaticUrl('dirty-return.png?v=world-fall-1')
+      : pandaStaticUrl(`frames/dirty-grab-lift-${frame}.png?v=dirty-grab-lift-pixen-2`)
+    : dirtyGrab
+      ? pandaStaticUrl('dirty-grab.png?v=dirty-grab-pixen-2')
+      : hangingOnRack && showInteractionBubble
     ? pandaStaticUrl('grab.png?v=scruff-grab-1')
     : dirtyReturn && showInteractionBubble && bathPhase === 'bathing'
     ? bathRubbing ? dirtyBathingRubbingFrameUrl(bathFrame) : dirtyBathingFrameUrl(bathFrame)
@@ -1670,7 +1709,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
                 aria-hidden="true" />
             )}
               {!worldAway && (
-              <button ref={pandaButtonRef} type="button" className={`ps-panda ps-${hangingOnRack ? 'idle' : pet.stage === 'performing' ? action : basePoseClass}${showInteractionBubble && roomWalking && !hangingOnRack ? ' ps-walking' : ''}${showInteractionBubble && activityTransition ? ` ps-transition-${activityTransition}` : ''}${pixelTransitionDirection ? ' ps-pixel-transition' : ''}${interactionState === 'chat' ? ' ps-chatting' : ''}${(showInteractionBubble && activityState === 'lying' || developerPose === 'lying') ? ' ps-lying' : ''}${(showInteractionBubble && activityState === 'peeking' || developerPose === 'peeking') ? ' ps-peeking' : ''}${isSleeping ? ' ps-sleeping' : ''}${developerPose === 'idle' ? ' ps-dev-idle' : ''}${startled ? ' ps-startled' : ''}${isPressPending ? ' ps-pressing' : ''}${reacting ? ' ps-reacting' : ''}${isDragging || developerGrab ? ' ps-dragging' : ''}${hangingOnRack ? ' ps-hanging' : ''}${showInteractionBubble && dizzyPhase !== 'none' ? ' ps-dizzy' : ''}${worldFallPhase === 'falling' ? ' ps-world-falling' : ''}${bathPhase === 'falling' ? ' ps-bath-dropping' : ''}${bathPhase === 'bathing' ? ' ps-bathing' : ''}${dirtyReturn ? ' ps-world-dirty' : ''}${isFlyChasing ? ' ps-fly-flee' : ''}`}
+              <button ref={pandaButtonRef} type="button" className={`ps-panda ps-${hangingOnRack ? 'idle' : pet.stage === 'performing' ? action : basePoseClass}${showInteractionBubble && roomWalking && !hangingOnRack ? ' ps-walking' : ''}${showInteractionBubble && activityTransition ? ` ps-transition-${activityTransition}` : ''}${pixelTransitionDirection ? ' ps-pixel-transition' : ''}${interactionState === 'chat' ? ' ps-chatting' : ''}${(showInteractionBubble && activityState === 'lying' || developerPose === 'lying') ? ' ps-lying' : ''}${(showInteractionBubble && activityState === 'peeking' || developerPose === 'peeking') ? ' ps-peeking' : ''}${isSleeping ? ' ps-sleeping' : ''}${developerPose === 'idle' ? ' ps-dev-idle' : ''}${startled ? ' ps-startled' : ''}${isPressPending ? ' ps-pressing' : ''}${reacting ? ' ps-reacting' : ''}${isDragging || developerGrab ? ' ps-dragging' : ''}${hangingOnRack ? ' ps-hanging' : ''}${dirtyGrab ? ' ps-dirty-grabbing' : ''}${showInteractionBubble && dizzyPhase !== 'none' ? ' ps-dizzy' : ''}${worldFallPhase === 'falling' ? ' ps-world-falling' : ''}${bathPhase === 'falling' ? ' ps-bath-dropping' : ''}${bathPhase === 'bathing' ? ' ps-bathing' : ''}${dirtyReturn ? ' ps-world-dirty' : ''}${isFlyChasing ? ' ps-fly-flee' : ''}`}
               onClick={handlePandaClick}
               onPointerDown={handlePandaPointerDown}
               onPointerMove={handlePandaPointerMove}
@@ -1685,8 +1724,8 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
                 data-transition-direction={pixelTransitionDirection ?? undefined}
                  data-world-fall-state={showInteractionBubble ? worldFallPhase : undefined}>
                 <img className="ps-body" src={image}
-                 data-sprite={hangingOnRack ? 'grab' : dirtyReturn && bathPhase === 'bathing' ? (bathRubbing ? 'dirty-bathing-soap' : 'dirty-bathing') : dirtyReturn && isFlyChasing ? 'dirty-flee' : dirtyReturn ? 'dirty-return' : bathPhase === 'bathing' ? 'bathing' : startled && showInteractionBubble ? 'startled' : sprite}
-                 data-frame={hangingOnRack ? '0' : showInteractionBubble && bathPhase === 'bathing' ? bathFrame : dirtyReturn ? '0' : frame}
+                 data-sprite={dirtyGrab ? sprite : hangingOnRack ? 'grab' : dirtyReturn && bathPhase === 'bathing' ? (bathRubbing ? 'dirty-bathing-soap' : 'dirty-bathing') : dirtyReturn && isFlyChasing ? 'dirty-flee' : dirtyReturn ? 'dirty-return' : bathPhase === 'bathing' ? 'bathing' : startled && showInteractionBubble ? 'startled' : sprite}
+                 data-frame={dirtyGrab ? frame : hangingOnRack ? '0' : showInteractionBubble && bathPhase === 'bathing' ? bathFrame : dirtyReturn ? '0' : frame}
                  width={60} height={60} alt="" draggable={false} />
                {bathPhase === 'bathing' && bathRubbing && (
                  <span className="ps-bath-foam" aria-hidden="true">

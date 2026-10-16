@@ -29,6 +29,7 @@ const devPoseOptions: { pose: DeveloperPose; label: string }[] = [
 const devEventOptions: { event: DeveloperEvent; label: string; durationMs: number; persistent?: boolean }[] = [
   { event: 'startle', label: '被吓一跳', durationMs: 1150 },
   { event: 'grab', label: '被提起发懵', durationMs: 2500 },
+  { event: 'dirty-grab', label: '脏脏小熊猫被提起', durationMs: 2500 },
   { event: 'dizzy-drop', label: '松手后眩晕跌落', durationMs: 3520 },
   { event: 'world-fall', label: '掉出世界再回来', durationMs: 13100 },
   { event: 'bath-drop', label: '掉进浴缸洗澡', durationMs: 5000, persistent: true },
