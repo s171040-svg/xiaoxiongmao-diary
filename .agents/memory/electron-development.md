@@ -57,6 +57,12 @@ Windows 安装包优先由 GitHub Actions 的 Windows runner 构建；CI 只生�
 
 **How to apply:** 先确认项目已推送到 GitHub，再手动运行或通过相关代码推送触发构建；AI 密钥只在用户自己的 Windows 运行环境配置。
 
+pnpm workspace 的平台可选依赖排除规则会影响所有 runner；Windows 安装器所需的 Windows x64 原生包不能按 Replit Linux 环境一并排除。
+
+**Why:** Linux-only 的 overrides 让 Windows runner 的锁文件缺少 esbuild、Rollup 等 x64 二进制，导致桌面构建失败。
+
+**How to apply:** 修改平台排除规则后重新生成锁文件，并用 Windows runner 验证安装和打包。
+
 Replit 显示 GitHub 已连接，不保证当前工作区的 Git CLI 或连接器 API 实际拿得到写入凭证。
 
 **Why:** 某次连接显示已启用，但 `gh` 未登录、连接器未提供可用连接，GitHub 推送也被拒绝。
