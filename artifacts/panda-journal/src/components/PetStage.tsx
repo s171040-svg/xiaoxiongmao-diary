@@ -88,8 +88,10 @@ type TransitionKey = 'idle' | 'chew' | 'jump' | 'cuddle' | 'lying' | 'sleep' | '
 const PIXELLAB_TRANSITION_FRAMES: Record<TransitionKey, string[]> = Object.fromEntries(
   (['idle', 'chew', 'jump', 'cuddle', 'lying', 'sleep', 'peeking'] as const).map((name) => [
     name,
-    Array.from({ length: 5 }, (_, index) =>
-      pandaStaticUrl(`transitions/pixellab-walk-to-${name}-${index + 1}.png?v=${name === 'chew' ? 'chew-feed-1' : 'pixellab-transition-1'}`)),
+    Array.from({ length: name === 'sleep' ? 7 : 5 }, (_, index) =>
+      pandaStaticUrl(`transitions/pixellab-walk-to-${name}-${index + 1}.png?v=${
+        name === 'chew' ? 'chew-feed-1' : name === 'sleep' ? 'sleep-transition-2' : 'pixellab-transition-1'
+      }`)),
   ]),
 ) as Record<TransitionKey, string[]>;
 const ACTION_TRANSITION_KEY: Record<PerformanceAction, TransitionKey> = {
