@@ -69,8 +69,8 @@ pnpm workspace 的平台可选依赖排除规则会影响所有 runner；Windows
 
 **How to apply:** 修改平台排除规则后重新生成锁文件，并用 Windows runner 验证安装和打包。
 
-Replit 显示 GitHub 已连接，不保证当前工作区的 Git CLI 或连接器 API 实际拿得到写入凭证。
+Replit 的 GitHub OAuth 连接与 `GIT_URL` Secret 是两套凭据；`GIT_URL` 可能是原始 token，也可能是带凭据的 HTTPS 地址。
 
-**Why:** 某次连接显示已启用，但 `gh` 未登录、连接器未提供可用连接，GitHub 推送也被拒绝。
+**Why:** 按原始 token 处理一个完整的 HTTPS 凭据地址会被 GitHub 拒绝；从地址中安全提取 token 后推送才成功。旧对话中的“已连接”也不代表当前环境已绑定 OAuth。
 
-**How to apply:** 先验证目标仓库读权限，再确认推送权限；若 CLI 与 API 都拿不到凭证，停止操作，让用户通过 Replit 的 GitHub 连接流程修复，不索要 token。
+**How to apply:** 优先检查当前 Replit 集成状态；使用 `GIT_URL` 时先识别并规范化格式，通过临时 askpass 传递且绝不打印或持久化凭据。认证仍失败时引导安全重连，不在聊天中索要 token。
