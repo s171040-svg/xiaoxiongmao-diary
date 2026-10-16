@@ -224,6 +224,7 @@
     }, animationManifest.frameIntervalMs[sprite] || 180);
   }
 
+  applySprite();
   motionPreference.addEventListener("change", () => { applySprite(); syncRoomRoaming(); });
   document.addEventListener("visibilitychange", syncRoomRoaming);
 

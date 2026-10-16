@@ -57,6 +57,12 @@ Windows 安装包优先由 GitHub Actions 的 Windows runner 构建；CI 只生�
 
 **How to apply:** 先确认项目已推送到 GitHub，再手动运行或通过相关代码推送触发构建；AI 密钥只在用户自己的 Windows 运行环境配置。
 
+桌面浮层与网页房间使用不同渲染器；网页角色或动作更新后，还要检查 Electron 的独立角色页和安装包资源清单。
+
+**Why:** Windows 包曾漏带桌面角色读取的动作清单，导致启动仍显示 HTML 中的黑白初始占位图，即使网页房间已显示彩色角色。
+
+**How to apply:** Electron 角色页应立即应用可用的彩色待机帧，并将其相对读取的动作清单一并打包；分别验证网页和桌面入口。
+
 pnpm workspace 的平台可选依赖排除规则会影响所有 runner；Windows 安装器所需的 Windows x64 原生包不能按 Replit Linux 环境一并排除。
 
 **Why:** Linux-only 的 overrides 让 Windows runner 的锁文件缺少 esbuild、Rollup 等 x64 二进制，导致桌面构建失败。
