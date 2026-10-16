@@ -43,6 +43,8 @@ export function readState(storage: Pick<Storage, 'getItem'>, now = Date.now()): 
   const value = JSON.parse(raw) as CompanionState;
   if (value.version !== 1 || !Array.isArray(value.messages) || !Array.isArray(value.diary) || !Array.isArray(value.gifts)
     || typeof value.userName !== 'string' || typeof value.draft !== 'string'
+    || (value.recentGiftStories !== undefined && (!Array.isArray(value.recentGiftStories)
+      || value.recentGiftStories.some(story => typeof story !== 'string')))
     || ![value.lastUserAt, value.nextIdleAt, value.proactiveCount, value.nextTripAt].every(Number.isFinite)
     || value.messages.some(m => !m || typeof m.id !== 'string' || !['user', 'assistant'].includes(m.role)
       || typeof m.text !== 'string' || !Number.isFinite(m.createdAt))
@@ -152,15 +154,49 @@ export function performancePlan(random = Math.random) {
   return { action, duration, drops };
 }
 const souvenirs = [
-  { emoji: '🍌', item: '香蕉', animal: '猴子' }, { emoji: '🥕', item: '胡萝卜', animal: '兔子' },
-  { emoji: '🌰', item: '松果', animal: '松鼠' }, { emoji: '🐟', item: '小鱼', animal: '小猫' },
-  { emoji: '🍬', item: '糖果', animal: '老爷爷' }, { emoji: '🌸', item: '花瓣', animal: '蝴蝶' },
+  { emoji: '🍌', item: '香蕉', animal: '猴子', stories: [
+    '猴子在树梢发现一串熟香蕉，挑了最香的一根分给小熊猫。小熊猫一路捧回来，想先给你看看。',
+    '小熊猫和猴子在林边歇脚，猴子把藏好的香蕉拿出来分享，还拜托小熊猫替它问你一声好。',
+    '猴子荡到树下时，递给小熊猫一根金黄的香蕉，说这是今天找到的最好吃的一根，想让你也收下。',
+  ] },
+  { emoji: '🥕', item: '胡萝卜', animal: '兔子', stories: [
+    '兔子在菜地边拔出一根脆脆的胡萝卜，分给路过的小熊猫。小熊猫把它抱稳了，带回来送给你。',
+    '小熊猫陪兔子找了半天胡萝卜，最后找到一根又直又漂亮的，兔子笑着把它交给小熊猫带回来。',
+    '兔子刚收好一篮胡萝卜，就挑出最鲜嫩的一根送给小熊猫，说想和你分享今天的收获。',
+  ] },
+  { emoji: '🌰', item: '松果', animal: '松鼠', stories: [
+    '松鼠在松针堆里找到一颗完整的大松果，仔细擦干净后送给小熊猫。小熊猫把这份森林小礼物带给你。',
+    '松鼠爬上树枝摇了摇，落下一颗香香的松果，挑给小熊猫当作路上的纪念品，让它拿回来给你。',
+    '小熊猫帮松鼠把滚远的松果找了回来，松鼠便把另一颗圆滚滚的送给它，说这颗要带回去给你。',
+  ] },
+  { emoji: '🐟', item: '小鱼', animal: '小猫', stories: [
+    '小猫在溪边钓到一条亮闪闪的小鱼，装进小篮子里送给小熊猫，托它回来和你分享这份惊喜。',
+    '小猫蹲在水边等了好久，终于钓到今天第一条小鱼。它把小鱼交给小熊猫，说想让你也看看。',
+    '小熊猫陪小猫在溪边听水声，小猫把刚钓到的小鱼送给它当礼物，小熊猫一路小心地带回来了。',
+  ] },
+  { emoji: '🍬', item: '糖果', animal: '老爷爷', stories: [
+    '路边的老爷爷从小布袋里拿出一颗水果糖送给小熊猫，叮嘱它慢慢带回去，和你一起分享甜味。',
+    '老爷爷看见小熊猫在花园边散步，笑着递给它一颗包装亮晶晶的糖果，说这是给你的小礼物。',
+    '小熊猫帮老爷爷捡起滚到椅子下的糖果，老爷爷便另外挑了一颗新的送给它，让它带回来给你。',
+  ] },
+  { emoji: '🌸', item: '花瓣', animal: '蝴蝶', stories: [
+    '蝴蝶在花丛里挑了一片完整的粉色花瓣送给小熊猫，还绕着它飞了一圈，像是在说这份也想送给你。',
+    '小熊猫和蝴蝶在暖暖的阳光下追了一小会儿，蝴蝶落下一片花瓣送给它，让它带回来装点你的小礼物盒。',
+    '蝴蝶停在一朵刚开的花上，轻轻碰落一片花瓣送给小熊猫。小熊猫把它护好，带回来给你看。',
+  ] },
 ];
 export function beginTrip(state: CompanionState, now = Date.now(), random = Math.random): CompanionState {
   const pick = souvenirs[Math.min(souvenirs.length - 1, Math.floor(random() * souvenirs.length))];
-  const gift: Omit<Gift, 'receivedAt'> = { ...pick, id: id(),
-    story: `唔，小熊猫遇到了${pick.animal}，${pick.animal}送给小熊猫${pick.item}，给${state.userName || '你'}呀。（它把${pick.item}捧过来）` };
-  return { ...state, trip: { id: gift.id, gift, returnAt: now + 30_000 + random() * 90_000 },
+  const recentGiftStories = state.recentGiftStories ?? [];
+  const unusedStories = pick.stories.filter(story => !recentGiftStories.includes(story));
+  const storyChoices = unusedStories.length ? unusedStories : pick.stories;
+  const story = storyChoices[Math.min(storyChoices.length - 1, Math.floor(random() * storyChoices.length))];
+  const personalizedStory = state.userName ? story.replaceAll('给你', `给${state.userName}`) : story;
+  const gift: Omit<Gift, 'receivedAt'> = {
+    id: id(), emoji: pick.emoji, item: pick.item, animal: pick.animal,
+    story: `${state.userName ? `${state.userName}，` : ''}${personalizedStory}` };
+  return { ...state, recentGiftStories: [...recentGiftStories, story].slice(-12),
+    trip: { id: gift.id, gift, returnAt: now + 30_000 + random() * 90_000 },
     messages: [...state.messages, assistant(`诶，${state.userName ? state.userName + '，' : ''}小熊猫出去逛一圈，一会儿回来哦。（它轻轻挥挥爪子）`, 'event', now)] };
 }
 export function tickCompanion(state: CompanionState, now: number, random = Math.random): {

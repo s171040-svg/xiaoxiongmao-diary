@@ -560,6 +560,7 @@
     }
     carry.textContent = typeof effect.carrying === "string" ? effect.carrying : "";
     carry.hidden = !carry.textContent || stage === "fallen" || stage === "away";
+    carry.dataset.stage = stage;
     if (stage === "fallen" || stage === "away") dismissSpeech();
   }
   if (desktop && typeof desktop.onCompanionMotion === "function") desktop.onCompanionMotion(applyCompanion);

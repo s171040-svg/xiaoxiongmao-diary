@@ -119,6 +119,18 @@ test('excursions take thirty to one hundred twenty seconds and gift settlement i
     assert.equal(collectGift(stored, clicked.pendingGift!.id, state.trip!.returnAt + GIFT_DROP_MS + 1).gifts.length, 1);
   }
 });
+test('gift trips tell varied stories that match the souvenir and avoid immediate repeats', () => {
+  const first = beginTrip(sample(), now, () => 0);
+  const firstGift = first.trip!.gift;
+  const second = beginTrip(first, now + 1, () => 0);
+  const secondGift = second.trip!.gift;
+  assert.equal(firstGift.item, '香蕉');
+  assert.equal(firstGift.animal, '猴子');
+  assert.match(firstGift.story, /猴子|香蕉/);
+  assert.notEqual(secondGift.story, firstGift.story);
+  assert.match(secondGift.story, /猴子|香蕉/);
+  assert.equal(second.recentGiftStories?.length, 2);
+});
 test('uncollected gifts survive reload and cannot be replaced by a new excursion', () => {
   const arrival = tickCompanion(beginTrip(sample(), now, () => 0), now + 120_000, () => 0).state;
   const restored = JSON.parse(JSON.stringify({ ...arrival, nextTripAt: now - 1 }));

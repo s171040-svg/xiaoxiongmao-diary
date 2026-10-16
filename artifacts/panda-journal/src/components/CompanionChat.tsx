@@ -340,7 +340,8 @@ export function CompanionChat({ companion: c, roomOnly = false }: { companion: C
         debugClicks={false} showInteractionBubble={roomOnly}
         interactionBubbleText={roomOnly && roomDialogue ? removeActionAsides(roomDialogue) : undefined}
         onChatModeChange={roomOnly ? onRoomChatModeChange : undefined} />
-      {!window.pandaDesktop && <GiftDrop gift={c.state.pendingGift} startedAt={c.state.giftDropStartedAt} onCollect={c.collectPresent} />}
+      {!window.pandaDesktop && c.pet.stage !== 'returning'
+        && <GiftDrop gift={c.state.pendingGift} startedAt={c.state.giftDropStartedAt} onCollect={c.collectPresent} />}
       {roomOnly ? (
         <>
           {roomChatOpen && roomComposer}

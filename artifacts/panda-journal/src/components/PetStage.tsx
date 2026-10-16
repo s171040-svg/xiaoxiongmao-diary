@@ -1715,7 +1715,11 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
               {action === 'bamboo' && bambooPhase === 'dropping' && (
                 <img className="ps-snack-drop" src={BAMBOO_SNACK_SPRITE} alt="" aria-hidden="true" draggable={false} />
               )}
-              {pet.carrying && <span className="ps-gift" aria-hidden="true">{pet.carrying}</span>}
+              {pet.carrying && (
+                <span className="ps-gift ps-gift-held" aria-hidden="true" data-testid="panda-carrying-item">
+                  {pet.carrying}
+                </span>
+              )}
               </button>
               )}
           </div>

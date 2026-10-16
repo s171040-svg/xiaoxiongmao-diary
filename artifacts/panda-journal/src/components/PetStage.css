@@ -144,9 +144,12 @@
 .ps-panda[data-facing="left"].ps-startled .ps-scared-mark{right:auto;left:8%}
 .ps-grab-daze{position:absolute;z-index:4;top:-10%;left:calc(50% + 14px);color:#776d5f;font:700 15px/1 "Noto Sans CJK SC",sans-serif;letter-spacing:2px;text-shadow:0 1px 2px #fff9;pointer-events:none;animation:ps-grab-daze 1.15s ease-in-out infinite}
 .ps-daydream-dots{position:absolute;z-index:2;top:4%;right:5%;color:#527459;font:700 22px/1 "Noto Sans CJK SC",sans-serif;letter-spacing:2px;text-shadow:0 1px 2px #fff9;pointer-events:none;animation:ps-daydream 1.5s ease-in-out infinite}
-.ps-gift{position:absolute;font-size:calc(24px * var(--room-scale,.89));font-family:"Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif}
+.ps-gift{position:absolute;z-index:4;font-size:calc(24px * var(--room-scale,.89));font-family:"Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif;line-height:1;filter:drop-shadow(0 1px 1px #35251b55);pointer-events:none}
 .ps-bamboo i{position:absolute;top:-14px;left:-4px;font:600 12px "Noto Sans CJK SC",sans-serif;color:#6a8a5a;font-style:normal;white-space:nowrap}
-.ps-gift{left:-18px;bottom:6px;animation:ps-breathe 3s ease-in-out infinite}
+.ps-gift-held{left:calc(50% + 7px);right:auto;bottom:calc(10px * var(--room-scale,.89));animation:ps-gift-carry .34s ease-in-out infinite alternate}
+.ps-panda[data-facing="left"] .ps-gift-held{right:calc(50% + 7px);left:auto}
+.ps-stage[data-room-only="false"] .ps-gift-held{bottom:8px;font-size:22px}
+@keyframes ps-gift-carry{from{translate:0 1px;rotate:-7deg}to{translate:1px -2px;rotate:7deg}}
 .ps-panda.ps-roll,.ps-panda.ps-spin,.ps-panda.ps-tumble{animation:ps-roll var(--ps-dur) ease-in-out infinite alternate}
 .ps-panda.ps-jump,.ps-panda.ps-somersault{animation:ps-hop calc(var(--ps-dur)/3) ease-in-out 3}
 .ps-panda.ps-cuddle{animation:ps-cuddle calc(var(--ps-dur)/3) ease-in-out 3}

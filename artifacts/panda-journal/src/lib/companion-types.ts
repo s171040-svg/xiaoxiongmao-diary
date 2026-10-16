@@ -25,6 +25,7 @@ export type CompanionState = {
   userName: string; draft: string; draftPhoto?: string; lastUserAt: number;
   nextIdleAt: number; proactiveDay: string; proactiveCount: number;
   nextTripAt: number; trip?: { id: string; returnAt: number; gift: Omit<Gift, 'receivedAt'> };
+  recentGiftStories?: string[];
   privateQuestionsPaused?: boolean;
   pendingGift?: Gift; giftDropStartedAt?: number;
 };

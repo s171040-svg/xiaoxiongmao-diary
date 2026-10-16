@@ -88,7 +88,7 @@ export function useCompanion() {
   }, [report, transact]);
   useEffect(() => {
     const gift = state.pendingGift;
-    window.pandaDesktop?.showGift(gift, state.giftDropStartedAt);
+    if (pet.stage !== 'returning') window.pandaDesktop?.showGift(gift, state.giftDropStartedAt);
     if (!gift || !state.giftDropStartedAt) return;
     const timer = window.setTimeout(() => {
       try {
@@ -100,7 +100,7 @@ export function useCompanion() {
       } catch (e) { report(e); }
     }, Math.max(0, state.giftDropStartedAt + GIFT_DROP_MS - Date.now()));
     return () => clearTimeout(timer);
-  }, [state.pendingGift, state.giftDropStartedAt, motion, report, transact]);
+  }, [state.pendingGift, state.giftDropStartedAt, motion, pet.stage, report, transact]);
   useEffect(() => window.pandaDesktop?.onGiftClick(collectPresent), [collectPresent]);
   const perform = useCallback(() => {
     if (petRef.current.stage !== 'present') { queuedPerformance.current = true; return; }
@@ -200,7 +200,7 @@ export function useCompanion() {
           if (result.event === 'departure') motion({ ...petRef.current, stage: 'away', token: Date.now(), carrying: undefined });
           if (result.event === 'gift') {
             motion({ ...petRef.current, stage: 'returning', token: Date.now(), carrying: result.state.pendingGift?.emoji });
-            later(() => { motion({ ...petRef.current, stage: 'present', action: 'idle' }); settle.current(); }, 2500);
+            later(() => { motion({ ...petRef.current, stage: 'present', action: 'idle', carrying: undefined }); settle.current(); }, 2500);
           }
         } catch (e) { report(e); }
       };
