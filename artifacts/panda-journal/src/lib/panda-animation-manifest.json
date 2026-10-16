@@ -2,7 +2,8 @@
   "frameCount": 4,
   "frameCountBySprite": {
     "chew": 14,
-    "dizzy": 8
+    "dizzy": 8,
+    "tail-chase": 8
   },
   "frameIntervalMs": {
     "idle": 420,
@@ -12,7 +13,8 @@
     "roll": 170,
     "jump": 180,
     "cuddle": 230,
-    "dizzy": 140
+    "dizzy": 140,
+    "tail-chase": 160
   },
   "motionSprites": {
     "idle": "idle",
@@ -26,7 +28,7 @@
     "jump": "jump",
     "spin": "idle",
     "somersault": "jump",
-    "tail": "cuddle",
+    "tail": "tail-chase",
     "tumble": "idle",
     "cuddle": "cuddle"
   }

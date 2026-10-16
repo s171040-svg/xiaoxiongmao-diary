@@ -84,13 +84,15 @@ const BAMBOO_SNACK_SPRITE = pandaStaticUrl('snack.png?v=chew-feed-2');
 const LYING_SPRITE = pandaStaticUrl('lying.png?v=lying-pose-2');
 const PEEKING_SPRITE = pandaStaticUrl('peeking.png?v=look-back-1');
 const ROOM_FURNITURE_POINT: RoomPoint = { u: 0.72, v: 0.7 };
-type TransitionKey = 'idle' | 'chew' | 'jump' | 'cuddle' | 'lying' | 'sleep' | 'peeking';
+type TransitionKey = 'idle' | 'chew' | 'jump' | 'cuddle' | 'tail' | 'lying' | 'sleep' | 'peeking';
 const PIXELLAB_TRANSITION_FRAMES: Record<TransitionKey, string[]> = Object.fromEntries(
-  (['idle', 'chew', 'jump', 'cuddle', 'lying', 'sleep', 'peeking'] as const).map((name) => [
+  (['idle', 'chew', 'jump', 'cuddle', 'tail', 'lying', 'sleep', 'peeking'] as const).map((name) => [
     name,
-    Array.from({ length: name === 'sleep' ? 7 : 5 }, (_, index) =>
+    Array.from({ length: name === 'sleep' || name === 'tail' ? 7 : 5 }, (_, index) =>
       pandaStaticUrl(`transitions/pixellab-walk-to-${name}-${index + 1}.png?v=${
-        name === 'chew' ? 'chew-feed-1' : name === 'sleep' ? 'sleep-transition-2' : 'pixellab-transition-1'
+        name === 'chew' ? 'chew-feed-1'
+          : name === 'sleep' ? 'sleep-transition-2'
+            : name === 'tail' ? 'tail-chase-1' : 'pixellab-transition-1'
       }`)),
   ]),
 ) as Record<TransitionKey, string[]>;
@@ -100,7 +102,7 @@ const ACTION_TRANSITION_KEY: Record<PerformanceAction, TransitionKey> = {
   jump: 'jump',
   spin: 'idle',
   somersault: 'jump',
-  tail: 'cuddle',
+  tail: 'tail',
   tumble: 'idle',
   cuddle: 'cuddle',
 };
@@ -1226,10 +1228,10 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       setActivityState('roaming');
       setSleepingOnBed(false);
       setRoomWalking(false);
-      if (droppedOntoBed && bedRect) {
+      if (droppedOntoBed && bedRect && pandaRect) {
         const target = unprojectScreenPoint(
           ((bedRect.left + bedRect.width * 0.5) / Math.max(1, window.innerWidth)) * 100,
-          ((bedRect.top + bedRect.height * 0.8) / Math.max(1, window.innerHeight)) * 100,
+          ((bedRect.top + bedRect.height * 0.5 + pandaRect.height * 0.5) / Math.max(1, window.innerHeight)) * 100,
         );
         updateFacing(target.u - positionRef.current.u);
         applyRoomPoint(target);
@@ -1514,8 +1516,8 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
         ? `${import.meta.env.BASE_URL}static/panda/grab.png?v=scruff-grab-1`
         : pandaStaticUrl(`frames/dizzy-${Math.min(frame, DIZZY_FRAME_COUNT)}.png?v=dizzy-drop-1`)
     : frame === 0
-      ? pandaStaticUrl(`${sprite}.png?v=${sprite === 'chew' ? 'chew-feed-4' : 'tail-left-3'}`)
-      : pandaStaticUrl(`frames/${sprite}-${frame}.png?v=${sprite === 'chew' ? 'chew-feed-4' : 'tail-left-3'}`);
+      ? pandaStaticUrl(`${sprite}.png?v=${sprite === 'chew' ? 'chew-feed-4' : sprite === 'tail-chase' ? 'tail-chase-1' : 'tail-left-3'}`)
+      : pandaStaticUrl(`frames/${sprite}-${frame}.png?v=${sprite === 'chew' ? 'chew-feed-4' : sprite === 'tail-chase' ? 'tail-chase-1' : 'tail-left-3'}`);
   currentImageRef.current = image;
   const roomFurniture = projectRoomPoint(ROOM_FURNITURE_POINT, window.innerWidth, window.innerHeight);
   const roomBackgroundImage = `url("${import.meta.env.BASE_URL}static/room/room-background.png")`;
