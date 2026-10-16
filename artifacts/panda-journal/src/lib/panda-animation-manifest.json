@@ -1,0 +1,33 @@
+{
+  "frameCount": 4,
+  "frameCountBySprite": {
+    "chew": 14,
+    "dizzy": 8
+  },
+  "frameIntervalMs": {
+    "idle": 420,
+    "walk": 180,
+    "sleep": 520,
+    "chew": 350,
+    "roll": 170,
+    "jump": 180,
+    "cuddle": 230,
+    "dizzy": 140
+  },
+  "motionSprites": {
+    "idle": "idle",
+    "walk": "walk",
+    "sleep": "sleep"
+  },
+  "actionSprites": {
+    "idle": "idle",
+    "bamboo": "chew",
+    "roll": "idle",
+    "jump": "jump",
+    "spin": "idle",
+    "somersault": "jump",
+    "tail": "cuddle",
+    "tumble": "idle",
+    "cuddle": "cuddle"
+  }
+}

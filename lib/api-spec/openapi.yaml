@@ -1,0 +1,167 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: journal
+    description: Stateless journal analysis
+paths:
+  /companion/chat:
+    post:
+      operationId: companionChat
+      tags: [journal]
+      summary: Contextual companion reply and local diary suggestions, never stored on server
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompanionInput"
+      responses:
+        "200":
+          description: Companion response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanionResponse"
+        "400":
+          description: Invalid conversation
+        "429":
+          description: Too many requests
+        "502":
+          description: Provider unavailable
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /journal/classify:
+    post:
+      operationId: classifyJournalEntry
+      tags: [journal]
+      summary: Classify journal text without storing it on the server
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JournalClassificationInput"
+      responses:
+        "200":
+          description: AI classification and gentle personalized reply
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JournalClassification"
+        "400":
+          description: Invalid text
+        "429":
+          description: Too many requests
+        "502":
+          description: AI analysis unavailable
+components:
+  schemas:
+    CompanionContext:
+      type: object
+      required: [role, content]
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+          minLength: 1
+          maxLength: 4000
+    CompanionMemory:
+      type: object
+      required: [kind, text]
+      properties:
+        kind:
+          type: string
+          enum: [worry, idea, action]
+        text:
+          type: string
+          minLength: 1
+          maxLength: 240
+    CompanionInput:
+      type: object
+      required: [messages, userName, memories]
+      properties:
+        messages:
+          type: array
+          minItems: 1
+          maxItems: 40
+          items:
+            $ref: "#/components/schemas/CompanionContext"
+        userName:
+          type: string
+          maxLength: 60
+        memories:
+          type: array
+          maxItems: 24
+          items:
+            $ref: "#/components/schemas/CompanionMemory"
+    CompanionResponse:
+      type: object
+      required: [reply, userName, memories, action]
+      properties:
+        reply:
+          type: string
+          minLength: 1
+          maxLength: 300
+        userName:
+          type: string
+          maxLength: 60
+        memories:
+          type: array
+          maxItems: 3
+          items:
+            $ref: "#/components/schemas/CompanionMemory"
+        action:
+          type: string
+          enum: [none, performance]
+    JournalClassificationInput:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 4000
+    JournalClassification:
+      type: object
+      required: [category, hasActionableGoal, reply]
+      properties:
+        category:
+          type: string
+          enum: [leisure, idea, worry]
+        hasActionableGoal:
+          type: boolean
+        reply:
+          type: string
+          minLength: 1
+          maxLength: 1600
+          description: A warm personalized response to the journal entry
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+

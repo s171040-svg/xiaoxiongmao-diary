@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="360" viewBox="0 0 800 360" shape-rendering="crispEdges">
+  <defs>
+    <pattern id="wall-pixels" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M0 47.5H48M47.5 0V48" stroke="#9eaf91" stroke-opacity=".12"/>
+      <rect x="5" y="7" width="3" height="3" fill="#fff9e9" fill-opacity=".36"/>
+      <rect x="33" y="28" width="2" height="2" fill="#819777" fill-opacity=".16"/>
+    </pattern>
+    <pattern id="floor-boards" width="96" height="24" patternUnits="userSpaceOnUse">
+      <path d="M0 23.5H96M47.5 0V23M0 12H47M72 0V11" fill="none" stroke="#927956" stroke-opacity=".36"/>
+      <rect x="8" y="5" width="8" height="2" fill="#ead4a5" fill-opacity=".4"/>
+    </pattern>
+  </defs>
+
+  <rect width="800" height="360" fill="#dfe8cc"/>
+  <rect width="800" height="274" fill="url(#wall-pixels)"/>
+  <rect x="0" y="0" width="800" height="12" fill="#cbd8bb" fill-opacity=".55"/>
+
+  <!-- Centered window; it remains visible in the native pet's narrower crop. -->
+  <rect x="290" y="42" width="220" height="174" fill="#73866a"/>
+  <rect x="300" y="52" width="200" height="154" fill="#a9c9b3"/>
+  <rect x="308" y="60" width="184" height="138" fill="#d6e6c8"/>
+  <rect x="316" y="68" width="80" height="58" fill="#b5d6c3"/>
+  <rect x="404" y="68" width="80" height="58" fill="#b5d6c3"/>
+  <rect x="316" y="134" width="80" height="56" fill="#c3d9b9"/>
+  <rect x="404" y="134" width="80" height="56" fill="#c3d9b9"/>
+  <rect x="398" y="60" width="8" height="138" fill="#73866a"/>
+  <rect x="308" y="128" width="184" height="7" fill="#73866a"/>
+  <rect x="286" y="38" width="12" height="182" fill="#879879"/>
+  <rect x="502" y="38" width="12" height="182" fill="#879879"/>
+  <rect x="276" y="38" width="18" height="10" fill="#879879"/>
+  <rect x="506" y="38" width="18" height="10" fill="#879879"/>
+  <rect x="318" y="72" width="5" height="5" fill="#f8f0d6"/>
+  <rect x="406" y="72" width="5" height="5" fill="#f8f0d6"/>
+  <rect x="322" y="170" width="10" height="5" fill="#91b49b"/>
+  <rect x="430" y="150" width="6" height="5" fill="#91b49b"/>
+
+  <!-- Wall shelf and small plants sit above the floor line. -->
+  <rect x="94" y="200" width="128" height="8" fill="#9b8060"/>
+  <rect x="105" y="174" width="22" height="26" fill="#e7d6ad"/>
+  <rect x="132" y="181" width="38" height="19" fill="#b7a077"/>
+  <rect x="178" y="165" width="27" height="35" fill="#e5e2c9"/>
+  <rect x="570" y="217" width="15" height="28" fill="#7f9972"/>
+  <rect x="553" y="239" width="50" height="8" fill="#826c55"/>
+  <rect x="562" y="209" width="13" height="22" fill="#7f9972"/>
+  <rect x="580" y="203" width="13" height="28" fill="#7f9972"/>
+  <rect x="550" y="245" width="56" height="18" fill="#bc8c6c"/>
+  <rect x="556" y="250" width="44" height="8" fill="#d5ad84"/>
+
+  <!-- The floor begins at 76% of the image height; shared CSS uses 24%. -->
+  <rect x="0" y="274" width="800" height="86" fill="#c5ad82"/>
+  <rect x="0" y="274" width="800" height="6" fill="#a58b65"/>
+  <rect x="0" y="280" width="800" height="80" fill="url(#floor-boards)"/>
+  <rect x="0" y="280" width="800" height="5" fill="#e0c99a" fill-opacity=".55"/>
+
+  <!-- Soft pixel rug in the middle of the floor, behind the panda. -->
+  <rect x="322" y="307" width="156" height="38" fill="#a9a77c"/>
+  <rect x="330" y="311" width="140" height="30" fill="#c6bd8e"/>
+  <rect x="338" y="315" width="124" height="22" fill="#b7b181"/>
+  <rect x="346" y="319" width="108" height="14" fill="#d8c99c"/>
+  <rect x="358" y="323" width="84" height="6" fill="#a5a477"/>
+</svg>

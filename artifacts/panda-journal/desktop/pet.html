@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:">
+    <meta name="theme-color" content="transparent">
+    <title>小熊猫日记 · 桌面陪伴</title>
+    <link rel="stylesheet" href="../public/static/room/room-layout.css">
+    <link rel="stylesheet" href="./pet.css">
+  </head>
+  <body>
+    <main class="pet-stage" aria-label="小熊猫日记桌面陪伴">
+      <div class="pet-room-plane" id="room-plane" aria-hidden="true"></div>
+      <div class="pet-home-objects" aria-hidden="true">
+        <img class="pet-home-bed" id="desktop-bed" src="../public/static/room/panda-nest-bed.png" alt="" draggable="false">
+        <img class="pet-home-bathtub" id="desktop-bathtub" src="../public/static/room/pet-bathtub.png" alt="" draggable="false">
+      </div>
+      <aside class="pet-gift-card" id="pet-gift-card" hidden aria-label="小熊猫带回的礼物">
+        <button class="pet-gift-button pet-hit-area" id="pet-gift-button" type="button">
+          <span class="pet-gift-object" id="pet-gift-object" aria-hidden="true"></span>
+          <span class="pet-gift-copy" id="pet-gift-copy"></span>
+        </button>
+      </aside>
+      <div class="pet-presence" data-motion="idle">
+        <div class="pet-shadow" aria-hidden="true"></div>
+        <div class="pet-orbit orbit-one" aria-hidden="true"></div>
+        <div class="pet-orbit orbit-two" aria-hidden="true"></div>
+
+        <section class="speech-bubble pet-hit-area" id="speech" aria-live="polite" aria-atomic="true" hidden>
+          <p class="speech-copy" id="speech-copy"></p>
+          <div class="speech-actions" id="speech-actions" hidden>
+            <button class="action-button action-primary pet-hit-area" id="open-journal" type="button">说说看</button>
+            <button class="action-button action-quiet pet-hit-area" id="dismiss-prompt" type="button">不是</button>
+          </div>
+        </section>
+
+        <button class="panda-button pet-hit-area" id="panda" type="button"
+          aria-label="和小熊猫打个招呼；双击告诉它今天的烦心事">
+          <img class="panda-character" id="panda-sprite" src="../public/static/panda/initial.png"
+            width="80" height="80" alt="" draggable="false">
+          <span class="button-ripple" aria-hidden="true"></span>
+        </button>
+        <span class="quiet-caption" aria-hidden="true">我在这里</span>
+      </div>
+    </main>
+    <script src="./roaming-geometry.js"></script>
+    <script src="./pet-renderer.js"></script>
+  </body>
+</html>

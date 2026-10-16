@@ -1,0 +1,53 @@
+name: Build Windows installer
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+      - github-snapshot
+    paths:
+      - ".github/workflows/windows-installer.yml"
+      - "artifacts/panda-journal/**"
+      - "lib/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Package 小熊猫日记 for Windows
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build installer
+        run: pnpm --filter @workspace/panda-journal run desktop:installer:win
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: xiaoxiongmao-journal-windows-x64
+          path: generated-artifacts/windows-installer/*.exe
+          if-no-files-found: error
+          retention-days: 30

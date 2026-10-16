@@ -1,0 +1,22 @@
+.gift-drop-layer{position:fixed;inset:0;z-index:60;pointer-events:none;overflow:hidden}
+.gift-drop{--gift-floor:calc(100dvh - 270px);--gift-rise:clamp(70px,19dvh,200px);position:absolute;top:150px;left:calc(50% - 90px);width:180px;height:100px;padding:0;border:0;background:transparent;cursor:pointer;pointer-events:auto;transform-origin:50% 90%;color:#365746}
+.gift-drop-object{display:block;font-family:"Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif;font-size:64px;line-height:76px;filter:drop-shadow(0 8px 8px #314b3225)}
+.gift-drop-hint{display:block;white-space:nowrap;font:500 12px "Noto Sans CJK SC",sans-serif;background:#f7f5e9ed;border:1px solid #afc6b9;border-radius:20px;padding:5px 8px;box-shadow:0 3px 12px #263a2810}
+.gift-drop:focus-visible{outline:2px solid #678e77;outline-offset:6px;border-radius:20px}
+.gift-drop:not(.collecting) .gift-drop-object{animation:gift-float 2.5s ease-in-out infinite}
+.gift-drop.collecting{pointer-events:none;animation:gift-squishy-fall 1.8s both}
+.gift-drop.collecting .gift-drop-hint{opacity:0;transition:opacity .12s}
+@keyframes gift-float{50%{transform:translateY(-8px) rotate(5deg)}}
+@keyframes gift-squishy-fall{
+  0%{transform:translate(0,0) rotate(-8deg) scale(1);animation-timing-function:cubic-bezier(.45,0,.9,.5)}
+  24%{transform:translate(12px,var(--gift-floor)) rotate(8deg) scale(1.32,.68);animation-timing-function:cubic-bezier(.12,.7,.3,1)}
+  40%{transform:translate(-16px,calc(var(--gift-floor) - var(--gift-rise))) rotate(-12deg) scale(.9,1.1);animation-timing-function:cubic-bezier(.55,0,.9,.4)}
+  55%{transform:translate(-12px,var(--gift-floor)) rotate(-5deg) scale(1.22,.77);animation-timing-function:cubic-bezier(.12,.7,.3,1)}
+  65%{transform:translate(12px,calc(var(--gift-floor) - var(--gift-rise)*.5)) rotate(9deg) scale(.94,1.06);animation-timing-function:cubic-bezier(.55,0,.9,.4)}
+  75%{transform:translate(16px,var(--gift-floor)) rotate(5deg) scale(1.14,.86);animation-timing-function:cubic-bezier(.12,.7,.3,1)}
+  82%{transform:translate(7px,calc(var(--gift-floor) - var(--gift-rise)*.2)) rotate(-4deg) scale(.97,1.03);animation-timing-function:cubic-bezier(.55,0,.9,.4)}
+  91%{transform:translate(3px,var(--gift-floor)) scale(1.08,.92);opacity:1}
+  100%{transform:translate(0,calc(100dvh + 150px)) rotate(14deg) scale(.93,1.08);opacity:0}
+}
+@media(prefers-reduced-motion:reduce){.gift-drop:not(.collecting) .gift-drop-object{animation:none}.gift-drop.collecting{animation:gift-quiet-fade 1.8s both}}
+@keyframes gift-quiet-fade{0%,70%{opacity:1}100%{opacity:0}}

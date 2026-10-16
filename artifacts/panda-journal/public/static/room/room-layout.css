@@ -1,0 +1,11 @@
+/* Palette for the native pet's full-window, perspective floor. */
+:root {
+  --panda-room-floor-far: #e4d6b7;
+  --panda-room-floor-mid: #d8c49b;
+  --panda-room-floor-near: #c0a77b;
+  --panda-room-grid-line: #957b5540;
+  --panda-room-night-far: #1e2a2b;
+  --panda-room-night-mid: #273533;
+  --panda-room-night-near: #374238;
+  --panda-room-night-grid-line: #9db39a24;
+}

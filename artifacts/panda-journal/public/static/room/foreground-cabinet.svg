@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="168" height="124" viewBox="0 0 168 124" shape-rendering="crispEdges">
+  <ellipse cx="84" cy="117" rx="70" ry="6" fill="#30291f" fill-opacity=".2"/>
+
+  <!-- Top cornice and side posts. -->
+  <path d="M18 16h132v10h-5v78h-8v7H31v-7h-8V26h-5z" fill="#735239"/>
+  <path d="M24 20h120v8H24z" fill="#d1ad78"/>
+  <path d="M29 28h110v5H29z" fill="#9b724c"/>
+  <path d="M28 31h9v67h-9zM131 31h9v67h-9z" fill="#bd9162"/>
+
+  <!-- Tinted glass keeps the contents subtle while the wooden frame occludes the panda. -->
+  <path d="M39 35h41v43H39zM87 35h40v43H87z" fill="#a8c5b4"/>
+  <path d="M43 39h33v35H43zM91 39h32v35H91z" fill="#d4e1cb" fill-opacity=".9"/>
+  <path d="M81 34h6v45h-6z" fill="#79583c"/>
+  <path d="M44 75h31v3H44zM92 75h30v3H92z" fill="#79583c"/>
+
+  <!-- A few small gifts, not books. -->
+  <path d="M49 52h12v12H49z" fill="#c97561"/>
+  <path d="M54 52h3v12h-3zM49 56h12v3H49z" fill="#f0d69b"/>
+  <path d="M100 49h15v14h-15z" fill="#6e8f78"/>
+  <path d="M106 49h3v14h-3zM100 54h15v3h-15z" fill="#f0d69b"/>
+
+  <!-- Opaque lower drawers form a clear foreground occlusion edge. -->
+  <path d="M39 82h88v22H39z" fill="#9a7049"/>
+  <path d="M43 85h37v15H43zM86 85h37v15H86z" fill="#c29a68"/>
+  <path d="M43 85h37v3H43zM86 85h37v3H86z" fill="#e0bf8a"/>
+  <path d="M59 91h5v3h-5zM102 91h5v3h-5z" fill="#765438"/>
+  <path d="M23 100h122v8H23z" fill="#704f35"/>
+  <path d="M29 108h12v8H29zM127 108h12v8h-12z" fill="#62462f"/>
+</svg>

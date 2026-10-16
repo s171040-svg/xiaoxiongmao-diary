@@ -1,0 +1,3 @@
+- [小熊猫日记产品范围](panda-journal-scope.md) — 记录单人本地日记边界及月夜蓝小熊猫之家装修方向。
+- [Electron 开发验证](electron-development.md) — VNC 原生依赖、中文/emoji 字体及异步窗口状态需要单独验证。
+- [DeepSeek 连续聊天](deepseek-context.md) — JSON 模式须保持历史回复结构一致，HTTP 200 也可能只有空白内容。

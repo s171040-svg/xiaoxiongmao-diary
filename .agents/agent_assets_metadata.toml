@@ -1,0 +1,584 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "lG1WlIozwNZ1uMZ7x0nbX"
+uri = "file://artifacts/panda-journal/public/audio/panda-fall.mp3"
+type = "audio"
+title = "panda surprised falling cry"
+description = "Text-to-speech audio: 呜哇——！"
+logical_id = "64d2f8b5-48e7-4986-8249-3dea9bab2e13"
+
+[[outputs]]
+id = "IUBf7OKNDJ2bZ5FvOekfO"
+uri = "file://attached_assets/panda-idle-preview.png"
+type = "image"
+title = "小熊猫像素风基准图（待确认）"
+description = "PixelLab 生成，128×128 PNG，带透明背景。先确认这张的像素风格，再决定是否继续接入项目。"
+logical_id = "8ddce21c-1182-4ea6-96df-fcd14fa96dd5"
+content_hash = "sha256:1e8a55b109c85a30be2ec3a4691601fe65682e878f488962136bf51190492e23"
+size = 4772
+mtime_ms = 1791631158916
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/8ddce21c-1182-4ea6-96df-fcd14fa96dd5/514156f7-b63f-4236-9452-72faccf083d9"
+storage_version_token = "1791631172464629"
+content_type = "image/png"
+
+[[outputs]]
+id = "OXGRpr_IVBTGKSDBTXS7S"
+uri = "file://attached_assets/panda-idle-reference-80-preview.png"
+type = "image"
+title = "小熊猫站姿预览 · 80×80"
+description = "由你提供的透明像素图按最近邻缩放，保留原图站姿、颜色和像素边缘；未改动原图，也未接入项目。"
+logical_id = "526d396e-e815-4854-855d-973d54d93741"
+content_hash = "sha256:d094e4b7cdd4ee2a849809e6eedf5001b0af389c3e75f2d52b81f9eb04cf690a"
+size = 1152
+mtime_ms = 1791631404024
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/526d396e-e815-4854-855d-973d54d93741/b068cc11-98c5-4f7d-b0e2-52b78b8c7945"
+storage_version_token = "1791631414046719"
+content_type = "image/png"
+
+[[outputs]]
+id = "BKGWgDshke1NNZAWvgztI"
+uri = "file://attached_assets/panda-red-80-preview.png"
+type = "image"
+title = "小熊猫像素图预览 · 80×80"
+description = "PixelLab 按你给的参考画风生成：小熊猫（red panda），不是狸猫；透明背景。仅供预览，尚未接入项目。"
+logical_id = "1d36082c-e10a-4311-8c93-4122c5a3163f"
+content_hash = "sha256:d83b32f23152dd3de0145037d129e50c2d4ae6ebb81c2db518337b611278e2a8"
+size = 1673
+mtime_ms = 1791631615836
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/1d36082c-e10a-4311-8c93-4122c5a3163f/d122c3ee-0d07-45f1-aa56-537033aa8e88"
+storage_version_token = "1791631623648446"
+content_type = "image/png"
+
+[[outputs]]
+id = "XkH5X_ZnF4UFIN7OXLnpQ"
+uri = "file://attached_assets/panda-tail-repair-preview-pixellab.png"
+type = "image"
+title = "小熊猫尾巴修复预览"
+description = "PixelLab 局部修复预览（96×96透明底）。只重绘尾巴遮罩区，遮罩外与原图逐像素一致；尚未替换项目素材。"
+logical_id = "2aed23dc-3d8d-443d-876b-e6a7bd989cb6"
+content_hash = "sha256:34145323afd0a00b3896781e073c60e57c1f9d43eb214982f44e0b9b51d52e94"
+size = 2458
+mtime_ms = 1791720741330
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/2aed23dc-3d8d-443d-876b-e6a7bd989cb6/ded8ffbd-f243-4677-98ea-0a5e092c3739"
+storage_version_token = "1791720792863963"
+content_type = "image/png"
+
+[[outputs]]
+id = "Tjq39GqmQ9TD_46ykLgvm"
+uri = "file://attached_assets/panda-tail-gap-comparison.png"
+type = "image"
+title = "尾巴缺口前后对比"
+description = "左侧是当前待机图，右侧是补上尾巴内侧连接块的手工预览；尚未应用到网页素材。"
+logical_id = "144a1c24-6355-48cd-84a5-944fffcf369e"
+content_hash = "sha256:9b0fb73f977005cc91b4c59bd468bda1c722531e434d1e177313e9e071b25860"
+size = 3925
+mtime_ms = 1791721468527
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/144a1c24-6355-48cd-84a5-944fffcf369e/65290c08-55a7-47ff-9ebb-e6c63bffbbd1"
+storage_version_token = "1791721489814898"
+content_type = "image/png"
+
+[[outputs]]
+id = "rLfW1vfyvNX_i2bRB2cUI"
+uri = "file://artifacts/panda-journal/public/static/panda/grab.png"
+type = "image"
+title = "小熊猫被提起姿势"
+description = "当前小熊猫的 96×96 透明底抓取姿势，已接入网页房间的长按抓取状态。"
+logical_id = "ac529b85-398b-4852-a548-ef120a8111fd"
+content_hash = "sha256:889e3259520ba36807cbd0aea77a9caf85526497d30dc35e340846f467c38c0a"
+size = 3868
+mtime_ms = 1791726020060
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/ac529b85-398b-4852-a548-ef120a8111fd/03956605-0874-41dc-82c3-fc8ca4825e27"
+storage_version_token = "1791726124435210"
+content_type = "image/png"
+
+[[outputs]]
+id = "XM6qL5voSEi-2-LFRQghU"
+uri = "file://attached_assets/generated_images/panda-bedroom-warm.png"
+type = "image"
+title = "卧室方案 1｜暖木色"
+description = "暖米色与蜂蜜木色的像素风伪等距卧室，家具靠边，中央留出活动空间。"
+logical_id = "2ddeac26-0035-4682-b2f1-c5227c7b5d2f"
+content_hash = "sha256:08ac7f30ca6badfa726ad4d4d64d097abc837615f39fd8b43cfbc32b9455cf1d"
+size = 1368471
+mtime_ms = 1791728780091
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/2ddeac26-0035-4682-b2f1-c5227c7b5d2f/bcb7aa8b-023f-4939-9a18-66fce1e7454c"
+storage_version_token = "1791728800815779"
+content_type = "image/png"
+
+[[outputs]]
+id = "yC6TGzd0RA8EJUZ0Uspnp"
+uri = "file://attached_assets/generated_images/panda-bedroom-sage.png"
+type = "image"
+title = "卧室方案 2｜薄荷绿"
+description = "浅绿色与橡木色的清新像素风卧室，带植物、书架和中央地板活动区。"
+logical_id = "98dce0bb-c90b-48e5-892f-80b5c754568b"
+content_hash = "sha256:158921e38e43b61d12c9ac1a5728787302d5727c528673fb65980000c3a71c6a"
+size = 1340487
+mtime_ms = 1791728780939
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/98dce0bb-c90b-48e5-892f-80b5c754568b/279ab3a0-8dc4-4042-a70c-fa56fac0da8f"
+storage_version_token = "1791728802051222"
+content_type = "image/png"
+
+[[outputs]]
+id = "LFCrGSWbW549OSH2LtyL1"
+uri = "file://attached_assets/generated_images/panda-bedroom-night.png"
+type = "image"
+title = "卧室方案 3｜月夜蓝"
+description = "蓝色月夜与暖灯光的像素风卧室，中央保留宽敞地面。"
+logical_id = "3dc91582-f137-436d-b620-5da680d7a216"
+content_hash = "sha256:eee7201ccd25e2442cb4ad57a1a8d826ed2981e96d958c57b68f6870961aca8a"
+size = 1283927
+mtime_ms = 1791728780663
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/3dc91582-f137-436d-b620-5da680d7a216/fcd7630a-14ff-43be-a49a-90e8d3166d4d"
+storage_version_token = "1791728803298152"
+content_type = "image/png"
+
+[[outputs]]
+id = "g4AjoJB-73OqgpDK5XaCC"
+uri = "file://attached_assets/generated_images/panda-bedroom-night-wide.png"
+type = "image"
+title = "月夜蓝卧室｜横向构图预览"
+description = "按你选的月夜蓝方向细化：家具沿墙摆放，前景与中央留出更宽的可活动地板；尚未接入房间。"
+logical_id = "305a463c-7558-480c-9c89-7641bae003bf"
+content_hash = "sha256:9495b08c7d41f7ea408f1a0c3e2d4412d1d387108fbc18c32d0f48e96a884a38"
+size = 1470920
+mtime_ms = 1791728957731
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/305a463c-7558-480c-9c89-7641bae003bf/0c1b6adc-48ab-4615-9330-b9bd14cef786"
+storage_version_token = "1791728973810061"
+content_type = "image/png"
+
+[[outputs]]
+id = "RqypJck2SwBHjRi-PSN6A"
+uri = "file://attached_assets/generated_images/panda-bedroom-night-pet-home.png"
+type = "image"
+title = "月夜蓝小熊猫之家｜装修预览"
+description = "保留原房间格局与三盏灯，换成小熊猫窝、饮水机、竹子玩具和小熊猫主题装饰。仅作预览，未接入应用。"
+logical_id = "0d8f6040-6569-4fd1-8273-37a2fca7a730"
+content_hash = "sha256:954b8daad2e65618b5b484937471a2aa834db56020a5c404ac3a17f4ab04a2ea"
+size = 1478746
+mtime_ms = 1791729354039
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/0d8f6040-6569-4fd1-8273-37a2fca7a730/b6c72b3d-ca63-4220-835d-2f886deac966"
+storage_version_token = "1791729384238205"
+content_type = "image/png"
+
+[[outputs]]
+id = "NBqrNICTekQ5V0t_wK-d4"
+uri = "file://attached_assets/generated_images/panda-bedroom-night-gifts.png"
+type = "image"
+title = "月夜蓝小熊猫之家｜食物箱与礼物柜"
+description = "新增带‘食物’标识的储物箱，并把高柜改成玻璃门礼物柜；房间格局、三盏灯和小熊猫窝保留。仅为预览图，未接入应用。"
+logical_id = "7faa76cd-4042-4e7b-9026-1e52b3bfdaf6"
+content_hash = "sha256:d732bdb4e9c25f69c7dca58edf5ec9733fc6168fcb14f50c40f5eea8d723e8de"
+size = 1487286
+mtime_ms = 1791729993971
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/7faa76cd-4042-4e7b-9026-1e52b3bfdaf6/f023d89f-6d46-4048-8663-df67db1dabf4"
+storage_version_token = "1791730028037777"
+content_type = "image/png"
+
+[[outputs]]
+id = "6qdBoB0dAIjHKbjXmhNc_"
+uri = "file://attached_assets/generated_images/panda-bedroom-night-with-robot-wheels.png"
+type = "image"
+title = "月夜蓝小熊猫之家｜加入像素机器人"
+description = "按用户照片将白色球形摄像机器人像素化并放进房间，深色摄像穹顶与左右驱动轮清晰可见。静态预览，不含实际遥控或摄像功能。"
+logical_id = "0f6e5377-c4b5-4fbe-adf4-ba748c4b002f"
+content_hash = "sha256:d79b9571b43a8088306cdfcb22a74e47a2d7062a83d3d7b0e01e89ee471d7a24"
+size = 1485716
+mtime_ms = 1791730269535
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/0f6e5377-c4b5-4fbe-adf4-ba748c4b002f/f2cd24c4-73bd-43d7-9c21-3d120888de82"
+storage_version_token = "1791730342861380"
+content_type = "image/png"
+
+[[outputs]]
+id = "1K93I534OvFmDhCuIhnb0"
+uri = "file://attached_assets/generated_images/panda-bedroom-night-with-small-robot.png"
+type = "image"
+title = "月夜蓝房间｜缩小版机器人"
+description = "机器人已缩到之前约一半，保留摄像头穹顶和左右轮子；房间构图未改，仍是静态预览。"
+logical_id = "cb23bef2-27f3-4ddb-9f18-22593d4be794"
+content_hash = "sha256:a53c9f5a2e4953cc2a3ffdaa883b38bdde19c166db5983300e05d1e4f1d25390"
+size = 1497457
+mtime_ms = 1791730439363
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/cb23bef2-27f3-4ddb-9f18-22593d4be794/34b45bc5-583c-43f0-9e8b-760790d2716d"
+storage_version_token = "1791730484901495"
+content_type = "image/png"
+
+[[outputs]]
+id = "lsBlypSLD60ek-mFL9Woz"
+uri = "file://attached_assets/generated_images/panda-bedroom-night-bamboo-unified.png"
+type = "image"
+title = "月夜蓝小熊猫之家｜竹子绿植版"
+description = "大多数室内绿植已统一为像素竹子，保留房间布局、家具、小机器人和中央活动地板。仅为预览，未接入应用。"
+logical_id = "c01456a5-1297-4803-a518-948a7a278437"
+content_hash = "sha256:888915dc9df8e99e244d57c367e0b8db5a858ab9db4c2b7c60c6af006241d072"
+size = 1548334
+mtime_ms = 1791730641663
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/c01456a5-1297-4803-a518-948a7a278437/a180f1f0-6031-414b-866c-0008959de1ae"
+storage_version_token = "1791730674815054"
+content_type = "image/png"
+
+[[outputs]]
+id = "1O43q4Ky4zP7c3p0lBlY2"
+uri = "file://attached_assets/generated_images/panda-size-comparison.png"
+type = "image"
+title = "小熊猫与小窝尺寸对照"
+description = "左侧按网页当前角色尺寸示意（基准 72px，随房间透视约 47–75px）；右侧按小熊猫可视高度约为小窝宽度一半的目标比例示意。仅为预览，没有改应用尺寸。"
+logical_id = "14d37f72-ba4b-48e0-b171-422cd0086d80"
+content_hash = "sha256:928ea730e2fe18d62c4bd895d5ae180d608684a5e97e84808f8e539c56a88a8b"
+size = 987683
+mtime_ms = 1791731280231
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/14d37f72-ba4b-48e0-b171-422cd0086d80/5f5028c9-a2ee-4e44-879f-f88973fb72bf"
+storage_version_token = "1791731307678846"
+content_type = "image/png"
+
+[[outputs]]
+id = "61zig-xvo55p6ZMkJW_rx"
+uri = "file://attached_assets/generated_images/panda-size-comparison-two-thirds.png"
+type = "image"
+title = "小熊猫与小窝尺寸对照｜三分之二版"
+description = "左边是网页当前尺寸示意；右边将小熊猫调整为可视高度约占小窝宽度的三分之二。仅为预览，没有改应用尺寸。"
+logical_id = "3d2de275-480a-4a64-b135-82361bd90738"
+content_hash = "sha256:40d6f55e5e806c572ae063fbf1436206c564852eb003af7d04541ff4bff5270e"
+size = 991313
+mtime_ms = 1791731613171
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/3d2de275-480a-4a64-b135-82361bd90738/cd192fbf-97f7-4f2a-9abf-ecfe92545693"
+storage_version_token = "1791731631145552"
+content_type = "image/png"
+
+[[outputs]]
+id = "tNqIhZsrP7N7WAr3lotpm"
+uri = "file://attached_assets/generated_images/room-phone-fill-comparison.png"
+type = "image"
+title = "手机全屏房间效果对照"
+description = "按网页预览的 402×874 手机窗口示意：左侧完整显示方形房间，会上下留空；右侧铺满房间区域，会裁切左右家具。小熊猫按约小窝宽度 2/3 示意。这是布局预览，没有改应用。"
+logical_id = "2a8ee149-3af8-4f80-b1b9-856bf0e1b8ec"
+content_hash = "sha256:cdfc139c006f80b2e4fb8d2e46482a6d2d13471b9876b210da57bfefbe19a0c4"
+size = 1865679
+mtime_ms = 1791731878774
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/2a8ee149-3af8-4f80-b1b9-856bf0e1b8ec/69390a47-5e88-4cdd-bd85-f04172506fc4"
+storage_version_token = "1791731899907625"
+content_type = "image/png"
+
+[[outputs]]
+id = "eg7WIuTL4cJttZ-Y6KQiA"
+uri = "file://attached_assets/generated_images/panda-bedroom-desktop-16x9-preview.png"
+type = "image"
+title = "电脑版小熊猫房间｜16:9 预览"
+description = "按 1536×864 桌面横屏构图，保留房间比例不拉伸；小熊猫按可视高度约为窝宽 2/3 示意。为铺满横屏，画面放大后不显示房间最外圈的全部边界。仅为预览，没有改网页。"
+logical_id = "1685b85b-ff81-44b3-a07f-35ed5087d2da"
+content_hash = "sha256:799fd6517df14fe351e8ea57b6738bf3db5fcaf28f28c1d64b4aca2d3809c58f"
+size = 1478450
+mtime_ms = 1791732244907
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/1685b85b-ff81-44b3-a07f-35ed5087d2da/c2cb52fb-3348-43ec-9194-a983efb5aff6"
+storage_version_token = "1791732282852257"
+content_type = "image/png"
+
+[[outputs]]
+id = "kJZdXc4x0HXB4AroSyFSZ"
+uri = "file://attached_assets/generated_images/panda-room-angle-variations/01-balanced-isometric.png"
+type = "image"
+title = "角度一｜均衡斜俯视"
+description = "墙面和地板都看得清，整体关系最接近当前房间设想。"
+logical_id = "b6e4220d-2d56-45c5-bca6-666d4fcf855b"
+content_hash = "sha256:4800484ca387501a2a8d494605216f89a409a816ed0d19640c1c544c2167506a"
+size = 1393326
+mtime_ms = 1791732626643
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/b6e4220d-2d56-45c5-bca6-666d4fcf855b/5ad1e82f-38e3-4a1f-86dd-14c9854addeb"
+storage_version_token = "1791732693706310"
+content_type = "image/png"
+
+[[outputs]]
+id = "y7bXRXr462mjE20_QuJHX"
+uri = "file://attached_assets/generated_images/panda-room-angle-variations/02-low-immersive.png"
+type = "image"
+title = "角度二｜较低的沉浸视角"
+description = "更像站在房间里看小熊猫，空间感更强；代价是能看到的地板纵深较少。"
+logical_id = "b88d0cdd-6128-4fc1-a607-258fb1ad43dd"
+content_hash = "sha256:c9eb690d4c372968e36388f8139fa60b2e2fb11ef4d1b20b560fd6a69b1632a4"
+size = 1302424
+mtime_ms = 1791732629047
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/b88d0cdd-6128-4fc1-a607-258fb1ad43dd/7cb400f4-ee80-440f-87c0-46a939695b29"
+storage_version_token = "1791732695022908"
+content_type = "image/png"
+
+[[outputs]]
+id = "0Y6mOFRFd7eea9ZTnMOY5"
+uri = "file://attached_assets/generated_images/panda-room-angle-variations/03-high-floor-readable.png"
+type = "image"
+title = "角度三｜较高的地板视角"
+description = "活动地板和家具位置更清楚；代价是画面更像房间平面图，温馨包围感弱一些。"
+logical_id = "5cbd08c2-0365-43ab-934d-32b26fe7dc1b"
+content_hash = "sha256:d21a7bd5a2630ec5f6944f57aecf8911594b625b257d063c2c011f928e734ce9"
+size = 1436742
+mtime_ms = 1791732631287
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/5cbd08c2-0365-43ab-934d-32b26fe7dc1b/a1a98c14-e586-4eab-a87e-f01b086eca2e"
+storage_version_token = "1791732696322942"
+content_type = "image/png"
+
+[[outputs]]
+id = "u_jPNOuLuzcMUJYDI0Rlr"
+uri = "file://attached_assets/generated_images/panda-room-angle-variations/01-balanced-isometric-wide.png"
+type = "image"
+title = "横屏近景｜均衡斜俯视"
+description = "墙面与活动地板比较平衡；相较整屋版，画面更大，代价是外围边界被裁掉。"
+logical_id = "5a39fb62-b24a-45e3-b02e-c8cabe895ae0"
+content_hash = "sha256:da85b88d157bdb95a17a422b708b6714f464f9cf085efde4e308860546fbfec7"
+size = 2135643
+mtime_ms = 1791732762098
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/5a39fb62-b24a-45e3-b02e-c8cabe895ae0/6619f313-ec61-4168-9436-e9a78804a31b"
+storage_version_token = "1791732771111426"
+content_type = "image/png"
+
+[[outputs]]
+id = "YzhIXdj8n2m7s0xQ8e4-5"
+uri = "file://attached_assets/generated_images/panda-room-angle-variations/02-low-immersive-wide.png"
+type = "image"
+title = "横屏近景｜较低沉浸视角"
+description = "更接近小熊猫视线，房间更有包围感；能看到的地板纵深较少。"
+logical_id = "18927b3b-f568-4c9d-97aa-6c53bb219bf5"
+content_hash = "sha256:b6e5bc9452f2b109bd8a34521102c1aa4caeef5f0348b1f8550b9a59a9498197"
+size = 1944009
+mtime_ms = 1791732762102
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/18927b3b-f568-4c9d-97aa-6c53bb219bf5/5e1ad26a-b8f9-45d6-a65b-0d0195b272db"
+storage_version_token = "1791732772389371"
+content_type = "image/png"
+
+[[outputs]]
+id = "Q2HsbrcBRK1U4VZ7dpX3T"
+uri = "file://attached_assets/generated_images/panda-room-angle-variations/03-high-floor-readable-wide.png"
+type = "image"
+title = "横屏近景｜较高地板视角"
+description = "走动区域更清楚，地板更开阔；空间的温馨包围感较弱。"
+logical_id = "daff33ab-b5b7-48ff-a3ad-f1fe07a6018a"
+content_hash = "sha256:86b6f4bf9fe09918d748c58576ad9493eb6dbef3a56de6e00c2ee54bc16a250e"
+size = 2135341
+mtime_ms = 1791732762106
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/daff33ab-b5b7-48ff-a3ad-f1fe07a6018a/86c062c6-1a26-4551-8753-3dc5452ec35c"
+storage_version_token = "1791732773699455"
+content_type = "image/png"
+
+[[outputs]]
+id = "cSZcZ7bx9jBS4X3nRiyMF"
+uri = "file://artifacts/panda-journal/public/static/panda/peeking.png"
+type = "image"
+title = "小熊猫趴着回头看"
+description = "透明底 96×96 像素状态图；根据你给的趴卧回头姿势生成，使用现有棕红小熊猫形象。"
+logical_id = "314d9e3e-1932-45c8-a3aa-36d5c2874f60"
+content_hash = "sha256:33a80f5b10445302c6c4e19a4bdb0711088768adc900ef607799c160b89bcdf8"
+size = 2553
+mtime_ms = 1791823214076
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/314d9e3e-1932-45c8-a3aa-36d5c2874f60/f0c3181d-847d-4dd7-b1fa-99ddb53da0d7"
+storage_version_token = "1791823387659733"
+content_type = "image/png"
+
+[[outputs]]
+id = "S_V4i4fzyCguRXGlXk8vi"
+uri = "file://artifacts/panda-journal/public/static/panda/dirty-return.png"
+type = "image"
+title = "小熊猫灰头土脸的回归像素图"
+description = "PixelLab 绘制的透明背景 96×96 像素形象：带着灰尘、泪痕和委屈表情从屏幕边缘回来。"
+logical_id = "977b9340-65f5-4a96-91ae-5393a6d07518"
+content_hash = "sha256:120b635826c532b721da2ad6894750e16cdbd1976bda25dd6d415abd60526d3c"
+size = 3927
+mtime_ms = 1791963074160
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/977b9340-65f5-4a96-91ae-5393a6d07518/dd2bf052-42b9-4a1d-aa01-05965279d32b"
+storage_version_token = "1791963323146965"
+content_type = "image/png"
+
+[[outputs]]
+id = "l2k4xFzR5RuZSv729VsCP"
+uri = "file://artifacts/panda-journal/public/static/room/pet-bathtub.png"
+type = "image"
+title = "网页房间右侧的像素浴缸"
+description = "透明底 128×96 像素浴缸，采用柔和薄荷绿水面和奶油木色，作为后续洗澡互动的场景位置。"
+logical_id = "e044f591-a329-48d7-827b-2f5c7ad6e0e0"
+content_hash = "sha256:d998a72f5de5b094d113c30bd9c63e66fe9e810eb18bd5d7b19350c5c5db9659"
+size = 1884
+mtime_ms = 1791963785331
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/e044f591-a329-48d7-827b-2f5c7ad6e0e0/206ca39f-500b-431a-99d5-3eb6e402044e"
+storage_version_token = "1791964177757409"
+content_type = "image/png"
+
+[[outputs]]
+id = "KOLpNF4jopSh7ft2X6X_v"
+uri = "file://artifacts/panda-journal/public/static/room/bathing-scene.png"
+type = "image"
+title = "小熊猫洗澡姿势"
+description = "PixelLab 生成的透明像素画：小熊猫在浴缸里露出头和前爪，作为网页房间的持续洗澡状态。"
+logical_id = "494d9151-b1af-4a84-a3dd-a020f7789fac"
+content_hash = "sha256:a5d229e59565e7206f7fc75aea32fef37e854cab334d399cda6272914c10c1cd"
+size = 5167
+mtime_ms = 1792059265704
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/494d9151-b1af-4a84-a3dd-a020f7789fac/b9962ef0-f751-4359-a6c8-ce132e7b7a1d"
+storage_version_token = "1792059949113616"
+content_type = "image/png"
+
+[[outputs]]
+id = "1lpkW1fhMdifjbbXVcrlI"
+uri = "file://artifacts/panda-journal/public/static/room/bath-puff.png"
+type = "image"
+title = "像素浴球"
+description = "可拖到洗澡中的小熊猫身上放置；当前版本不带擦洗动画。"
+logical_id = "0db9aec7-bbba-448d-8c02-f7e6b407613c"
+content_hash = "sha256:b6f5845b16a47d9d1935374e8bb2ced0fa0262c1364510bdcd8c5f57192f7e05"
+size = 1667
+mtime_ms = 1792059266294
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/0db9aec7-bbba-448d-8c02-f7e6b407613c/c156ba68-833a-48a2-b8b6-6dc14fbc9fa0"
+storage_version_token = "1792059950379211"
+content_type = "image/png"
+
+[[outputs]]
+id = "dSKQkPYD3dOdNx-6e4-ua"
+uri = "file://artifacts/panda-journal/public/static/panda/bathing/0.png"
+type = "image"
+title = "小熊猫浴缸洗澡姿势"
+description = "PixelLab 生成的透明 96×96 小熊猫入浴姿势；原浴缸图片与小熊猫在网页中的显示尺寸保持不变，动画序列已接入网页房间。"
+logical_id = "502bae65-50c8-44a1-b00f-40a811c06b21"
+content_hash = "sha256:5d3cc8730784162203acd33620e161394f56d5aa12cff461d886fae098050c83"
+size = 2597
+mtime_ms = 1792067497599
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/502bae65-50c8-44a1-b00f-40a811c06b21/3fc340f4-32fb-4604-8ea4-11c107c12800"
+storage_version_token = "1792067786815221"
+content_type = "image/png"
+
+[[outputs]]
+id = "GjqSVlPHJwxR1j9FPGvax"
+uri = "file://artifacts/panda-journal/public/static/panda/bathing-rub/4.png"
+type = "image"
+title = "小熊猫洗澡球揉搓动作帧"
+description = "PixelLab 生成的透明 96×96 洗澡球揉搓动画中间帧；只有浴球在小熊猫身上来回移动时播放，放置浴球或松开后恢复普通洗澡动作。"
+logical_id = "4f912b26-a2ae-40d8-8fed-9bcb745ffff5"
+content_hash = "sha256:36561b790b15b639f3edec0b214cd1d41ccdf18ea201be6a054746e3b27d7d68"
+size = 2269
+mtime_ms = 1792068320759
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/4f912b26-a2ae-40d8-8fed-9bcb745ffff5/cde7d641-2538-4e45-9d4c-5bbb49d25216"
+storage_version_token = "1792068607641066"
+content_type = "image/png"
+
+[[outputs]]
+id = "TNQiJx5PuKvzBTPV7d2VR"
+uri = "file://artifacts/panda-journal/public/static/panda/bathing-soap/4.png"
+type = "image"
+title = "浴球碰触后的小熊猫揉洗动画帧"
+description = "PixelLab 生成的独立透明 96×96 揉洗帧：小熊猫用爪子搓洗身体并带有泡泡；浴球碰到小熊猫时开始播放，拖开后恢复普通洗澡动作。"
+logical_id = "15e55c58-1c1e-442d-903a-c9738758cdbe"
+content_hash = "sha256:dc29916e7fe38ce395cd8fc36bd03dd54595e778bf40ed6491c974d213603420"
+size = 2009
+mtime_ms = 1792070487086
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/15e55c58-1c1e-442d-903a-c9738758cdbe/24dacf1a-cdda-4bf9-9b72-4e722f278c46"
+storage_version_token = "1792070823365253"
+content_type = "image/png"
+
+[[outputs]]
+id = "St7-GuJHzwRoA09yuTvtn"
+uri = "file://artifacts/panda-journal/public/static/room/panda-nest-bed.png"
+type = "image"
+title = "爪印按枕面透视轴调整后的床图"
+description = "用枕面米字交点定位爪印中心，并将爪印对称轴沿枕面的透视竖轴调整；最终图不含辅助线。"
+logical_id = "95311f6b-418d-4ed8-ae78-5b90d74c90e6"
+content_hash = "sha256:6c28fa6c096c6ce2fb2713432389cb4ced9d8fe7333625d6daa81845ec8795bf"
+size = 11020
+mtime_ms = 1792119036624
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/95311f6b-418d-4ed8-ae78-5b90d74c90e6/31583fd9-c7d6-46af-a076-0f8184cbd405"
+storage_version_token = "1792119107445176"
+content_type = "image/png"
+
+[[outputs]]
+id = "PaXc0l1AxUAt6bc5wth6S"
+uri = "file://attached_assets/panda-cat-nest-closeup-draft.png"
+type = "image"
+title = "草稿 A：圆形藤编猫窝"
+description = "床型最接近圆形编织窝，含深棕毯、爪印枕和暖灯；没有完整墙面与角落道具。"
+logical_id = "6e2b585f-5bb8-48a4-ac69-250080c8b5a0"
+content_hash = "sha256:cd46ede85053fc65c49d0ea8723788537e2979ca6955147afa5cd8fc8b9f0933"
+size = 58757
+mtime_ms = 1792076806596
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/6e2b585f-5bb8-48a4-ac69-250080c8b5a0/458063f2-faa5-4466-bcfd-5bd2fb6fa119"
+storage_version_token = "1792076905712298"
+content_type = "image/png"
+
+[[outputs]]
+id = "L-aWmBbgCfkASGzv2labd"
+uri = "file://attached_assets/panda-night-room-draft.png"
+type = "image"
+title = "草稿 B：夜间卧室场景"
+description = "展示木地板、暖灯和水碗等环境，但床型没有保留成圆形宠物窝。"
+logical_id = "8d9f5dc0-ec61-44cc-9230-add5ee8b8fef"
+content_hash = "sha256:e3b9a0ecbe84a6f5b6cd47cc6f2b9b5773f3d9ef42bb2456b84fe5c20778bd92"
+size = 58424
+mtime_ms = 1792076817680
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/8d9f5dc0-ec61-44cc-9230-add5ee8b8fef/aafe7934-0b4a-4a59-8f1f-1628cc6ec93e"
+storage_version_token = "1792076907058969"
+content_type = "image/png"
+
+[[outputs]]
+id = "hSuSRkq-rj05a23X156yI"
+uri = "file://attached_assets/panda-night-room-pro-preview.png"
+type = "image"
+title = "Pro 预览：圆形藤编小熊猫窝夜景"
+description = "按 A 版圆窝和稍高圆润外沿制作的完整像素卧室场景；含暖灯、深蓝墙、流苏挂毯、木地板、水碗和家具。尚未接入网页房间。"
+logical_id = "231fea0e-5849-4b7d-8365-123095532e1d"
+content_hash = "sha256:c11ee3c0f1a8de3233fddd04c88911419be69d7c14eac303bebb776d67a3d7a7"
+size = 55214
+mtime_ms = 1792077453392
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/231fea0e-5849-4b7d-8365-123095532e1d/11c47b7f-1f66-4dc1-90a8-bc90921b61d7"
+storage_version_token = "1792077473687842"
+content_type = "image/png"
+
+[[outputs]]
+id = "9OvM6VQcxEwveLHPn7ID6"
+uri = "file://attached_assets/panda-bed-extraction-comparison.png"
+type = "image"
+title = "床位抠图前后对比"
+description = "左侧是完整 Pro 夜景图，右侧是抠出的透明床体预览；网页房间只使用右侧床体。"
+logical_id = "9c2b6757-f445-4857-aeac-add5f305da23"
+content_hash = "sha256:cfb391f5c5acbc9078dd1224d5d07cf8158bbca4c6bce780acb6fe6d95f58652"
+size = 25873
+mtime_ms = 1792078293800
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/9c2b6757-f445-4857-aeac-add5f305da23/4526ad57-ac66-4cf1-bf4d-3555f2d0214c"
+storage_version_token = "1792078346507460"
+content_type = "image/png"
+
+[[outputs]]
+id = "EqCsItZizBkA53MoWsNZq"
+uri = "file://attached_assets/panda-bed-edge-refined-comparison.png"
+type = "image"
+title = "床与枕头边缘精裁对比"
+description = "左边是上一版，右边是沿床沿和枕头外轮廓重新裁切的版本；仅保留床体，不带房间背景。"
+logical_id = "7f904bab-2930-4fb9-8ed6-8ab119e79eaf"
+content_hash = "sha256:6a4dedb31a75fd19b3e9d69f0b4f203e6f0e99aa813533db47f8dd740befb9ba"
+size = 54881
+mtime_ms = 1792079246675
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/7f904bab-2930-4fb9-8ed6-8ab119e79eaf/02ec1ace-7cf5-4091-8bf5-beb599f526cc"
+storage_version_token = "1792079362339655"
+content_type = "image/png"
+
+[[outputs]]
+id = "INUuz-wbk7jlTaVOXnkGJ"
+uri = "file://artifacts/panda-journal/public/static/panda/dirty-flee.png"
+type = "image"
+title = "小熊猫被苍蝇追时的大哭奔跑姿势"
+description = "96×96 透明底像素图。追逐时切换到这张大哭、委屈的奔跑姿势；追逐结束后恢复原来的脏兮兮形象。"
+logical_id = "da0bdda9-9977-468d-82dd-812bd9142fa7"
+content_hash = "sha256:1a1cbb0ea18dc749b1b066b2d35c307f448a53ee60b6251eb6ab2b599b12413f"
+size = 4036
+mtime_ms = 1792123783849
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/da0bdda9-9977-468d-82dd-812bd9142fa7/7990cf5c-0374-4fd0-bc03-0aff9f3fb98a"
+storage_version_token = "1792123910421830"
+content_type = "image/png"
+
+[[outputs]]
+id = "Vs9JOyhkL3SikGsPUDvNT"
+uri = "file://artifacts/panda-journal/public/static/panda/startled.png"
+type = "image"
+title = "小熊猫被鼠标吓到的炸毛姿势"
+description = "PixelLab 生成的 96×96 透明底棕红小熊猫受惊图：耳朵竖起、眼睛睁大、身体和尾巴蓬起；网页房间受惊时使用。"
+logical_id = "621bb6ad-7264-42a9-976d-8e9e5be59a92"
+content_hash = "sha256:4484ba19a5a5d246130a6dff2665b99eae0754a2a19abd81052506639678a28d"
+size = 3878
+mtime_ms = 1792124263766
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/621bb6ad-7264-42a9-976d-8e9e5be59a92/f05a4be5-2849-4a14-b38f-d25e6ec899c3"
+storage_version_token = "1792124345952013"
+content_type = "image/png"

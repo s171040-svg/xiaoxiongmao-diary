@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "小熊猫日记"
+description = "A private, single-user journaling app where a little red panda reacts warmly to notes. Saves entries only in the browser, with real AI text classification, category-based panda reactions, and automatic quiet night mode. Text is sent to AI only for analysis; journal entries and photos remain on the device."
+version = "1.0.0"
+id = "artifacts/panda-journal"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21836
+
+[services.development]
+run = "pnpm --filter @workspace/panda-journal run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/panda-journal", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/panda-journal/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21836"
+BASE_PATH = "/"
