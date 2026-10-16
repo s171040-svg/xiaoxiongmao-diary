@@ -71,6 +71,13 @@ async function main() {
   }
   copyDirectory(path.join(packageRoot, "dist", "desktop"), path.join(stageRoot, "dist", "desktop"));
   copyDirectory(path.join(packageRoot, "public", "static"), path.join(stageRoot, "public", "static"));
+  const animationManifestSource = path.join(packageRoot, "src", "lib", "panda-animation-manifest.json");
+  if (!fs.existsSync(animationManifestSource)) {
+    throw new Error(`Required build input is missing: ${animationManifestSource}`);
+  }
+  const stagedAnimationManifest = path.join(stageRoot, "src", "lib", "panda-animation-manifest.json");
+  fs.mkdirSync(path.dirname(stagedAnimationManifest), { recursive: true });
+  fs.copyFileSync(animationManifestSource, stagedAnimationManifest);
 
   run(
     pnpm,
@@ -112,7 +119,7 @@ async function main() {
     asar: true,
     npmRebuild: false,
     directories: { output: outputRoot },
-    files: ["desktop/**/*", "dist/desktop/**/*", "public/static/**/*", "package.json"],
+    files: ["desktop/**/*", "dist/desktop/**/*", "public/static/**/*", "src/lib/panda-animation-manifest.json", "package.json"],
     win: {
       target: [{ target: "nsis", arch: ["x64"] }],
       artifactName: "${productName}-Setup-${version}-${arch}.${ext}",
