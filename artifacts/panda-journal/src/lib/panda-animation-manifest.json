@@ -3,7 +3,7 @@
   "frameCountBySprite": {
     "chew": 14,
     "dizzy": 8,
-    "tail-chase": 8
+    "tail-chase": 5
   },
   "frameIntervalMs": {
     "idle": 420,

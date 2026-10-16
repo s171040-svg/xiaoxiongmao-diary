@@ -23,6 +23,7 @@
 .ps-track{position:absolute;left:var(--room-x,50%);top:var(--room-y,53%);width:calc(92px * var(--room-scale,.89));height:calc(92px * var(--room-scale,.89));display:grid;place-items:end center;transform:translate(-50%,-100%);pointer-events:none}
 .ps-track.ps-bed-sleeping{z-index:4}
 .ps-room-furniture{display:none;position:absolute;width:clamp(116px,14vw,168px);height:auto;image-rendering:pixelated;transform-origin:center bottom;pointer-events:none;user-select:none}
+.ps-room-rack{position:fixed;z-index:1;left:68%;bottom:clamp(190px,26vh,280px);width:clamp(96px,10vw,132px);height:auto;transform:translateX(-50%);image-rendering:pixelated;filter:drop-shadow(0 4px 4px #33271c30);pointer-events:none;user-select:none}
 .ps-room-bed{position:fixed;z-index:1;left:clamp(28px,26vw,360px);top:clamp(230px,58vh,500px);width:clamp(103px,12vw,150px);height:auto;transform:translate(-50%,-80%);image-rendering:pixelated;filter:drop-shadow(0 4px 5px #17131d40);pointer-events:none;user-select:none}
 .ps-bath-station{position:fixed;z-index:2;right:clamp(14px,4vw,56px);bottom:clamp(78px,12vh,112px);display:flex;align-items:flex-end;gap:9px;pointer-events:none}
 .ps-room-bathtub{position:static;display:block;width:clamp(96px,13vw,164px);height:auto;image-rendering:pixelated;filter:drop-shadow(0 3px 4px #443a2730);pointer-events:none;user-select:none}
@@ -234,3 +235,9 @@
 @keyframes ps-bath-ball-drop{0%{transform:translateY(-20px) scale(.68) rotate(-18deg);opacity:0}18%{opacity:1}62%{transform:translateY(5px) scale(1.08) rotate(8deg)}78%{transform:translateY(-5px) scale(.97) rotate(-5deg)}100%{transform:translateY(0) scale(1) rotate(0);opacity:1}}
 @media (prefers-reduced-motion:reduce){.ps-panda,.ps-body,.ps-snack-drop,.ps-gift,.ps-sleep-zzz,.ps-daydream-dots{animation-duration:.01ms!important}.ps-panda.ps-dragging,.ps-panda.ps-dragging .ps-body{animation:none}.ps-grab-daze{animation:none;opacity:1;translate:0}.ps-scared-mark{animation:none;opacity:1;translate:0 0}.ps-track.ps-returning{animation:none}}
 @media (prefers-reduced-motion:reduce){.ps-track.ps-bath-dropping,.ps-panda.ps-bath-dropping{animation:none!important}}
+.ps-track.ps-hanging-on-rack{z-index:7}
+.ps-panda.ps-hanging{z-index:6;cursor:grab;transform-origin:50% 5%;translate:0;scale:1;filter:drop-shadow(0 8px 5px #29221644)}
+.ps-panda.ps-hanging:hover,.ps-panda.ps-hanging:active{translate:0;scale:1}
+.ps-panda.ps-hanging .ps-body{rotate:0deg;scale:1 1.04;transform-origin:50% 8%;filter:saturate(.9) brightness(1.03);animation:ps-rack-hang-sway 1.45s ease-in-out infinite alternate}
+@keyframes ps-rack-hang-sway{0%{rotate:-3deg}100%{rotate:3deg}}
+@media (prefers-reduced-motion:reduce){.ps-panda.ps-hanging,.ps-panda.ps-hanging .ps-body{animation:none}}
