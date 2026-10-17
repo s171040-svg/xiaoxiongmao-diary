@@ -19,7 +19,7 @@ const devActionOptions: { action: PerformanceAction; label: string }[] = [
   { action: 'somersault', label: '翻跟斗' },
   { action: 'tail', label: '追尾巴' },
   { action: 'cuddle', label: '蹭蹭撒娇' },
-  { action: 'captured-homecoming', label: '小幅落下后爬来求抱抱' },
+  { action: 'captured-homecoming', label: '时空旋涡送回和空间警察来信' },
 ];
 const devPoseOptions: { pose: DeveloperPose; label: string }[] = [
   { pose: 'idle', label: '发呆' },

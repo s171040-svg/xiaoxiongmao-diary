@@ -77,6 +77,7 @@ const bathingRubbingFrameUrl = (frame: number) => pandaStaticUrl(`bathing-soap/$
 const dirtyBathingFrameUrl = (frame: number) => pandaStaticUrl(`bathing-dirty/${frame}.png?v=dirty-bath-pixellab-1`);
 const dirtyBathingRubbingFrameUrl = (frame: number) => pandaStaticUrl(`bathing-dirty-soap/${frame}.png?v=dirty-bath-soap-pixellab-1`);
 const BATH_PUFF_SPRITE = `${import.meta.env.BASE_URL}static/room/bath-puff.png?v=bath-puff-1`;
+const CAPTURED_TIME_VORTEX_SPRITE = pandaStaticUrl('captured-time-portal.png?v=space-portal-1');
 const chewFrameUrl = (frame: number) => pandaStaticUrl(
   frame === 0 ? 'chew.png?v=chew-feed-4' : `frames/chew-${frame}.png?v=chew-feed-4`,
 );
@@ -196,6 +197,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   worldFallPhaseRef.current = worldFallPhase;
   const [worldFallMessageVisible, setWorldFallMessageVisible] = useState(false);
   const [capturedHomecomingArrived, setCapturedHomecomingArrived] = useState(false);
+  const [spacePoliceLetterPosition, setSpacePoliceLetterPosition] = useState<{ left: number; top: number } | null>(null);
   const capturedHomecomingArrivedRef = useRef(false);
   const capturedHomecomingTokenRef = useRef<number | null>(null);
   const [dirtyPleaText, setDirtyPleaText] = useState<string | null>(null);
@@ -587,6 +589,30 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     capturedHomecomingArrivedRef.current = true;
     setCapturedHomecomingArrived(true);
   }, [capturedHomecoming]);
+
+  useLayoutEffect(() => {
+    if (!showInteractionBubble || !capturedHomecoming || !capturedHomecomingArrived) {
+      setSpacePoliceLetterPosition(null);
+      return;
+    }
+    const updateLetterPosition = () => {
+      const bounds = trackRef.current?.getBoundingClientRect();
+      if (!bounds) return;
+      const width = Math.min(236, Math.max(0, window.innerWidth - 24));
+      const height = 138;
+      const left = Math.max(12, Math.min(window.innerWidth - width - 12, bounds.left + bounds.width / 2 - width / 2));
+      const above = bounds.top - height - 30;
+      const top = above >= 80
+        ? above
+        : Math.min(window.innerHeight - height - 12, bounds.bottom + 14);
+      setSpacePoliceLetterPosition(previous => previous?.left === left && previous.top === top
+        ? previous
+        : { left, top: Math.max(8, top) });
+    };
+    updateLetterPosition();
+    window.addEventListener('resize', updateLetterPosition);
+    return () => window.removeEventListener('resize', updateLetterPosition);
+  }, [capturedHomecoming, capturedHomecomingArrived, pet.token, showInteractionBubble]);
 
   useEffect(() => {
     if (!showInteractionBubble || !hangingOnRack) return undefined;
@@ -1740,6 +1766,15 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
             onAnimationEnd={(event) => { if (event.animationName === 'ps-captured-homecoming-path') finishCapturedHomecomingPath(); }}
             data-captured-return-phase={!capturedHomecoming ? undefined : capturedHomecomingArrived ? 'hugging' : frame < 2 ? 'thrown' : frame <= 4 ? 'impact' : 'crawling'}
             data-room-u="0.500" data-room-v="0.580" data-testid="panda-room-position" key={`${pet.token}-${pet.stage}`}>
+            {showInteractionBubble && capturedHomecoming && !capturedHomecomingArrived && (
+              <span className="ps-captured-time-vortex" aria-hidden="true">
+                <img src={CAPTURED_TIME_VORTEX_SPRITE} alt="" draggable={false} />
+              </span>
+            )}
+            {showInteractionBubble && capturedHomecoming && (
+              <span className="ps-space-police-envelope" role="img" aria-label="随小熊猫一起送来的空间警察信封"
+                data-testid="space-police-envelope"><i aria-hidden="true" /></span>
+            )}
             {showInteractionBubble && worldFallMessageVisible && (
               <span className="ps-thinking ps-room-chat-bubble ps-world-fall-bubble" role="status" aria-live="polite"
                 data-testid="panda-world-fall-message">掉出去啦！</span>
@@ -1768,7 +1803,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
               onPointerMove={handlePandaPointerMove}
               onPointerUp={handlePandaPointerUp}
               onPointerCancel={handlePandaPointerCancel}
-                  aria-label={capturedHomecoming ? '小熊猫小幅落下，爬过来求抱抱' : hangingOnRack ? '小熊猫挂在晾衣架上；长按可以把它抱下来' : isFlyChasing ? '脏兮兮的小熊猫被苍蝇追着跑' : bathPhase === 'falling' ? '小熊猫掉进浴缸了' : bathPhase === 'bathing' ? '小熊猫正在洗澡；长按可以提起' : worldFallPhase === 'falling' ? '小熊猫掉出房间了' : dirtyReturn ? '小熊猫灰头土脸地哭着回来了' : dizzyPhase === 'falling' ? '小熊猫松手后掉到地上' : dizzyPhase === 'dazed' ? '小熊猫坐在地上眩晕了一会儿' : isDragging ? '正在拎起小熊猫；拖动到目标位置后松手' : isPressPending ? '按住小熊猫即可拎起' : startled ? '小熊猫被吓了一跳' : isSleeping ? '小熊猫正在睡觉；点击叫醒' : interactionState === 'chat' ? '小熊猫正在聊天；点击房间空白处退出' : '点击小熊猫和它互动'}
+                   aria-label={capturedHomecoming ? '小熊猫从时空旋涡被送回，旁边有空间警察来信' : hangingOnRack ? '小熊猫挂在晾衣架上；长按可以把它抱下来' : isFlyChasing ? '脏兮兮的小熊猫被苍蝇追着跑' : bathPhase === 'falling' ? '小熊猫掉进浴缸了' : bathPhase === 'bathing' ? '小熊猫正在洗澡；长按可以提起' : worldFallPhase === 'falling' ? '小熊猫掉出房间了' : dirtyReturn ? '小熊猫灰头土脸地哭着回来了' : dizzyPhase === 'falling' ? '小熊猫松手后掉到地上' : dizzyPhase === 'dazed' ? '小熊猫坐在地上眩晕了一会儿' : isDragging ? '正在拎起小熊猫；拖动到目标位置后松手' : isPressPending ? '按住小熊猫即可拎起' : startled ? '小熊猫被吓了一跳' : isSleeping ? '小熊猫正在睡觉；点击叫醒' : interactionState === 'chat' ? '小熊猫正在聊天；点击房间空白处退出' : '点击小熊猫和它互动'}
                   data-testid="button-panda" data-hanging-on-rack={hangingOnRack ? 'true' : undefined} data-bath-state={showInteractionBubble ? bathPhase : undefined} data-bath-ball-on-panda={bathBallPlaced ? 'true' : undefined} data-bath-rubbing={showInteractionBubble && bathPhase === 'bathing' ? (bathRubbing ? 'true' : 'false') : undefined} data-sleeping-on-bed={sleepingOnBed ? 'true' : 'false'} data-reacting={reacting ? 'true' : undefined} data-startled={startled ? 'true' : undefined} data-dizzy-state={showInteractionBubble ? dizzyPhase : undefined} data-facing={facing}
                  data-bamboo-phase={action === 'bamboo' ? bambooPhase : undefined}
                 data-activity-state={showInteractionBubble ? developerPose ?? activityState : undefined}
@@ -1818,6 +1853,19 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
               </button>
               )}
           </div>
+        )}
+        {showInteractionBubble && capturedHomecoming && capturedHomecomingArrived && spacePoliceLetterPosition && (
+          <aside className="ps-space-police-letter" role="status" aria-live="polite"
+            style={{ left: spacePoliceLetterPosition.left, top: spacePoliceLetterPosition.top }}
+            data-testid="space-police-letter">
+            <header>
+              <span className="ps-space-police-stamp" aria-hidden="true">✦</span>
+              <strong>空间警察署</strong>
+              <small>时空巡逻队来信</small>
+            </header>
+            <p>你的小熊猫被抓起来的时候，刚好被我们看见啦！我们马上把它从时空旋涡送回来啦。记得给它一个抱抱哦～</p>
+            <footer>——空间巡逻员 07</footer>
+          </aside>
         )}
         {showInteractionBubble && bathPhase === 'bathing' && bathBallPosition && (
           <button ref={bathBallButtonRef} type="button"
