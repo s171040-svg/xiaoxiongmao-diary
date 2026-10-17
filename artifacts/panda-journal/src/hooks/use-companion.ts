@@ -5,7 +5,7 @@ import { isQuietHours } from '@/lib/quiet-hours';
 import { replyFrame, replyRhythm } from '@/lib/reply-rhythm';
 import type { ChatMessage, CompanionState, PerformanceAction, PetEffect } from '@/lib/companion-types';
 import type { JournalEntry } from '@/lib/journal-types';
-import { assistant, contextFor, id, initialState, markPendingInterrupted, readState, receiveReply, recordUserMessage, performancePlan, tickCompanion, welcome, writeState, startGiftDrop, collectGift, favoriteGift, feedGift, injectTestGift, GIFT_DROP_MS, CAPTURED_DAZED_DURATION_MS, COMPANION_KEY, type TestGiftInput } from '@/lib/companion-store';
+import { assistant, contextFor, id, initialState, markPendingInterrupted, readState, receiveReply, recordUserMessage, performancePlan, tickCompanion, welcome, writeState, startGiftDrop, collectGift, favoriteGift, feedGift, injectTestGift, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, COMPANION_KEY, type TestGiftInput } from '@/lib/companion-store';
 
 function initial() {
   try {
@@ -50,7 +50,7 @@ export function useCompanion() {
   const [pet, setPet] = useState<PetEffect>(() => {
     if (state.trip) return { action: 'idle', stage: 'away', duration: 3000, token: 0 };
     if (state.returnEvent?.kind === 'captured' && state.returnEvent.until > Date.now()) {
-      return { action: 'captured-dazed', stage: 'performing',
+      return { action: 'captured-homecoming', stage: 'performing',
         duration: state.returnEvent.until - Date.now(), token: state.returnEvent.until };
     }
     return { action: 'idle', stage: 'present', duration: 3000, token: 0 };
@@ -70,7 +70,12 @@ export function useCompanion() {
     writeState(localStorage, next); current.current = next; setState(next); return next;
   }, []);
   const motion = useCallback((next: PetEffect) => {
-    petRef.current = next; setPet(next); window.pandaDesktop?.companionMotion(next);
+    petRef.current = next;
+    setPet(next);
+    const desktopEffect = next.action === 'captured-homecoming'
+      ? { ...next, stage: 'present' as const, action: 'idle' as const }
+      : next;
+    window.pandaDesktop?.companionMotion(desktopEffect);
   }, []);
   const notify = useCallback((text: string) => { window.pandaDesktop?.notifyMessage(text); }, []);
   const append = useCallback((text: string, kind: ChatMessage['kind'] = 'event') => {
@@ -151,12 +156,12 @@ export function useCompanion() {
       ...petRef.current,
       action,
       stage: 'performing',
-      duration: action === 'bamboo' ? 7000 : action === 'captured-dazed' ? CAPTURED_DAZED_DURATION_MS : 3500,
+      duration: action === 'bamboo' ? 7000 : action === 'captured-homecoming' ? CAPTURED_HOMECOMING_DURATION_MS : 3500,
       token: Date.now(),
       userName: current.current.userName,
     };
     motion(base);
-    if (action === 'captured-dazed') return true;
+    if (action === 'captured-homecoming') return true;
     later(() => {
       if (petRef.current.token !== base.token || petRef.current.stage !== 'performing') return;
       motion({ ...base, action: 'idle', stage: 'present', duration: 3000 });
@@ -165,7 +170,7 @@ export function useCompanion() {
     return true;
   }, [later, motion]);
   useEffect(() => {
-    if (pet.stage !== 'performing' || pet.action !== 'captured-dazed') return undefined;
+    if (pet.stage !== 'performing' || pet.action !== 'captured-homecoming') return undefined;
     const token = pet.token;
     const returnEvent = state.returnEvent;
     const duration = returnEvent?.kind === 'captured'
@@ -227,16 +232,16 @@ export function useCompanion() {
           if (result.text) notify(result.text);
           if (result.event === 'departure') motion({ ...petRef.current, stage: 'away', token: Date.now(), carrying: undefined });
           if (result.event === 'gift') {
-            motion({ ...petRef.current, action: 'idle', stage: 'returning', token: Date.now(), carrying: result.state.pendingGift?.emoji });
-            later(() => {
-              if (result.capturedReturn) {
-                motion({ ...petRef.current, action: 'captured-dazed', stage: 'performing',
-                  duration: CAPTURED_DAZED_DURATION_MS, token: Date.now(), carrying: undefined });
-              } else {
+            if (result.capturedReturn) {
+              motion({ ...petRef.current, action: 'captured-homecoming', stage: 'performing',
+                duration: CAPTURED_HOMECOMING_DURATION_MS, token: Date.now(), carrying: undefined });
+            } else {
+              motion({ ...petRef.current, action: 'idle', stage: 'returning', token: Date.now(), carrying: result.state.pendingGift?.emoji });
+              later(() => {
                 motion({ ...petRef.current, stage: 'present', action: 'idle', duration: 3000, carrying: undefined });
                 settle.current();
-              }
-            }, 2500);
+              }, 2500);
+            }
           }
         } catch (e) { report(e); }
       };

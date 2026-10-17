@@ -45,6 +45,14 @@
 .ps-ground-shadow-sleeping{animation:ps-room-sleep-shadow 2.6s ease-in-out infinite}
 .ps-track.ps-returning{animation:ps-crawl 2.5s ease-out both}
 .ps-track.ps-world-returning{animation:ps-crawl 2.5s ease-out both}
+.ps-track.ps-captured-homecoming{animation:ps-captured-homecoming-path 2.1s cubic-bezier(.2,.72,.25,1) both}
+.ps-track.ps-captured-homecoming .ps-ground-shadow{animation:ps-captured-impact-shadow 2.1s ease-out both}
+.ps-captured-impact-dust{position:absolute;z-index:2;left:50%;bottom:0;display:flex;align-items:flex-end;gap:3px;translate:-50% 0;pointer-events:none;animation:ps-captured-impact-dust 2.1s ease-out both}
+.ps-captured-impact-dust i{display:block;width:7px;height:4px;border-radius:50%;background:#b9a184;box-shadow:0 1px 1px #6e51384d}
+.ps-captured-impact-dust i:nth-child(1){width:5px;height:3px;margin-bottom:4px}
+.ps-captured-impact-dust i:nth-child(2){width:9px;height:5px}
+.ps-captured-impact-dust i:nth-child(3){width:5px;height:3px;margin-bottom:3px}
+.ps-captured-hug-bubble{position:absolute;z-index:4;top:-7%;left:50%;width:max-content;max-width:220px;translate:-50% -100%;padding:4px 9px;border:1px solid #897c6838;border-radius:12px;background:#fffdf2;color:#775c48;box-shadow:0 2px 8px #2c211522;font:600 13px/1.4 "Noto Sans CJK SC",sans-serif;white-space:nowrap;pointer-events:none;animation:ps-captured-hug-bubble 420ms cubic-bezier(.2,.8,.2,1) both}
 .ps-track.ps-world-away{pointer-events:none}
 .ps-track.ps-bath-dropping{animation:ps-bath-drop-travel .68s cubic-bezier(.38,.02,.72,.4) both}
 .ps-panda{position:relative;display:grid;width:100%;height:100%;padding:0;place-items:center;border:0;border-radius:10px;background:transparent;cursor:pointer;pointer-events:auto;touch-action:none;user-select:none}
@@ -133,7 +141,7 @@
 .ps-panda.ps-sleeping .ps-body{animation:ps-sleep-breathe 2.6s ease-in-out infinite}
 .ps-panda.ps-sleeping::before{animation:ps-sleep-shadow 2.6s ease-in-out infinite}
 .ps-panda[data-facing="left"] .ps-body{transform:scaleX(-1)}
-.ps-stage[data-room-only="true"] .ps-body[data-sprite="idle"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="walk"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="grab"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="dizzy"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="chew"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="dirty-grab"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="dirty-grab-lift"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="bathing"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="startled"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="captured-dazed"]{width:calc(88px * var(--room-scale,.89));height:calc(88px * var(--room-scale,.89))}
+.ps-stage[data-room-only="true"] .ps-body[data-sprite="idle"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="walk"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="grab"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="dizzy"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="chew"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="dirty-grab"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="dirty-grab-lift"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="bathing"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="startled"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="captured-homecoming"]{width:calc(88px * var(--room-scale,.89));height:calc(88px * var(--room-scale,.89))}
 .ps-stage[data-room-only="true"] .ps-panda.ps-lying .ps-body,.ps-stage[data-room-only="true"] .ps-panda.ps-sleeping .ps-body{width:calc(90px * var(--room-scale,.89));height:calc(90px * var(--room-scale,.89))}
 .ps-stage[data-room-only="true"] .ps-panda.ps-peeking .ps-body{width:calc(110px * var(--room-scale,.89));height:calc(110px * var(--room-scale,.89))}
 .ps-sleep-zzz{position:absolute;z-index:2;top:-4%;left:4%;display:flex;align-items:flex-start;color:#526f91;font-family:"Noto Sans CJK SC",sans-serif;font-weight:800;line-height:1;text-shadow:0 1px 2px #fff9;pointer-events:none;animation:ps-zzz-float 1.9s ease-in-out infinite}
@@ -146,11 +154,10 @@
 .ps-panda[data-facing="left"].ps-startled .ps-scared-mark{right:auto;left:8%}
 .ps-grab-daze{position:absolute;z-index:4;top:-10%;left:calc(50% + 14px);color:#776d5f;font:700 15px/1 "Noto Sans CJK SC",sans-serif;letter-spacing:2px;text-shadow:0 1px 2px #fff9;pointer-events:none;animation:ps-grab-daze 1.15s ease-in-out infinite}
 .ps-daydream-dots{position:absolute;z-index:2;top:4%;right:5%;color:#527459;font:700 22px/1 "Noto Sans CJK SC",sans-serif;letter-spacing:2px;text-shadow:0 1px 2px #fff9;pointer-events:none;animation:ps-daydream 1.5s ease-in-out infinite}
-.ps-panda.ps-captured-dazed .ps-body{transform-origin:50% 90%;animation:ps-captured-dazed-sway 1.7s ease-in-out infinite}
-.ps-captured-dazed-dots{position:absolute;z-index:3;top:-10%;left:66%;color:#847e74;font:700 20px/1 "Noto Sans CJK SC",sans-serif;letter-spacing:2px;text-shadow:0 1px 2px #fff9;pointer-events:none;animation:ps-captured-dazed-dots 1.8s ease-in-out infinite}
-.ps-panda[data-facing="left"].ps-captured-dazed .ps-captured-dazed-dots{left:auto;right:7%}
-@keyframes ps-captured-dazed-sway{0%,100%{translate:0 0;rotate:0deg}42%{translate:0 1px;rotate:-2deg}72%{translate:0 0;rotate:2deg}}
-@keyframes ps-captured-dazed-dots{0%,100%{translate:0 2px;opacity:.45}50%{translate:0 -3px;opacity:1}}
+@keyframes ps-captured-homecoming-path{0%{translate:54vw -36vh;rotate:18deg;scale:.82;opacity:0}12%{translate:34vw -23vh;rotate:7deg;scale:.9;opacity:1}28%{translate:13vw -3vh;rotate:-8deg;scale:1.08 .76}34%{translate:13vw -3vh;rotate:5deg;scale:1.16 .62}42%{translate:13vw -3vh;rotate:-3deg;scale:.94 1.06}58%{translate:8vw 3vh;rotate:0deg;scale:1}100%{translate:0 9vh;rotate:0deg;scale:1}}
+@keyframes ps-captured-impact-shadow{0%,24%{scale:.2 .7;opacity:0}34%{scale:1.3 1.2;opacity:.82}48%{scale:1.8 .8;opacity:.32}70%,100%{scale:1;opacity:.68}}
+@keyframes ps-captured-impact-dust{0%,24%{opacity:0;scale:.25;translate:-50% 4px}34%{opacity:.9;scale:1.1;translate:-50% 0}52%{opacity:.5;scale:1.45;translate:-50% -3px}72%,100%{opacity:0;scale:1.7;translate:-50% -5px}}
+@keyframes ps-captured-hug-bubble{from{opacity:0;scale:.75;translate:-50% -85%}to{opacity:1;scale:1;translate:-50% -100%}}
 .ps-gift{position:absolute;z-index:4;font-size:calc(24px * var(--room-scale,.89));font-family:"Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif;line-height:1;filter:drop-shadow(0 1px 1px #35251b55);pointer-events:none}
 .ps-bamboo i{position:absolute;top:-14px;left:-4px;font:600 12px "Noto Sans CJK SC",sans-serif;color:#6a8a5a;font-style:normal;white-space:nowrap}
 .ps-gift-held{left:calc(50% + 7px);right:auto;bottom:calc(10px * var(--room-scale,.89));animation:ps-gift-carry .34s ease-in-out infinite alternate}
@@ -243,7 +250,7 @@
 @keyframes ps-bath-scrub{0%{translate:-1px 0;rotate:-2deg;filter:brightness(.98)}50%{translate:1px -2px;rotate:2deg;filter:brightness(1.06)}100%{translate:-1px 0;rotate:-2deg;filter:brightness(.98)}}
 @keyframes ps-bath-soap-bubble{0%,100%{translate:0 2px;scale:.78;opacity:.35}45%{translate:-1px -5px;scale:1.08;opacity:1}75%{translate:2px -10px;scale:.94;opacity:.85}}
 @keyframes ps-bath-ball-drop{0%{transform:translateY(-20px) scale(.68) rotate(-18deg);opacity:0}18%{opacity:1}62%{transform:translateY(5px) scale(1.08) rotate(8deg)}78%{transform:translateY(-5px) scale(.97) rotate(-5deg)}100%{transform:translateY(0) scale(1) rotate(0);opacity:1}}
-@media (prefers-reduced-motion:reduce){.ps-panda,.ps-body,.ps-snack-drop,.ps-gift,.ps-sleep-zzz,.ps-daydream-dots{animation-duration:.01ms!important}.ps-panda.ps-dragging,.ps-panda.ps-dragging .ps-body{animation:none}.ps-grab-daze{animation:none;opacity:1;translate:0}.ps-scared-mark{animation:none;opacity:1;translate:0 0}.ps-track.ps-returning{animation:none}}
+@media (prefers-reduced-motion:reduce){.ps-panda,.ps-body,.ps-snack-drop,.ps-gift,.ps-sleep-zzz,.ps-daydream-dots{animation-duration:.01ms!important}.ps-panda.ps-dragging,.ps-panda.ps-dragging .ps-body{animation:none}.ps-grab-daze{animation:none;opacity:1;translate:0}.ps-scared-mark{animation:none;opacity:1;translate:0 0}.ps-track.ps-returning,.ps-track.ps-captured-homecoming{animation:none!important;translate:0 0;rotate:0deg;scale:1;opacity:1}.ps-captured-impact-dust{display:none}.ps-captured-hug-bubble{animation:none;opacity:1;translate:-50% -100%;scale:1}}
 @media (prefers-reduced-motion:reduce){.ps-track.ps-bath-dropping,.ps-panda.ps-bath-dropping{animation:none!important}}
 .ps-track.ps-hanging-on-rack{z-index:7}
 .ps-panda.ps-hanging{z-index:6;cursor:grab;transform-origin:50% 5%;translate:0;scale:1;filter:drop-shadow(0 8px 5px #29221644)}

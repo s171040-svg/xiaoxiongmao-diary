@@ -8,7 +8,7 @@ export const PROACTIVE_LIMIT = 4;
 export const GIFT_DROP_MS = 1800;
 export const CAPTURED_TRIP_CHANCE = 0.1;
 export const CAPTURED_TRIP_EXTRA_MS = 2 * MINUTE;
-export const CAPTURED_DAZED_DURATION_MS = 8000;
+export const CAPTURED_HOMECOMING_DURATION_MS = 8000;
 export const canFeedGift = (gift: Gift) => ['🍌', '🥕', '🐟', '🍬'].includes(gift.emoji);
 export function startGiftDrop(state: CompanionState, giftId: string, now = Date.now()): CompanionState {
   return state.pendingGift?.id === giftId && !state.giftDropStartedAt
@@ -226,7 +226,7 @@ export function tickCompanion(state: CompanionState, now: number, random = Math.
       : gift.story;
     const { returnEvent: _previousReturnEvent, ...stateWithoutReturnEvent } = next;
     next = { ...stateWithoutReturnEvent, trip: undefined, nextTripAt: now + tripDelay(random),
-      ...(capturedReturn ? { returnEvent: { kind: 'captured' as const, until: now + CAPTURED_DAZED_DURATION_MS } } : {}),
+      ...(capturedReturn ? { returnEvent: { kind: 'captured' as const, until: now + CAPTURED_HOMECOMING_DURATION_MS } } : {}),
       pendingGift: gift, giftDropStartedAt: undefined,
       messages: [...next.messages, assistant(text, 'event', now)] };
     return { state: next, event: 'gift', text, capturedReturn };

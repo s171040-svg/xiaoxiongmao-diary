@@ -5,7 +5,7 @@
     "dizzy": 8,
     "tail-chase": 5,
     "dirty-grab-lift": 6,
-    "captured-dazed": 6
+    "captured-homecoming": 6
   },
   "frameIntervalMs": {
     "idle": 420,
@@ -18,7 +18,7 @@
     "dizzy": 140,
     "tail-chase": 160,
     "dirty-grab-lift": 140,
-    "captured-dazed": 80
+    "captured-homecoming": 300
   },
   "motionSprites": {
     "idle": "idle",
@@ -35,6 +35,6 @@
     "tail": "tail-chase",
     "tumble": "idle",
     "cuddle": "cuddle",
-    "captured-dazed": "captured-dazed"
+    "captured-homecoming": "captured-homecoming"
   }
 }

@@ -19,7 +19,7 @@ const devActionOptions: { action: PerformanceAction; label: string }[] = [
   { action: 'somersault', label: '翻跟斗' },
   { action: 'tail', label: '追尾巴' },
   { action: 'cuddle', label: '蹭蹭撒娇' },
-  { action: 'captured-dazed', label: '被找回来后发懵' },
+  { action: 'captured-homecoming', label: '被扔回后摔落，爬来求抱抱' },
 ];
 const devPoseOptions: { pose: DeveloperPose; label: string }[] = [
   { pose: 'idle', label: '发呆' },
@@ -203,7 +203,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: { companion: C
         label,
         started,
         durationMs: eventOption?.durationMs ?? (selection.kind === 'action'
-          ? selection.action === 'bamboo' ? 7000 : selection.action === 'captured-dazed' ? 8000 : 3500
+          ? selection.action === 'bamboo' ? 7000 : selection.action === 'captured-homecoming' ? 8000 : 3500
           : 5000),
         persistent: eventOption?.persistent,
       });
