@@ -49,9 +49,11 @@ export function getRestDurationMs(
   activity: RestActivityState,
   random: () => number = Math.random,
 ): number {
-  if (activity === 'daydreaming') return 3200 + Math.floor(random() * 2400);
+  if (activity === 'daydreaming' || activity === 'lying' || activity === 'sleeping') {
+    return 5 * 60 * 1000 + 30_000 + Math.floor(random() * 120_000);
+  }
   if (activity === 'peeking') return 4000 + Math.floor(random() * 3000);
-  return 10000 + Math.floor(random() * 10000);
+  return 10_000 + Math.floor(random() * 10_000);
 }
 
 export function scheduleActivityReset(

@@ -15,6 +15,15 @@ export type Gift = {
   id: string; emoji: string; item: string; animal: string; story: string; receivedAt: number;
   favorite?: boolean; fedAt?: number;
 };
+export type SpacePoop = {
+  phase: 'pending' | 'fresh' | 'bagged' | 'disposing' | 'disposed';
+  x?: number; y?: number; packedAt?: number; disposedAt?: number;
+};
+export type SpacePoliceLetter = {
+  id: string; deliveredAt: number; openedAt?: number; filedAt?: number; eatenAt?: number; eatAfterAt?: number;
+  poop?: SpacePoop;
+  finePayment?: { paidAt: number; giftId: string; emoji: string; item: string };
+};
 export type PetEffect = {
   action: PerformanceAction | 'idle';
   stage: 'present' | 'performing' | 'fallen' | 'returning' | 'away';
@@ -27,7 +36,8 @@ export type CompanionState = {
   nextTripAt: number;
   trip?: { id: string; returnAt: number; gift: Omit<Gift, 'receivedAt'>; captured?: boolean };
   returnEvent?: { kind: 'captured'; until: number; awaitingInteraction?: boolean };
-  spacePoliceLetter?: { deliveredAt: number; openedAt?: number };
+  spacePoliceLetter?: { deliveredAt: number; openedAt?: number; filedAt?: number; eatenAt?: number; eatAfterAt?: number; poop?: SpacePoop };
+  spacePoliceLetters?: SpacePoliceLetter[];
   recentGiftStories?: string[];
   privateQuestionsPaused?: boolean;
   pendingGift?: Gift; giftDropStartedAt?: number;

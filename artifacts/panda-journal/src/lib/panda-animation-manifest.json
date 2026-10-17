@@ -5,7 +5,8 @@
     "dizzy": 8,
     "tail-chase": 5,
     "dirty-grab-lift": 6,
-    "captured-homecoming": 6
+    "captured-homecoming": 6,
+    "cuddle-wriggle": 8
   },
   "frameIntervalMs": {
     "idle": 420,
@@ -18,7 +19,8 @@
     "dizzy": 140,
     "tail-chase": 160,
     "dirty-grab-lift": 140,
-    "captured-homecoming": 300
+    "captured-homecoming": 300,
+    "cuddle-wriggle": 160
   },
   "motionSprites": {
     "idle": "idle",
@@ -34,7 +36,7 @@
     "somersault": "jump",
     "tail": "tail-chase",
     "tumble": "idle",
-    "cuddle": "cuddle",
+    "cuddle": "cuddle-wriggle",
     "captured-homecoming": "captured-homecoming"
   }
 }

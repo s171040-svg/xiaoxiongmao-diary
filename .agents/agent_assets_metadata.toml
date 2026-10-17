@@ -596,3 +596,17 @@ mtime_ms = 1792214484331
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/8996ff3e-b29f-44b0-a02f-921ad9394dfe/a3c0340b-b514-4094-a8cf-2f704af66fd4"
 storage_version_token = "1792214691090371"
 content_type = "image/png"
+
+[[outputs]]
+id = "YyllWKWIkA60GOhtRYxG1"
+uri = "file://generated-artifacts/panda-home-layout-preview.png"
+type = "image"
+title = "小熊猫的小家 · 布局预览"
+description = "用现有的窝床、晾衣架、浴缸、浴球箱和时空信箱组成的独立预览；约三分之二地面留给活动，不接入当前应用。"
+logical_id = "c220a2d7-6841-452d-a45d-32bf22df81df"
+content_hash = "sha256:e755aa0fde6aa8c18eca44d22d3d42ebec151ad8550865ccacfb5d2b0ebbfbeb"
+size = 494527
+mtime_ms = 1792222626228
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/c220a2d7-6841-452d-a45d-32bf22df81df/96f1ffd4-75c2-493a-bfd6-e63dcb14d80a"
+storage_version_token = "1792222649355231"
+content_type = "image/png"

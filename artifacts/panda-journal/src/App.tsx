@@ -3,6 +3,6 @@ import { useCompanion } from '@/hooks/use-companion';
 import { isDesktop } from '@/lib/desktop';
 
 export default function App() {
-  const companion = useCompanion();
+  const companion = useCompanion({ allowRandomPerformanceFall: isDesktop() });
   return <CompanionChat companion={companion} roomOnly={!isDesktop()} />;
 }

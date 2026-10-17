@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { BookOpen, Gift as GiftIcon, ImagePlus, Pause, Play, RotateCw, SendHorizontal, Trash2, Wrench, X } from 'lucide-react';
 import type { CompanionController } from '@/hooks/use-companion';
-import type { ChatMessage, DeveloperEvent, DeveloperPose, MemoryKind, PerformanceAction } from '@/lib/companion-types';
+import type { ChatMessage, DeveloperEvent, DeveloperPose, MemoryKind, PerformanceAction, SpacePoliceLetter } from '@/lib/companion-types';
 import type { JournalEntry } from '@/lib/journal-types';
 import { splitReply } from '@/lib/reply-rhythm';
 import { VoiceButton } from '@/components/VoiceButton';
@@ -32,7 +32,7 @@ const devEventOptions: { event: DeveloperEvent; label: string; durationMs: numbe
   { event: 'grab', label: '被提起发懵', durationMs: 2500 },
   { event: 'dirty-grab', label: '脏脏小熊猫被提起', durationMs: 2500 },
   { event: 'dizzy-drop', label: '松手后眩晕跌落', durationMs: 3520 },
-  { event: 'world-fall', label: '掉出世界再回来', durationMs: 13100 },
+  { event: 'world-fall', label: '黑洞碰撞掉出世界', durationMs: 13100 },
   { event: 'bath-drop', label: '掉进浴缸洗澡', durationMs: 5000, persistent: true },
   { event: 'bath-rub', label: '浴球搓洗', durationMs: 5000, persistent: true },
   { event: 'dirty-bath', label: '脏兮兮状态洗澡', durationMs: 5000, persistent: true },
@@ -168,11 +168,16 @@ export function CompanionChat({ companion: c, roomOnly = false }: { companion: C
   const [devActionResult, setDevActionResult] = useState<{ label: string; started: boolean; durationMs: number; persistent?: boolean } | null>(null);
   const devActionToken = useRef(0);
   const [roomChatOpen, setRoomChatOpen] = useState(false);
-  const [spacePoliceLetterOpen, setSpacePoliceLetterOpen] = useState(false);
+  const [spacePoliceMailboxOpen, setSpacePoliceMailboxOpen] = useState(false);
+  const [spacePoliceLetterOpen, setSpacePoliceLetterOpen] = useState<SpacePoliceLetter | null>(null);
+  const [spacePoliceFineGiftId, setSpacePoliceFineGiftId] = useState<string | null>(null);
   const [voice, setVoice] = useState<{ m: string; e: boolean } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const msgs = c.state.messages;
+  const spacePoliceLetters = [...(c.state.spacePoliceLetters ?? [])].sort((a, b) => b.deliveredAt - a.deliveredAt);
+  const spacePoliceUnreadCount = spacePoliceLetters.filter(letter => letter.openedAt === undefined).length;
+  const policeFineGifts = [...c.state.gifts].sort((a, b) => b.receivedAt - a.receivedAt);
   const liveMessagesRef = useRef(msgs);
   liveMessagesRef.current = msgs;
   const roomChatStartIndexRef = useRef(msgs.length);
@@ -180,11 +185,29 @@ export function CompanionChat({ companion: c, roomOnly = false }: { companion: C
     if (isChat) roomChatStartIndexRef.current = liveMessagesRef.current.length;
     setRoomChatOpen(isChat);
   }, []);
-  const openSpacePoliceLetter = useCallback(() => {
-    c.markSpacePoliceLetterOpened();
-    c.acknowledgeCapturedHomecoming();
-    setSpacePoliceLetterOpen(true);
-  }, [c.acknowledgeCapturedHomecoming, c.markSpacePoliceLetterOpened]);
+  const openSpacePoliceLetter = useCallback((letterId?: string) => {
+    const letters = c.state.spacePoliceLetters ?? [];
+    const activeLetter = c.state.spacePoliceLetter;
+    const letter = letterId
+      ? letters.find(entry => entry.id === letterId)
+      : letters.find(entry => entry.deliveredAt === activeLetter?.deliveredAt) ?? letters.at(-1);
+    if (!letter) return;
+    c.markSpacePoliceLetterOpened(letter.id);
+    if (letter.deliveredAt === activeLetter?.deliveredAt) c.acknowledgeCapturedHomecoming();
+    setSpacePoliceFineGiftId(null);
+    setSpacePoliceMailboxOpen(false);
+    setSpacePoliceLetterOpen(letter);
+  }, [c.acknowledgeCapturedHomecoming, c.markSpacePoliceLetterOpened, c.state.spacePoliceLetter, c.state.spacePoliceLetters]);
+  const fileSpacePoliceLetter = useCallback((deliveredAt: number) => {
+    const activeLetter = c.state.spacePoliceLetter;
+    if (!c.fileSpacePoliceLetter(deliveredAt)) return;
+    if (activeLetter?.deliveredAt === deliveredAt) c.acknowledgeCapturedHomecoming();
+  }, [c.acknowledgeCapturedHomecoming, c.fileSpacePoliceLetter, c.state.spacePoliceLetter]);
+  const eatSpacePoliceLetter = useCallback((deliveredAt: number) => {
+    const activeLetter = c.state.spacePoliceLetter;
+    if (!c.eatSpacePoliceLetter(deliveredAt)) return;
+    if (activeLetter?.deliveredAt === deliveredAt) c.acknowledgeCapturedHomecoming();
+  }, [c.acknowledgeCapturedHomecoming, c.eatSpacePoliceLetter, c.state.spacePoliceLetter]);
   useEffect(() => {
     if (!scheduledDevTest || (scheduledDevTest.kind === 'action' && !c.performTestAction)) return;
     const selection = scheduledDevTest;
@@ -335,7 +358,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: { companion: C
         <div className="cc-actions">
           <button type="button" onClick={() => setPanel('diary')} data-testid="button-diary"><BookOpen size={16} /> 日记本</button>
           {import.meta.env.DEV && c.performTestAction && (
-            <button type="button" onClick={() => setDevActionOpen(true)} data-testid="button-dev-action"><Play size={15} /> 动作检测</button>
+            <button type="button" onClick={() => setDevActionOpen(true)} data-testid="button-dev-action"><Play size={15} /> 动画检视</button>
           )}
           <button type="button" onClick={() => setPanel('gifts')} data-testid="button-gifts"><GiftIcon size={16} /> 小礼物</button>
           {import.meta.env.DEV && DevGiftTool && c.addTestGift && (
@@ -344,7 +367,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: { companion: C
           {window.pandaDesktop && <button type="button" aria-label="收起聊天，回到桌面" onClick={() => window.pandaDesktop?.hideJournal()} data-testid="button-hide-chat"><X size={16} /></button>}
         </div>
       </header>}
-      <PetStage pet={c.pet} thinking={c.busy && !c.replyDisplay} motion={c.nightMode ? 'sleep' : 'idle'} nightMode={c.nightMode}
+       <PetStage pet={c.pet} thinking={c.busy && !c.replyDisplay} motion={c.nightMode ? 'sleep' : 'idle'} nightMode={c.nightMode}
         developerPose={import.meta.env.DEV ? developerPose : null}
         developerEvent={import.meta.env.DEV && roomOnly ? developerEvent : null}
         debugClicks={false} showInteractionBubble={roomOnly}
@@ -352,7 +375,18 @@ export function CompanionChat({ companion: c, roomOnly = false }: { companion: C
         onChatModeChange={roomOnly ? onRoomChatModeChange : undefined}
          onCapturedHomecomingInteraction={roomOnly ? c.acknowledgeCapturedHomecoming : undefined}
          spacePoliceLetter={roomOnly ? c.state.spacePoliceLetter : undefined}
-         onOpenSpacePoliceLetter={roomOnly ? openSpacePoliceLetter : undefined} />
+          spacePoliceLetters={roomOnly ? c.state.spacePoliceLetters : undefined}
+          spacePoliceMailCount={roomOnly ? spacePoliceLetters.length : undefined}
+          spacePoliceUnreadCount={roomOnly ? spacePoliceUnreadCount : undefined}
+          onOpenSpacePoliceLetter={roomOnly ? () => openSpacePoliceLetter() : undefined}
+          onFileSpacePoliceLetter={roomOnly ? fileSpacePoliceLetter : undefined}
+          onEatSpacePoliceLetter={roomOnly ? eatSpacePoliceLetter : undefined}
+          onPlaceSpacePolicePoop={roomOnly ? c.placeSpacePolicePoopAt : undefined}
+          onPackSpacePolicePoop={roomOnly ? c.packSpacePolicePoopByLetter : undefined}
+          onMoveSpacePolicePoopBag={roomOnly ? c.moveSpacePolicePoopBagTo : undefined}
+          onDisposeSpacePolicePoopBag={roomOnly ? c.disposeSpacePolicePoopBagAt : undefined}
+          onFinishSpacePolicePoopDisposal={roomOnly ? c.finishSpacePolicePoopDisposalForLetter : undefined}
+          onOpenSpacePoliceMailbox={roomOnly ? () => setSpacePoliceMailboxOpen(true) : undefined} />
       {!window.pandaDesktop && c.pet.stage !== 'returning'
         && <GiftDrop gift={c.state.pendingGift} startedAt={c.state.giftDropStartedAt} onCollect={c.collectPresent} />}
       {roomOnly ? (
@@ -372,21 +406,80 @@ export function CompanionChat({ companion: c, roomOnly = false }: { companion: C
       )}
       {panel === 'diary' && <Diary c={c} onClose={() => setPanel(null)} />}
       {panel === 'gifts' && <Gifts c={c} onClose={() => setPanel(null)} />}
+      {roomOnly && spacePoliceMailboxOpen && (
+        <Modal title="时空警察来信箱" sub="小熊猫收到的时空巡逻队来信，都收在这里。"
+          onClose={() => setSpacePoliceMailboxOpen(false)} testid="dialog-space-police-mailbox">
+          <div className="cc-space-mailbox">
+            {spacePoliceLetters.length ? (
+              spacePoliceLetters.map(letter => (
+                <button type="button" className="cc-space-mail-item" key={letter.id}
+                  onClick={() => openSpacePoliceLetter(letter.id)} data-testid={`space-police-mail-${letter.id}`}>
+                  <span className="cc-space-mail-icon" aria-hidden="true">✉</span>
+                  <span className="cc-space-mail-copy">
+                    <strong>空间警察署 · 护送回执</strong>
+                    <small>{letter.finePayment ? `已提交 ${letter.finePayment.emoji}${letter.finePayment.item}` : '护送完成 · 待提交 1 件纪念品'}</small>
+                  </span>
+                  <time>{fmt.format(letter.deliveredAt)}</time>
+                  <span className={`cc-space-mail-status${letter.openedAt === undefined ? ' unread' : ''}`}>
+                    {letter.openedAt === undefined ? '未读' : '已读'}
+                  </span>
+                </button>
+              ))
+            ) : (
+              <p className="cc-empty" data-testid="space-police-mailbox-empty">箱子里还没有来信。等小熊猫带回第一封信，它就会收在这里。</p>
+            )}
+          </div>
+        </Modal>
+      )}
       {roomOnly && spacePoliceLetterOpen && (
-        <Modal title="空间警察署来信" sub="时空巡逻队 · 任务回执"
-          onClose={() => setSpacePoliceLetterOpen(false)} testid="dialog-space-police-letter">
+        <Modal title="空间警察署来信" sub={`特别护送回执 · ${fmt.format(spacePoliceLetterOpen.deliveredAt)}`}
+          onClose={() => { setSpacePoliceLetterOpen(null); setSpacePoliceFineGiftId(null); }} testid="dialog-space-police-letter">
           <article className="cc-space-police-letter" data-testid="space-police-letter">
             <header>
-              <span aria-hidden="true">✦</span>
-              <div><strong>亲爱的小熊猫和朋友：</strong><small>一封时空巡逻队的说明信</small></div>
+              <span className="cc-police-stamp" aria-hidden="true">警</span>
+              <div><strong>空间警察署 · 特别护送回执</strong><small>特派巡逻员 07 · 正式通知</small></div>
             </header>
-            <p>你的小熊猫被抓起来的时候，刚好被我们看见啦！我们马上把它从时空旋涡送回来啦。记得给它一个抱抱哦～</p>
-            <footer>——空间巡逻员 07</footer>
+            <p><strong>归队通告：</strong>小熊猫已由巡逻队安全护送回家。它因为太可爱被人带走啦；本署已及时处理这起“可爱超标”事件。请收件人确认小熊猫平安，并立即给它一个抱抱。</p>
+            <footer>——空间警察署 · 巡逻员 07 敬上</footer>
+            {spacePoliceLetterOpen.finePayment ? (
+              <section className="cc-police-payment paid" data-testid="space-police-fine-paid" aria-live="polite">
+                <strong>罚款已缴，结案！</strong>
+                <p>已收到 {spacePoliceLetterOpen.finePayment.emoji} {spacePoliceLetterOpen.finePayment.item}，感谢配合时空宠物保护条例。</p>
+              </section>
+            ) : (
+              <section className="cc-police-payment" data-testid="space-police-fine">
+                <div className="cc-police-payment-heading">
+                  <strong>护送手续 · 纪念品罚款</strong><span>1 件</span>
+                </div>
+                <p>请从小礼物收藏中挑选一件纪念品，提交给空间警察署。放心，不收真钱哦。</p>
+                {policeFineGifts.length ? (
+                  <div className="cc-police-gift-list" role="radiogroup" aria-label="选择一件纪念品缴纳罚款">
+                    {policeFineGifts.map(gift => (
+                      <label className={`cc-police-gift-option${spacePoliceFineGiftId === gift.id ? ' selected' : ''}`} key={gift.id}>
+                        <input type="radio" name="space-police-fine-gift" value={gift.id}
+                          checked={spacePoliceFineGiftId === gift.id} onChange={() => setSpacePoliceFineGiftId(gift.id)} />
+                        <span className="cc-police-gift-emoji" aria-hidden="true">{gift.emoji}</span>
+                        <span className="cc-police-gift-copy"><strong>{gift.item}</strong><small>{gift.favorite ? '已收藏 · ' : ''}来自 {gift.animal}</small></span>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="cc-police-fine-empty" data-testid="space-police-fine-empty">收藏里还没有纪念品。等小熊猫带回一件礼物后，就可以来缴纳啦。</p>
+                )}
+                <button type="button" className="cc-police-pay-button" disabled={!spacePoliceFineGiftId || !policeFineGifts.some(gift => gift.id === spacePoliceFineGiftId)}
+                  onClick={() => {
+                    if (!spacePoliceFineGiftId) return;
+                    const paidLetter = c.paySpacePoliceFine(spacePoliceLetterOpen.id, spacePoliceFineGiftId);
+                    if (paidLetter) { setSpacePoliceLetterOpen(paidLetter); setSpacePoliceFineGiftId(null); }
+                  }} data-testid="button-pay-space-police-fine">给警察局交钱</button>
+                <small className="cc-police-fine-note">提交后，这件纪念品会从小礼物收藏中移除；请确认选对了再缴纳。</small>
+              </section>
+            )}
           </article>
         </Modal>
       )}
       {import.meta.env.DEV && devActionOpen && c.performTestAction && (
-        <Modal title="动作检测" sub="选一个动作指令，小熊猫将在 2 秒后执行。倒数时换选其他动作会重新计时。"
+        <Modal title="动画检视" sub="选一个动作指令，小熊猫将在 2 秒后执行。倒数时换选其他动作会重新计时。"
           onClose={() => setDevActionOpen(false)} testid="dialog-dev-action">
           <h3 className="cc-dev-action-section-title">动态动作</h3>
           <div className="cc-dev-action-grid">

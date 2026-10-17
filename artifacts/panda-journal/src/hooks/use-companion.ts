@@ -5,7 +5,7 @@ import { isQuietHours } from '@/lib/quiet-hours';
 import { replyFrame, replyRhythm } from '@/lib/reply-rhythm';
 import type { ChatMessage, CompanionState, PerformanceAction, PetEffect } from '@/lib/companion-types';
 import type { JournalEntry } from '@/lib/journal-types';
-import { assistant, contextFor, id, initialState, markPendingInterrupted, markSpacePoliceLetterOpened as markSpacePoliceLetterOpenedInState, readState, receiveReply, recordUserMessage, performancePlan, tickCompanion, welcome, writeState, startGiftDrop, collectGift, favoriteGift, feedGift, injectTestGift, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, COMPANION_KEY, type TestGiftInput } from '@/lib/companion-store';
+import { assistant, contextFor, deliverSpacePoliceLetter, eatSpacePoliceLetter as eatSpacePoliceLetterInState, fileSpacePoliceLetter as fileSpacePoliceLetterInState, finishSpacePolicePoopDisposal, id, initialState, markPendingInterrupted, markSpacePoliceLetterOpened as markSpacePoliceLetterOpenedInState, moveSpacePolicePoopBag, packSpacePolicePoop, placeSpacePolicePoop, disposeSpacePolicePoopBag, paySpacePoliceFine as paySpacePoliceFineInState, readState, receiveReply, recordUserMessage, performancePlan, tickCompanion, welcome, writeState, startGiftDrop, collectGift, favoriteGift, feedGift, injectTestGift, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, COMPANION_KEY, type TestGiftInput } from '@/lib/companion-store';
 
 function initial() {
   try {
@@ -32,7 +32,7 @@ function photoData(file: File): Promise<string> {
     image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('照片暂时无法读取。')); }; image.src = url;
   });
 }
-export function useCompanion() {
+export function useCompanion({ allowRandomPerformanceFall = true }: { allowRandomPerformanceFall?: boolean } = {}) {
   const [loaded] = useState(initial);
   const [state, setState] = useState(loaded.state);
   const current = useRef(state);
@@ -117,7 +117,7 @@ export function useCompanion() {
   useEffect(() => window.pandaDesktop?.onGiftClick(collectPresent), [collectPresent]);
   const perform = useCallback(() => {
     if (petRef.current.stage !== 'present') { queuedPerformance.current = true; return; }
-    const plan = performancePlan();
+    const plan = performancePlan(Math.random, allowRandomPerformanceFall);
     const base: PetEffect = {
       ...petRef.current,
       ...plan,
@@ -148,14 +148,14 @@ export function useCompanion() {
         }, 5000);
       }, base.duration / 2);
     } else later(done, base.duration);
-  }, [append, later, motion, report]);
+  }, [allowRandomPerformanceFall, append, later, motion, report]);
   const performTestAction = useCallback((action: PerformanceAction) => {
-    if (!import.meta.env.DEV) throw new Error('动作检测仅在开发环境可用。');
+    if (!import.meta.env.DEV) throw new Error('动画检视仅在开发环境可用。');
     if (['roll', 'spin', 'tumble'].includes(action)) return false;
     if (petRef.current.stage !== 'present') return false;
     if (action === 'captured-homecoming') {
       try {
-        transact(s => ({ ...s, spacePoliceLetter: { deliveredAt: Date.now() } }));
+        transact(s => deliverSpacePoliceLetter(s));
       } catch (e) { report(e); return false; }
     }
     const base: PetEffect = {
@@ -187,12 +187,52 @@ export function useCompanion() {
     motion({ ...active, action: 'idle', stage: 'present', duration: 3000, token: Date.now(), carrying: undefined });
     return true;
   }, [motion, report, transact]);
-  const markSpacePoliceLetterOpened = useCallback(() => {
+  const markSpacePoliceLetterOpened = useCallback((letterId?: string) => {
     try {
-      if (!current.current.spacePoliceLetter) return false;
-      transact(s => markSpacePoliceLetterOpenedInState(s));
+      if (letterId
+        ? !current.current.spacePoliceLetters?.some(letter => letter.id === letterId)
+        : !current.current.spacePoliceLetter) return false;
+      transact(s => markSpacePoliceLetterOpenedInState(s, Date.now(), letterId));
       return true;
     } catch (e) { report(e); return false; }
+  }, [report, transact]);
+  const fileSpacePoliceLetter = useCallback((deliveredAt: number) => {
+    const activeLetter = current.current.spacePoliceLetter;
+    if (!activeLetter || activeLetter.deliveredAt !== deliveredAt
+      || activeLetter.filedAt !== undefined || activeLetter.eatenAt !== undefined) return false;
+    try {
+      transact(s => fileSpacePoliceLetterInState(s, deliveredAt));
+      return true;
+    } catch (e) { report(e); return false; }
+  }, [report, transact]);
+  const eatSpacePoliceLetter = useCallback((deliveredAt: number) => {
+    const activeLetter = current.current.spacePoliceLetter;
+    if (!activeLetter || activeLetter.deliveredAt !== deliveredAt
+      || activeLetter.filedAt !== undefined || activeLetter.eatenAt !== undefined) return false;
+    try {
+      transact(s => eatSpacePoliceLetterInState(s, deliveredAt));
+      return true;
+    } catch (e) { report(e); return false; }
+  }, [report, transact]);
+  const placeSpacePolicePoopAt = useCallback((deliveredAt: number, x: number, y: number) => {
+    try { transact(s => placeSpacePolicePoop(s, deliveredAt, x, y)); }
+    catch (e) { report(e); }
+  }, [report, transact]);
+  const packSpacePolicePoopByLetter = useCallback((deliveredAt: number) => {
+    try { transact(s => packSpacePolicePoop(s, deliveredAt)); }
+    catch (e) { report(e); }
+  }, [report, transact]);
+  const moveSpacePolicePoopBagTo = useCallback((deliveredAt: number, x: number, y: number) => {
+    try { transact(s => moveSpacePolicePoopBag(s, deliveredAt, x, y)); }
+    catch (e) { report(e); }
+  }, [report, transact]);
+  const disposeSpacePolicePoopBagAt = useCallback((deliveredAt: number, x: number, y: number) => {
+    try { transact(s => disposeSpacePolicePoopBag(s, deliveredAt, x, y)); }
+    catch (e) { report(e); }
+  }, [report, transact]);
+  const finishSpacePolicePoopDisposalForLetter = useCallback((deliveredAt: number) => {
+    try { transact(s => finishSpacePolicePoopDisposal(s, deliveredAt)); }
+    catch (e) { report(e); }
   }, [report, transact]);
   useEffect(() => {
     if (pet.stage !== 'performing' || pet.action !== 'captured-homecoming') return undefined;
@@ -350,7 +390,15 @@ export function useCompanion() {
   }
   return {
     state, draft: state.draft, photo: state.draftPhoto, busy, replyDisplay, isPhotoLoading, listening, setListening, collectPresent,
-     status, error, nightMode, pet, legacyEntries, send, retryMessage, choosePhoto, perform, acknowledgeCapturedHomecoming, markSpacePoliceLetterOpened,
+      status, error, nightMode, pet, legacyEntries, send, retryMessage, choosePhoto, perform, acknowledgeCapturedHomecoming, markSpacePoliceLetterOpened, fileSpacePoliceLetter, eatSpacePoliceLetter,
+      placeSpacePolicePoopAt, packSpacePolicePoopByLetter, moveSpacePolicePoopBagTo, disposeSpacePolicePoopBagAt, finishSpacePolicePoopDisposalForLetter,
+     paySpacePoliceFine: (letterId: string, giftId: string) => {
+       try {
+         const next = transact(s => paySpacePoliceFineInState(s, letterId, giftId));
+         const letter = next.spacePoliceLetters?.find(entry => entry.id === letterId);
+         return letter?.finePayment ? letter : null;
+       } catch (e) { report(e); return null; }
+     },
     setDraft: (draft: string) => { try { transact(s => ({ ...s, draft })); } catch (e) { report(e); } },
     removePhoto: () => { try { transact(s => ({ ...s, draftPhoto: undefined })); } catch (e) { report(e); } },
     removeDiary: (memoryId: string) => { try { transact(s => ({ ...s, diary: s.diary.filter(m => m.id !== memoryId) })); } catch (e) { report(e); } },

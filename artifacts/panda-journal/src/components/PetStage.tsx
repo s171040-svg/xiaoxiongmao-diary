@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { DeveloperEvent, DeveloperPose, PerformanceAction, PetEffect } from '@/lib/companion-types';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
+import type { DeveloperEvent, DeveloperPose, PerformanceAction, PetEffect, SpacePoliceLetter } from '@/lib/companion-types';
 import {
   blendRoomPoint,
   gaitProgress,
@@ -27,6 +28,16 @@ import {
   recordGrabMotion,
   type GrabMotionStats,
 } from '@/lib/panda-grab-motion';
+import {
+  clampRoomFurnitureCenter,
+  readRoomFurnitureLayout,
+  ROOM_FURNITURE_LAYOUT_KEY,
+  writeRoomFurnitureLayout,
+  type RoomFurnitureId,
+  type RoomFurnitureLayout,
+  type RoomFurniturePoint,
+} from '@/lib/room-furniture-layout';
+import { SPACE_POLICE_LETTER_EAT_DELAY_MS } from '@/lib/companion-store';
 import animationManifest from '@/lib/panda-animation-manifest.json';
 import './PetStage.css';
 
@@ -36,17 +47,28 @@ const CHAT_IDLE_TIMEOUT_MS = 30000;
 const DIRECTION_EPSILON = 0.0001;
 const GRAB_HOLD_MS = 420;
 const GRAB_CLICK_SUPPRESS_MOVE_PX = 10;
+const GRAB_HAND_ANCHOR_BY_FORM = {
+  regular: { x: 0.54, y: 0.045 },
+  dirty: { x: 0.5, y: 0.12 },
+} as const;
 const SPACE_POLICE_LETTER_REMINDER_MS = 60_000;
+const SPACE_POLICE_ENVELOPE_HOLD_MS = 420;
+const SPACE_POLICE_ENVELOPE_STORE_MS = 190;
+const ROOM_WASTE_HOLD_MS = 520;
+const ROOM_WASTE_PACK_MS = 880;
+const ROOM_WASTE_DISPOSE_MS = 720;
 const WAKE_CLICK_COOLDOWN_MS = 500;
 const STARTLE_DURATION_MS = 720;
 const ACTIVITY_SETTLE_MS = 320;
 const ACTIVITY_POSE_MS = 360;
-const WORLD_FALL_CHANCE = 0.1;
 const WORLD_FALL_ANIMATION_MS = 1100;
 const WORLD_FALL_MESSAGE_MS = 1800;
 const WORLD_AWAY_MS = 5000;
 const WORLD_RETURN_MS = 2500;
 const WORLD_FALL_COOLDOWN_MS = 120000;
+const DAMP_RACK_DRY_MS = 5000;
+const HOVER_CUDDLE_DURATION_MS = 3600;
+const HOVER_CUDDLE_COOLDOWN_MS = 5000;
 const DIRTY_FLY_DELAY_MS = 3 * 60 * 1000;
 const DIRTY_FLY_DURATION_MS = 6200;
 const DIRTY_FLY_RETRY_MS = 15000;
@@ -87,6 +109,13 @@ const LYING_SPRITE = pandaStaticUrl('lying.png?v=lying-pose-2');
 const PEEKING_SPRITE = pandaStaticUrl('peeking.png?v=look-back-1');
 const ROOM_FURNITURE_POINT: RoomPoint = { u: 0.72, v: 0.7 };
 type TransitionKey = 'idle' | 'chew' | 'jump' | 'cuddle' | 'tail' | 'lying' | 'sleep' | 'peeking' | 'captured-homecoming';
+type RoomWastePoint = { x: number; y: number };
+type RoomWastePointer = {
+  pointerId: number;
+  deliveredAt: number;
+  kind: 'pack' | 'drag';
+  holdTimer: number;
+};
 const PIXELLAB_TRANSITION_FRAMES: Record<TransitionKey, string[]> = Object.fromEntries(
   (['idle', 'chew', 'jump', 'cuddle', 'tail', 'lying', 'sleep', 'peeking', 'captured-homecoming'] as const).map((name) => [
     name,
@@ -108,7 +137,7 @@ const ACTION_TRANSITION_KEY: Record<PerformanceAction, TransitionKey> = {
   somersault: 'jump',
   tail: 'tail',
   tumble: 'idle',
-  cuddle: 'cuddle',
+  cuddle: 'lying',
   'captured-homecoming': 'captured-homecoming',
 };
 const DEVELOPER_POSE_TRANSITION_KEY: Record<DeveloperPose, TransitionKey> = {
@@ -143,15 +172,35 @@ type PandaDragPointer = {
 };
 
 type WorldFallPhase = 'none' | 'falling' | 'away' | 'returning' | 'dirty';
+type FurniturePointer = {
+  id: RoomFurnitureId;
+  pointerId: number;
+  element: HTMLElement;
+  startX: number;
+  startY: number;
+  offsetX: number;
+  offsetY: number;
+  holdTimer: number;
+  active: boolean;
+  moved: boolean;
+};
 type BathPhase = 'none' | 'falling' | 'bathing';
 type ScreenPosition = { x: number; y: number };
+type SpacePoliceEnvelopePointer = {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  holdTimer: number;
+  dragging: boolean;
+  movedBeforeHold: boolean;
+};
 type BathBallPointer = {
   pointerId: number;
   offsetX: number;
   offsetY: number;
 };
 
-export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = false, debugClicks = false, showInteractionBubble = false, interactionBubbleText, developerPose = null, developerEvent = null, onChatModeChange, onCapturedHomecomingInteraction, spacePoliceLetter, onOpenSpacePoliceLetter }: {
+export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = false, debugClicks = false, showInteractionBubble = false, interactionBubbleText, developerPose = null, developerEvent = null, onChatModeChange, onCapturedHomecomingInteraction, spacePoliceLetter, spacePoliceLetters, spacePoliceMailCount = 0, spacePoliceUnreadCount = 0, onOpenSpacePoliceLetter, onFileSpacePoliceLetter, onEatSpacePoliceLetter, onPlaceSpacePolicePoop, onPackSpacePolicePoop, onMoveSpacePolicePoopBag, onDisposeSpacePolicePoopBag, onFinishSpacePolicePoopDisposal, onOpenSpacePoliceMailbox }: {
   pet: PetEffect;
   thinking?: boolean;
   motion?: 'idle' | 'sleep';
@@ -163,8 +212,19 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   developerEvent?: { event: DeveloperEvent; token: number } | null;
   onChatModeChange?: (isChat: boolean) => void;
   onCapturedHomecomingInteraction?: () => void;
-  spacePoliceLetter?: { deliveredAt: number; openedAt?: number };
+  spacePoliceLetter?: { deliveredAt: number; openedAt?: number; filedAt?: number; eatenAt?: number; eatAfterAt?: number; poop?: SpacePoliceLetter['poop'] };
+  spacePoliceLetters?: SpacePoliceLetter[];
+  spacePoliceMailCount?: number;
+  spacePoliceUnreadCount?: number;
   onOpenSpacePoliceLetter?: () => void;
+  onFileSpacePoliceLetter?: (deliveredAt: number) => void;
+  onEatSpacePoliceLetter?: (deliveredAt: number) => void;
+  onPlaceSpacePolicePoop?: (deliveredAt: number, x: number, y: number) => void;
+  onPackSpacePolicePoop?: (deliveredAt: number) => void;
+  onMoveSpacePolicePoopBag?: (deliveredAt: number, x: number, y: number) => void;
+  onDisposeSpacePolicePoopBag?: (deliveredAt: number, x: number, y: number) => void;
+  onFinishSpacePolicePoopDisposal?: (deliveredAt: number) => void;
+  onOpenSpacePoliceMailbox?: () => void;
 }) {
   const hidden = pet.stage === 'fallen' || pet.stage === 'away';
   const seconds = Math.min(5, Math.max(2, pet.duration > 100 ? pet.duration / 1000 : pet.duration || 2));
@@ -175,6 +235,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const basePoseClass = developerPose ? developerPose === 'sleeping' ? 'sleep' : 'idle' : motion;
   const [interactionState, setInteractionState] = useState<'roaming' | 'chat'>('roaming');
   const [reacting, setReacting] = useState(false);
+  const [hoverCuddleActive, setHoverCuddleActive] = useState(false);
   const [roomWalking, setRoomWalking] = useState(false);
   const [activityState, setActivityState] = useState<RoomActivityState>('roaming');
   const [sleepingOnBed, setSleepingOnBed] = useState(false);
@@ -186,6 +247,9 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const [isDragging, setIsDragging] = useState(false);
   const [isPressPending, setIsPressPending] = useState(false);
   const [bathPhase, setBathPhase] = useState<BathPhase>('none');
+  const [dampAfterBath, setDampAfterBath] = useState(false);
+  const [dampDryingReady, setDampDryingReady] = useState(false);
+  const [dampDrySecondsRemaining, setDampDrySecondsRemaining] = useState(DAMP_RACK_DRY_MS / 1000);
   const [bathFrame, setBathFrame] = useState(0);
   const [bathRubbing, setBathRubbing] = useState(false);
   const [bathBallPosition, setBathBallPosition] = useState<ScreenPosition | null>(null);
@@ -199,9 +263,33 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const worldFallPhaseRef = useRef(worldFallPhase);
   worldFallPhaseRef.current = worldFallPhase;
   const [worldFallMessageVisible, setWorldFallMessageVisible] = useState(false);
+  const [spaceBlackHolePosition, setSpaceBlackHolePosition] = useState<RoomWastePoint>({ x: 17, y: 36 });
+  const [packingPoopDeliveredAt, setPackingPoopDeliveredAt] = useState<number | null>(null);
+  const [draggingPoopDeliveredAt, setDraggingPoopDeliveredAt] = useState<number | null>(null);
+  const [poopDragPosition, setPoopDragPosition] = useState<RoomWastePoint | null>(null);
   const [capturedHomecomingArrived, setCapturedHomecomingArrived] = useState(false);
   const [spacePoliceEnvelopePosition, setSpacePoliceEnvelopePosition] = useState<{ x: number; y: number } | null>(null);
+  const [spacePoliceEnvelopeDragging, setSpacePoliceEnvelopeDragging] = useState(false);
+  const [spacePoliceEnvelopeStoring, setSpacePoliceEnvelopeStoring] = useState(false);
   const [spacePoliceLetterReminderVisible, setSpacePoliceLetterReminderVisible] = useState(false);
+  const [roomFurnitureState, setRoomFurnitureState] = useState(() => {
+    if (typeof window === 'undefined') {
+      return { layout: {} as RoomFurnitureLayout, notice: '家具长按可移动 · 布局保存在本机' };
+    }
+    try {
+      return { layout: readRoomFurnitureLayout(window.localStorage), notice: '家具长按可移动 · 布局保存在本机' };
+    } catch {
+      return { layout: {} as RoomFurnitureLayout, notice: '本机布局读取失败，当前使用默认摆放。' };
+    }
+  });
+  const roomFurnitureLayout = roomFurnitureState.layout;
+  const roomFurnitureLayoutRef = useRef(roomFurnitureLayout);
+  roomFurnitureLayoutRef.current = roomFurnitureLayout;
+  const [draggingFurnitureId, setDraggingFurnitureId] = useState<RoomFurnitureId | null>(null);
+  const [viewportSize, setViewportSize] = useState(() => ({
+    width: typeof window === 'undefined' ? 1 : window.innerWidth,
+    height: typeof window === 'undefined' ? 1 : window.innerHeight,
+  }));
   const capturedHomecomingArrivedRef = useRef(false);
   const capturedHomecomingTokenRef = useRef<number | null>(null);
   const positionedSpacePoliceLetterRef = useRef<number | null>(null);
@@ -211,6 +299,19 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const worldAway = showInteractionBubble && worldFallPhase === 'away';
   const dirtyReturn = showInteractionBubble && (worldFallPhase === 'returning' || worldFallPhase === 'dirty');
   const dirtyGrab = dirtyReturn && (isDragging || developerGrab || hangingOnRack);
+  const roomWasteLetters = useMemo(() => spacePoliceLetters ?? (spacePoliceLetter?.poop
+    ? [{ id: `legacy-space-police-${spacePoliceLetter.deliveredAt}`, ...spacePoliceLetter }]
+    : []), [spacePoliceLetter, spacePoliceLetters]);
+  const activeWasteLetters = useMemo(
+    () => roomWasteLetters.filter(letter => letter.poop && letter.poop.phase !== 'disposed'),
+    [roomWasteLetters],
+  );
+  const visibleWasteLetters = useMemo(
+    () => activeWasteLetters.filter(letter => ['fresh', 'bagged', 'disposing'].includes(letter.poop!.phase)),
+    [activeWasteLetters],
+  );
+  const spaceBlackHoleVisible = showInteractionBubble
+    && (activeWasteLetters.length > 0 || developerEvent?.event === 'world-fall');
   const isFlyChasing = flyChaseActive && bathPhase === 'none' && interactionState === 'roaming'
     && activityState === 'roaming' && !isDragging && !hangingOnRack && !hidden;
   const [nightWakeOverride, setNightWakeOverride] = useState(false);
@@ -225,6 +326,10 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const developerPoseRef = useRef(developerPose);
   developerPoseRef.current = developerPose;
   const bathPhaseRef = useRef<BathPhase>('none');
+  const dampAfterBathRef = useRef(dampAfterBath);
+  const dampDryingReadyRef = useRef(dampDryingReady);
+  dampAfterBathRef.current = dampAfterBath;
+  dampDryingReadyRef.current = dampDryingReady;
   const bathBallDragRef = useRef<BathBallPointer | null>(null);
   const bathBallOriginRef = useRef<ScreenPosition | null>(null);
   const bathDropTimerRef = useRef(0);
@@ -235,8 +340,11 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const dirtyPleaHideTimerRef = useRef(0);
   const bathBallDropTimerRef = useRef(0);
   const bathTubRef = useRef<HTMLImageElement>(null);
+  const bathStationRef = useRef<HTMLDivElement>(null);
   const bedRef = useRef<HTMLImageElement>(null);
   const clothesRackRef = useRef<HTMLImageElement>(null);
+  const spacePoliceMailboxRef = useRef<HTMLButtonElement>(null);
+  const spaceBlackHoleRef = useRef<HTMLDivElement>(null);
   const bathBoxButtonRef = useRef<HTMLButtonElement>(null);
   const bathBallButtonRef = useRef<HTMLButtonElement>(null);
   const pandaButtonRef = useRef<HTMLButtonElement>(null);
@@ -245,25 +353,192 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const reactionTimerRef = useRef(0);
   const chatIdleTimerRef = useRef(0);
   const dragPointerRef = useRef<PandaDragPointer | null>(null);
+  const spacePoliceEnvelopePointerRef = useRef<SpacePoliceEnvelopePointer | null>(null);
+  const suppressSpacePoliceEnvelopeClickRef = useRef(false);
+  const spacePoliceEnvelopeStoreTimerRef = useRef(0);
+  const poopPackStartTimerRef = useRef(0);
+  const poopPackFinishTimerRef = useRef(0);
+  const packingPoopRef = useRef<number | null>(null);
+  const roomWastePointerRef = useRef<RoomWastePointer | null>(null);
+  const furniturePointerRef = useRef<FurniturePointer | null>(null);
+  const suppressFurnitureClickRef = useRef<RoomFurnitureId | null>(null);
   const draggingRef = useRef(false);
   const suppressClickAfterDragRef = useRef(false);
   const wakeClickIgnoreUntilRef = useRef(0);
   const startledRef = useRef(false);
   const startleTimerRef = useRef(0);
   const lastWorldFallAtRef = useRef(Number.NEGATIVE_INFINITY);
+  const spaceBlackHoleTouchingRef = useRef(false);
   const activityTransitionTimerRef = useRef(0);
   const activityTransitionFrameTimerRef = useRef(0);
   const activityTransitionSequenceRef = useRef(0);
   const bambooDropTimerRef = useRef(0);
+  const hoverCuddleTimerRef = useRef(0);
+  const lastHoverCuddleAtRef = useRef(Number.NEGATIVE_INFINITY);
   const currentImageRef = useRef('');
   const [facing, setFacing] = useState<'left' | 'right'>('right');
   const facingRef = useRef<'left' | 'right'>('right');
   const trackRef = useRef<HTMLDivElement>(null);
   const positionRef = useRef<RoomPoint>({ u: 0.5, v: 0.58 });
   const mousePositionRef = useRef<{ x: number; y: number } | null>(null);
+
+  const updateRoomFurniturePoint = useCallback((id: RoomFurnitureId, point: RoomFurniturePoint) => {
+    const next = { ...roomFurnitureLayoutRef.current, [id]: point };
+    roomFurnitureLayoutRef.current = next;
+    setRoomFurnitureState((current) => ({ ...current, layout: next }));
+  }, []);
+
+  const persistRoomFurnitureLayout = useCallback((layout: RoomFurnitureLayout) => {
+    try {
+      writeRoomFurnitureLayout(window.localStorage, layout);
+      setRoomFurnitureState((current) => ({ ...current, notice: '家具摆放已保存在本机。' }));
+    } catch {
+      setRoomFurnitureState((current) => ({ ...current, notice: '家具位置已移动，但本机保存失败。' }));
+    }
+  }, []);
+
+  const resetRoomFurnitureLayout = useCallback(() => {
+    try {
+      window.localStorage.removeItem(ROOM_FURNITURE_LAYOUT_KEY);
+      roomFurnitureLayoutRef.current = {};
+      setRoomFurnitureState({ layout: {}, notice: '已恢复默认摆放。' });
+    } catch {
+      setRoomFurnitureState((current) => ({ ...current, notice: '无法清除本机家具布局，请检查浏览器存储权限。' }));
+    }
+  }, []);
+
+  const roomFurnitureStyle = useCallback((
+    id: RoomFurnitureId,
+    elementRef: { current: HTMLElement | null },
+  ) => {
+    const point = roomFurnitureLayout[id];
+    if (!point) return undefined;
+    const rect = elementRef.current?.getBoundingClientRect();
+    const safePoint = clampRoomFurnitureCenter(
+      point.x * viewportSize.width,
+      point.y * viewportSize.height,
+      rect?.width ?? 1,
+      rect?.height ?? 1,
+      viewportSize.width,
+      viewportSize.height,
+    );
+    return {
+      left: `${safePoint.x * 100}%`,
+      top: `${safePoint.y * 100}%`,
+      right: 'auto',
+      bottom: 'auto',
+      transform: 'translate(-50%, -50%)',
+    };
+  }, [roomFurnitureLayout, viewportSize]);
+
+  const beginFurnitureMove = useCallback((id: RoomFurnitureId, event: ReactPointerEvent<Element>) => {
+    if (!showInteractionBubble || !event.isPrimary || event.button !== 0) return;
+    event.stopPropagation();
+    const element = event.currentTarget as HTMLElement;
+    const rect = element.getBoundingClientRect();
+    const press: FurniturePointer = {
+      id,
+      pointerId: event.pointerId,
+      element,
+      startX: event.clientX,
+      startY: event.clientY,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+      holdTimer: 0,
+      active: false,
+      moved: false,
+    };
+    const previous = furniturePointerRef.current;
+    if (previous?.holdTimer) window.clearTimeout(previous.holdTimer);
+    furniturePointerRef.current = press;
+    press.holdTimer = window.setTimeout(() => {
+      if (furniturePointerRef.current !== press) return;
+      press.active = true;
+      suppressFurnitureClickRef.current = id;
+      setDraggingFurnitureId(id);
+      try {
+        element.setPointerCapture(press.pointerId);
+      } catch {
+        // Pointer capture can fail if the pointer was released while the hold timer was settling.
+      }
+    }, 520);
+  }, [showInteractionBubble]);
+
+  const moveFurniture = useCallback((event: ReactPointerEvent<Element>) => {
+    const press = furniturePointerRef.current;
+    if (!press || press.pointerId !== event.pointerId) return;
+    event.stopPropagation();
+    if (!press.active) {
+      if (Math.hypot(event.clientX - press.startX, event.clientY - press.startY) > 10) {
+        window.clearTimeout(press.holdTimer);
+        furniturePointerRef.current = null;
+      }
+      return;
+    }
+    if (Math.hypot(event.clientX - press.startX, event.clientY - press.startY) <= 4) return;
+    const rect = press.element.getBoundingClientRect();
+    const left = event.clientX - press.offsetX;
+    const top = event.clientY - press.offsetY;
+    const point = clampRoomFurnitureCenter(
+      left + rect.width / 2,
+      top + rect.height / 2,
+      rect.width,
+      rect.height,
+      viewportSize.width,
+      viewportSize.height,
+    );
+    press.moved = true;
+    updateRoomFurniturePoint(press.id, point);
+  }, [updateRoomFurniturePoint, viewportSize]);
+
+  const finishFurnitureMove = useCallback((event: ReactPointerEvent<Element>) => {
+    const press = furniturePointerRef.current;
+    if (!press || press.pointerId !== event.pointerId) return;
+    event.stopPropagation();
+    window.clearTimeout(press.holdTimer);
+    furniturePointerRef.current = null;
+    if (!press.active) return;
+    setDraggingFurnitureId(null);
+    if (press.moved) persistRoomFurnitureLayout(roomFurnitureLayoutRef.current);
+    window.setTimeout(() => {
+      if (suppressFurnitureClickRef.current === press.id) suppressFurnitureClickRef.current = null;
+    }, 0);
+    try {
+      if (press.element.hasPointerCapture(press.pointerId)) press.element.releasePointerCapture(press.pointerId);
+    } catch {
+      // The browser may already have released capture after pointerup or pointercancel.
+    }
+  }, [persistRoomFurnitureLayout]);
+
+  const suppressFurnitureClick = useCallback((id: RoomFurnitureId, event: ReactMouseEvent<Element>) => {
+    if (suppressFurnitureClickRef.current !== id) return;
+    event.preventDefault();
+    event.stopPropagation();
+    suppressFurnitureClickRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    const resize = () => setViewportSize({ width: window.innerWidth, height: window.innerHeight });
+    resize();
+    window.addEventListener('resize', resize);
+    return () => window.removeEventListener('resize', resize);
+  }, []);
+
+  useEffect(() => () => {
+    const press = furniturePointerRef.current;
+    if (press?.holdTimer) window.clearTimeout(press.holdTimer);
+  }, []);
+
   const setBathPhaseNow = useCallback((next: BathPhase) => {
     bathPhaseRef.current = next;
     setBathPhase(next);
+  }, []);
+  const setDampAfterBathNow = useCallback((next: boolean) => {
+    dampAfterBathRef.current = next;
+    dampDryingReadyRef.current = false;
+    setDampAfterBath(next);
+    setDampDryingReady(false);
+    setDampDrySecondsRemaining(DAMP_RACK_DRY_MS / 1000);
   }, []);
   const startFlyChase = useCallback(() => {
     setFlyChaseSide(Math.random() < 0.5 ? 'left' : 'right');
@@ -277,7 +552,14 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       || (showInteractionBubble && (activityState === 'sleeping' || (activityState === 'roaming' && motion === 'sleep' && !nightWakeOverride))));
   const isSleepingRef = useRef(isSleeping);
   isSleepingRef.current = isSleeping;
-  const sprite = dirtyGrab
+  const hoverCuddleVisible = showInteractionBubble && hoverCuddleActive && pet.stage === 'present'
+    && interactionState !== 'chat' && !isSleeping && !isDragging && !isPressPending && !developerGrab
+    && !hangingOnRack && !dampAfterBath && bathPhase === 'none' && !startled && dizzyPhase === 'none'
+    && worldFallPhase === 'none' && !dirtyReturn && !developerPose;
+  const isCuddling = (pet.stage === 'performing' && action === 'cuddle') || hoverCuddleVisible;
+  const sprite = hoverCuddleVisible
+    ? 'cuddle-wriggle'
+    : dirtyGrab
     ? dirtyGrabLiftComplete ? 'dirty-grab' : 'dirty-grab-lift'
     : showInteractionBubble && dizzyPhase !== 'none'
     ? 'dizzy'
@@ -379,6 +661,12 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   }, []);
 
   useEffect(() => () => window.clearTimeout(bambooDropTimerRef.current), []);
+  useEffect(() => () => window.clearTimeout(hoverCuddleTimerRef.current), []);
+  useEffect(() => () => {
+    const envelopeDrag = spacePoliceEnvelopePointerRef.current;
+    if (envelopeDrag?.holdTimer) window.clearTimeout(envelopeDrag.holdTimer);
+    window.clearTimeout(spacePoliceEnvelopeStoreTimerRef.current);
+  }, []);
 
   useEffect(() => {
     if (dizzyPhase === 'falling') {
@@ -601,6 +889,11 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       setSpacePoliceEnvelopePosition(null);
       return;
     }
+    if (spacePoliceLetter.filedAt !== undefined || spacePoliceLetter.eatenAt !== undefined) {
+      positionedSpacePoliceLetterRef.current = spacePoliceLetter.deliveredAt;
+      setSpacePoliceEnvelopePosition(null);
+      return;
+    }
     if (positionedSpacePoliceLetterRef.current === spacePoliceLetter.deliveredAt) return;
     const bounds = trackRef.current?.getBoundingClientRect();
     if (!bounds) return;
@@ -610,10 +903,25 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     const y = Math.max(18, Math.min(height - 18, bounds.bottom - 13)) / height;
     positionedSpacePoliceLetterRef.current = spacePoliceLetter.deliveredAt;
     setSpacePoliceEnvelopePosition({ x, y });
-  }, [pet.stage, pet.token, showInteractionBubble, spacePoliceLetter?.deliveredAt]);
+  }, [pet.stage, pet.token, showInteractionBubble, spacePoliceLetter?.deliveredAt, spacePoliceLetter?.filedAt, spacePoliceLetter?.eatenAt]);
 
   useEffect(() => {
-    if (!showInteractionBubble || !spacePoliceLetter || spacePoliceLetter.openedAt !== undefined) {
+    if (!showInteractionBubble || !spacePoliceLetter || spacePoliceLetter.filedAt !== undefined
+      || spacePoliceLetter.eatenAt !== undefined || spacePoliceEnvelopeStoring || !onEatSpacePoliceLetter) return undefined;
+    const { deliveredAt } = spacePoliceLetter;
+    const delay = (spacePoliceLetter.eatAfterAt ?? deliveredAt + SPACE_POLICE_LETTER_EAT_DELAY_MS) - Date.now();
+    if (delay <= 0) {
+      onEatSpacePoliceLetter(deliveredAt);
+      return undefined;
+    }
+    const timer = window.setTimeout(() => onEatSpacePoliceLetter(deliveredAt), delay);
+    return () => window.clearTimeout(timer);
+  }, [showInteractionBubble, spacePoliceLetter?.deliveredAt, spacePoliceLetter?.filedAt, spacePoliceLetter?.eatenAt, spacePoliceLetter?.eatAfterAt,
+    spacePoliceEnvelopeStoring, onEatSpacePoliceLetter]);
+
+  useEffect(() => {
+    if (!showInteractionBubble || !spacePoliceLetter || spacePoliceLetter.openedAt !== undefined
+      || spacePoliceLetter.filedAt !== undefined || spacePoliceLetter.eatenAt !== undefined) {
       setSpacePoliceLetterReminderVisible(false);
       return undefined;
     }
@@ -670,6 +978,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     );
     updateFacing(target.u - previous.u);
     applyRoomPoint(target);
+    setDampAfterBathNow(false);
     window.clearTimeout(bathDropTimerRef.current);
     setBathPhaseNow('falling');
     bathDropTimerRef.current = window.setTimeout(() => {
@@ -677,7 +986,34 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       if (bathPhaseRef.current === 'falling') setBathPhaseNow('bathing');
     }, BATH_DROP_MS);
     return true;
-  }, [applyRoomPoint, setBathPhaseNow, showInteractionBubble, updateFacing]);
+  }, [applyRoomPoint, setBathPhaseNow, setDampAfterBathNow, showInteractionBubble, updateFacing]);
+
+  useEffect(() => {
+    if (!showInteractionBubble || !dampAfterBath || !hangingOnRack) {
+      dampDryingReadyRef.current = false;
+      setDampDryingReady(false);
+      setDampDrySecondsRemaining(DAMP_RACK_DRY_MS / 1000);
+      return undefined;
+    }
+
+    const driesAt = Date.now() + DAMP_RACK_DRY_MS;
+    dampDryingReadyRef.current = false;
+    setDampDryingReady(false);
+    setDampDrySecondsRemaining(DAMP_RACK_DRY_MS / 1000);
+    const countdown = window.setInterval(() => {
+      setDampDrySecondsRemaining(Math.max(0, Math.ceil((driesAt - Date.now()) / 1000)));
+    }, 150);
+    const dryTimer = window.setTimeout(() => {
+      dampDryingReadyRef.current = true;
+      setDampDryingReady(true);
+      setDampDrySecondsRemaining(0);
+      window.clearInterval(countdown);
+    }, DAMP_RACK_DRY_MS);
+    return () => {
+      window.clearInterval(countdown);
+      window.clearTimeout(dryTimer);
+    };
+  }, [dampAfterBath, hangingOnRack, showInteractionBubble]);
 
   const startDeveloperBathRub = useCallback(() => {
     if (bathPhaseRef.current !== 'bathing') return false;
@@ -732,8 +1068,15 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
         setDizzyPhase('falling');
         break;
       case 'world-fall':
-        setWorldFallMessageVisible(true);
-        setWorldFallPhase('falling');
+        {
+          const pandaRect = pandaButtonRef.current?.getBoundingClientRect();
+          if (pandaRect) {
+            setSpaceBlackHolePosition({
+              x: ((pandaRect.left + pandaRect.width / 2) / Math.max(1, window.innerWidth)) * 100,
+              y: ((pandaRect.top + pandaRect.height / 2) / Math.max(1, window.innerHeight)) * 100,
+            });
+          }
+        }
         break;
       case 'bath-drop':
         startBathDropToTub();
@@ -954,19 +1297,81 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     ));
   }, [applyRoomPoint, bathPhase, showInteractionBubble, unprojectScreenPoint]);
 
-  const maybeStartWorldFall = useCallback(() => {
+  const beginWorldFallFromBlackHole = useCallback(() => {
     const now = performance.now();
-    if (!showInteractionBubble || worldFallPhase !== 'none' || now - lastWorldFallAtRef.current < WORLD_FALL_COOLDOWN_MS
-      || Math.random() >= WORLD_FALL_CHANCE) return false;
+    if (!showInteractionBubble || dampAfterBath || worldFallPhaseRef.current !== 'none'
+      || interactionStateRef.current !== 'roaming' || activityStateRef.current !== 'roaming'
+      || bathPhaseRef.current !== 'none' || hangingOnRackRef.current || draggingRef.current || hidden
+      || now - lastWorldFallAtRef.current < WORLD_FALL_COOLDOWN_MS) return false;
     lastWorldFallAtRef.current = now;
     setRoomWalking(false);
     setWorldFallMessageVisible(true);
     setWorldFallPhase('falling');
     return true;
-  }, [showInteractionBubble, worldFallPhase]);
+  }, [dampAfterBath, hidden, showInteractionBubble]);
+
+  useEffect(() => {
+    if (!spaceBlackHoleVisible) {
+      spaceBlackHoleTouchingRef.current = false;
+      return undefined;
+    }
+    const movement = window.setInterval(() => {
+      setSpaceBlackHolePosition({
+        x: 13 + Math.random() * 74,
+        y: 22 + Math.random() * 56,
+      });
+    }, 8300);
+    return () => window.clearInterval(movement);
+  }, [spaceBlackHoleVisible]);
+
+  useEffect(() => {
+    if (!spaceBlackHoleVisible) {
+      spaceBlackHoleTouchingRef.current = false;
+      return undefined;
+    }
+    const checkCollision = window.setInterval(() => {
+      if (worldFallPhaseRef.current !== 'none') return;
+      const pandaRect = pandaButtonRef.current?.getBoundingClientRect();
+      const holeRect = spaceBlackHoleRef.current?.getBoundingClientRect();
+      if (!pandaRect || !holeRect) return;
+      const touching = pandaRect.left < holeRect.right && pandaRect.right > holeRect.left
+        && pandaRect.top < holeRect.bottom && pandaRect.bottom > holeRect.top;
+      if (!touching) {
+        spaceBlackHoleTouchingRef.current = false;
+        return;
+      }
+      if (spaceBlackHoleTouchingRef.current) return;
+      spaceBlackHoleTouchingRef.current = true;
+      beginWorldFallFromBlackHole();
+    }, 100);
+    return () => window.clearInterval(checkCollision);
+  }, [beginWorldFallFromBlackHole, spaceBlackHoleVisible]);
+
+  useEffect(() => {
+    if (!showInteractionBubble || !roomWalking || !onPlaceSpacePolicePoop) return undefined;
+    const pending = activeWasteLetters.find(letter => letter.poop?.phase === 'pending');
+    if (!pending) return undefined;
+    const timer = window.setTimeout(() => {
+      const pandaRect = pandaButtonRef.current?.getBoundingClientRect();
+      if (!pandaRect) return;
+      onPlaceSpacePolicePoop(
+        pending.deliveredAt,
+        (pandaRect.left + pandaRect.width / 2) / Math.max(1, window.innerWidth),
+        (pandaRect.bottom - 4) / Math.max(1, window.innerHeight),
+      );
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [activeWasteLetters, onPlaceSpacePolicePoop, roomWalking, showInteractionBubble]);
+
+  useEffect(() => {
+    const timers = activeWasteLetters
+      .filter(letter => letter.poop?.phase === 'disposing')
+      .map(letter => window.setTimeout(() => onFinishSpacePolicePoopDisposal?.(letter.deliveredAt), ROOM_WASTE_DISPOSE_MS));
+    return () => timers.forEach(timer => window.clearTimeout(timer));
+  }, [activeWasteLetters, onFinishSpacePolicePoopDisposal]);
 
   const maybeEnterRest = useCallback((point: RoomPoint) => {
-    if (!showInteractionBubble) return false;
+    if (!showInteractionBubble || dampAfterBath) return false;
     const nextActivity = chooseRestActivity(point);
     if (!nextActivity) return false;
     clearActivityTransition();
@@ -999,7 +1404,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       }, ACTIVITY_POSE_MS);
     }, ACTIVITY_SETTLE_MS);
     return true;
-  }, [clearActivityTransition, playPixelTransition, showInteractionBubble]);
+  }, [clearActivityTransition, dampAfterBath, playPixelTransition, showInteractionBubble]);
 
   useEffect(() => {
     if (pet.stage === 'returning' && interactionState !== 'chat') updateFacing(1);
@@ -1243,10 +1648,137 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     }, DOUBLE_CLICK_WINDOW_MS);
   };
 
+  const handleSpacePoliceEnvelopePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)
+      || !spacePoliceEnvelopePosition || spacePoliceEnvelopeStoring) return;
+    event.stopPropagation();
+    const drag: SpacePoliceEnvelopePointer = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      holdTimer: 0,
+      dragging: false,
+      movedBeforeHold: false,
+    };
+    spacePoliceEnvelopePointerRef.current = drag;
+    const pointerId = event.pointerId;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    drag.holdTimer = window.setTimeout(() => {
+      const active = spacePoliceEnvelopePointerRef.current;
+      if (!active || active.pointerId !== pointerId || active.movedBeforeHold) return;
+      active.holdTimer = 0;
+      active.dragging = true;
+      setSpacePoliceEnvelopeDragging(true);
+    }, SPACE_POLICE_ENVELOPE_HOLD_MS);
+  };
+
+  const handleSpacePoliceEnvelopePointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const drag = spacePoliceEnvelopePointerRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    event.stopPropagation();
+    if (!drag.dragging) {
+      if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > GRAB_CLICK_SUPPRESS_MOVE_PX) {
+        drag.movedBeforeHold = true;
+        window.clearTimeout(drag.holdTimer);
+        drag.holdTimer = 0;
+      }
+      return;
+    }
+    event.preventDefault();
+    const width = Math.max(1, window.innerWidth);
+    const height = Math.max(1, window.innerHeight);
+    const x = Math.max(12, Math.min(width - 12, event.clientX - 36));
+    const y = Math.max(12, Math.min(height - 12, event.clientY - 6));
+    setSpacePoliceEnvelopePosition({ x: x / width, y: y / height });
+  };
+
+  const handleSpacePoliceEnvelopePointerUp = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const drag = spacePoliceEnvelopePointerRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    event.stopPropagation();
+    window.clearTimeout(drag.holdTimer);
+    spacePoliceEnvelopePointerRef.current = null;
+    if (!drag.dragging) {
+      if (drag.movedBeforeHold) {
+        suppressSpacePoliceEnvelopeClickRef.current = true;
+        window.setTimeout(() => { suppressSpacePoliceEnvelopeClickRef.current = false; }, 0);
+      }
+      return;
+    }
+
+    setSpacePoliceEnvelopeDragging(false);
+    suppressSpacePoliceEnvelopeClickRef.current = true;
+    window.setTimeout(() => { suppressSpacePoliceEnvelopeClickRef.current = false; }, 0);
+    const width = Math.max(1, window.innerWidth);
+    const height = Math.max(1, window.innerHeight);
+    const x = Math.max(12, Math.min(width - 12, event.clientX - 36));
+    const y = Math.max(12, Math.min(height - 12, event.clientY - 6));
+    setSpacePoliceEnvelopePosition({ x: x / width, y: y / height });
+
+    const mailbox = spacePoliceMailboxRef.current?.getBoundingClientRect();
+    const droppedInMailbox = mailbox
+      && event.clientX >= mailbox.left && event.clientX <= mailbox.right
+      && event.clientY >= mailbox.top && event.clientY <= mailbox.bottom;
+    if (!droppedInMailbox || !spacePoliceLetter || !onFileSpacePoliceLetter) return;
+
+    const filedDeliveredAt = spacePoliceLetter.deliveredAt;
+    setSpacePoliceEnvelopeStoring(true);
+    window.clearTimeout(spacePoliceEnvelopeStoreTimerRef.current);
+    spacePoliceEnvelopeStoreTimerRef.current = window.setTimeout(() => {
+      spacePoliceEnvelopeStoreTimerRef.current = 0;
+      if (positionedSpacePoliceLetterRef.current === filedDeliveredAt) {
+        setSpacePoliceEnvelopePosition(null);
+      }
+      setSpacePoliceEnvelopeStoring(false);
+      onFileSpacePoliceLetter?.(filedDeliveredAt);
+    }, SPACE_POLICE_ENVELOPE_STORE_MS);
+  };
+
+  const handleSpacePoliceEnvelopePointerCancel = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const drag = spacePoliceEnvelopePointerRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    window.clearTimeout(drag.holdTimer);
+    spacePoliceEnvelopePointerRef.current = null;
+    setSpacePoliceEnvelopeDragging(false);
+  };
+
+  const handleSpacePoliceEnvelopeClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (suppressSpacePoliceEnvelopeClickRef.current) {
+      suppressSpacePoliceEnvelopeClickRef.current = false;
+      return;
+    }
+    onOpenSpacePoliceLetter?.();
+  };
+
+  const handlePandaPointerEnter = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType !== 'mouse' || !showInteractionBubble || pet.stage !== 'present'
+      || interactionStateRef.current !== 'roaming' || hidden || isSleeping || isDragging || isPressPending
+      || developerGrab || hangingOnRack || bathPhaseRef.current !== 'none' || startledRef.current
+      || dizzyPhase !== 'none' || worldFallPhase !== 'none' || dirtyReturn || developerPose
+      || activityStateRef.current !== 'roaming' || activityTransition !== null) return;
+    const now = performance.now();
+    if (now - lastHoverCuddleAtRef.current < HOVER_CUDDLE_COOLDOWN_MS) return;
+    lastHoverCuddleAtRef.current = now;
+    window.clearTimeout(hoverCuddleTimerRef.current);
+    setHoverCuddleActive(true);
+    playPixelTransition('lying', 'entering', () => {});
+    hoverCuddleTimerRef.current = window.setTimeout(() => {
+      hoverCuddleTimerRef.current = 0;
+      playPixelTransition('lying', 'waking', () => setHoverCuddleActive(false));
+    }, HOVER_CUDDLE_DURATION_MS);
+  };
+
   const handlePandaPointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (!showInteractionBubble || interactionStateRef.current === 'chat' || !event.isPrimary
       || dizzyPhase !== 'none' || (worldFallPhase !== 'none' && worldFallPhase !== 'dirty') || bathPhaseRef.current === 'falling'
       || (event.pointerType === 'mouse' && event.button !== 0)) return;
+    if (hoverCuddleActive) {
+      window.clearTimeout(hoverCuddleTimerRef.current);
+      hoverCuddleTimerRef.current = 0;
+      setHoverCuddleActive(false);
+      clearActivityTransition();
+    }
     if (capturedHomecoming) onCapturedHomecomingInteraction?.();
     const track = trackRef.current;
     if (!track) return;
@@ -1291,14 +1823,18 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       setReacting(false);
       setIsPressPending(false);
       setIsDragging(true);
-       setHangingOnRack(false);
+      if (hangingOnRackRef.current && dampAfterBathRef.current && dampDryingReadyRef.current) {
+        setDampAfterBathNow(false);
+      }
+      setHangingOnRack(false);
       clearActivityTransition();
       setActivityState('roaming');
       setSleepingOnBed(false);
-       if (bathPhaseRef.current === 'bathing') {
-         setBathPhaseNow('none');
-         if (worldFallPhase !== 'none') setWorldFallPhase('none');
-       }
+      if (bathPhaseRef.current === 'bathing') {
+        setBathPhaseNow('none');
+        setDampAfterBathNow(true);
+        if (worldFallPhase !== 'none') setWorldFallPhase('none');
+      }
       if (motion === 'sleep') setNightWakeOverride(true);
       setRoomWalking(false);
       const width = Math.max(1, window.innerWidth);
@@ -1357,6 +1893,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     const pandaCenterX = pandaRect ? pandaRect.left + pandaRect.width / 2 : Number.NaN;
     const pandaCenterY = pandaRect ? pandaRect.top + pandaRect.height / 2 : Number.NaN;
     const droppedOntoBed = drag.grabbed && !cancelled && showInteractionBubble
+      && !dampAfterBathRef.current
       && bedRect !== undefined && pandaRect !== undefined
       && pandaCenterX >= bedRect.left && pandaCenterX <= bedRect.right
       && pandaCenterY >= bedRect.top && pandaCenterY <= bedRect.bottom;
@@ -1532,6 +2069,8 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     window.clearTimeout(dirtyFlyEndTimerRef.current);
     window.clearTimeout(dirtyPleaTimerRef.current);
     window.clearTimeout(dirtyPleaHideTimerRef.current);
+    window.clearTimeout(poopPackStartTimerRef.current);
+    window.clearTimeout(poopPackFinishTimerRef.current);
     if (dragPointerRef.current) window.clearTimeout(dragPointerRef.current.holdTimer);
   }, []);
 
@@ -1552,9 +2091,9 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       if (showInteractionBubble) setRoomWalking(walking);
     };
 
-    const canRoam = () => interactionState === 'roaming' && dizzyPhase === 'none' && !reacting && !startled && !developerGrab && !hangingOnRackRef.current && !startledRef.current && !hidden
+    const canRoam = () => interactionState === 'roaming' && dizzyPhase === 'none' && !reacting && !startled && !developerGrab && !hangingOnRackRef.current && !dampAfterBath && !startledRef.current && !hidden
       && (worldFallPhase === 'none' || worldFallPhase === 'dirty') && bathPhase === 'none'
-      && pet.stage !== 'performing' && pet.stage !== 'returning'
+      && pet.stage !== 'performing' && pet.stage !== 'returning' && !hoverCuddleActive
       && !developerPose && !pixelTransitionDirection && activityState === 'roaming' && !isDragging && !isPressPending && !draggingRef.current
       && (motion !== 'sleep' || nightWakeOverride) && !preference.matches && document.visibilityState !== 'hidden';
     const schedule = () => {
@@ -1617,7 +2156,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       if (progress < 1) raf = window.requestAnimationFrame(step);
       else {
         setWalking(false);
-         if (flyChaseActive || (!maybeEnterRest(positionRef.current) && !maybeStartWorldFall())) schedule();
+        if (flyChaseActive || !maybeEnterRest(positionRef.current)) schedule();
       }
     };
     const pause = () => {
@@ -1644,16 +2183,17 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   }, [
     activityState,
     bathPhase,
+    dampAfterBath,
     applyRoomPoint,
     dizzyPhase,
     flyChaseActive,
     flyChaseSide,
     hidden,
     interactionState,
+    hoverCuddleActive,
     isDragging,
     isPressPending,
     maybeEnterRest,
-    maybeStartWorldFall,
     motion,
     developerPose,
     pixelTransitionDirection,
@@ -1687,6 +2227,10 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       ? pandaStaticUrl('startled.png?v=mouse-startle-pixflux-1')
     : sprite === 'lying'
     ? LYING_SPRITE
+    : sprite === 'cuddle-wriggle'
+      ? frame === 0
+        ? LYING_SPRITE
+        : pandaStaticUrl(`frames/cuddle-wriggle-${frame}.png?v=cuddle-wriggle-pixellab-1`)
     : sprite === 'peeking'
       ? PEEKING_SPRITE
     : sprite === 'grab'
@@ -1705,6 +2249,120 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       ? pandaStaticUrl(`${sprite}.png?v=${sprite === 'chew' ? 'chew-feed-4' : sprite === 'tail-chase' ? 'tail-chase-ccw-3' : 'tail-left-3'}`)
       : pandaStaticUrl(`frames/${sprite}-${frame}.png?v=${sprite === 'chew' ? 'chew-feed-4' : sprite === 'tail-chase' ? 'tail-chase-ccw-3' : 'tail-left-3'}`);
   currentImageRef.current = image;
+
+  useLayoutEffect(() => {
+    if (!showInteractionBubble || !isDragging) return;
+    const drag = dragPointerRef.current;
+    const track = trackRef.current;
+    const body = pandaButtonRef.current?.querySelector<HTMLImageElement>('.ps-body');
+    if (!drag || !drag.grabbed || drag.pointerType !== 'mouse' || !track || !body) return;
+
+    const trackRect = track.getBoundingClientRect();
+    const bodyRect = body.getBoundingClientRect();
+    const anchor = dirtyGrab ? GRAB_HAND_ANCHOR_BY_FORM.dirty : GRAB_HAND_ANCHOR_BY_FORM.regular;
+    const facingAdjustedX = facing === 'left' ? 1 - anchor.x : anchor.x;
+    const handX = bodyRect.left + bodyRect.width * facingAdjustedX;
+    const handY = bodyRect.top + bodyRect.height * anchor.y;
+
+    // The cursor is the hold point: keep the relevant paw/grip aligned as the held sprite changes.
+    drag.offsetX = trackRect.left + trackRect.width / 2 - handX;
+    drag.offsetY = trackRect.bottom - handY;
+
+    const width = Math.max(1, window.innerWidth);
+    const height = Math.max(1, window.innerHeight);
+    const point = unprojectScreenPoint(
+      ((drag.currentX + drag.offsetX) / width) * 100,
+      ((drag.currentY + drag.offsetY) / height) * 100,
+    );
+    applyRoomPoint(point);
+  }, [applyRoomPoint, dirtyGrab, facing, image, isDragging, showInteractionBubble, unprojectScreenPoint]);
+
+  const beginRoomWastePointer = useCallback((
+    deliveredAt: number,
+    phase: NonNullable<SpacePoliceLetter['poop']>['phase'],
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => {
+    if (phase !== 'fresh' && phase !== 'bagged') return;
+    event.preventDefault();
+    event.stopPropagation();
+    try { event.currentTarget.setPointerCapture(event.pointerId); } catch { /* pointer may already be captured */ }
+    const pointer: RoomWastePointer = {
+      pointerId: event.pointerId,
+      deliveredAt,
+      kind: phase === 'fresh' ? 'pack' : 'drag',
+      holdTimer: 0,
+    };
+    roomWastePointerRef.current = pointer;
+    if (phase === 'fresh') {
+      if (packingPoopRef.current !== null) return;
+      pointer.holdTimer = window.setTimeout(() => {
+        poopPackStartTimerRef.current = 0;
+        packingPoopRef.current = deliveredAt;
+        setPackingPoopDeliveredAt(deliveredAt);
+        poopPackFinishTimerRef.current = window.setTimeout(() => {
+          poopPackFinishTimerRef.current = 0;
+          packingPoopRef.current = null;
+          setPackingPoopDeliveredAt(null);
+          onPackSpacePolicePoop?.(deliveredAt);
+        }, ROOM_WASTE_PACK_MS);
+      }, ROOM_WASTE_HOLD_MS);
+      poopPackStartTimerRef.current = pointer.holdTimer;
+    } else {
+      setDraggingPoopDeliveredAt(deliveredAt);
+      setPoopDragPosition({
+        x: event.clientX / Math.max(1, window.innerWidth),
+        y: event.clientY / Math.max(1, window.innerHeight),
+      });
+    }
+  }, [onPackSpacePolicePoop]);
+
+  const moveRoomWastePointer = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
+    const pointer = roomWastePointerRef.current;
+    if (!pointer || pointer.pointerId !== event.pointerId || pointer.kind !== 'drag') return;
+    event.preventDefault();
+    event.stopPropagation();
+    setPoopDragPosition({
+      x: Math.max(0.02, Math.min(0.98, event.clientX / Math.max(1, window.innerWidth))),
+      y: Math.max(0.02, Math.min(0.98, event.clientY / Math.max(1, window.innerHeight))),
+    });
+  }, []);
+
+  const finishRoomWastePointer = useCallback((event: ReactPointerEvent<HTMLButtonElement>, cancelled = false) => {
+    const pointer = roomWastePointerRef.current;
+    if (!pointer || pointer.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    roomWastePointerRef.current = null;
+    if (pointer.kind === 'pack') {
+      if (packingPoopRef.current !== pointer.deliveredAt) {
+        window.clearTimeout(pointer.holdTimer);
+        if (poopPackStartTimerRef.current === pointer.holdTimer) poopPackStartTimerRef.current = 0;
+      }
+      return;
+    }
+    const x = cancelled && poopDragPosition
+      ? poopDragPosition.x
+      : Math.max(0.02, Math.min(0.98, event.clientX / Math.max(1, window.innerWidth)));
+    const y = cancelled && poopDragPosition
+      ? poopDragPosition.y
+      : Math.max(0.02, Math.min(0.98, event.clientY / Math.max(1, window.innerHeight)));
+    const holeRect = spaceBlackHoleRef.current?.getBoundingClientRect();
+    const droppedIntoHole = !cancelled && holeRect
+      && event.clientX >= holeRect.left && event.clientX <= holeRect.right
+      && event.clientY >= holeRect.top && event.clientY <= holeRect.bottom;
+    if (droppedIntoHole && holeRect) {
+      onDisposeSpacePolicePoopBag?.(
+        pointer.deliveredAt,
+        (holeRect.left + holeRect.width / 2) / Math.max(1, window.innerWidth),
+        (holeRect.top + holeRect.height / 2) / Math.max(1, window.innerHeight),
+      );
+    } else {
+      onMoveSpacePolicePoopBag?.(pointer.deliveredAt, x, y);
+    }
+    setDraggingPoopDeliveredAt(null);
+    setPoopDragPosition(null);
+  }, [onDisposeSpacePolicePoopBag, onMoveSpacePolicePoopBag, poopDragPosition]);
+
   const roomFurniture = projectRoomPoint(ROOM_FURNITURE_POINT, window.innerWidth, window.innerHeight);
   const roomBackgroundImage = `url("${import.meta.env.BASE_URL}static/room/room-background.png")`;
   const roomFloorBounds = roomFloorBoundsPercent(window.innerWidth, window.innerHeight);
@@ -1735,7 +2393,20 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
           data-dev-pose={developerPose ?? undefined} data-transition-direction={pixelTransitionDirection ?? undefined}
           data-dragging={isDragging} data-pressing={isPressPending}
            data-world-fall-state={showInteractionBubble ? worldFallPhase : undefined}
-        data-testid="panda-interaction-state" style={{ ['--ps-dur' as string]: `${seconds}s` }}>
+         data-testid="panda-interaction-state" data-damp-after-bath={dampAfterBath ? 'true' : undefined}
+         data-damp-drying-ready={dampDryingReady ? 'true' : undefined}
+         style={{ ['--ps-dur' as string]: `${seconds}s` }}>
+        {spaceBlackHoleVisible && (
+          <div ref={spaceBlackHoleRef} className="ps-space-black-hole" aria-label="缓慢移动的时空黑洞"
+            role="img" data-testid="space-time-black-hole"
+            style={{
+              left: `${spaceBlackHolePosition.x}%`,
+              top: `${spaceBlackHolePosition.y}%`,
+              transitionDuration: developerEvent?.event === 'world-fall' ? '0ms' : undefined,
+            }}>
+            <span aria-hidden="true" />
+          </div>
+        )}
         {showInteractionBubble && (
           <img className="ps-room-furniture" src={`${import.meta.env.BASE_URL}static/room/foreground-cabinet.svg`}
             alt="" aria-hidden="true" draggable={false} data-testid="room-foreground-furniture"
@@ -1748,22 +2419,79 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
             }} />
         )}
         {showInteractionBubble && (
-          <img ref={clothesRackRef} className="ps-room-rack"
+          <div className="ps-room-layout-controls" data-testid="room-layout-controls">
+            <span className="ps-room-layout-hint" role="status" aria-live="polite">
+              {roomFurnitureState.notice}
+            </span>
+            {Object.keys(roomFurnitureLayout).length > 0 && (
+              <button type="button" className="ps-room-layout-reset"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => { event.stopPropagation(); resetRoomFurnitureLayout(); }}
+                data-testid="reset-room-layout">
+                恢复默认摆放
+              </button>
+            )}
+          </div>
+        )}
+        {showInteractionBubble && (
+          <img ref={clothesRackRef}
+            className={`ps-room-rack${draggingFurnitureId === 'rack' ? ' ps-furniture-dragging' : ''}`}
             src={`${import.meta.env.BASE_URL}static/room/panda-clothes-rack.svg?v=panda-hanging-rack-1`}
-            alt="小熊猫晾衣架；把小熊猫拖到横杆附近并松手，它会挂在架子上" draggable={false}
+            alt="小熊猫晾衣架；把潮湿的小熊猫拖到横杆附近晾5秒，再长按抱下来；长按并拖动衣架可以调整位置"
+            title="长按并拖动，调整衣架位置" draggable={false}
+            style={roomFurnitureStyle('rack', clothesRackRef)}
+            onPointerDown={(event) => beginFurnitureMove('rack', event)}
+            onPointerMove={moveFurniture}
+            onPointerUp={finishFurnitureMove}
+            onPointerCancel={finishFurnitureMove}
             data-testid="room-clothes-rack" />
         )}
         {showInteractionBubble && (
-          <img ref={bedRef} className="ps-room-bed"
+          <img ref={bedRef}
+            className={`ps-room-bed${draggingFurnitureId === 'bed' ? ' ps-furniture-dragging' : ''}`}
             src={`${import.meta.env.BASE_URL}static/room/panda-nest-bed.png?v=panda-fresh-isometric-bed-5-paw-axis-perspective`}
-            alt="圆形藤编小熊猫窝，带白色后枕、爪印棕枕和流苏毯；把小熊猫拖到床上就会睡觉" draggable={false} data-testid="room-bed" />
+            alt="圆形藤编小熊猫窝；把小熊猫拖到床上就会睡觉；长按并拖动床可以调整位置"
+            title="长按并拖动，调整小熊猫窝的位置" draggable={false}
+            style={roomFurnitureStyle('bed', bedRef)}
+            onPointerDown={(event) => beginFurnitureMove('bed', event)}
+            onPointerMove={moveFurniture}
+            onPointerUp={finishFurnitureMove}
+            onPointerCancel={finishFurnitureMove}
+            data-testid="room-bed" />
+        )}
+        {showInteractionBubble && onOpenSpacePoliceMailbox && (
+          <button ref={spacePoliceMailboxRef} type="button"
+            className={`ps-space-letter-box${draggingFurnitureId === 'mailbox' ? ' ps-furniture-dragging' : ''}`}
+            aria-haspopup="dialog"
+            aria-label={`打开时空警察来信箱，${spacePoliceMailCount ?? 0}封来信，${spacePoliceUnreadCount ?? 0}封未读`}
+            title={`${spacePoliceUnreadCount ? `时空警察来信箱 · ${spacePoliceUnreadCount}封未读` : '时空警察来信箱'}；长按并拖动可以调整位置`}
+            data-testid="space-police-mailbox"
+            style={roomFurnitureStyle('mailbox', spacePoliceMailboxRef)}
+            onPointerDown={(event) => beginFurnitureMove('mailbox', event)}
+            onPointerMove={moveFurniture}
+            onPointerUp={finishFurnitureMove}
+            onPointerCancel={finishFurnitureMove}
+            onClickCapture={(event) => suppressFurnitureClick('mailbox', event)}
+            onClick={(event) => { event.stopPropagation(); onOpenSpacePoliceMailbox(); }}>
+            <span className="ps-space-letter-box-stamp" aria-hidden="true">✉</span>
+            <span className="ps-space-letter-box-label">时空信箱</span>
+            {spacePoliceUnreadCount > 0 && <span className="ps-space-letter-box-count" aria-hidden="true">{spacePoliceUnreadCount > 9 ? '9+' : spacePoliceUnreadCount}</span>}
+          </button>
         )}
         {showInteractionBubble && (
-          <div className="ps-bath-station" data-testid="bath-station">
+          <div ref={bathStationRef}
+            className={`ps-bath-station${draggingFurnitureId === 'bathStation' ? ' ps-furniture-dragging' : ''}`}
+            style={roomFurnitureStyle('bathStation', bathStationRef)}
+            onPointerDown={(event) => beginFurnitureMove('bathStation', event)}
+            onPointerMove={moveFurniture}
+            onPointerUp={finishFurnitureMove}
+            onPointerCancel={finishFurnitureMove}
+            onClickCapture={(event) => suppressFurnitureClick('bathStation', event)}
+            data-testid="bath-station">
             <button ref={bathBoxButtonRef} type="button" className="ps-bath-box"
               disabled={bathPhase !== 'bathing' || bathBallPosition !== null}
-              aria-label={bathPhase === 'bathing' && !bathBallPosition ? '打开浴球小箱子，取出浴球' : '浴球收纳箱；把小熊猫放进浴缸后可以取浴球'}
-              title={bathPhase === 'bathing' && !bathBallPosition ? '点击打开小箱子，取出浴球' : bathBallPosition ? '浴球已经取出，可以拖到小熊猫身上' : '把小熊猫放进浴缸后就可以取浴球'}
+              aria-label={bathPhase === 'bathing' && !bathBallPosition ? '打开浴球小箱子，取出浴球；长按浴缸区域可移动整套浴室' : '浴球收纳箱；把小熊猫放进浴缸后可以取浴球；长按浴缸区域可移动整套浴室'}
+              title={bathPhase === 'bathing' && !bathBallPosition ? '点击打开小箱子取出浴球；长按浴缸区域可移动整套浴室' : bathBallPosition ? '浴球已经取出，可以拖到小熊猫身上；长按浴缸区域可移动整套浴室' : '把小熊猫放进浴缸后就可以取浴球；长按浴缸区域可移动整套浴室'}
               onClick={handleTakeBathBall} data-testid="bath-ball-box">
               <img className="ps-bath-box-puff" src={BATH_PUFF_SPRITE} alt="" aria-hidden="true" draggable={false} />
               <span className="ps-bath-box-label">浴球</span>
@@ -1773,9 +2501,37 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
               alt="" aria-hidden="true" draggable={false} data-testid="room-bathtub" />
           </div>
         )}
+        {showInteractionBubble && visibleWasteLetters.map(letter => {
+          const poop = letter.poop!;
+          const dragPoint = draggingPoopDeliveredAt === letter.deliveredAt ? poopDragPosition : null;
+          const point = dragPoint ?? { x: poop.x ?? 0.5, y: poop.y ?? 0.65 };
+          const isPacking = packingPoopDeliveredAt === letter.deliveredAt;
+          const isDraggingBag = draggingPoopDeliveredAt === letter.deliveredAt;
+          return (
+            <button key={letter.deliveredAt} type="button"
+              className={`ps-room-waste ps-room-waste-${poop.phase}${isPacking ? ' ps-room-waste-packing' : ''}${isDraggingBag ? ' ps-room-waste-dragging' : ''}`}
+              style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%` }}
+              aria-label={poop.phase === 'fresh'
+                ? '长按把大便打包成黑色袋子'
+                : poop.phase === 'disposing' ? '黑色袋子正在被时空黑洞吸走' : '拖动黑色袋子到时空黑洞里'}
+              title={poop.phase === 'fresh' ? '长按打包' : poop.phase === 'bagged' ? '拖进时空黑洞' : undefined}
+              disabled={poop.phase === 'disposing'}
+              onPointerDown={event => beginRoomWastePointer(letter.deliveredAt, poop.phase, event)}
+              onPointerMove={moveRoomWastePointer}
+              onPointerUp={event => finishRoomWastePointer(event)}
+              onPointerCancel={event => finishRoomWastePointer(event, true)}
+              data-testid={`room-waste-${letter.deliveredAt}`}
+              data-waste-phase={poop.phase}>
+              {poop.phase === 'fresh'
+                ? <span className="ps-room-waste-poop" aria-hidden="true">💩</span>
+                : <span className="ps-room-waste-bag" aria-hidden="true"><i /></span>}
+              {isPacking && <span className="ps-room-waste-wrap" aria-hidden="true"><i /></span>}
+            </button>
+          );
+        })}
         {!showInteractionBubble && thinking && <span className="ps-thinking" role="status">唔……</span>}
         {!hidden && (!worldAway || worldFallMessageVisible) && (
-          <div ref={trackRef} className={`ps-track${pet.stage === 'returning' ? ' ps-returning' : ''}${worldFallPhase === 'returning' ? ' ps-world-returning' : ''}${worldAway ? ' ps-world-away' : ''}${bathPhase === 'falling' ? ' ps-bath-dropping' : ''}${sleepingOnBed ? ' ps-bed-sleeping' : ''}${hangingOnRack ? ' ps-hanging-on-rack' : ''}${capturedHomecoming && !capturedHomecomingArrived ? ' ps-captured-homecoming' : ''}${capturedHomecoming && capturedHomecomingArrived ? ' ps-captured-hugging' : ''}`}
+          <div ref={trackRef} className={`ps-track${pet.stage === 'returning' ? ' ps-returning' : ''}${worldFallPhase === 'returning' ? ' ps-world-returning' : ''}${worldAway ? ' ps-world-away' : ''}${bathPhase === 'falling' ? ' ps-bath-dropping' : ''}${sleepingOnBed ? ' ps-bed-sleeping' : ''}${hangingOnRack ? ' ps-hanging-on-rack' : ''}${dampAfterBath ? ' ps-damp-after-bath' : ''}${capturedHomecoming && !capturedHomecomingArrived ? ' ps-captured-homecoming' : ''}${capturedHomecoming && capturedHomecomingArrived ? ' ps-captured-hugging' : ''}`}
             onAnimationEnd={(event) => { if (event.animationName === 'ps-captured-homecoming-path') finishCapturedHomecomingPath(); }}
             data-captured-return-phase={!capturedHomecoming ? undefined : capturedHomecomingArrived ? 'hugging' : frame < 2 ? 'thrown' : frame <= 4 ? 'impact' : 'crawling'}
             data-room-u="0.500" data-room-v="0.580" data-testid="panda-room-position" key={`${pet.token}-${pet.stage}`}>
@@ -1788,32 +2544,41 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
               <span className="ps-thinking ps-room-chat-bubble ps-world-fall-bubble" role="status" aria-live="polite"
                 data-testid="panda-world-fall-message">掉出去啦！</span>
             )}
+            {showInteractionBubble && dampAfterBath && bathPhase === 'none' && (
+              <span className="ps-damp-status" aria-live="off" data-testid="panda-damp-status">
+                {hangingOnRack
+                  ? dampDryingReady ? '晾好啦，长按抱下来' : `晾干中 ${dampDrySecondsRemaining} 秒`
+                  : '湿漉漉的，挂到衣架上晾 5 秒'}
+              </span>
+            )}
             {showInteractionBubble && worldFallPhase === 'dirty' && bathPhase === 'none'
               && interactionState === 'roaming' && activityState === 'roaming' && !developerPose
               && !isSleeping && !isDragging && !hangingOnRack && dirtyPleaText && (
                 <span className="ps-thinking ps-room-chat-bubble ps-world-dirty-plea" role="status" aria-live="polite"
                   data-testid="panda-dirty-plea">{dirtyPleaText}</span>
             )}
-            {showInteractionBubble && !capturedHomecoming && worldFallPhase === 'none' && !isSleeping && !startled && !isDragging && !hangingOnRack && interactionBubbleText && (
+            {showInteractionBubble && !dampAfterBath && !capturedHomecoming && worldFallPhase === 'none' && !isSleeping && !startled && !isDragging && !hangingOnRack && interactionBubbleText && (
               <span className="ps-thinking ps-room-chat-bubble" role="status" aria-live="polite"
                 data-testid="panda-chat-bubble">{interactionBubbleText}</span>
             )}
             {showInteractionBubble && !worldAway && bathPhase !== 'bathing' && !hangingOnRack && (
-              <span className={`ps-ground-shadow${isSleeping ? ' ps-ground-shadow-sleeping' : ''}${capturedHomecoming ? ' ps-captured-impact-shadow' : ''}`}
+              <span className={`ps-ground-shadow${isSleeping ? ' ps-ground-shadow-sleeping' : ''}${capturedHomecoming ? ' ps-captured-impact-shadow' : ''}${isCuddling ? ' ps-ground-shadow-cuddling' : ''}`}
                 aria-hidden="true" />
             )}
             {capturedHomecoming && !capturedHomecomingArrived && frame >= 2 && frame <= 4 && (
               <span className="ps-captured-impact-dust" aria-hidden="true"><i /><i /><i /></span>
             )}
               {!worldAway && (
-              <button ref={pandaButtonRef} type="button" className={`ps-panda ps-${hangingOnRack ? 'idle' : pet.stage === 'performing' ? action : basePoseClass}${showInteractionBubble && roomWalking && !hangingOnRack ? ' ps-walking' : ''}${showInteractionBubble && activityTransition ? ` ps-transition-${activityTransition}` : ''}${pixelTransitionDirection ? ' ps-pixel-transition' : ''}${interactionState === 'chat' ? ' ps-chatting' : ''}${(showInteractionBubble && activityState === 'lying' || developerPose === 'lying') ? ' ps-lying' : ''}${(showInteractionBubble && activityState === 'peeking' || developerPose === 'peeking') ? ' ps-peeking' : ''}${isSleeping ? ' ps-sleeping' : ''}${developerPose === 'idle' ? ' ps-dev-idle' : ''}${startled ? ' ps-startled' : ''}${isPressPending ? ' ps-pressing' : ''}${reacting ? ' ps-reacting' : ''}${isDragging || developerGrab ? ' ps-dragging' : ''}${hangingOnRack ? ' ps-hanging' : ''}${dirtyGrab ? ' ps-dirty-grabbing' : ''}${showInteractionBubble && dizzyPhase !== 'none' ? ' ps-dizzy' : ''}${worldFallPhase === 'falling' ? ' ps-world-falling' : ''}${bathPhase === 'falling' ? ' ps-bath-dropping' : ''}${bathPhase === 'bathing' ? ' ps-bathing' : ''}${dirtyReturn ? ' ps-world-dirty' : ''}${isFlyChasing ? ' ps-fly-flee' : ''}`}
+              <button ref={pandaButtonRef} type="button" className={`ps-panda ps-${hangingOnRack ? 'idle' : isCuddling ? 'cuddle' : pet.stage === 'performing' ? action : basePoseClass}${showInteractionBubble && roomWalking && !hangingOnRack ? ' ps-walking' : ''}${showInteractionBubble && activityTransition ? ` ps-transition-${activityTransition}` : ''}${pixelTransitionDirection ? ' ps-pixel-transition' : ''}${interactionState === 'chat' ? ' ps-chatting' : ''}${(showInteractionBubble && activityState === 'lying' || developerPose === 'lying') ? ' ps-lying' : ''}${(showInteractionBubble && activityState === 'peeking' || developerPose === 'peeking') ? ' ps-peeking' : ''}${isSleeping ? ' ps-sleeping' : ''}${developerPose === 'idle' ? ' ps-dev-idle' : ''}${startled ? ' ps-startled' : ''}${isPressPending ? ' ps-pressing' : ''}${reacting ? ' ps-reacting' : ''}${isDragging || developerGrab ? ' ps-dragging' : ''}${hangingOnRack ? ' ps-hanging' : ''}${dirtyGrab ? ' ps-dirty-grabbing' : ''}${showInteractionBubble && dizzyPhase !== 'none' ? ' ps-dizzy' : ''}${worldFallPhase === 'falling' ? ' ps-world-falling' : ''}${bathPhase === 'falling' ? ' ps-bath-dropping' : ''}${bathPhase === 'bathing' ? ' ps-bathing' : ''}${dirtyReturn ? ' ps-world-dirty' : ''}${isFlyChasing ? ' ps-fly-flee' : ''}`}
+               data-damp-after-bath={dampAfterBath && bathPhase === 'none' ? 'true' : undefined}
+              onPointerEnter={handlePandaPointerEnter}
               onClick={handlePandaClick}
               onPointerDown={handlePandaPointerDown}
               onPointerMove={handlePandaPointerMove}
               onPointerUp={handlePandaPointerUp}
               onPointerCancel={handlePandaPointerCancel}
                    aria-label={capturedHomecoming ? '小熊猫从时空旋涡被送回，旁边有空间警察来信' : hangingOnRack ? '小熊猫挂在晾衣架上；长按可以把它抱下来' : isFlyChasing ? '脏兮兮的小熊猫被苍蝇追着跑' : bathPhase === 'falling' ? '小熊猫掉进浴缸了' : bathPhase === 'bathing' ? '小熊猫正在洗澡；长按可以提起' : worldFallPhase === 'falling' ? '小熊猫掉出房间了' : dirtyReturn ? '小熊猫灰头土脸地哭着回来了' : dizzyPhase === 'falling' ? '小熊猫松手后掉到地上' : dizzyPhase === 'dazed' ? '小熊猫坐在地上眩晕了一会儿' : isDragging ? '正在拎起小熊猫；拖动到目标位置后松手' : isPressPending ? '按住小熊猫即可拎起' : startled ? '小熊猫被吓了一跳' : isSleeping ? '小熊猫正在睡觉；点击叫醒' : interactionState === 'chat' ? '小熊猫正在聊天；点击房间空白处退出' : '点击小熊猫和它互动'}
-                  data-testid="button-panda" data-hanging-on-rack={hangingOnRack ? 'true' : undefined} data-bath-state={showInteractionBubble ? bathPhase : undefined} data-bath-ball-on-panda={bathBallPlaced ? 'true' : undefined} data-bath-rubbing={showInteractionBubble && bathPhase === 'bathing' ? (bathRubbing ? 'true' : 'false') : undefined} data-sleeping-on-bed={sleepingOnBed ? 'true' : 'false'} data-reacting={reacting ? 'true' : undefined} data-startled={startled ? 'true' : undefined} data-dizzy-state={showInteractionBubble ? dizzyPhase : undefined} data-facing={facing}
+                  data-testid="button-panda" data-cuddling={isCuddling ? 'true' : undefined} data-sprite={sprite} data-hanging-on-rack={hangingOnRack ? 'true' : undefined} data-bath-state={showInteractionBubble ? bathPhase : undefined} data-bath-ball-on-panda={bathBallPlaced ? 'true' : undefined} data-bath-rubbing={showInteractionBubble && bathPhase === 'bathing' ? (bathRubbing ? 'true' : 'false') : undefined} data-sleeping-on-bed={sleepingOnBed ? 'true' : 'false'} data-reacting={reacting ? 'true' : undefined} data-startled={startled ? 'true' : undefined} data-dizzy-state={showInteractionBubble ? dizzyPhase : undefined} data-facing={facing}
                  data-bamboo-phase={action === 'bamboo' ? bambooPhase : undefined}
                 data-activity-state={showInteractionBubble ? developerPose ?? activityState : undefined}
                 data-dev-pose={developerPose ?? undefined}
@@ -1824,6 +2589,9 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
                  data-sprite={dirtyGrab ? sprite : hangingOnRack ? 'grab' : dirtyReturn && bathPhase === 'bathing' ? (bathRubbing ? 'dirty-bathing-soap' : 'dirty-bathing') : dirtyReturn && isFlyChasing ? 'dirty-flee' : dirtyReturn ? 'dirty-return' : bathPhase === 'bathing' ? 'bathing' : startled && showInteractionBubble ? 'startled' : sprite}
                  data-frame={dirtyGrab ? frame : hangingOnRack ? '0' : showInteractionBubble && bathPhase === 'bathing' ? bathFrame : dirtyReturn ? '0' : frame}
                  width={60} height={60} alt="" draggable={false} />
+                {dampAfterBath && bathPhase === 'none' && (
+                  <span className="ps-damp-drops" aria-hidden="true"><i /><i /><i /></span>
+                )}
                {bathPhase === 'bathing' && bathRubbing && (
                  <span className="ps-bath-foam" aria-hidden="true">
                    <i /><i /><i /><i />
@@ -1863,19 +2631,24 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
               )}
           </div>
         )}
-        {showInteractionBubble && spacePoliceLetter && spacePoliceEnvelopePosition && onOpenSpacePoliceLetter && (
+        {showInteractionBubble && spacePoliceLetter && spacePoliceLetter.filedAt === undefined
+          && spacePoliceLetter.eatenAt === undefined && spacePoliceEnvelopePosition && onOpenSpacePoliceLetter && (
           <>
             <button type="button"
-              className={`ps-space-police-envelope${capturedHomecoming && !capturedHomecomingArrived ? ' ps-space-police-envelope-flying' : ''}${spacePoliceLetter.openedAt !== undefined ? ' ps-space-police-envelope-opened' : ''}`}
+              className={`ps-space-police-envelope${capturedHomecoming && !capturedHomecomingArrived ? ' ps-space-police-envelope-flying' : ''}${spacePoliceLetter.openedAt !== undefined ? ' ps-space-police-envelope-opened' : ''}${spacePoliceEnvelopeDragging ? ' ps-space-police-envelope-dragging' : ''}${spacePoliceEnvelopeStoring ? ' ps-space-police-envelope-storing' : ''}`}
               style={{ left: `${spacePoliceEnvelopePosition.x * 100}%`, top: `${spacePoliceEnvelopePosition.y * 100}%` }}
               disabled={capturedHomecoming && !capturedHomecomingArrived}
-              aria-label={spacePoliceLetter.openedAt !== undefined ? '重新打开空间警察来信' : '打开空间警察的信封'}
+              aria-label={spacePoliceEnvelopeDragging ? '正在拖动时空警察信封，放到时空信箱里收好' : spacePoliceLetter.openedAt !== undefined ? '重新打开空间警察来信；长按可拖进时空信箱' : '打开空间警察信封；长按可拖进时空信箱'}
               data-testid="space-police-envelope"
-              onPointerDown={(event) => event.stopPropagation()}
-              onClick={(event) => { event.stopPropagation(); onOpenSpacePoliceLetter(); }}>
+              data-dragging={spacePoliceEnvelopeDragging ? 'true' : undefined}
+              onPointerDown={handleSpacePoliceEnvelopePointerDown}
+              onPointerMove={handleSpacePoliceEnvelopePointerMove}
+              onPointerUp={handleSpacePoliceEnvelopePointerUp}
+              onPointerCancel={handleSpacePoliceEnvelopePointerCancel}
+              onClick={handleSpacePoliceEnvelopeClick}>
               <i aria-hidden="true" />
             </button>
-            {spacePoliceLetter.openedAt === undefined && spacePoliceLetterReminderVisible && (
+            {spacePoliceLetter.openedAt === undefined && spacePoliceLetterReminderVisible && !spacePoliceEnvelopeDragging && (
               <span className="ps-space-letter-arrow"
                 style={{ left: `calc(${spacePoliceEnvelopePosition.x * 100}% + 36px)`, top: `calc(${spacePoliceEnvelopePosition.y * 100}% - 26px)` }}
                 aria-hidden="true" data-testid="space-police-envelope-arrow">↓</span>

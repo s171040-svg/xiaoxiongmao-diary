@@ -1,5 +1,5 @@
 import type { CompanionInput, CompanionResponse } from '@workspace/api-client-react';
-import type { ChatMessage, CompanionState, DiaryMemory, Gift, PerformanceAction } from './companion-types';
+import type { ChatMessage, CompanionState, DiaryMemory, Gift, PerformanceAction, SpacePoliceLetter, SpacePoop } from './companion-types';
 
 export const COMPANION_KEY = 'little-panda-companion-v1';
 export const MINUTE = 60_000;
@@ -9,7 +9,8 @@ export const GIFT_DROP_MS = 1800;
 export const CAPTURED_TRIP_CHANCE = 0.1;
 export const CAPTURED_TRIP_EXTRA_MS = 2 * MINUTE;
 export const CAPTURED_HOMECOMING_DURATION_MS = 8000;
-export const canFeedGift = (gift: Gift) => ['🍌', '🥕', '🐟', '🍬'].includes(gift.emoji);
+export const SPACE_POLICE_LETTER_EAT_DELAY_MS = 5 * MINUTE;
+export const canFeedGift = (gift: Gift) => ['🍌', '🥕', '🐟', '🍬', '🍓', '🍪', '🎋'].includes(gift.emoji);
 export function startGiftDrop(state: CompanionState, giftId: string, now = Date.now()): CompanionState {
   return state.pendingGift?.id === giftId && !state.giftDropStartedAt
     ? { ...state, giftDropStartedAt: now } : state;
@@ -30,20 +31,38 @@ export function feedGift(state: CompanionState, giftId: string, now = Date.now()
   return { ...state, gifts: state.gifts.map(g => g.id === giftId ? { ...g, fedAt: now } : g),
     messages: [...state.messages, assistant(`唔，${state.userName ? state.userName + '，' : ''}${gift.item}收到啦，小熊猫咔嚓咔嚓吃掉啦。（它开心地嚼了嚼，蹭蹭你）`, 'event', now)] };
 }
-export const ACTIONS: PerformanceAction[] = ['bamboo', 'jump', 'somersault', 'tail', 'cuddle'];
+export const ACTIONS: PerformanceAction[] = ['bamboo', 'jump', 'somersault', 'tail'];
 export const id = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 export function localDay(now: number) { const d = new Date(now); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; }
 export const idleDelay = (random = Math.random) => (5 + random() * 5) * MINUTE;
 export const tripDelay = (random = Math.random) => (20 + random() * 20) * MINUTE;
 export function initialState(now = Date.now()): CompanionState {
   return { version: 1, messages: [], diary: [], gifts: [], userName: '', draft: '',
-    lastUserAt: now, nextIdleAt: now + idleDelay(), proactiveDay: localDay(now),
+    spacePoliceLetters: [], lastUserAt: now, nextIdleAt: now + idleDelay(), proactiveDay: localDay(now),
     proactiveCount: 0, nextTripAt: now + tripDelay() };
 }
 export function readState(storage: Pick<Storage, 'getItem'>, now = Date.now()): CompanionState {
   const raw = storage.getItem(COMPANION_KEY);
   if (!raw) return initialState(now);
   const value = JSON.parse(raw) as CompanionState;
+  const invalidSpacePoop = (poop: SpacePoop) => !poop
+    || !['pending', 'fresh', 'bagged', 'disposing', 'disposed'].includes(poop.phase)
+    || (poop.phase !== 'pending' && (!Number.isFinite(poop.x) || !Number.isFinite(poop.y)
+      || poop.x! < 0 || poop.x! > 1 || poop.y! < 0 || poop.y! > 1))
+    || (poop.packedAt !== undefined && !Number.isFinite(poop.packedAt))
+    || (poop.disposedAt !== undefined && !Number.isFinite(poop.disposedAt));
+  const invalidSpacePoliceLetter = (letter: SpacePoliceLetter) => !letter || typeof letter.id !== 'string'
+    || !Number.isFinite(letter.deliveredAt)
+    || (letter.openedAt !== undefined && !Number.isFinite(letter.openedAt))
+    || (letter.filedAt !== undefined && !Number.isFinite(letter.filedAt))
+    || (letter.eatenAt !== undefined && !Number.isFinite(letter.eatenAt))
+    || (letter.eatAfterAt !== undefined && !Number.isFinite(letter.eatAfterAt))
+    || (letter.poop !== undefined && invalidSpacePoop(letter.poop))
+    || (letter.finePayment !== undefined && (!letter.finePayment
+      || !Number.isFinite(letter.finePayment.paidAt)
+      || typeof letter.finePayment.giftId !== 'string'
+      || typeof letter.finePayment.emoji !== 'string'
+      || typeof letter.finePayment.item !== 'string'));
   if (value.version !== 1 || !Array.isArray(value.messages) || !Array.isArray(value.diary) || !Array.isArray(value.gifts)
     || typeof value.userName !== 'string' || typeof value.draft !== 'string'
     || (value.trip?.captured !== undefined && typeof value.trip.captured !== 'boolean')
@@ -52,7 +71,13 @@ export function readState(storage: Pick<Storage, 'getItem'>, now = Date.now()): 
       || (value.returnEvent.awaitingInteraction !== undefined && typeof value.returnEvent.awaitingInteraction !== 'boolean')))
     || (value.spacePoliceLetter !== undefined && (!value.spacePoliceLetter
       || !Number.isFinite(value.spacePoliceLetter.deliveredAt)
-      || (value.spacePoliceLetter.openedAt !== undefined && !Number.isFinite(value.spacePoliceLetter.openedAt))))
+      || (value.spacePoliceLetter.openedAt !== undefined && !Number.isFinite(value.spacePoliceLetter.openedAt))
+      || (value.spacePoliceLetter.filedAt !== undefined && !Number.isFinite(value.spacePoliceLetter.filedAt))
+      || (value.spacePoliceLetter.eatenAt !== undefined && !Number.isFinite(value.spacePoliceLetter.eatenAt))
+       || (value.spacePoliceLetter.eatAfterAt !== undefined && !Number.isFinite(value.spacePoliceLetter.eatAfterAt))
+       || (value.spacePoliceLetter.poop !== undefined && invalidSpacePoop(value.spacePoliceLetter.poop))))
+    || (value.spacePoliceLetters !== undefined && (!Array.isArray(value.spacePoliceLetters)
+      || value.spacePoliceLetters.some(invalidSpacePoliceLetter)))
     || (value.recentGiftStories !== undefined && (!Array.isArray(value.recentGiftStories)
       || value.recentGiftStories.some(story => typeof story !== 'string')))
     || ![value.lastUserAt, value.nextIdleAt, value.proactiveCount, value.nextTripAt].every(Number.isFinite)
@@ -61,15 +86,188 @@ export function readState(storage: Pick<Storage, 'getItem'>, now = Date.now()): 
     || value.diary.some(m => !m || !['worry', 'idea', 'action'].includes(m.kind) || typeof m.text !== 'string' || !Number.isFinite(m.createdAt))) {
     throw new Error('本机聊天记录暂时无法读取；没有覆盖原记录。');
   }
-  if (value.returnEvent?.kind === 'captured' && value.returnEvent.awaitingInteraction !== false && !value.spacePoliceLetter) {
-    return { ...value, spacePoliceLetter: { deliveredAt: Math.max(0, value.returnEvent.until - CAPTURED_HOMECOMING_DURATION_MS) } };
+  let letters: SpacePoliceLetter[] = value.spacePoliceLetters ?? (value.spacePoliceLetter ? [{
+    id: `legacy-space-police-${value.spacePoliceLetter.deliveredAt}`,
+    ...value.spacePoliceLetter,
+  }] : []);
+  if (value.spacePoliceLetter && !letters.some(letter => letter.deliveredAt === value.spacePoliceLetter!.deliveredAt)) {
+    letters = [...letters, { id: `legacy-space-police-${value.spacePoliceLetter.deliveredAt}`, ...value.spacePoliceLetter }];
   }
-  return value;
+  letters = letters.map(letter => letter.eatenAt !== undefined && !letter.poop
+    ? { ...letter, poop: { phase: 'pending' } }
+    : letter);
+  let activeSpacePoliceLetter = value.spacePoliceLetter;
+  if (activeSpacePoliceLetter?.eatenAt !== undefined && !activeSpacePoliceLetter.poop) {
+    activeSpacePoliceLetter = { ...activeSpacePoliceLetter, poop: { phase: 'pending' } };
+    letters = letters.map(letter => letter.deliveredAt === activeSpacePoliceLetter!.deliveredAt
+      ? { ...letter, poop: activeSpacePoliceLetter!.poop }
+      : letter);
+  } else if (activeSpacePoliceLetter && !activeSpacePoliceLetter.poop) {
+    const archivedActive = letters.find(letter => letter.deliveredAt === activeSpacePoliceLetter!.deliveredAt);
+    if (archivedActive?.poop) activeSpacePoliceLetter = { ...activeSpacePoliceLetter, poop: archivedActive.poop };
+  }
+  let restored: CompanionState = {
+    ...value,
+    ...(activeSpacePoliceLetter ? { spacePoliceLetter: activeSpacePoliceLetter } : {}),
+    spacePoliceLetters: letters,
+  };
+  if (restored.returnEvent?.kind === 'captured' && restored.returnEvent.awaitingInteraction !== false && !restored.spacePoliceLetter) {
+    const deliveredAt = Math.max(0, restored.returnEvent.until - CAPTURED_HOMECOMING_DURATION_MS);
+    const archiveEntry: SpacePoliceLetter = { id: `legacy-space-police-${deliveredAt}`, deliveredAt };
+    restored = { ...restored, spacePoliceLetter: { deliveredAt },
+      spacePoliceLetters: letters.some(letter => letter.deliveredAt === deliveredAt) ? letters : [...letters, archiveEntry] };
+  }
+  const activeLetter = restored.spacePoliceLetter;
+  if (activeLetter && activeLetter.eatAfterAt === undefined
+    && activeLetter.filedAt === undefined && activeLetter.eatenAt === undefined) {
+    const eatAfterAt = now + SPACE_POLICE_LETTER_EAT_DELAY_MS;
+    const archive = restored.spacePoliceLetters ?? [];
+    const archived = archive.some(letter => letter.deliveredAt === activeLetter.deliveredAt)
+      ? archive.map(letter => letter.deliveredAt === activeLetter.deliveredAt ? { ...letter, eatAfterAt } : letter)
+      : [...archive, { id: `legacy-space-police-${activeLetter.deliveredAt}`, deliveredAt: activeLetter.deliveredAt, eatAfterAt }];
+    restored = { ...restored, spacePoliceLetter: { ...activeLetter, eatAfterAt }, spacePoliceLetters: archived };
+  }
+  return restored;
 }
-export function markSpacePoliceLetterOpened(state: CompanionState, now = Date.now()): CompanionState {
-  const letter = state.spacePoliceLetter;
-  if (!letter || letter.openedAt !== undefined) return state;
-  return { ...state, spacePoliceLetter: { ...letter, openedAt: now } };
+export function deliverSpacePoliceLetter(
+  state: CompanionState,
+  deliveredAt = Date.now(),
+  makeId: () => string = id,
+): CompanionState {
+  const letterId = makeId();
+  const letters = state.spacePoliceLetters ?? [];
+  if (!letterId || letters.some(letter => letter.id === letterId)) throw new Error('来信编号重复了，请再试一次。');
+  const eatAfterAt = deliveredAt + SPACE_POLICE_LETTER_EAT_DELAY_MS;
+  return { ...state, spacePoliceLetter: { deliveredAt, eatAfterAt },
+    spacePoliceLetters: [...letters, { id: letterId, deliveredAt, eatAfterAt }] };
+}
+export function markSpacePoliceLetterOpened(state: CompanionState, now = Date.now(), letterId?: string): CompanionState {
+  const letters: SpacePoliceLetter[] = state.spacePoliceLetters ?? (state.spacePoliceLetter ? [{
+    id: `legacy-space-police-${state.spacePoliceLetter.deliveredAt}`,
+    ...state.spacePoliceLetter,
+  }] : []);
+  const letter = letterId
+    ? letters.find(entry => entry.id === letterId)
+    : state.spacePoliceLetter;
+  if (!letter) return state;
+  const archiveNeedsUpdate = letters.some(entry => (letterId ? entry.id === letterId : entry.deliveredAt === letter.deliveredAt)
+    && entry.openedAt === undefined);
+  const activeNeedsUpdate = state.spacePoliceLetter?.deliveredAt === letter.deliveredAt
+    && state.spacePoliceLetter.openedAt === undefined;
+  if (!archiveNeedsUpdate && !activeNeedsUpdate) return state;
+  return {
+    ...state,
+    ...(activeNeedsUpdate ? { spacePoliceLetter: { ...state.spacePoliceLetter!, openedAt: now } } : {}),
+    spacePoliceLetters: letters.map(entry =>
+      (letterId ? entry.id === letterId : entry.deliveredAt === letter.deliveredAt)
+        ? { ...entry, openedAt: entry.openedAt ?? now }
+        : entry),
+  };
+}
+export function fileSpacePoliceLetter(state: CompanionState, deliveredAt: number, now = Date.now()): CompanionState {
+  const activeLetter = state.spacePoliceLetter;
+  if (!activeLetter || activeLetter.deliveredAt !== deliveredAt
+    || activeLetter.filedAt !== undefined || activeLetter.eatenAt !== undefined) return state;
+  const letters = state.spacePoliceLetters ?? [];
+  const archived = letters.some(letter => letter.deliveredAt === deliveredAt)
+    ? letters.map(letter => letter.deliveredAt === deliveredAt
+      ? { ...letter, openedAt: letter.openedAt ?? now, filedAt: now }
+      : letter)
+    : [...letters, { id: `legacy-space-police-${deliveredAt}`, deliveredAt, openedAt: now, filedAt: now, eatAfterAt: activeLetter.eatAfterAt }];
+  return {
+    ...state,
+    spacePoliceLetter: { ...activeLetter, openedAt: activeLetter.openedAt ?? now, filedAt: now },
+    spacePoliceLetters: archived,
+  };
+}
+export function eatSpacePoliceLetter(state: CompanionState, deliveredAt: number, now = Date.now()): CompanionState {
+  const activeLetter = state.spacePoliceLetter;
+  if (!activeLetter || activeLetter.deliveredAt !== deliveredAt
+    || activeLetter.filedAt !== undefined || activeLetter.eatenAt !== undefined) return state;
+  const letters = state.spacePoliceLetters ?? [];
+  const archived = letters.some(letter => letter.deliveredAt === deliveredAt)
+    ? letters.map(letter => letter.deliveredAt === deliveredAt ? { ...letter, eatenAt: now, poop: { phase: 'pending' as const } } : letter)
+    : [...letters, { id: `legacy-space-police-${deliveredAt}`, deliveredAt, eatenAt: now, eatAfterAt: activeLetter.eatAfterAt, poop: { phase: 'pending' as const } }];
+  return {
+    ...state,
+    spacePoliceLetter: { ...activeLetter, eatenAt: now, poop: { phase: 'pending' } },
+    spacePoliceLetters: archived,
+    messages: [...state.messages, assistant('唔……小熊猫太好奇，把信封吃掉了。肚子咕噜咕噜的，拉肚子了。', 'event', now)],
+  };
+}
+function updateSpacePolicePoop(
+  state: CompanionState,
+  deliveredAt: number,
+  update: (poop: SpacePoop) => SpacePoop,
+): CompanionState {
+  const source = state.spacePoliceLetters ?? (state.spacePoliceLetter ? [{
+    id: `legacy-space-police-${state.spacePoliceLetter.deliveredAt}`,
+    ...state.spacePoliceLetter,
+  }] : []);
+  const letter = source.find(entry => entry.deliveredAt === deliveredAt);
+  if (!letter?.poop) return state;
+  const poop = update(letter.poop);
+  if (poop === letter.poop) return state;
+  const spacePoliceLetters = source.map(entry => entry.deliveredAt === deliveredAt ? { ...entry, poop } : entry);
+  return {
+    ...state,
+    spacePoliceLetters,
+    ...(state.spacePoliceLetter?.deliveredAt === deliveredAt
+      ? { spacePoliceLetter: { ...state.spacePoliceLetter, poop } }
+      : {}),
+  };
+}
+const clampRoomRatio = (value: number) => Math.max(0.02, Math.min(0.98, value));
+export function placeSpacePolicePoop(state: CompanionState, deliveredAt: number, x: number, y: number): CompanionState {
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return state;
+  return updateSpacePolicePoop(state, deliveredAt, poop => poop.phase === 'pending'
+    ? { phase: 'fresh', x: clampRoomRatio(x), y: clampRoomRatio(y) }
+    : poop);
+}
+export function packSpacePolicePoop(state: CompanionState, deliveredAt: number, now = Date.now()): CompanionState {
+  return updateSpacePolicePoop(state, deliveredAt, poop => poop.phase === 'fresh'
+    ? { ...poop, phase: 'bagged', packedAt: now }
+    : poop);
+}
+export function moveSpacePolicePoopBag(state: CompanionState, deliveredAt: number, x: number, y: number): CompanionState {
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return state;
+  return updateSpacePolicePoop(state, deliveredAt, poop => poop.phase === 'bagged'
+    ? { ...poop, x: clampRoomRatio(x), y: clampRoomRatio(y) }
+    : poop);
+}
+export function disposeSpacePolicePoopBag(
+  state: CompanionState,
+  deliveredAt: number,
+  x: number,
+  y: number,
+  now = Date.now(),
+): CompanionState {
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return state;
+  return updateSpacePolicePoop(state, deliveredAt, poop => poop.phase === 'bagged'
+    ? { ...poop, phase: 'disposing', x: clampRoomRatio(x), y: clampRoomRatio(y), disposedAt: now }
+    : poop);
+}
+export function finishSpacePolicePoopDisposal(state: CompanionState, deliveredAt: number): CompanionState {
+  return updateSpacePolicePoop(state, deliveredAt, poop => poop.phase === 'disposing'
+    ? { ...poop, phase: 'disposed' }
+    : poop);
+}
+export function paySpacePoliceFine(
+  state: CompanionState,
+  letterId: string,
+  giftId: string,
+  now = Date.now(),
+): CompanionState {
+  const letters = state.spacePoliceLetters ?? [];
+  const letter = letters.find(entry => entry.id === letterId);
+  const gift = state.gifts.find(entry => entry.id === giftId);
+  if (!letter || letter.finePayment || !gift) return state;
+  const finePayment = { paidAt: now, giftId: gift.id, emoji: gift.emoji, item: gift.item };
+  return {
+    ...state,
+    gifts: state.gifts.filter(entry => entry.id !== giftId),
+    spacePoliceLetters: letters.map(entry => entry.id === letterId ? { ...entry, finePayment } : entry),
+  };
 }
 export function writeState(storage: Pick<Storage, 'setItem'>, state: CompanionState) {
   storage.setItem(COMPANION_KEY, JSON.stringify(state));
@@ -165,10 +363,10 @@ export function welcome(state: CompanionState, now = Date.now()): CompanionState
     messages: [...state.messages, assistant(text, due ? 'followup' : 'welcome', now)],
     diary: state.diary.map(m => m.id === due?.id ? { ...m, followedUpAt: now } : m) };
 }
-export function performancePlan(random = Math.random) {
+export function performancePlan(random = Math.random, allowWorldFall = true) {
   const action = ACTIONS[Math.min(ACTIONS.length - 1, Math.floor(random() * ACTIONS.length))];
   const duration = 2000 + random() * 3000;
-  const drops = ['jump', 'somersault'].includes(action) && random() < 0.1;
+  const drops = allowWorldFall && ['jump', 'somersault'].includes(action) && random() < 0.1;
   return { action, duration, drops };
 }
 const souvenirs = [
@@ -201,6 +399,36 @@ const souvenirs = [
     '蝴蝶在花丛里挑了一片完整的粉色花瓣送给小熊猫，还绕着它飞了一圈，像是在说这份也想送给你。',
     '小熊猫和蝴蝶在暖暖的阳光下追了一小会儿，蝴蝶落下一片花瓣送给它，让它带回来装点你的小礼物盒。',
     '蝴蝶停在一朵刚开的花上，轻轻碰落一片花瓣送给小熊猫。小熊猫把它护好，带回来给你看。',
+  ] },
+  { emoji: '🍓', item: '野莓串', animal: '小刺猬', stories: [
+    '小刺猬在林边摘了一串熟透的野莓，挑了最大最甜的一串，叫它“野莓串”，托小熊猫带回来给你。',
+    '小熊猫陪小刺猬找到叶子底下的野莓，小刺猬把洗干净的莓果串成野莓串，郑重地请它带回来给你。',
+    '小刺猬在灌木丛里发现一串红彤彤的野莓串，留给小熊猫带回来给你当路上点心。',
+  ] },
+  { emoji: '🍪', item: '竹叶饼干', animal: '小熊', stories: [
+    '小熊烤好一片竹叶饼干，香香脆脆的，还特意装进小纸袋托小熊猫带回来给你。',
+    '小熊第一次做竹叶饼干，边缘有一点点歪，不过味道可香啦。它让小熊猫把最好的一块带回来给你。',
+    '小熊和小熊猫一起在厨房等饼干出炉，小熊把刚放凉的竹叶饼干包好，请小熊猫带回来给你。',
+  ] },
+  { emoji: '🎋', item: '嫩竹笋', animal: '竹鼠', stories: [
+    '竹鼠在竹林里找到一根刚冒头的嫩竹笋，擦掉泥土后装好，请小熊猫带回来给你看看。',
+    '小熊猫和竹鼠沿着竹林散步，竹鼠发现一根鲜嫩的嫩竹笋，决定让小熊猫带回来给你。',
+    '竹鼠把自己留着的嫩竹笋分给小熊猫，还说这是今天在竹林里找到的最新鲜的一根，带回来给你尝尝。',
+  ] },
+  { emoji: '🧶', item: '毛线球', animal: '小猫', stories: [
+    '小猫把一颗软软的毛线球送给小熊猫，说可以带回来给你，等你有空时一起滚着玩。',
+    '小猫追着毛线球滚了好几圈，最后把毛线球送给小熊猫，请它带回来给你玩。',
+    '小猫挑了一颗颜色最暖的毛线球送给小熊猫，还叮嘱它带回来给你时不要把线团滚散啦。',
+  ] },
+  { emoji: '🪁', item: '小纸风筝', animal: '麻雀', stories: [
+    '麻雀在树枝上发现一只迷路的小纸风筝，理好细线后请小熊猫带回来给你，等有风时一起玩。',
+    '小熊猫帮麻雀把缠在树梢的风筝线解开，麻雀把修好的小纸风筝送给它，请它带回来给你看看。',
+    '麻雀捡到一只轻飘飘的小纸风筝，和小熊猫把线轴卷整齐，再托它带回来给你。',
+  ] },
+  { emoji: '🪀', item: '木陀螺', animal: '松鼠', stories: [
+    '松鼠用一小块光滑的木头做了个木陀螺，转起来飞快。它把陀螺送给小熊猫带回来给你。',
+    '松鼠在树洞里翻出一只木陀螺，擦得亮亮的，交给小熊猫说带回来给你当玩具。',
+    '小熊猫看松鼠玩木陀螺看得入迷，松鼠就把自己新做的一只送给它，让它带回来给你。',
   ] },
 ];
 export function beginTrip(state: CompanionState, now = Date.now(), random = Math.random): CompanionState {
@@ -237,11 +465,11 @@ export function tickCompanion(state: CompanionState, now: number, random = Math.
       ? `小熊猫终于被找回来啦……它还呆呆的，脑袋里好像只剩下“好可爱”这几个字。${gift.story}`
       : gift.story;
     const { returnEvent: _previousReturnEvent, ...stateWithoutReturnEvent } = next;
-    next = { ...stateWithoutReturnEvent, trip: undefined, nextTripAt: now + tripDelay(random),
+    const returnedState: CompanionState = { ...stateWithoutReturnEvent, trip: undefined, nextTripAt: now + tripDelay(random),
       ...(capturedReturn ? { returnEvent: { kind: 'captured' as const, until: now + CAPTURED_HOMECOMING_DURATION_MS, awaitingInteraction: true } } : {}),
-      ...(capturedReturn ? { spacePoliceLetter: { deliveredAt: now } } : {}),
       pendingGift: gift, giftDropStartedAt: undefined,
       messages: [...next.messages, assistant(text, 'event', now)] };
+    next = capturedReturn ? deliverSpacePoliceLetter(returnedState, now) : returnedState;
     return { state: next, event: 'gift', text, capturedReturn };
   }
   if (next.trip) return { state: next };

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ACTIONS, initialState, idleDelay, localDay, performancePlan, contextFor, receiveReply, recordUserMessage, waitingForAnswer, tickCompanion, welcome, beginTrip, startGiftDrop, collectGift, feedGift, favoriteGift, injectTestGift, markPendingInterrupted, markSpacePoliceLetterOpened, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, CAPTURED_TRIP_EXTRA_MS, DAY, MINUTE, COMPANION_KEY, readState, writeState } from './companion-store';
+import { ACTIONS, initialState, idleDelay, localDay, performancePlan, contextFor, receiveReply, recordUserMessage, waitingForAnswer, tickCompanion, welcome, beginTrip, startGiftDrop, collectGift, feedGift, canFeedGift, favoriteGift, injectTestGift, markPendingInterrupted, deliverSpacePoliceLetter, eatSpacePoliceLetter, fileSpacePoliceLetter, markSpacePoliceLetterOpened, paySpacePoliceFine, placeSpacePolicePoop, packSpacePolicePoop, moveSpacePolicePoopBag, disposeSpacePolicePoopBag, finishSpacePolicePoopDisposal, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, CAPTURED_TRIP_EXTRA_MS, SPACE_POLICE_LETTER_EAT_DELAY_MS, DAY, MINUTE, COMPANION_KEY, readState, writeState } from './companion-store';
 import type { CompanionState } from './companion-types';
 
 const now = new Date(2026, 9, 8, 12).getTime();
@@ -92,16 +92,17 @@ test('specific notebook follow-up becomes due after two full days, once only', (
   assert.match(next.messages.at(-1)!.text, /小乐.*明天排练.*后来怎么样/);
   assert.equal(welcome(next, now + 2 * DAY + 1000).messages.at(-1)?.kind, 'welcome');
 });
-test('five performance choices exclude rolling and only jumps can fall at ten percent', () => {
-  assert.deepEqual(ACTIONS, ['bamboo', 'jump', 'somersault', 'tail', 'cuddle']);
+test('random performance falls remain available for desktop but can be disabled for the web room', () => {
+  assert.deepEqual(ACTIONS, ['bamboo', 'jump', 'somersault', 'tail']);
   for (let i = 0; i < ACTIONS.length; i++) {
     const values = [i / ACTIONS.length + 0.01, 0.5, 0.099];
     const plan = performancePlan(() => values.shift() ?? 0);
     assert.equal(plan.duration, 3500);
+    assert.equal(plan.action, ACTIONS[i]);
     assert.equal(plan.drops, ['jump', 'somersault'].includes(plan.action));
   }
-  const values = [1 / ACTIONS.length + 0.01, 0, 0.1];
-  assert.equal(performancePlan(() => values.shift() ?? 0).drops, false);
+  const webValues = [0.3, 0.5];
+  assert.equal(performancePlan(() => webValues.shift() ?? 0, false).drops, false);
 });
 test('excursions take thirty to one hundred twenty seconds and gift settlement is durable and one-time', () => {
   for (const value of [0, 1]) {
@@ -132,6 +133,8 @@ test('captured outing adds a return delay and keeps the homecoming form until in
   assert.equal(returned.state.returnEvent?.until, trip.trip!.returnAt + CAPTURED_HOMECOMING_DURATION_MS);
   assert.equal(returned.state.returnEvent?.awaitingInteraction, true);
   assert.equal(returned.state.spacePoliceLetter?.deliveredAt, trip.trip!.returnAt);
+  assert.equal(returned.state.spacePoliceLetters?.length, 1);
+  assert.equal(returned.state.spacePoliceLetters?.[0].deliveredAt, trip.trip!.returnAt);
   assert.match(returned.text!, /找回来啦.*呆呆的/);
   const afterWait = tickCompanion(returned.state, returned.state.returnEvent!.until + 1, () => 0);
   assert.equal(afterWait.state.returnEvent?.awaitingInteraction, true);
@@ -148,6 +151,123 @@ test('captured outing adds a return delay and keeps the homecoming form until in
   const migrated = readState({ getItem: () => JSON.stringify(legacyReturn) }, openedAt + 1);
   assert.equal(migrated.spacePoliceLetter?.deliveredAt, trip.trip!.returnAt);
 });
+test('space police mailbox keeps multiple letters and updates read state per letter', () => {
+  const first = deliverSpacePoliceLetter(sample(), now, () => 'space-letter-1');
+  const second = deliverSpacePoliceLetter(first, now + 1000, () => 'space-letter-2');
+  assert.equal(second.spacePoliceLetters?.length, 2);
+  assert.equal(second.spacePoliceLetter?.deliveredAt, now + 1000);
+
+  const oldLetterOpened = markSpacePoliceLetterOpened(second, now + 2000, 'space-letter-1');
+  assert.equal(oldLetterOpened.spacePoliceLetters?.find(letter => letter.id === 'space-letter-1')?.openedAt, now + 2000);
+  assert.equal(oldLetterOpened.spacePoliceLetters?.find(letter => letter.id === 'space-letter-2')?.openedAt, undefined);
+  assert.equal(oldLetterOpened.spacePoliceLetter?.openedAt, undefined);
+
+  const activeOpened = markSpacePoliceLetterOpened(oldLetterOpened, now + 3000);
+  assert.equal(activeOpened.spacePoliceLetter?.openedAt, now + 3000);
+  assert.equal(activeOpened.spacePoliceLetters?.find(letter => letter.id === 'space-letter-2')?.openedAt, now + 3000);
+  assert.equal(markSpacePoliceLetterOpened(activeOpened, now + 4000), activeOpened);
+
+  const data = new Map<string, string>();
+  writeState({ setItem: (key, value) => data.set(key, value) }, activeOpened);
+  const restored = readState({ getItem: key => data.get(key) ?? null }, now + 4000);
+  assert.deepEqual(restored.spacePoliceLetters, activeOpened.spacePoliceLetters);
+});
+test('an unfiled space police envelope is eaten after five minutes and the letter remains archived', () => {
+  const delivered = deliverSpacePoliceLetter(sample(), now, () => 'letter-to-eat');
+  const eatenAt = now + SPACE_POLICE_LETTER_EAT_DELAY_MS;
+  const eaten = eatSpacePoliceLetter(delivered, delivered.spacePoliceLetter!.deliveredAt, eatenAt);
+  assert.equal(SPACE_POLICE_LETTER_EAT_DELAY_MS, 5 * MINUTE);
+  assert.equal(eaten.spacePoliceLetter?.eatenAt, eatenAt);
+  assert.equal(eaten.spacePoliceLetters?.[0].eatenAt, eatenAt);
+  assert.deepEqual(eaten.spacePoliceLetters?.[0].poop, { phase: 'pending' });
+  assert.match(eaten.messages.at(-1)!.text, /好奇.*吃掉.*拉肚子/);
+  assert.equal(eatSpacePoliceLetter(eaten, delivered.spacePoliceLetter!.deliveredAt, eatenAt + 1), eaten);
+
+  const placed = placeSpacePolicePoop(eaten, eatenAt - SPACE_POLICE_LETTER_EAT_DELAY_MS, 0.4, 0.6);
+  assert.deepEqual(placed.spacePoliceLetters?.[0].poop, { phase: 'fresh', x: 0.4, y: 0.6 });
+  const bagged = packSpacePolicePoop(placed, delivered.spacePoliceLetter!.deliveredAt, eatenAt + 1000);
+  assert.equal(bagged.spacePoliceLetters?.[0].poop?.phase, 'bagged');
+  const moved = moveSpacePolicePoopBag(bagged, delivered.spacePoliceLetter!.deliveredAt, 0.5, 0.7);
+  assert.deepEqual([moved.spacePoliceLetters?.[0].poop?.x, moved.spacePoliceLetters?.[0].poop?.y], [0.5, 0.7]);
+  const disposing = disposeSpacePolicePoopBag(moved, delivered.spacePoliceLetter!.deliveredAt, 0.7, 0.8, eatenAt + 2000);
+  assert.equal(disposing.spacePoliceLetters?.[0].poop?.phase, 'disposing');
+  const disposed = finishSpacePolicePoopDisposal(disposing, delivered.spacePoliceLetter!.deliveredAt);
+  assert.equal(disposed.spacePoliceLetters?.[0].poop?.phase, 'disposed');
+  const saved = new Map<string, string>();
+  writeState({ setItem: (key, value) => saved.set(key, value) }, disposed);
+  assert.equal(readState({ getItem: key => saved.get(key) ?? null }, eatenAt + 3000).spacePoliceLetters?.[0].poop?.phase, 'disposed');
+
+  const legacyEaten = {
+    ...delivered,
+    spacePoliceLetter: { ...delivered.spacePoliceLetter!, eatenAt },
+    spacePoliceLetters: [{ ...delivered.spacePoliceLetters![0], eatenAt }],
+  };
+  const migratedEaten = readState({ getItem: () => JSON.stringify(legacyEaten) }, eatenAt + 1);
+  assert.equal(migratedEaten.spacePoliceLetter?.poop?.phase, 'pending');
+  assert.equal(migratedEaten.spacePoliceLetters?.[0].poop?.phase, 'pending');
+});
+test('filing a space police envelope prevents it from being eaten and protects old saved letters', () => {
+  const delivered = deliverSpacePoliceLetter(sample(), now, () => 'letter-to-file');
+  const filedAt = now + 10_000;
+  const filed = fileSpacePoliceLetter(delivered, delivered.spacePoliceLetter!.deliveredAt, filedAt);
+  assert.equal(filed.spacePoliceLetter?.filedAt, filedAt);
+  assert.equal(filed.spacePoliceLetters?.[0].filedAt, filedAt);
+  assert.equal(fileSpacePoliceLetter(filed, delivered.spacePoliceLetter!.deliveredAt, filedAt + 1), filed);
+  assert.equal(eatSpacePoliceLetter(filed, delivered.spacePoliceLetter!.deliveredAt, now + SPACE_POLICE_LETTER_EAT_DELAY_MS), filed);
+
+  const legacy = {
+    ...delivered,
+    spacePoliceLetter: { deliveredAt: now },
+    spacePoliceLetters: [{ id: 'legacy-letter', deliveredAt: now }],
+  };
+  const migratedAt = now + 20_000;
+  const restored = readState({ getItem: () => JSON.stringify(legacy) }, migratedAt);
+  assert.equal(restored.spacePoliceLetter?.filedAt, undefined);
+  assert.equal(restored.spacePoliceLetter?.eatAfterAt, migratedAt + SPACE_POLICE_LETTER_EAT_DELAY_MS);
+  assert.equal(restored.spacePoliceLetters?.[0].eatAfterAt, migratedAt + SPACE_POLICE_LETTER_EAT_DELAY_MS);
+});
+
+test('paying the space police fine consumes only the selected souvenir and saves its receipt once', () => {
+  const gift = { id: 'gift-to-pay', emoji: '🍌', item: '香蕉', animal: '猴子', story: '猴子送的香蕉', receivedAt: now };
+  const keep = { id: 'gift-to-keep', emoji: '🌸', item: '花瓣', animal: '蝴蝶', story: '蝴蝶送的花瓣', receivedAt: now + 1 };
+  const lettered = deliverSpacePoliceLetter({ ...sample(), gifts: [gift, keep] }, now, () => 'fine-letter');
+
+  const paid = paySpacePoliceFine(lettered, 'fine-letter', gift.id, now + 2);
+  assert.deepEqual(paid.gifts, [keep]);
+  assert.deepEqual(paid.spacePoliceLetters?.[0].finePayment, {
+    paidAt: now + 2, giftId: gift.id, emoji: gift.emoji, item: gift.item,
+  });
+  assert.equal(paySpacePoliceFine(paid, 'fine-letter', keep.id, now + 3), paid);
+
+  const data = new Map<string, string>();
+  writeState({ setItem: (key, value) => data.set(key, value) }, paid);
+  const restored = readState({ getItem: key => data.get(key) ?? null }, now + 4);
+  assert.deepEqual(restored.spacePoliceLetters?.[0].finePayment, paid.spacePoliceLetters?.[0].finePayment);
+  assert.deepEqual(restored.gifts, [keep]);
+});
+
+test('space police fine leaves the collection unchanged when the letter or selected souvenir is missing', () => {
+  const gift = { id: 'kept-gift', emoji: '🌰', item: '松果', animal: '松鼠', story: '松鼠送的松果', receivedAt: now };
+  const state = deliverSpacePoliceLetter({ ...sample(), gifts: [gift] }, now, () => 'fine-letter');
+  assert.equal(paySpacePoliceFine(state, 'missing-letter', gift.id, now + 1), state);
+  assert.equal(paySpacePoliceFine(state, 'fine-letter', 'missing-gift', now + 1), state);
+  assert.deepEqual(state.gifts, [gift]);
+});
+
+test('legacy single space police letter migrates into the mailbox archive', () => {
+  const { spacePoliceLetters: _letters, ...legacyState } = {
+    ...sample(),
+    spacePoliceLetter: { deliveredAt: now, openedAt: now + 500 },
+  };
+  const restored = readState({ getItem: () => JSON.stringify(legacyState) }, now + 1000);
+  assert.deepEqual(restored.spacePoliceLetters, [{
+    id: `legacy-space-police-${now}`,
+    deliveredAt: now,
+    openedAt: now + 500,
+    eatAfterAt: now + 1000 + SPACE_POLICE_LETTER_EAT_DELAY_MS,
+  }]);
+});
+
 test('gift trips tell varied stories that match the souvenir and avoid immediate repeats', () => {
   const first = beginTrip(sample(), now, () => 0);
   const firstGift = first.trip!.gift;
@@ -159,6 +279,25 @@ test('gift trips tell varied stories that match the souvenir and avoid immediate
   assert.notEqual(secondGift.story, firstGift.story);
   assert.match(secondGift.story, /猴子|香蕉/);
   assert.equal(second.recentGiftStories?.length, 2);
+});
+test('new gift pool includes all approved food and toy gifts with matching stories', () => {
+  const approvedGifts = [
+    { item: '野莓串', animal: '小刺猬', emoji: '🍓', edible: true },
+    { item: '竹叶饼干', animal: '小熊', emoji: '🍪', edible: true },
+    { item: '嫩竹笋', animal: '竹鼠', emoji: '🎋', edible: true },
+    { item: '毛线球', animal: '小猫', emoji: '🧶', edible: false },
+    { item: '小纸风筝', animal: '麻雀', emoji: '🪁', edible: false },
+    { item: '木陀螺', animal: '松鼠', emoji: '🪀', edible: false },
+  ];
+  approvedGifts.forEach((expected, index) => {
+    const values = [(index + 6.2) / 12, 0, 0, 0];
+    const gift = beginTrip(sample(), now, () => values.shift() ?? 0).trip!.gift;
+    assert.equal(gift.item, expected.item);
+    assert.equal(gift.animal, expected.animal);
+    assert.equal(gift.emoji, expected.emoji);
+    assert.match(gift.story, new RegExp(expected.item));
+    assert.equal(canFeedGift(gift), expected.edible);
+  });
 });
 test('uncollected gifts survive reload and cannot be replaced by a new excursion', () => {
   const arrival = tickCompanion(beginTrip(sample(), now, () => 0), now + 120_000, () => 0).state;
@@ -182,6 +321,26 @@ test('favorites persist and feeding consumes a food gift once, retaining its sto
   assert.equal(state.messages.length, once); assert.equal(state.gifts[0].story, gift.story);
   const flower = { ...gift, id: 'flower', emoji: '🌸' };
   assert.equal(feedGift({ ...state, gifts: [flower] }, 'flower', now).gifts[0].fedAt, undefined);
+});
+test('new food gifts can be fed while the new toys stay collectible', () => {
+  const foods = [
+    { id: 'berries', item: '野莓串', emoji: '🍓' },
+    { id: 'cookie', item: '竹叶饼干', emoji: '🍪' },
+    { id: 'shoot', item: '嫩竹笋', emoji: '🎋' },
+  ];
+  const toys = [
+    { id: 'yarn', item: '毛线球', emoji: '🧶' },
+    { id: 'kite', item: '小纸风筝', emoji: '🪁' },
+    { id: 'top', item: '木陀螺', emoji: '🪀' },
+  ];
+  for (const gift of foods) {
+    const state = feedGift({ ...sample(), gifts: [{ ...gift, animal: '朋友', story: '带回来的礼物', receivedAt: now }] }, gift.id, now + 1);
+    assert.equal(state.gifts[0].fedAt, now + 1);
+  }
+  for (const gift of toys) {
+    const state = feedGift({ ...sample(), gifts: [{ ...gift, animal: '朋友', story: '带回来的礼物', receivedAt: now }] }, gift.id, now + 1);
+    assert.equal(state.gifts[0].fedAt, undefined);
+  }
 });
 test('developer gift injection appends a unique persisted gift that can be favorited and fed', () => {
   const existing = { id: 'existing', emoji: '🌸', item: '花瓣', animal: '蝴蝶', story: '原来的故事', receivedAt: now };

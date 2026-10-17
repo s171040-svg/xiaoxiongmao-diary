@@ -54,7 +54,51 @@ position:relative;isolation:isolate;display:flex;flex-direction:column;height:10
 .cc-space-police-letter header strong{font-size:14px}.cc-space-police-letter header small{margin-top:4px;color:#80674e;font-size:11px}
 .cc-space-police-letter p{margin:0;font-size:16px;line-height:1.8;overflow-wrap:anywhere}
 .cc-space-police-letter footer{margin-top:16px;color:#735840;font-size:13px;text-align:right}
+.cc-space-police-letter .cc-police-stamp{border:2px solid #a74440;border-radius:50%;color:#a74440;font-size:14px;font-weight:900;rotate:-8deg;box-shadow:inset 0 0 0 2px #fff2d0}
+.cc-police-payment{margin-top:16px;padding:14px;border:1px solid #cba96f;border-radius:12px;background:#fff9e9}
+.cc-police-payment-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#543d28}
+.cc-police-payment-heading>span{padding:3px 9px;border:1px solid #bd8c55;border-radius:99px;color:#8c4a36;font-size:12px;font-weight:700}
+.cc-police-payment>p{margin:8px 0 10px;font-size:13px;line-height:1.65}
+.cc-police-gift-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:10px 0}
+.cc-police-gift-option{display:flex;min-width:0;align-items:center;gap:8px;padding:9px;border:1px solid #ddcba9;border-radius:10px;background:#fffdf6;cursor:pointer}
+.cc-police-gift-option.selected{border-color:#a74f43;background:#fff0dc;box-shadow:0 0 0 1px #a74f4333}
+.cc-police-gift-option:focus-within{outline:2px solid #a74f4380;outline-offset:2px}
+.cc-police-gift-option input{flex:none;accent-color:#a74f43}
+.cc-police-gift-emoji{font-size:25px;line-height:1}
+.cc-police-gift-copy{min-width:0}
+.cc-police-gift-copy strong,.cc-police-gift-copy small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cc-police-gift-copy strong{font-size:13px}.cc-police-gift-copy small{margin-top:3px;color:#80674e;font-size:11px}
+.cc-police-fine-empty{padding:9px;border:1px dashed #c9b68f;border-radius:9px;color:#80674e}
+.cc-police-pay-button{width:100%;min-height:42px;margin-top:10px;border:1px solid #8e3d39;border-radius:10px;background:#a84940;color:#fff7e8;font:700 14px "Noto Sans CJK SC",sans-serif;cursor:pointer;transition:filter 120ms ease,transform 120ms ease}
+.cc-police-pay-button:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px)}
+.cc-police-pay-button:disabled{opacity:.45;cursor:not-allowed}
+.cc-police-fine-note{display:block;margin-top:8px;color:#80674e;font-size:11px;line-height:1.5}
+.cc-police-payment.paid{border-color:#9ab28c;background:#f2f6e8}
+.cc-police-payment.paid>strong{color:#456b49}
+.cc-space-mailbox{display:grid;gap:10px}
+.cc-space-mail-item{display:grid;width:100%;grid-template-columns:38px minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:12px;border:1px solid #ddcba9;border-radius:14px;background:#fffaf0;color:#453c2e;text-align:left;cursor:pointer;transition:background 120ms ease,translate 120ms ease}
+.cc-space-mail-item:hover{background:#fff5df;translate:0 -1px}
+.cc-space-mail-icon{display:grid;width:36px;height:36px;place-items:center;border:1px solid #cda96f;border-radius:10px;background:#f5e5bd;color:#9c4f43;font-size:18px}
+.cc-space-mail-copy strong,.cc-space-mail-copy small{display:block}
+.cc-space-mail-copy strong{font-size:13px}
+.cc-space-mail-copy small{margin-top:4px;color:#83735d;font-size:11px}
+.cc-space-mail-item time{color:#8a7d68;font-size:11px;white-space:nowrap}
+.cc-space-mail-status{padding:4px 7px;border-radius:99px;background:#e8e9df;color:#6d7568;font-size:10px;white-space:nowrap}
+.cc-space-mail-status.unread{background:#f7dfd2;color:#a3483f}
 .night .cc-space-police-letter{border-color:#866d55;background:#302e28;color:#f3e8d2}
+.night .cc-space-mail-item{border-color:#4d5143;background:#2a312a;color:#e9e3d3}
+.night .cc-space-mail-item:hover{background:#353d32}
+.night .cc-space-mail-copy small,.night .cc-space-mail-item time{color:#b8b19d}
+.night .cc-space-mail-icon{border-color:#6e5b43;background:#3e392f;color:#e5a39a}
+.night .cc-space-mail-status{background:#43483b;color:#d0d2bf}
+.night .cc-space-mail-status.unread{background:#563c37;color:#ffc1ae}
+.night .cc-police-payment{border-color:#6c5b40;background:#39352b}
+.night .cc-police-payment-heading{color:#f0dfbd}
+.night .cc-police-gift-option{border-color:#5a5342;background:#302e28}
+.night .cc-police-gift-option.selected{border-color:#cf8678;background:#43352c}
+.night .cc-police-gift-copy small,.night .cc-police-fine-empty,.night .cc-police-fine-note{color:#c8b99c}
+.night .cc-police-payment.paid{border-color:#587458;background:#2d382c}
+.night .cc-police-payment.paid>strong{color:#bad8b4}
 .cc-icon{width:36px;height:36px;border:0;border-radius:50%;background:#dfe7d3;color:#40694f;display:grid;place-items:center;flex:none}
 .cc-tabs{display:flex;gap:6px;margin-bottom:12px}.cc-tabs button.on{background:#5b8a6e;color:#fbf8ee}
 .cc-card{border:1px solid #dcdac9;border-radius:16px;padding:13px 15px;margin-bottom:10px;background:#faf8ee66;animation:cc-in .3s ease both}
