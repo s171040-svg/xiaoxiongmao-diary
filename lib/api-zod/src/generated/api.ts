@@ -22,7 +22,6 @@ export const companionChatBodyMemoriesItemTextMax = 240;
 export const companionChatBodyMemoriesMax = 24;
 
 
-
 export const CompanionChatBody = zod.object({
   "messages": zod.array(zod.object({
   "role": zod.enum(['user', 'assistant']),
@@ -42,7 +41,6 @@ export const companionChatResponseUserNameMax = 60;
 export const companionChatResponseMemoriesItemTextMax = 240;
 
 export const companionChatResponseMemoriesMax = 3;
-
 
 
 export const CompanionChatResponse = zod.object({
@@ -71,7 +69,6 @@ export const HealthCheckResponse = zod.object({
 export const classifyJournalEntryBodyTextMax = 4000;
 
 
-
 export const ClassifyJournalEntryBody = zod.object({
   "text": zod.string().min(1).max(classifyJournalEntryBodyTextMax)
 })
@@ -79,11 +76,9 @@ export const ClassifyJournalEntryBody = zod.object({
 export const classifyJournalEntryResponseReplyMax = 1600;
 
 
-
 export const ClassifyJournalEntryResponse = zod.object({
   "category": zod.enum(['leisure', 'idea', 'worry']),
   "hasActionableGoal": zod.boolean(),
   "reply": zod.string().min(1).max(classifyJournalEntryResponseReplyMax).describe('A warm personalized response to the journal entry')
 })
-
 

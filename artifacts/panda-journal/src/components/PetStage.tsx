@@ -6,14 +6,19 @@ import {
   gaitProgress,
   projectDesktopPoint,
   projectRoomPoint,
-  projectScreenPoint,
-  quadraticRoomPoint,
-  randomRoomControlPoint,
+  isWalkableRoomPoint,
+  nearestWalkableRoomPoint,
+  planRoomWalkPath,
+  pointAlongRoomWalkPath,
+  randomWalkableRoomPoint,
   randomRoomPoint,
+  roomImageRegionClipPath,
+  roomWalkPathLength,
+  ROOM_IMAGE_HEIGHT,
+  ROOM_IMAGE_WIDTH,
   roomFloorBoundsPercent,
   roomFurnitureZIndex,
   unprojectRoomPoint,
-  unprojectScreenPoint,
   type RoomPoint,
 } from '@/lib/room-plane';
 import {
@@ -85,6 +90,8 @@ const DIRTY_PLEAS = [
   '身上脏脏的，想泡个澡澡……',
 ];
 const ROOM_TRANSITION_FRAME_MS = 80;
+
+const BATHING_FRAME_COUNT = 8;
 const pandaStaticUrl = (path: string) => `${import.meta.env.BASE_URL}static/panda/${path}`;
 const CHEW_FRAME_COUNT = 14;
 const DIZZY_FRAME_COUNT = animationManifest.frameCountBySprite.dizzy;
@@ -93,7 +100,6 @@ const DIZZY_HOLD_MS = 2400;
 const BAMBOO_DROP_MS = 780;
 const BATH_DROP_MS = 680;
 const BATH_BALL_DROP_MS = 720;
-const BATHING_FRAME_COUNT = 8;
 const BATHING_FRAME_INTERVAL_MS = 160;
 const bathingFrameUrl = (frame: number) => pandaStaticUrl(`bathing-wash/${frame}.png?v=bath-wash-pixellab-1`);
 const bathingRubbingFrameUrl = (frame: number) => pandaStaticUrl(`bathing-soap/${frame}.png?v=bath-soap-pixellab-1`);
@@ -107,7 +113,12 @@ const chewFrameUrl = (frame: number) => pandaStaticUrl(
 const BAMBOO_SNACK_SPRITE = pandaStaticUrl('snack.png?v=chew-feed-2');
 const LYING_SPRITE = pandaStaticUrl('lying.png?v=lying-pose-2');
 const PEEKING_SPRITE = pandaStaticUrl('peeking.png?v=look-back-1');
-const ROOM_FURNITURE_POINT: RoomPoint = { u: 0.72, v: 0.7 };
+const ROOM_FURNITURE_OCCLUDERS = [
+  { id: 'bed', depth: 0.52, region: { left: 48, top: 68, right: 166, bottom: 142 } },
+  { id: 'panda-bed', depth: 0.42, region: { left: 206, top: 80, right: 289, bottom: 137 } },
+  { id: 'gift-cabinet', depth: 0.28, region: { left: 297, top: 44, right: 355, bottom: 122 } },
+  { id: 'side-table', depth: 0.55, region: { left: 344, top: 84, right: 387, bottom: 144 } },
+] as const;
 type TransitionKey = 'idle' | 'chew' | 'jump' | 'cuddle' | 'tail' | 'lying' | 'sleep' | 'peeking' | 'captured-homecoming';
 type RoomWastePoint = { x: number; y: number };
 type RoomWastePointer = {
@@ -839,7 +850,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     const track = trackRef.current;
     if (!track) return;
     const projected = showInteractionBubble
-      ? projectScreenPoint(point)
+      ? projectRoomPoint(point, window.innerWidth, window.innerHeight)
       : projectDesktopPoint(point);
     track.style.setProperty('--room-x', `${projected.x}%`);
     track.style.setProperty('--room-y', `${projected.y}%`);
@@ -849,13 +860,14 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     track.dataset.roomV = point.v.toFixed(3);
     track.dataset.roomScale = projected.scale.toFixed(3);
     if (showInteractionBubble) {
+      track.dataset.roomWalkable = String(isWalkableRoomPoint(point));
       track.style.setProperty('--room-shadow-scale', projected.shadowScale.toFixed(3));
       track.style.setProperty('--room-shadow-opacity', projected.shadowOpacity.toFixed(3));
       track.style.setProperty('--room-shadow-blur', `${projected.shadowBlur.toFixed(2)}px`);
       track.style.setProperty('--room-brightness', projected.brightness.toFixed(3));
       track.dataset.roomDepth = projected.depth.toFixed(3);
       track.dataset.roomZ = String(projected.zIndex);
-    }
+    } else delete track.dataset.roomWalkable;
   }, [showInteractionBubble]);
 
   useLayoutEffect(() => {
@@ -945,9 +957,11 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       const width = Math.max(1, window.innerWidth);
       const height = Math.max(1, window.innerHeight);
       const rodY = rackRect.top + rackRect.height * 0.15;
-      const target = unprojectScreenPoint(
+      const target = unprojectRoomPoint(
         ((rackRect.left + rackRect.width * 0.4) / width) * 100,
         ((rodY + pandaRect.height) / height) * 100,
+        width,
+        height,
       );
       applyRoomPoint(target);
     };
@@ -961,7 +975,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       window.cancelAnimationFrame(scheduledFrame);
       window.removeEventListener('resize', scheduleAlignment);
     };
-  }, [applyRoomPoint, hangingOnRack, showInteractionBubble, unprojectScreenPoint]);
+  }, [applyRoomPoint, hangingOnRack, showInteractionBubble]);
 
   const startBathDropToTub = useCallback(() => {
     const tubRect = bathTubRef.current?.getBoundingClientRect();
@@ -972,9 +986,13 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       track.style.setProperty('--bath-start-x', track.style.getPropertyValue('--room-x') || '50%');
       track.style.setProperty('--bath-start-y', track.style.getPropertyValue('--room-y') || '58%');
     }
-    const target = unprojectScreenPoint(
-      ((tubRect.left + tubRect.width / 2) / Math.max(1, window.innerWidth)) * 100,
-      ((tubRect.top + tubRect.height * 0.86) / Math.max(1, window.innerHeight)) * 100,
+    const width = Math.max(1, window.innerWidth);
+    const height = Math.max(1, window.innerHeight);
+    const target = unprojectRoomPoint(
+      ((tubRect.left + tubRect.width / 2) / width) * 100,
+      ((tubRect.top + tubRect.height * 0.86) / height) * 100,
+      width,
+      height,
     );
     updateFacing(target.u - previous.u);
     applyRoomPoint(target);
@@ -1291,11 +1309,15 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     if (!showInteractionBubble || bathPhase !== 'bathing') return;
     const sceneRect = bathTubRef.current?.getBoundingClientRect();
     if (!sceneRect) return;
-    applyRoomPoint(unprojectScreenPoint(
-      ((sceneRect.left + sceneRect.width / 2) / Math.max(1, window.innerWidth)) * 100,
-      ((sceneRect.top + sceneRect.height * 0.64) / Math.max(1, window.innerHeight)) * 100,
+    const width = Math.max(1, window.innerWidth);
+    const height = Math.max(1, window.innerHeight);
+    applyRoomPoint(unprojectRoomPoint(
+      ((sceneRect.left + sceneRect.width / 2) / width) * 100,
+      ((sceneRect.top + sceneRect.height * 0.64) / height) * 100,
+      width,
+      height,
     ));
-  }, [applyRoomPoint, bathPhase, showInteractionBubble, unprojectScreenPoint]);
+  }, [applyRoomPoint, bathPhase, showInteractionBubble]);
 
   const beginWorldFallFromBlackHole = useCallback(() => {
     const now = performance.now();
@@ -1841,10 +1863,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       const height = Math.max(1, window.innerHeight);
       const x = ((activeDrag.currentX + activeDrag.offsetX) / width) * 100;
       const y = ((activeDrag.currentY + activeDrag.offsetY) / height) * 100;
-      const point = showInteractionBubble
-        ? unprojectScreenPoint(x, y)
-        : unprojectRoomPoint(x, y, width, height);
-      applyRoomPoint(point);
+      applyRoomPoint(unprojectRoomPoint(x, y, width, height));
     }, GRAB_HOLD_MS);
     event.currentTarget.setPointerCapture(event.pointerId);
   };
@@ -1876,9 +1895,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     const height = Math.max(1, window.innerHeight);
     const x = ((event.clientX + drag.offsetX) / width) * 100;
     const y = ((event.clientY + drag.offsetY) / height) * 100;
-    const point = showInteractionBubble
-      ? unprojectScreenPoint(x, y)
-      : unprojectRoomPoint(x, y, width, height);
+    const point = unprojectRoomPoint(x, y, width, height);
     updateFacing(point.u - positionRef.current.u);
     applyRoomPoint(point);
   };
@@ -1923,9 +1940,13 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       setSleepingOnBed(false);
       setRoomWalking(false);
       if (droppedOntoBed && bedRect && pandaRect) {
-        const target = unprojectScreenPoint(
-          ((bedRect.left + bedRect.width * 0.5) / Math.max(1, window.innerWidth)) * 100,
-          ((bedRect.top + bedRect.height * 0.5 + pandaRect.height * 0.5) / Math.max(1, window.innerHeight)) * 100,
+        const width = Math.max(1, window.innerWidth);
+        const height = Math.max(1, window.innerHeight);
+        const target = unprojectRoomPoint(
+          ((bedRect.left + bedRect.width * 0.5) / width) * 100,
+          ((bedRect.top + bedRect.height * 0.5 + pandaRect.height * 0.5) / height) * 100,
+          width,
+          height,
         );
         updateFacing(target.u - positionRef.current.u);
         applyRoomPoint(target);
@@ -1939,9 +1960,11 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
           rackRect.left + rackRect.width * 0.76,
           Math.max(rackRect.left + rackRect.width * 0.24, pandaCenterX),
         );
-        const target = unprojectScreenPoint(
+        const target = unprojectRoomPoint(
           (hangX / width) * 100,
           ((rackRodY + pandaRect.height) / height) * 100,
+          width,
+          height,
         );
         updateFacing(target.u - positionRef.current.u);
         applyRoomPoint(target);
@@ -1952,6 +1975,10 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       } else if (triggeredDizzyDrop) {
         setFrame(0);
         setDizzyPhase('falling');
+      }
+      if (showInteractionBubble && !cancelled && !droppedOntoBed && !droppedOntoRack && !droppedIntoTub
+        && !isWalkableRoomPoint(positionRef.current)) {
+        applyRoomPoint(nearestWalkableRoomPoint(positionRef.current));
       }
     } else if (drag.movedBeforeGrab) {
       suppressClickAfterDragRef.current = !cancelled;
@@ -2083,7 +2110,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     let alive = true;
     let from = positionRef.current;
     let to = from;
-    let control = from;
+    let route: RoomPoint[] = [from, to];
     let startedAt = 0;
     let duration = 0;
     let stepCount = 1;
@@ -2102,31 +2129,39 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       timeout = window.setTimeout(() => {
         timeout = 0;
         if (!canRoam()) return;
-        from = positionRef.current;
-        to = randomRoomPoint();
+        from = showInteractionBubble ? nearestWalkableRoomPoint(positionRef.current) : positionRef.current;
+        if (showInteractionBubble && !isWalkableRoomPoint(positionRef.current)) applyRoomPoint(from);
+        to = showInteractionBubble ? randomWalkableRoomPoint() : randomRoomPoint();
           if (showInteractionBubble && flyChaseActive) {
             const escapeDirection = flyChaseSide === 'left' ? 1 : -1;
             const fleeDistance = 0.28 + Math.random() * 0.16;
             const targetU = Math.max(0.08, Math.min(0.92, from.u + escapeDirection * fleeDistance));
             const targetV = Math.max(0.08, Math.min(0.92, from.v + (Math.random() - 0.5) * 0.22));
-            to = Math.abs(targetU - from.u) >= 0.12
+            const fleeTarget = Math.abs(targetU - from.u) >= 0.12
               ? { u: targetU, v: targetV }
               : { u: targetU, v: Math.max(0.08, Math.min(0.92, from.v + (from.v < 0.5 ? 0.24 : -0.24))) };
-            if (Math.hypot(to.u - from.u, to.v - from.v) < 0.12) to = randomRoomPoint();
+            to = nearestWalkableRoomPoint(fleeTarget);
+            if (Math.hypot(to.u - from.u, to.v - from.v) < 0.12) to = randomWalkableRoomPoint();
           }
         if (showInteractionBubble && Math.hypot(to.u - from.u, to.v - from.v) < 0.22) {
           for (let attempt = 0; attempt < 8 && Math.hypot(to.u - from.u, to.v - from.v) < 0.22; attempt += 1) {
-            to = randomRoomPoint();
+            to = randomWalkableRoomPoint();
           }
         }
-        control = showInteractionBubble ? randomRoomControlPoint(from, to) : from;
-        const initialHorizontalDelta = showInteractionBubble ? control.u - from.u : to.u - from.u;
+        route = showInteractionBubble ? planRoomWalkPath(from, to) : [from, to];
+        if (showInteractionBubble && route.length < 2) {
+          schedule();
+          return;
+        }
+        const initialHorizontalDelta = showInteractionBubble ? route[1].u - from.u : to.u - from.u;
         updateFacing(Math.abs(initialHorizontalDelta) > DIRECTION_EPSILON
           ? initialHorizontalDelta
           : to.u - from.u);
         if (startledRef.current) return;
         startedAt = performance.now();
-        const distance = Math.hypot(to.u - from.u, to.v - from.v);
+        const distance = showInteractionBubble
+          ? roomWalkPathLength(route)
+          : Math.hypot(to.u - from.u, to.v - from.v);
         duration = showInteractionBubble
           ? flyChaseActive ? 2000 + distance * 1800 : 6200 + distance * 6500 + Math.random() * 1100
           : 2600 + Math.random() * 1800;
@@ -2145,7 +2180,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       }
       const progress = Math.min(1, (now - startedAt) / duration);
       const point = showInteractionBubble
-        ? quadraticRoomPoint(from, control, to, gaitProgress(progress, stepCount))
+        ? pointAlongRoomWalkPath(route, gaitProgress(progress, stepCount))
         : blendRoomPoint(from, to, progress);
       updateFacing(point.u - positionRef.current.u);
       if (startledRef.current) {
@@ -2170,7 +2205,9 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     const onPreferenceChange = () => preference.matches ? pause() : resume();
     const onVisibilityChange = () => document.visibilityState === 'hidden' ? pause() : resume();
 
-    applyRoomPoint(positionRef.current);
+    if (showInteractionBubble && canRoam() && !isWalkableRoomPoint(positionRef.current)) {
+      applyRoomPoint(nearestWalkableRoomPoint(positionRef.current));
+    } else applyRoomPoint(positionRef.current);
     resume();
     preference.addEventListener('change', onPreferenceChange);
     document.addEventListener('visibilitychange', onVisibilityChange);
@@ -2270,12 +2307,14 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
 
     const width = Math.max(1, window.innerWidth);
     const height = Math.max(1, window.innerHeight);
-    const point = unprojectScreenPoint(
+    const point = unprojectRoomPoint(
       ((drag.currentX + drag.offsetX) / width) * 100,
       ((drag.currentY + drag.offsetY) / height) * 100,
+      width,
+      height,
     );
     applyRoomPoint(point);
-  }, [applyRoomPoint, dirtyGrab, facing, image, isDragging, showInteractionBubble, unprojectScreenPoint]);
+  }, [applyRoomPoint, dirtyGrab, facing, image, isDragging, showInteractionBubble]);
 
   const beginRoomWastePointer = useCallback((
     deliveredAt: number,
@@ -2363,12 +2402,12 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     setPoopDragPosition(null);
   }, [onDisposeSpacePolicePoopBag, onMoveSpacePolicePoopBag, poopDragPosition]);
 
-  const roomFurniture = projectRoomPoint(ROOM_FURNITURE_POINT, window.innerWidth, window.innerHeight);
-  const roomBackgroundImage = `url("${import.meta.env.BASE_URL}static/room/room-background.png")`;
+  const roomBackgroundImage = `url("${import.meta.env.BASE_URL}static/room/room-background-pixellab.png")`;
+  const roomBackgroundSize = `min(100vw, ${(ROOM_IMAGE_WIDTH / ROOM_IMAGE_HEIGHT) * 100}vh) auto`;
   const roomFloorBounds = roomFloorBoundsPercent(window.innerWidth, window.innerHeight);
   const roomImageStyle = showInteractionBubble ? {
     backgroundImage: roomBackgroundImage,
-    backgroundSize: 'min(100vw, 222.222vh) auto',
+    backgroundSize: roomBackgroundSize,
     backgroundPosition: 'center bottom',
     backgroundRepeat: 'no-repeat',
   } : undefined;
@@ -2407,17 +2446,19 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
             <span aria-hidden="true" />
           </div>
         )}
-        {showInteractionBubble && (
-          <img className="ps-room-furniture" src={`${import.meta.env.BASE_URL}static/room/foreground-cabinet.svg`}
-            alt="" aria-hidden="true" draggable={false} data-testid="room-foreground-furniture"
-            data-room-depth={ROOM_FURNITURE_POINT.v.toFixed(3)}
+        {showInteractionBubble && ROOM_FURNITURE_OCCLUDERS.map((furniture) => (
+          <div key={furniture.id} className="ps-room-occlusion" aria-hidden="true"
+            data-testid={`room-occlusion-${furniture.id}`}
+            data-room-depth={furniture.depth.toFixed(3)}
             style={{
-              left: `${roomFurniture.x}%`,
-              top: `${roomFurniture.y}%`,
-              zIndex: roomFurnitureZIndex(ROOM_FURNITURE_POINT.v),
-              transform: `translate(-50%, -100%) scale(${roomFurniture.scale.toFixed(3)})`,
+              zIndex: roomFurnitureZIndex(furniture.depth),
+              backgroundImage: roomBackgroundImage,
+              backgroundSize: roomBackgroundSize,
+              backgroundPosition: 'center bottom',
+              backgroundRepeat: 'no-repeat',
+              clipPath: roomImageRegionClipPath(furniture.region, window.innerWidth, window.innerHeight),
             }} />
-        )}
+        ))}
         {showInteractionBubble && (
           <div className="ps-room-layout-controls" data-testid="room-layout-controls">
             <span className="ps-room-layout-hint" role="status" aria-live="polite">
@@ -2606,6 +2647,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
                )}
               {isDragging && showInteractionBubble && (
                 <>
+                  <span className="ps-grab-hook" aria-hidden="true"><i /><b /></span>
                   <span className="ps-grab-daze" aria-hidden="true">···</span>
                 </>
               )}

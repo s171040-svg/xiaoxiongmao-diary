@@ -104,4 +104,3 @@ export interface JournalClassification {
 export interface HealthStatus {
   status: string;
 }
-

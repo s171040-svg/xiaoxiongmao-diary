@@ -1,4 +1,5 @@
 .ps-room-surface{display:none;position:fixed;z-index:0;inset:0;overflow:hidden;pointer-events:none}
+.ps-room-surface[data-room-only=true]{display:block}
 .ps-room-backdrop,.ps-room-floor{position:absolute;inset:0}
 .ps-room-backdrop{z-index:0;background-color:#e4d6b7;background-image:linear-gradient(180deg,#e4d6b7 0%,#d8c49b 42%,#c0a77b 100%)}
 .ps-room-floor{z-index:1;overflow:hidden}
@@ -23,6 +24,8 @@
 .ps-track{position:absolute;left:var(--room-x,50%);top:var(--room-y,53%);width:calc(92px * var(--room-scale,.89));height:calc(92px * var(--room-scale,.89));display:grid;place-items:end center;transform:translate(-50%,-100%);pointer-events:none}
 .ps-track.ps-bed-sleeping{z-index:4}
 .ps-room-furniture{display:none;position:absolute;width:clamp(116px,14vw,168px);height:auto;image-rendering:pixelated;transform-origin:center bottom;pointer-events:none;user-select:none}
+.ps-room-occlusion{position:absolute;inset:0;display:block;pointer-events:none;background-repeat:no-repeat}
+.ps-stage[data-night=true] .ps-room-occlusion{filter:brightness(.58) saturate(.82)}
 .ps-room-rack{position:fixed;z-index:1;left:68%;bottom:clamp(190px,26vh,280px);width:clamp(96px,10vw,132px);height:auto;transform:translateX(-50%);image-rendering:pixelated;filter:drop-shadow(0 4px 4px #33271c30);pointer-events:auto;touch-action:none;user-select:none;cursor:grab}
 .ps-room-bed{position:fixed;z-index:1;left:clamp(28px,26vw,360px);top:clamp(230px,58vh,500px);width:clamp(103px,12vw,150px);height:auto;transform:translate(-50%,-80%);image-rendering:pixelated;filter:drop-shadow(0 4px 5px #17131d40);pointer-events:auto;touch-action:none;user-select:none;cursor:grab}
 .ps-bath-station{position:fixed;z-index:2;right:clamp(14px,4vw,56px);bottom:clamp(78px,12vh,112px);display:flex;align-items:flex-end;gap:9px;pointer-events:auto;touch-action:none;user-select:none;cursor:grab}
@@ -200,6 +203,10 @@
 .ps-scared-mark{position:absolute;z-index:3;top:-9%;right:8%;display:flex;align-items:flex-start;color:#d87947;font:800 20px/1 "Noto Sans CJK SC",sans-serif;text-shadow:0 1px 2px #fff9;pointer-events:none;animation:ps-scared-mark 620ms cubic-bezier(.2,.8,.2,1) both}
 .ps-scared-mark i{display:block;width:6px;height:9px;margin:11px 0 0 -2px;border-radius:70% 20% 70% 70%;background:#83b9ce;rotate:35deg}
 .ps-panda[data-facing="left"].ps-startled .ps-scared-mark{right:auto;left:8%}
+.ps-grab-hook{position:absolute;z-index:5;top:3%;left:50%;width:22px;height:19px;translate:-50% 0;pointer-events:none}
+.ps-grab-hook::before{position:absolute;top:0;left:7px;width:8px;height:11px;border:2px solid #694831;border-bottom:0;border-radius:8px 8px 2px 2px;background:#e7c19d;box-shadow:0 1px 0 #fff9;content:""}
+.ps-grab-hook i,.ps-grab-hook b{position:absolute;top:7px;width:7px;height:9px;border:2px solid #694831;border-top:0;border-radius:1px 1px 6px 6px;background:#e7c19d;box-shadow:0 1px 0 #fff9}
+.ps-grab-hook i{left:1px;rotate:-25deg}.ps-grab-hook b{right:1px;rotate:25deg}
 .ps-grab-daze{position:absolute;z-index:4;top:-10%;left:calc(50% + 14px);color:#776d5f;font:700 15px/1 "Noto Sans CJK SC",sans-serif;letter-spacing:2px;text-shadow:0 1px 2px #fff9;pointer-events:none;animation:ps-grab-daze 1.15s ease-in-out infinite}
 .ps-daydream-dots{position:absolute;z-index:2;top:4%;right:5%;color:#527459;font:700 22px/1 "Noto Sans CJK SC",sans-serif;letter-spacing:2px;text-shadow:0 1px 2px #fff9;pointer-events:none;animation:ps-daydream 1.5s ease-in-out infinite}
 @keyframes ps-captured-homecoming-path{0%{translate:4vw -4vh;rotate:4deg;scale:.96;opacity:0}12%{translate:3vw -3vh;rotate:2deg;scale:.99;opacity:1}28%{translate:1vw -.4vh;rotate:-1deg;scale:1.01 .95}34%{translate:1vw -.4vh;rotate:1deg;scale:1.04 .9}42%{translate:1vw -.4vh;rotate:-.5deg;scale:.99 1.01}58%{translate:.5vw .3vh;rotate:0deg;scale:1}100%{translate:0 0;rotate:0deg;scale:1}}

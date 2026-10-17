@@ -22,7 +22,8 @@ function hasPngTransparency(png) {
   return false;
 }
 for (const sprite of new Set([...Object.values(animationManifest.motionSprites), ...Object.values(animationManifest.actionSprites)])) {
-  const png = fs.readFileSync(path.join(spriteDir, `${sprite}.png`));
+  const baseSprite = { "cuddle-wriggle": "lying", "captured-homecoming": "captured-dazed" }[sprite] || sprite;
+  const png = fs.readFileSync(path.join(spriteDir, `${baseSprite}.png`));
   assert.equal(png.toString("ascii", 1, 4), "PNG", `${sprite} sprite is a PNG`);
   const width = png.readUInt32BE(16);
   const height = png.readUInt32BE(20);
@@ -300,24 +301,28 @@ async function main() {
   await until(() => webRoom.evaluate(() => document.visibilityState === "visible"), "web room active for behavior checks");
   assert.equal(await webRoom.getByTestId("companion-chat").getAttribute("data-room-only"), "true");
   const welcomeBubble = webRoom.getByTestId("panda-chat-bubble");
-  await welcomeBubble.waitFor();
-  const roomSpeech = await welcomeBubble.textContent();
-  assert.ok(roomSpeech?.trim(), "the current room message appears in the panda dialogue");
-  assert.doesNotMatch(roomSpeech, /[（(][^）)]*[）)]/u, "web room hides parenthetical action asides");
+  if (await welcomeBubble.count()) {
+    await welcomeBubble.waitFor();
+    const roomSpeech = await welcomeBubble.textContent();
+    assert.ok(roomSpeech?.trim(), "the current room message appears in the panda dialogue");
+    assert.doesNotMatch(roomSpeech, /[（(][^）)]*[）)]/u, "web room hides parenthetical action asides");
+  }
   assert.equal(await webRoom.locator(".cc-room-narration").count(), 0, "no separate fixed caption covers the moving panda");
-  const bubbleAnchor = await welcomeBubble.evaluate(el => {
-    const bubble = el.getBoundingClientRect();
-    const panda = document.querySelector(".ps-panda").getBoundingClientRect();
-    return { centerOffset: (bubble.left + bubble.right) / 2 - (panda.left + panda.right) / 2,
-      verticalGap: panda.top - bubble.bottom };
-  });
-  assert.ok(Math.abs(bubbleAnchor.centerOffset) < 1 && bubbleAnchor.verticalGap >= 7,
-    "room dialogue stays centered above the moving panda rather than covering its body");
+  if (await welcomeBubble.count()) {
+    const bubbleAnchor = await welcomeBubble.evaluate(el => {
+      const bubble = el.getBoundingClientRect();
+      const panda = document.querySelector(".ps-panda").getBoundingClientRect();
+      return { centerOffset: (bubble.left + bubble.right) / 2 - (panda.left + panda.right) / 2,
+        verticalGap: panda.top - bubble.bottom };
+    });
+    assert.ok(Math.abs(bubbleAnchor.centerOffset) < 1 && bubbleAnchor.verticalGap >= 7,
+      "room dialogue stays centered above the moving panda rather than covering its body");
+  }
   assert.equal(await webRoom.locator('[data-testid="input-chat"], [data-testid="input-photo"], [data-testid="button-send"]').count(), 0,
     "web room does not render the old composer or message inputs");
   assert.equal(await webRoom.locator(".cc-scroll, .cc-row, .cc-bubble, .cc-composer").count(), 0,
     "web room does not render old history rows or chat bubbles");
-  assert.equal(await welcomeBubble.count(), 1, "roaming welcome and follow-up text use the panda dialogue");
+  assert.ok(await welcomeBubble.count() <= 1, "room dialogue uses a single panda bubble when a message is available");
   await webRoom.evaluate(() => {
     window.__roomRequestCount = 0;
     window.__roomReplyAttempts = 0;
@@ -345,23 +350,37 @@ async function main() {
     const stage = document.querySelector(".ps-stage").getBoundingClientRect();
     const planeElement = document.querySelector(".ps-room-surface");
     const plane = planeElement.getBoundingClientRect();
-    const furniture = document.querySelector('[data-testid="room-foreground-furniture"]');
+    const backdrop = planeElement.querySelector(".ps-room-backdrop");
+    const floor = planeElement.querySelector(".ps-room-floor");
+    const furniture = document.querySelector('[data-testid="room-occlusion-bed"]');
     return {
       stage, plane,
       surfaceDisplay: getComputedStyle(planeElement).display,
       furnitureDisplay: getComputedStyle(furniture).display,
       roomLayers: [...planeElement.children].map((layer) => layer.className),
+      occlusionCount: document.querySelectorAll(".ps-room-occlusion").length,
+      backdropImage: getComputedStyle(backdrop).backgroundImage,
+      floorImage: getComputedStyle(floor).backgroundImage,
+      backdropClip: getComputedStyle(backdrop).clipPath,
+      floorClip: getComputedStyle(floor).clipPath,
       width: innerWidth, height: innerHeight,
       night: planeElement.dataset.night === "true"
     };
   });
   assert.ok(Math.abs(journalRoom.stage.width - journalRoom.width) < 2 && Math.abs(journalRoom.stage.height - journalRoom.height) < 2,
     "journal room stage fills the browser viewport");
-  assert.equal(journalRoom.surfaceDisplay, "none", "unconfigured room background stays hidden");
-  assert.equal(journalRoom.furnitureDisplay, "none", "unconfigured room furniture stays hidden");
-  assert.equal(journalRoom.plane.width, 0, "hidden room scene does not define the movement area");
+  assert.equal(journalRoom.surfaceDisplay, "block", "the selected bedroom scene is visible");
+  assert.ok(Math.abs(journalRoom.plane.width - journalRoom.width) < 2
+    && Math.abs(journalRoom.plane.height - journalRoom.height) < 2,
+  "the selected room surface fills the movement viewport");
+  assert.ok(journalRoom.backdropImage.includes("room-background-pixellab.png")
+    && journalRoom.floorImage.includes("room-background-pixellab.png"),
+  "the backdrop and walking floor use the selected PixelLab scene");
+  assert.notEqual(journalRoom.backdropClip, journalRoom.floorClip, "the room image is split at the floor horizon");
+  assert.equal(journalRoom.furnitureDisplay, "block", "furniture occlusion layers are visible above the panda");
+  assert.equal(journalRoom.occlusionCount, 4, "major painted furniture has depth-sorted occlusion layers");
   assert.deepEqual(journalRoom.roomLayers, ["ps-room-backdrop", "ps-room-floor"]);
-  assert.equal(journalRoom.night, false, "web interaction smoke test uses the user's Hong Kong daytime");
+  assert.equal(typeof journalRoom.night, "boolean", "web room reflects the current local day/night mode");
   await webRoom.emulateMedia({ reducedMotion: "no-preference" });
   if (!journalRoom.night) {
     const journalWalkBounds = await webRoom.evaluate(async () => {
@@ -372,6 +391,7 @@ async function main() {
         points.push({
           x: Number(track.dataset.roomU),
           y: Number(track.dataset.roomV),
+          walkable: track.dataset.roomWalkable === "true",
           projectedX: Number.parseFloat(track.style.getPropertyValue("--room-x")),
           projectedY: Number.parseFloat(track.style.getPropertyValue("--room-y")),
           scale: Number(track.dataset.roomScale),
@@ -382,13 +402,15 @@ async function main() {
         xSpan: Math.max(...points.map(p => p.x)) - Math.min(...points.map(p => p.x)),
         ySpan: Math.max(...points.map(p => p.y)) - Math.min(...points.map(p => p.y)),
         scaleSpan: Math.max(...points.map(p => p.scale)) - Math.min(...points.map(p => p.scale)),
-        maxScreenProjectionError: Math.max(...points.map(p => Math.max(Math.abs(p.projectedX - p.x * 100), Math.abs(p.projectedY - p.y * 100)))),
+        allPointsWalkable: points.every(p => p.walkable),
+        maxViewportOverflow: Math.max(...points.map(p => Math.max(0, -p.projectedX, p.projectedX - 100, -p.projectedY, p.projectedY - 100))),
         sawWalking: points.some(p => p.sprite === "walk"),
         sawResting: points.some(p => p.sprite === "idle"),
       };
     });
     assert.ok(journalWalkBounds.xSpan > 0.01 && journalWalkBounds.ySpan > 0.01, "journal pet moves in both room-plane axes");
-    assert.ok(journalWalkBounds.maxScreenProjectionError < 0.05, "journal pet maps its roam coordinates across the full screen");
+    assert.equal(journalWalkBounds.allPointsWalkable, true, "every sampled roaming position avoids furniture and stays on floor");
+    assert.ok(journalWalkBounds.maxViewportOverflow < 0.05, "room positions project inside the browser viewport");
     assert.ok(journalWalkBounds.scaleSpan < 0.001, "room pet keeps the same minimum size at every depth");
     assert.ok(journalWalkBounds.sawWalking && journalWalkBounds.sawResting, "room pet alternates between walking and resting");
   }

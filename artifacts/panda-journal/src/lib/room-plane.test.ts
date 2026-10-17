@@ -2,15 +2,25 @@ import assert from 'node:assert/strict';
 import {
   blendRoomPoint,
   gaitProgress,
+  isWalkableRoomPoint,
+  isWalkableRoomSegment,
+  nearestWalkableRoomPoint,
+  planRoomWalkPath,
+  pointAlongRoomWalkPath,
   projectDesktopPoint,
   projectRoomPoint,
   projectScreenPoint,
   quadraticRoomPoint,
   randomRoomControlPoint,
   randomRoomPoint,
+  randomWalkableRoomPoint,
+  roomImageRegionClipPath,
+  roomWalkPathLength,
   roomFurnitureZIndex,
   roomDepthZIndex,
   roomFloorBoundsPercent,
+  ROOM_IMAGE_HEIGHT,
+  ROOM_IMAGE_WIDTH,
   unprojectRoomPoint,
   unprojectScreenPoint,
 } from './room-plane';
@@ -26,9 +36,9 @@ assert.ok(near.shadowOpacity > far.shadowOpacity);
 assert.ok(near.shadowBlur < far.shadowBlur);
 assert.ok(near.brightness > far.brightness);
 assert.ok(far.brightness >= 0.88 && near.brightness <= 1);
-assert.ok(far.y > 76 && near.y < 100, 'the web walking plane stays on the selected room image floor');
+assert.ok(far.y > 56 && near.y < 97, 'the web walking plane stays on the selected room image floor');
 const wideRoomFloor = roomFloorBoundsPercent(1200, 800);
-assert.ok(wideRoomFloor.far > 82 && wideRoomFloor.near > wideRoomFloor.far,
+assert.ok(wideRoomFloor.far > 0 && wideRoomFloor.near > wideRoomFloor.far && wideRoomFloor.near < 100,
   'the room image keeps its original aspect ratio while the floor follows its visible position');
 assert.ok(projectRoomPoint({ u: 0.24, v: 0.24 }).brightness
   > projectRoomPoint({ u: 0.9, v: 0.24 }).brightness, 'local light softly brightens nearby positions');
@@ -100,4 +110,47 @@ assert.equal(gaitProgress(1, 12), 1);
 assert.ok(gaitProgress(0.05, 10) < 0.1);
 assert.equal(gaitProgress(0.08, 10), gaitProgress(0.09, 10), 'each small step includes a brief pause');
 
-console.log('PASS room and full-screen projections, bounded curved routes and stepwise gait');
+let seed = 0x51a7;
+const seededRandom = () => {
+  seed = (seed * 1664525 + 1013904223) >>> 0;
+  return seed / 0x1_0000_0000;
+};
+for (let index = 0; index < 500; index += 1) {
+  assert.ok(isWalkableRoomPoint(randomWalkableRoomPoint(seededRandom)),
+    'random room destinations stay on clear floor away from furniture');
+}
+
+const blockedPoint = { u: 0.6, v: 0.25 };
+assert.equal(isWalkableRoomPoint(blockedPoint), false, 'the panda bed footprint is blocked');
+assert.ok(isWalkableRoomPoint(nearestWalkableRoomPoint(blockedPoint)),
+  'a dragged point can be relocated to the nearest clear floor');
+assert.ok(isWalkableRoomPoint(nearestWalkableRoomPoint({ u: -1, v: 0.25 })),
+  'points outside the room are clamped back onto clear floor');
+
+const obstacleRouteStart = { u: 0.42, v: 0.4 };
+const obstacleRouteEnd = { u: 0.83, v: 0.4 };
+assert.ok(isWalkableRoomPoint(obstacleRouteStart) && isWalkableRoomPoint(obstacleRouteEnd));
+const obstacleRoute = planRoomWalkPath(obstacleRouteStart, obstacleRouteEnd);
+assert.ok(obstacleRoute.length > 2, 'the route detours around the panda bed instead of crossing it');
+assert.ok(roomWalkPathLength(obstacleRoute)
+  > Math.hypot(obstacleRouteEnd.u - obstacleRouteStart.u, obstacleRouteEnd.v - obstacleRouteStart.v));
+for (const [index, point] of obstacleRoute.entries()) {
+  assert.ok(isWalkableRoomPoint(point), `route waypoint ${index} is on clear floor`);
+  if (index > 0) {
+    assert.ok(isWalkableRoomSegment(obstacleRoute[index - 1], point),
+      `route segment ${index - 1} avoids furniture and floor edges`);
+  }
+}
+for (let index = 0; index <= 300; index += 1) {
+  assert.ok(isWalkableRoomPoint(pointAlongRoomWalkPath(obstacleRoute, index / 300)),
+    'every interpolated walking point remains outside furniture footprints');
+}
+
+const wideFurnitureClip = roomImageRegionClipPath({ left: 48, top: 68, right: 166, bottom: 142 }, 1200, 800);
+const tallFurnitureClip = roomImageRegionClipPath({ left: 48, top: 68, right: 166, bottom: 142 }, 400, 874);
+assert.equal(ROOM_IMAGE_WIDTH, 400);
+assert.equal(ROOM_IMAGE_HEIGHT, 180);
+assert.ok(wideFurnitureClip.startsWith('polygon(') && tallFurnitureClip.startsWith('polygon('));
+assert.notEqual(wideFurnitureClip, tallFurnitureClip, 'furniture occlusion follows the image on wide and tall viewports');
+
+console.log('PASS room projection, walkable targets, furniture-safe routes, image clipping and stepwise gait');

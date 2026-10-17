@@ -16,13 +16,14 @@ const clamp = (value: number) => Math.min(1, Math.max(0, value));
 const ROOM_MIN = 0.08;
 const ROOM_MAX = 0.92;
 const PANDA_MIN_SCALE = 0.62;
-const ROOM_IMAGE_WIDTH = 800;
-const ROOM_IMAGE_HEIGHT = 360;
-const ROOM_IMAGE_FLOOR_FAR_Y = 274;
-const ROOM_IMAGE_FLOOR_NEAR_Y = 350;
-const FLOOR_FAR_HALF_WIDTH = 27;
-const FLOOR_NEAR_HALF_WIDTH = 48;
+export const ROOM_IMAGE_WIDTH = 400;
+export const ROOM_IMAGE_HEIGHT = 180;
+const ROOM_IMAGE_FLOOR_FAR_Y = 101;
+const ROOM_IMAGE_FLOOR_NEAR_Y = 173;
+const FLOOR_FAR_HALF_WIDTH = 37;
+const FLOOR_NEAR_HALF_WIDTH = 45;
 
+const WALKER_CLEARANCE = 0.018;
 const clampRoom = (value: number) => Math.min(ROOM_MAX, Math.max(ROOM_MIN, value));
 const lerp = (from: number, to: number, amount: number) => from + (to - from) * amount;
 
@@ -38,6 +39,19 @@ export function roomFloorBoundsPercent(width: number, height: number): { far: nu
   };
 }
 
+export function roomImageRegionClipPath(
+  region: { left: number; top: number; right: number; bottom: number },
+  viewportWidth: number,
+  viewportHeight: number,
+): string {
+  const scale = Math.min(viewportWidth / ROOM_IMAGE_WIDTH, viewportHeight / ROOM_IMAGE_HEIGHT);
+  const imageLeft = (viewportWidth - ROOM_IMAGE_WIDTH * scale) / 2;
+  const imageTop = viewportHeight - ROOM_IMAGE_HEIGHT * scale;
+  const point = (x: number, y: number) => `${(
+    (imageLeft + x * scale) / viewportWidth * 100
+  ).toFixed(3)}% ${((imageTop + y * scale) / viewportHeight * 100).toFixed(3)}%`;
+  return `polygon(${point(region.left, region.top)}, ${point(region.right, region.top)}, ${point(region.right, region.bottom)}, ${point(region.left, region.bottom)})`;
+}
 function lightFalloff(u: number, v: number, centerU: number, centerV: number, radiusU: number, radiusV: number) {
   return Math.max(0, 1 - Math.hypot((u - centerU) / radiusU, (v - centerV) / radiusV));
 }
@@ -46,6 +60,10 @@ export function randomRoomPoint(random = Math.random): RoomPoint {
   return { u: 0.08 + random() * 0.84, v: 0.08 + random() * 0.84 };
 }
 
+function pointInObstacle(point: RoomPoint, obstacle: typeof ROOM_OBSTACLES[number], margin = WALKER_CLEARANCE) {
+  return point.u >= obstacle.minU - margin && point.u <= obstacle.maxU + margin
+    && point.v >= obstacle.minV - margin && point.v <= obstacle.maxV + margin;
+}
 export function roomDepthZIndex(depth: number): number {
   return 10 + Math.round(clamp(depth) * 100);
 }
@@ -184,4 +202,180 @@ export function gaitProgress(progress: number, stepCount: number): number {
   const stride = Math.min(1, inStep / 0.78);
   const easedStride = 1 - (1 - stride) ** 2;
   return (completed + easedStride) / steps;
+}
+
+let walkableRoomSamples: RoomPoint[] | null = null;
+
+/** Samples only from the open floor; the legacy sampler remains for the desktop pet. */
+export function randomWalkableRoomPoint(random = Math.random): RoomPoint {
+  for (let attempt = 0; attempt < 48; attempt += 1) {
+    const point = {
+      u: ROOM_MIN + random() * (ROOM_MAX - ROOM_MIN),
+      v: ROOM_MIN + random() * (ROOM_MAX - ROOM_MIN),
+    };
+    if (isWalkableRoomPoint(point)) return point;
+  }
+  const samples = getWalkableRoomSamples();
+  const index = Math.min(samples.length - 1, Math.floor(random() * samples.length));
+  return { ...samples[index] };
+}
+
+export function roomWalkPathLength(path: RoomPoint[]): number {
+  return path.slice(1).reduce((length, point, index) =>
+    length + Math.hypot(point.u - path[index].u, point.v - path[index].v), 0);
+}
+
+export function isWalkableRoomPoint(point: RoomPoint): boolean {
+  if (point.u < ROOM_MIN || point.u > ROOM_MAX || point.v < ROOM_MIN || point.v > ROOM_MAX) return false;
+  return !ROOM_OBSTACLES.some(obstacle => pointInObstacle(point, obstacle));
+}
+
+const ROOM_OBSTACLES = [
+  { minU: 0.025, maxU: 0.39, minV: 0.26, maxV: 0.56 }, // bed and its footboard
+  { minU: 0.49, maxU: 0.79, minV: 0.13, maxV: 0.43 }, // panda bed
+  { minU: 0.34, maxU: 0.48, minV: 0.015, maxV: 0.16 }, // small chest
+  { minU: 0.77, maxU: 0.98, minV: 0.02, maxV: 0.31 }, // display wardrobe
+  { minU: 0.87, maxU: 0.99, minV: 0.34, maxV: 0.55 }, // side table
+  { minU: 0.08, maxU: 0.16, minV: 0.37, maxV: 0.56 }, // bamboo planter
+  { minU: 0.42, maxU: 0.57, minV: 0.015, maxV: 0.14 }, // floor lamp and plant
+] as const;
+
+function getWalkableRoomSamples(): RoomPoint[] {
+  if (walkableRoomSamples) return walkableRoomSamples;
+  const samples: RoomPoint[] = [];
+  const step = 0.012;
+  for (let u = ROOM_MIN + step / 2; u < ROOM_MAX; u += step) {
+    for (let v = ROOM_MIN + step / 2; v < ROOM_MAX; v += step) {
+      const point = { u, v };
+      if (isWalkableRoomPoint(point)) samples.push(point);
+    }
+  }
+  walkableRoomSamples = samples;
+  return samples;
+}
+
+/**
+ * Routes around the room's fixed furniture using a visibility graph of padded corners.
+ * Every returned segment is checked against the walkable floor and obstacle clearances.
+ */
+export function planRoomWalkPath(fromPoint: RoomPoint, toPoint: RoomPoint): RoomPoint[] {
+  const from = nearestWalkableRoomPoint(fromPoint);
+  const to = nearestWalkableRoomPoint(toPoint);
+  if (Math.hypot(to.u - from.u, to.v - from.v) < 0.001) return [from];
+  if (roomSegmentIsWalkable(from, to)) return [from, to];
+
+  const cornerPadding = WALKER_CLEARANCE + 0.006;
+  const nodes = [from, to];
+  for (const obstacle of ROOM_OBSTACLES) {
+    for (const corner of [
+      { u: obstacle.minU - cornerPadding, v: obstacle.minV - cornerPadding },
+      { u: obstacle.minU - cornerPadding, v: obstacle.maxV + cornerPadding },
+      { u: obstacle.maxU + cornerPadding, v: obstacle.minV - cornerPadding },
+      { u: obstacle.maxU + cornerPadding, v: obstacle.maxV + cornerPadding },
+    ]) {
+      if (isWalkableRoomPoint(corner)) nodes.push(corner);
+    }
+  }
+
+  const distances = nodes.map((_, index) => index === 0 ? 0 : Number.POSITIVE_INFINITY);
+  const previous = nodes.map(() => -1);
+  const visited = new Set<number>();
+  while (visited.size < nodes.length) {
+    let current = -1;
+    for (let index = 0; index < nodes.length; index += 1) {
+      if (visited.has(index)) continue;
+      if (current < 0 || distances[index] < distances[current]) current = index;
+    }
+    if (current < 0 || !Number.isFinite(distances[current])) break;
+    if (current === 1) break;
+    visited.add(current);
+    for (let next = 0; next < nodes.length; next += 1) {
+      if (next === current || visited.has(next) || !roomSegmentIsWalkable(nodes[current], nodes[next])) continue;
+      const candidateDistance = distances[current]
+        + Math.hypot(nodes[next].u - nodes[current].u, nodes[next].v - nodes[current].v);
+      if (candidateDistance >= distances[next]) continue;
+      distances[next] = candidateDistance;
+      previous[next] = current;
+    }
+  }
+
+  if (!Number.isFinite(distances[1])) return [from];
+  const route: RoomPoint[] = [];
+  for (let node = 1; node >= 0; node = previous[node]) {
+    route.unshift(nodes[node]);
+    if (node === 0) break;
+  }
+  return route;
+}
+
+function roomSegmentIsWalkable(from: RoomPoint, to: RoomPoint): boolean {
+  const distance = Math.hypot(to.u - from.u, to.v - from.v);
+  const steps = Math.max(1, Math.ceil(distance / 0.01));
+  for (let index = 0; index <= steps; index += 1) {
+    const progress = index / steps;
+    if (!isWalkableRoomPoint({
+      u: from.u + (to.u - from.u) * progress,
+      v: from.v + (to.v - from.v) * progress,
+    })) return false;
+  }
+  return true;
+}
+
+export function pointAlongRoomWalkPath(path: RoomPoint[], progress: number): RoomPoint {
+  if (path.length < 2) return { ...path[0] };
+  const totalLength = roomWalkPathLength(path);
+  let remaining = clamp(progress) * totalLength;
+  for (let index = 1; index < path.length; index += 1) {
+    const from = path[index - 1];
+    const to = path[index];
+    const segmentLength = Math.hypot(to.u - from.u, to.v - from.v);
+    if (remaining <= segmentLength || index === path.length - 1) {
+      const segmentProgress = segmentLength === 0 ? 1 : Math.min(1, remaining / segmentLength);
+      return {
+        u: from.u + (to.u - from.u) * segmentProgress,
+        v: from.v + (to.v - from.v) * segmentProgress,
+      };
+    }
+    remaining -= segmentLength;
+  }
+  return { ...path[path.length - 1] };
+}
+
+/** Keeps a manually moved pet on the floor and outside furniture footprints. */
+export function nearestWalkableRoomPoint(point: RoomPoint): RoomPoint {
+  const bounded = {
+    u: Math.min(ROOM_MAX, Math.max(ROOM_MIN, point.u)),
+    v: Math.min(ROOM_MAX, Math.max(ROOM_MIN, point.v)),
+  };
+  if (isWalkableRoomPoint(bounded)) return bounded;
+
+  const candidates: RoomPoint[] = [];
+  for (const obstacle of ROOM_OBSTACLES) {
+    const minU = obstacle.minU - WALKER_CLEARANCE;
+    const maxU = obstacle.maxU + WALKER_CLEARANCE;
+    const minV = obstacle.minV - WALKER_CLEARANCE;
+    const maxV = obstacle.maxV + WALKER_CLEARANCE;
+    if (bounded.u < minU || bounded.u > maxU || bounded.v < minV || bounded.v > maxV) continue;
+    const margin = 0.002;
+    candidates.push(
+      { u: minU - margin, v: Math.min(maxV, Math.max(minV, bounded.v)) },
+      { u: maxU + margin, v: Math.min(maxV, Math.max(minV, bounded.v)) },
+      { u: Math.min(maxU, Math.max(minU, bounded.u)), v: minV - margin },
+      { u: Math.min(maxU, Math.max(minU, bounded.u)), v: maxV + margin },
+    );
+  }
+  const safeCandidates = candidates.filter(isWalkableRoomPoint);
+  if (safeCandidates.length) {
+    return safeCandidates.reduce((nearest, candidate) =>
+      Math.hypot(candidate.u - bounded.u, candidate.v - bounded.v)
+        < Math.hypot(nearest.u - bounded.u, nearest.v - bounded.v) ? candidate : nearest);
+  }
+
+  return getWalkableRoomSamples().reduce((nearest, candidate) =>
+    Math.hypot(candidate.u - bounded.u, candidate.v - bounded.v)
+      < Math.hypot(nearest.u - bounded.u, nearest.v - bounded.v) ? candidate : nearest);
+}
+
+export function isWalkableRoomSegment(from: RoomPoint, to: RoomPoint): boolean {
+  return roomSegmentIsWalkable(from, to);
 }
