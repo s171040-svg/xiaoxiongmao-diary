@@ -49,9 +49,10 @@ export function useCompanion() {
   const [legacyEntries] = useState(legacy);
   const [pet, setPet] = useState<PetEffect>(() => {
     if (state.trip) return { action: 'idle', stage: 'away', duration: 3000, token: 0 };
-    if (state.returnEvent?.kind === 'captured' && state.returnEvent.until > Date.now()) {
+    if (state.returnEvent?.kind === 'captured'
+      && (state.returnEvent.awaitingInteraction || state.returnEvent.until > Date.now())) {
       return { action: 'captured-homecoming', stage: 'performing',
-        duration: state.returnEvent.until - Date.now(), token: state.returnEvent.until };
+        duration: CAPTURED_HOMECOMING_DURATION_MS, token: state.returnEvent.until };
     }
     return { action: 'idle', stage: 'present', duration: 3000, token: 0 };
   });
@@ -169,10 +170,23 @@ export function useCompanion() {
     }, base.duration);
     return true;
   }, [later, motion]);
+  const acknowledgeCapturedHomecoming = useCallback(() => {
+    const active = petRef.current;
+    if (active.stage !== 'performing' || active.action !== 'captured-homecoming') return false;
+    try {
+      if (readState(localStorage).returnEvent?.kind === 'captured') {
+        transact(currentState => ({ ...currentState, returnEvent: undefined }));
+      }
+    } catch (e) { report(e); }
+    queuedPerformance.current = false;
+    motion({ ...active, action: 'idle', stage: 'present', duration: 3000, token: Date.now(), carrying: undefined });
+    return true;
+  }, [motion, report, transact]);
   useEffect(() => {
     if (pet.stage !== 'performing' || pet.action !== 'captured-homecoming') return undefined;
     const token = pet.token;
     const returnEvent = state.returnEvent;
+    if (!returnEvent || returnEvent.awaitingInteraction) return undefined;
     const duration = returnEvent?.kind === 'captured'
       ? Math.max(0, returnEvent.until - Date.now())
       : pet.duration;
@@ -301,6 +315,7 @@ export function useCompanion() {
     if (busyRef.current || isPhotoLoading || listening) return;
     const text = (textOverride ?? current.current.draft).trim();
     if (!text) { report(new Error('照片只留在本机，先配上一句话再发送吧。')); return; }
+    acknowledgeCapturedHomecoming();
     const message: ChatMessage = { id: id(), role: 'user', text, photo: current.current.draftPhoto, createdAt: Date.now(), status: 'pending', kind: 'chat' };
     try {
       transact(s => recordUserMessage(s, message));
@@ -323,7 +338,7 @@ export function useCompanion() {
   }
   return {
     state, draft: state.draft, photo: state.draftPhoto, busy, replyDisplay, isPhotoLoading, listening, setListening, collectPresent,
-    status, error, nightMode, pet, legacyEntries, send, retryMessage, choosePhoto, perform,
+     status, error, nightMode, pet, legacyEntries, send, retryMessage, choosePhoto, perform, acknowledgeCapturedHomecoming,
     setDraft: (draft: string) => { try { transact(s => ({ ...s, draft })); } catch (e) { report(e); } },
     removePhoto: () => { try { transact(s => ({ ...s, draftPhoto: undefined })); } catch (e) { report(e); } },
     removeDiary: (memoryId: string) => { try { transact(s => ({ ...s, diary: s.diary.filter(m => m.id !== memoryId) })); } catch (e) { report(e); } },

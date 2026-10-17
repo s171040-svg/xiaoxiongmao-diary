@@ -48,7 +48,8 @@ export function readState(storage: Pick<Storage, 'getItem'>, now = Date.now()): 
     || typeof value.userName !== 'string' || typeof value.draft !== 'string'
     || (value.trip?.captured !== undefined && typeof value.trip.captured !== 'boolean')
     || (value.returnEvent !== undefined && (!value.returnEvent || value.returnEvent.kind !== 'captured'
-      || !Number.isFinite(value.returnEvent.until)))
+      || !Number.isFinite(value.returnEvent.until)
+      || (value.returnEvent.awaitingInteraction !== undefined && typeof value.returnEvent.awaitingInteraction !== 'boolean')))
     || (value.recentGiftStories !== undefined && (!Array.isArray(value.recentGiftStories)
       || value.recentGiftStories.some(story => typeof story !== 'string')))
     || ![value.lastUserAt, value.nextIdleAt, value.proactiveCount, value.nextTripAt].every(Number.isFinite)
@@ -214,7 +215,7 @@ export function tickCompanion(state: CompanionState, now: number, random = Math.
   state: CompanionState; event?: 'proactive' | 'departure' | 'gift'; text?: string; capturedReturn?: boolean;
 } {
   let next = state.proactiveDay === localDay(now) ? state : { ...state, proactiveDay: localDay(now), proactiveCount: 0 };
-  if (next.returnEvent && now >= next.returnEvent.until) {
+  if (next.returnEvent && !next.returnEvent.awaitingInteraction && now >= next.returnEvent.until) {
     const { returnEvent: _expiredReturnEvent, ...stateWithoutReturnEvent } = next;
     next = stateWithoutReturnEvent;
   }
@@ -226,7 +227,7 @@ export function tickCompanion(state: CompanionState, now: number, random = Math.
       : gift.story;
     const { returnEvent: _previousReturnEvent, ...stateWithoutReturnEvent } = next;
     next = { ...stateWithoutReturnEvent, trip: undefined, nextTripAt: now + tripDelay(random),
-      ...(capturedReturn ? { returnEvent: { kind: 'captured' as const, until: now + CAPTURED_HOMECOMING_DURATION_MS } } : {}),
+      ...(capturedReturn ? { returnEvent: { kind: 'captured' as const, until: now + CAPTURED_HOMECOMING_DURATION_MS, awaitingInteraction: true } } : {}),
       pendingGift: gift, giftDropStartedAt: undefined,
       messages: [...next.messages, assistant(text, 'event', now)] };
     return { state: next, event: 'gift', text, capturedReturn };

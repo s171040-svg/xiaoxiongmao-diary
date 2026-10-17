@@ -149,7 +149,7 @@ type BathBallPointer = {
   offsetY: number;
 };
 
-export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = false, debugClicks = false, showInteractionBubble = false, interactionBubbleText, developerPose = null, developerEvent = null, onChatModeChange }: {
+export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = false, debugClicks = false, showInteractionBubble = false, interactionBubbleText, developerPose = null, developerEvent = null, onChatModeChange, onCapturedHomecomingInteraction }: {
   pet: PetEffect;
   thinking?: boolean;
   motion?: 'idle' | 'sleep';
@@ -160,6 +160,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   developerPose?: DeveloperPose | null;
   developerEvent?: { event: DeveloperEvent; token: number } | null;
   onChatModeChange?: (isChat: boolean) => void;
+  onCapturedHomecomingInteraction?: () => void;
 }) {
   const hidden = pet.stage === 'fallen' || pet.stage === 'away';
   const seconds = Math.min(5, Math.max(2, pet.duration > 100 ? pet.duration / 1000 : pet.duration || 2));
@@ -575,28 +576,17 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     capturedHomecomingTokenRef.current = pet.token;
     capturedHomecomingArrivedRef.current = false;
     setCapturedHomecomingArrived(false);
-    applyRoomPoint({ u: 0.5, v: 0.58 });
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       capturedHomecomingArrivedRef.current = true;
       setCapturedHomecomingArrived(true);
     }
-  }, [applyRoomPoint, capturedHomecoming, pet.token]);
+  }, [capturedHomecoming, pet.token]);
 
   const finishCapturedHomecomingPath = useCallback(() => {
     if (!capturedHomecoming || capturedHomecomingArrivedRef.current) return;
-    const start = positionRef.current;
-    const targetY = Math.min(94, projectScreenPoint(start).y + 5);
-    let low = start.v;
-    let high = 1;
-    for (let step = 0; step < 18; step += 1) {
-      const mid = (low + high) / 2;
-      if (projectScreenPoint({ ...start, v: mid }).y < targetY) low = mid;
-      else high = mid;
-    }
-    applyRoomPoint({ ...start, v: high });
     capturedHomecomingArrivedRef.current = true;
     setCapturedHomecomingArrived(true);
-  }, [applyRoomPoint, capturedHomecoming]);
+  }, [capturedHomecoming]);
 
   useEffect(() => {
     if (!showInteractionBubble || !hangingOnRack) return undefined;
@@ -1151,6 +1141,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
 
   const handlePandaClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (worldFallPhase !== 'none' && worldFallPhase !== 'dirty') return;
+    if (capturedHomecoming) onCapturedHomecomingInteraction?.();
     if (suppressClickAfterDragRef.current) {
       suppressClickAfterDragRef.current = false;
       recordDebug('拖拽结束，忽略随后的点击');
@@ -1217,6 +1208,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     if (!showInteractionBubble || interactionStateRef.current === 'chat' || !event.isPrimary
       || dizzyPhase !== 'none' || (worldFallPhase !== 'none' && worldFallPhase !== 'dirty') || bathPhaseRef.current === 'falling'
       || (event.pointerType === 'mouse' && event.button !== 0)) return;
+    if (capturedHomecoming) onCapturedHomecomingInteraction?.();
     const track = trackRef.current;
     if (!track) return;
     const rect = track.getBoundingClientRect();
@@ -1776,7 +1768,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
               onPointerMove={handlePandaPointerMove}
               onPointerUp={handlePandaPointerUp}
               onPointerCancel={handlePandaPointerCancel}
-                  aria-label={capturedHomecoming ? '小熊猫从外面被扔回来，砸到地上后爬过来求抱抱' : hangingOnRack ? '小熊猫挂在晾衣架上；长按可以把它抱下来' : isFlyChasing ? '脏兮兮的小熊猫被苍蝇追着跑' : bathPhase === 'falling' ? '小熊猫掉进浴缸了' : bathPhase === 'bathing' ? '小熊猫正在洗澡；长按可以提起' : worldFallPhase === 'falling' ? '小熊猫掉出房间了' : dirtyReturn ? '小熊猫灰头土脸地哭着回来了' : dizzyPhase === 'falling' ? '小熊猫松手后掉到地上' : dizzyPhase === 'dazed' ? '小熊猫坐在地上眩晕了一会儿' : isDragging ? '正在拎起小熊猫；拖动到目标位置后松手' : isPressPending ? '按住小熊猫即可拎起' : startled ? '小熊猫被吓了一跳' : isSleeping ? '小熊猫正在睡觉；点击叫醒' : interactionState === 'chat' ? '小熊猫正在聊天；点击房间空白处退出' : '点击小熊猫和它互动'}
+                  aria-label={capturedHomecoming ? '小熊猫小幅落下，爬过来求抱抱' : hangingOnRack ? '小熊猫挂在晾衣架上；长按可以把它抱下来' : isFlyChasing ? '脏兮兮的小熊猫被苍蝇追着跑' : bathPhase === 'falling' ? '小熊猫掉进浴缸了' : bathPhase === 'bathing' ? '小熊猫正在洗澡；长按可以提起' : worldFallPhase === 'falling' ? '小熊猫掉出房间了' : dirtyReturn ? '小熊猫灰头土脸地哭着回来了' : dizzyPhase === 'falling' ? '小熊猫松手后掉到地上' : dizzyPhase === 'dazed' ? '小熊猫坐在地上眩晕了一会儿' : isDragging ? '正在拎起小熊猫；拖动到目标位置后松手' : isPressPending ? '按住小熊猫即可拎起' : startled ? '小熊猫被吓了一跳' : isSleeping ? '小熊猫正在睡觉；点击叫醒' : interactionState === 'chat' ? '小熊猫正在聊天；点击房间空白处退出' : '点击小熊猫和它互动'}
                   data-testid="button-panda" data-hanging-on-rack={hangingOnRack ? 'true' : undefined} data-bath-state={showInteractionBubble ? bathPhase : undefined} data-bath-ball-on-panda={bathBallPlaced ? 'true' : undefined} data-bath-rubbing={showInteractionBubble && bathPhase === 'bathing' ? (bathRubbing ? 'true' : 'false') : undefined} data-sleeping-on-bed={sleepingOnBed ? 'true' : 'false'} data-reacting={reacting ? 'true' : undefined} data-startled={startled ? 'true' : undefined} data-dizzy-state={showInteractionBubble ? dizzyPhase : undefined} data-facing={facing}
                  data-bamboo-phase={action === 'bamboo' ? bambooPhase : undefined}
                 data-activity-state={showInteractionBubble ? developerPose ?? activityState : undefined}

@@ -19,7 +19,7 @@ const devActionOptions: { action: PerformanceAction; label: string }[] = [
   { action: 'somersault', label: '翻跟斗' },
   { action: 'tail', label: '追尾巴' },
   { action: 'cuddle', label: '蹭蹭撒娇' },
-  { action: 'captured-homecoming', label: '被扔回后摔落，爬来求抱抱' },
+  { action: 'captured-homecoming', label: '小幅落下后爬来求抱抱' },
 ];
 const devPoseOptions: { pose: DeveloperPose; label: string }[] = [
   { pose: 'idle', label: '发呆' },
@@ -343,7 +343,8 @@ export function CompanionChat({ companion: c, roomOnly = false }: { companion: C
         developerEvent={import.meta.env.DEV && roomOnly ? developerEvent : null}
         debugClicks={false} showInteractionBubble={roomOnly}
         interactionBubbleText={roomOnly && roomDialogue ? removeActionAsides(roomDialogue) : undefined}
-        onChatModeChange={roomOnly ? onRoomChatModeChange : undefined} />
+        onChatModeChange={roomOnly ? onRoomChatModeChange : undefined}
+        onCapturedHomecomingInteraction={roomOnly ? c.acknowledgeCapturedHomecoming : undefined} />
       {!window.pandaDesktop && c.pet.stage !== 'returning'
         && <GiftDrop gift={c.state.pendingGift} startedAt={c.state.giftDropStartedAt} onCollect={c.collectPresent} />}
       {roomOnly ? (

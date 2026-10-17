@@ -122,7 +122,7 @@ test('excursions take thirty to one hundred twenty seconds and gift settlement i
     assert.equal(collectGift(stored, clicked.pendingGift!.id, state.trip!.returnAt + GIFT_DROP_MS + 1).gifts.length, 1);
   }
 });
-test('captured outing adds a return delay, then persists a brief homecoming event', () => {
+test('captured outing adds a return delay and keeps the homecoming form until interaction', () => {
   const trip = beginTrip(sample(), now, () => 1);
   assert.equal(trip.trip!.captured, true);
   assert.match(trip.messages.at(-1)!.text, /太可爱.*抱走/);
@@ -130,9 +130,10 @@ test('captured outing adds a return delay, then persists a brief homecoming even
   assert.equal(returned.capturedReturn, true);
   assert.equal(returned.state.returnEvent?.kind, 'captured');
   assert.equal(returned.state.returnEvent?.until, trip.trip!.returnAt + CAPTURED_HOMECOMING_DURATION_MS);
+  assert.equal(returned.state.returnEvent?.awaitingInteraction, true);
   assert.match(returned.text!, /找回来啦.*呆呆的/);
-  const afterDaze = tickCompanion(returned.state, returned.state.returnEvent!.until, () => 0);
-  assert.equal(afterDaze.state.returnEvent, undefined);
+  const afterWait = tickCompanion(returned.state, returned.state.returnEvent!.until + 1, () => 0);
+  assert.equal(afterWait.state.returnEvent?.awaitingInteraction, true);
 });
 test('gift trips tell varied stories that match the souvenir and avoid immediate repeats', () => {
   const first = beginTrip(sample(), now, () => 0);

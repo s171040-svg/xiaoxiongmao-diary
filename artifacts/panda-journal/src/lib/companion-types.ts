@@ -26,7 +26,7 @@ export type CompanionState = {
   nextIdleAt: number; proactiveDay: string; proactiveCount: number;
   nextTripAt: number;
   trip?: { id: string; returnAt: number; gift: Omit<Gift, 'receivedAt'>; captured?: boolean };
-  returnEvent?: { kind: 'captured'; until: number };
+  returnEvent?: { kind: 'captured'; until: number; awaitingInteraction?: boolean };
   recentGiftStories?: string[];
   privateQuestionsPaused?: boolean;
   pendingGift?: Gift; giftDropStartedAt?: number;
