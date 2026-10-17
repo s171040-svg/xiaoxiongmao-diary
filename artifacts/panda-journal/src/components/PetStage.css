@@ -55,16 +55,14 @@
 .ps-captured-hug-bubble{position:absolute;z-index:4;top:-7%;left:50%;width:max-content;max-width:220px;translate:-50% -100%;padding:4px 9px;border:1px solid #897c6838;border-radius:12px;background:#fffdf2;color:#775c48;box-shadow:0 2px 8px #2c211522;font:600 13px/1.4 "Noto Sans CJK SC",sans-serif;white-space:nowrap;pointer-events:none;animation:ps-captured-hug-bubble 420ms cubic-bezier(.2,.8,.2,1) both}
 .ps-captured-time-vortex{position:absolute;z-index:0;left:50%;bottom:2px;display:block;width:calc(88px * var(--room-scale,.89));height:calc(88px * var(--room-scale,.89));translate:-50% 0;opacity:0;pointer-events:none;animation:ps-space-vortex-open 2.1s cubic-bezier(.2,.72,.2,1) both}
 .ps-captured-time-vortex img{display:block;width:100%;height:100%;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 0 4px #6058bc66);animation:ps-space-vortex-spin 2.1s linear both}
-.ps-space-police-envelope{position:absolute;z-index:3;left:50%;bottom:calc(2px * var(--room-scale,.89));box-sizing:border-box;display:block;width:calc(15px * var(--room-scale,.89));height:calc(11px * var(--room-scale,.89));border:1px solid #624633;border-radius:1px;background:#f9e4b5;box-shadow:1px 1px 0 #402c25;image-rendering:pixelated;pointer-events:none;animation:ps-space-envelope-flight 2.1s cubic-bezier(.25,.72,.22,1) both}
+.ps-space-police-envelope{position:absolute;z-index:12;left:0;top:0;box-sizing:border-box;display:block;width:calc(15px * var(--room-scale,.89));height:calc(11px * var(--room-scale,.89));padding:0;translate:calc(-50% + 36px) 0;border:1px solid #624633;border-radius:1px;background:#f9e4b5;box-shadow:1px 1px 0 #402c25;image-rendering:pixelated;pointer-events:auto;touch-action:manipulation;cursor:pointer;animation:none}
+.ps-space-police-envelope:disabled{cursor:default}
+.ps-space-police-envelope:not(:disabled):hover{filter:brightness(1.08)}
 .ps-space-police-envelope::before{position:absolute;inset:0;clip-path:polygon(0 0,50% 62%,100% 0);background:#d9aa70;content:""}
 .ps-space-police-envelope i{position:absolute;z-index:1;top:50%;left:50%;width:3px;height:3px;translate:-50% -30%;border-radius:50%;background:#bd4e50;box-shadow:0 0 0 1px #fff1c7}
-.ps-space-police-letter{position:absolute;z-index:40;box-sizing:border-box;width:min(236px,calc(100vw - 24px));padding:9px 11px 8px;border:2px solid #6d503a;border-radius:4px;background:#fff2d0;color:#4d3927;box-shadow:3px 3px 0 #442f2442,inset 0 0 0 2px #fff9e8;font:500 12px/1.45 "Noto Sans CJK SC",sans-serif;pointer-events:none;animation:ps-space-police-letter-pop 300ms cubic-bezier(.2,.8,.2,1) both}
-.ps-space-police-letter header{display:flex;align-items:center;gap:6px;margin:0 0 6px;padding:0 0 5px;border-bottom:1px dashed #b59a70}
-.ps-space-police-letter header strong{font-size:12px;font-weight:800}
-.ps-space-police-letter header small{margin-left:auto;color:#80674e;font:500 9px/1.2 "Noto Sans CJK SC",sans-serif;white-space:nowrap}
-.ps-space-police-stamp{display:grid;width:17px;height:17px;place-items:center;border:1px solid #aa5a4d;border-radius:50%;background:#f4d6b6;color:#a74742;font-size:11px}
-.ps-space-police-letter p{margin:0;font-size:11px;line-height:1.55;overflow-wrap:anywhere}
-.ps-space-police-letter footer{margin-top:6px;color:#735840;font-size:10px;text-align:right}
+.ps-space-police-envelope-flying{animation:ps-space-envelope-flight 2.1s cubic-bezier(.25,.72,.22,1) both}
+.ps-space-police-envelope-opened{background:#f0d6a5;border-color:#936749}
+.ps-space-letter-arrow{position:absolute;z-index:13;display:grid;width:18px;height:21px;place-items:center;translate:-50% 0;border:1px solid #b45d4b;border-radius:7px;background:#fff3d8;color:#a84238;box-shadow:1px 2px 0 #62463377;font:900 17px/1 "Noto Sans CJK SC",sans-serif;pointer-events:none;animation:ps-space-letter-arrow-float .9s ease-in-out infinite}
 .ps-track.ps-world-away{pointer-events:none}
 .ps-track.ps-bath-dropping{animation:ps-bath-drop-travel .68s cubic-bezier(.38,.02,.72,.4) both}
 .ps-panda{position:relative;display:grid;width:100%;height:100%;padding:0;place-items:center;border:0;border-radius:10px;background:transparent;cursor:pointer;pointer-events:auto;touch-action:none;user-select:none}
@@ -170,7 +168,7 @@
 @keyframes ps-space-vortex-open{0%{opacity:0;scale:.08}12%{opacity:.9;scale:.65}28%{opacity:1;scale:1.08}43%{opacity:1;scale:1}72%{opacity:.94;scale:1.02}100%{opacity:0;scale:.18}}
 @keyframes ps-space-vortex-spin{to{rotate:540deg}}
 @keyframes ps-space-envelope-flight{0%{opacity:0;translate:-50% -4px;rotate:-14deg;scale:.3}12%{opacity:1;translate:-50% -13px;rotate:-4deg;scale:.76}33%{translate:calc(-50% + 14px) -22px;rotate:20deg;scale:1.12}52%{translate:calc(-50% + 29px) -9px;rotate:-12deg;scale:.96}65%{translate:calc(-50% + 36px) -1px;rotate:8deg;scale:1.06}77%{translate:calc(-50% + 36px) -7px;rotate:-4deg;scale:1}87%,100%{opacity:1;translate:calc(-50% + 36px) 0;rotate:0deg;scale:1}}
-@keyframes ps-space-police-letter-pop{from{opacity:0;scale:.96;translate:0 5px}to{opacity:1;scale:1;translate:0 0}}
+@keyframes ps-space-letter-arrow-float{0%,100%{translate:-50% -1px}50%{translate:-50% -6px}}
 @keyframes ps-captured-impact-shadow{0%,24%{scale:.35 .8;opacity:0}34%{scale:1.12 1.05;opacity:.68}48%{scale:1.35 .9;opacity:.4}70%,100%{scale:1;opacity:.68}}
 @keyframes ps-captured-impact-dust{0%,24%{opacity:0;scale:.35;translate:-50% 3px}34%{opacity:.62;scale:.82;translate:-50% 0}52%{opacity:.3;scale:1.1;translate:-50% -2px}72%,100%{opacity:0;scale:1.25;translate:-50% -3px}}
 @keyframes ps-captured-hug-bubble{from{opacity:0;scale:.75;translate:-50% -85%}to{opacity:1;scale:1;translate:-50% -100%}}
@@ -266,7 +264,7 @@
 @keyframes ps-bath-scrub{0%{translate:-1px 0;rotate:-2deg;filter:brightness(.98)}50%{translate:1px -2px;rotate:2deg;filter:brightness(1.06)}100%{translate:-1px 0;rotate:-2deg;filter:brightness(.98)}}
 @keyframes ps-bath-soap-bubble{0%,100%{translate:0 2px;scale:.78;opacity:.35}45%{translate:-1px -5px;scale:1.08;opacity:1}75%{translate:2px -10px;scale:.94;opacity:.85}}
 @keyframes ps-bath-ball-drop{0%{transform:translateY(-20px) scale(.68) rotate(-18deg);opacity:0}18%{opacity:1}62%{transform:translateY(5px) scale(1.08) rotate(8deg)}78%{transform:translateY(-5px) scale(.97) rotate(-5deg)}100%{transform:translateY(0) scale(1) rotate(0);opacity:1}}
-@media (prefers-reduced-motion:reduce){.ps-panda,.ps-body,.ps-snack-drop,.ps-gift,.ps-sleep-zzz,.ps-daydream-dots,.ps-captured-time-vortex,.ps-captured-time-vortex img,.ps-space-police-envelope,.ps-space-police-letter{animation-duration:.01ms!important}.ps-panda.ps-dragging,.ps-panda.ps-dragging .ps-body{animation:none}.ps-grab-daze{animation:none;opacity:1;translate:0}.ps-scared-mark{animation:none;opacity:1;translate:0 0}.ps-track.ps-returning,.ps-track.ps-captured-homecoming{animation:none!important;translate:0 0;rotate:0deg;scale:1;opacity:1}.ps-captured-impact-dust{display:none}.ps-captured-hug-bubble{animation:none;opacity:1;translate:-50% -100%;scale:1}}
+@media (prefers-reduced-motion:reduce){.ps-panda,.ps-body,.ps-snack-drop,.ps-gift,.ps-sleep-zzz,.ps-daydream-dots,.ps-captured-time-vortex,.ps-captured-time-vortex img,.ps-space-police-envelope-flying{animation-duration:.01ms!important}.ps-space-letter-arrow{animation:none;translate:-50% -2px}.ps-panda.ps-dragging,.ps-panda.ps-dragging .ps-body{animation:none}.ps-grab-daze{animation:none;opacity:1;translate:0}.ps-scared-mark{animation:none;opacity:1;translate:0 0}.ps-track.ps-returning,.ps-track.ps-captured-homecoming{animation:none!important;translate:0 0;rotate:0deg;scale:1;opacity:1}.ps-captured-impact-dust{display:none}.ps-captured-hug-bubble{animation:none;opacity:1;translate:-50% -100%;scale:1}}
 @media (prefers-reduced-motion:reduce){.ps-track.ps-bath-dropping,.ps-panda.ps-bath-dropping{animation:none!important}}
 .ps-track.ps-hanging-on-rack{z-index:7}
 .ps-panda.ps-hanging{z-index:6;cursor:grab;transform-origin:50% 5%;translate:0;scale:1;filter:drop-shadow(0 8px 5px #29221644)}

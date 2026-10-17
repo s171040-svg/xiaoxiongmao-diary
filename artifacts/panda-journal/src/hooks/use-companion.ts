@@ -5,7 +5,7 @@ import { isQuietHours } from '@/lib/quiet-hours';
 import { replyFrame, replyRhythm } from '@/lib/reply-rhythm';
 import type { ChatMessage, CompanionState, PerformanceAction, PetEffect } from '@/lib/companion-types';
 import type { JournalEntry } from '@/lib/journal-types';
-import { assistant, contextFor, id, initialState, markPendingInterrupted, readState, receiveReply, recordUserMessage, performancePlan, tickCompanion, welcome, writeState, startGiftDrop, collectGift, favoriteGift, feedGift, injectTestGift, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, COMPANION_KEY, type TestGiftInput } from '@/lib/companion-store';
+import { assistant, contextFor, id, initialState, markPendingInterrupted, markSpacePoliceLetterOpened as markSpacePoliceLetterOpenedInState, readState, receiveReply, recordUserMessage, performancePlan, tickCompanion, welcome, writeState, startGiftDrop, collectGift, favoriteGift, feedGift, injectTestGift, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, COMPANION_KEY, type TestGiftInput } from '@/lib/companion-store';
 
 function initial() {
   try {
@@ -153,6 +153,11 @@ export function useCompanion() {
     if (!import.meta.env.DEV) throw new Error('动作检测仅在开发环境可用。');
     if (['roll', 'spin', 'tumble'].includes(action)) return false;
     if (petRef.current.stage !== 'present') return false;
+    if (action === 'captured-homecoming') {
+      try {
+        transact(s => ({ ...s, spacePoliceLetter: { deliveredAt: Date.now() } }));
+      } catch (e) { report(e); return false; }
+    }
     const base: PetEffect = {
       ...petRef.current,
       action,
@@ -169,7 +174,7 @@ export function useCompanion() {
       settle.current();
     }, base.duration);
     return true;
-  }, [later, motion]);
+  }, [later, motion, report, transact]);
   const acknowledgeCapturedHomecoming = useCallback(() => {
     const active = petRef.current;
     if (active.stage !== 'performing' || active.action !== 'captured-homecoming') return false;
@@ -182,6 +187,13 @@ export function useCompanion() {
     motion({ ...active, action: 'idle', stage: 'present', duration: 3000, token: Date.now(), carrying: undefined });
     return true;
   }, [motion, report, transact]);
+  const markSpacePoliceLetterOpened = useCallback(() => {
+    try {
+      if (!current.current.spacePoliceLetter) return false;
+      transact(s => markSpacePoliceLetterOpenedInState(s));
+      return true;
+    } catch (e) { report(e); return false; }
+  }, [report, transact]);
   useEffect(() => {
     if (pet.stage !== 'performing' || pet.action !== 'captured-homecoming') return undefined;
     const token = pet.token;
@@ -338,7 +350,7 @@ export function useCompanion() {
   }
   return {
     state, draft: state.draft, photo: state.draftPhoto, busy, replyDisplay, isPhotoLoading, listening, setListening, collectPresent,
-     status, error, nightMode, pet, legacyEntries, send, retryMessage, choosePhoto, perform, acknowledgeCapturedHomecoming,
+     status, error, nightMode, pet, legacyEntries, send, retryMessage, choosePhoto, perform, acknowledgeCapturedHomecoming, markSpacePoliceLetterOpened,
     setDraft: (draft: string) => { try { transact(s => ({ ...s, draft })); } catch (e) { report(e); } },
     removePhoto: () => { try { transact(s => ({ ...s, draftPhoto: undefined })); } catch (e) { report(e); } },
     removeDiary: (memoryId: string) => { try { transact(s => ({ ...s, diary: s.diary.filter(m => m.id !== memoryId) })); } catch (e) { report(e); } },

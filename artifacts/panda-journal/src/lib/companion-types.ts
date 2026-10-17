@@ -27,6 +27,7 @@ export type CompanionState = {
   nextTripAt: number;
   trip?: { id: string; returnAt: number; gift: Omit<Gift, 'receivedAt'>; captured?: boolean };
   returnEvent?: { kind: 'captured'; until: number; awaitingInteraction?: boolean };
+  spacePoliceLetter?: { deliveredAt: number; openedAt?: number };
   recentGiftStories?: string[];
   privateQuestionsPaused?: boolean;
   pendingGift?: Gift; giftDropStartedAt?: number;

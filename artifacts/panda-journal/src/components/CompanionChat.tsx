@@ -168,6 +168,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: { companion: C
   const [devActionResult, setDevActionResult] = useState<{ label: string; started: boolean; durationMs: number; persistent?: boolean } | null>(null);
   const devActionToken = useRef(0);
   const [roomChatOpen, setRoomChatOpen] = useState(false);
+  const [spacePoliceLetterOpen, setSpacePoliceLetterOpen] = useState(false);
   const [voice, setVoice] = useState<{ m: string; e: boolean } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -179,6 +180,11 @@ export function CompanionChat({ companion: c, roomOnly = false }: { companion: C
     if (isChat) roomChatStartIndexRef.current = liveMessagesRef.current.length;
     setRoomChatOpen(isChat);
   }, []);
+  const openSpacePoliceLetter = useCallback(() => {
+    c.markSpacePoliceLetterOpened();
+    c.acknowledgeCapturedHomecoming();
+    setSpacePoliceLetterOpen(true);
+  }, [c.acknowledgeCapturedHomecoming, c.markSpacePoliceLetterOpened]);
   useEffect(() => {
     if (!scheduledDevTest || (scheduledDevTest.kind === 'action' && !c.performTestAction)) return;
     const selection = scheduledDevTest;
@@ -344,7 +350,9 @@ export function CompanionChat({ companion: c, roomOnly = false }: { companion: C
         debugClicks={false} showInteractionBubble={roomOnly}
         interactionBubbleText={roomOnly && roomDialogue ? removeActionAsides(roomDialogue) : undefined}
         onChatModeChange={roomOnly ? onRoomChatModeChange : undefined}
-        onCapturedHomecomingInteraction={roomOnly ? c.acknowledgeCapturedHomecoming : undefined} />
+         onCapturedHomecomingInteraction={roomOnly ? c.acknowledgeCapturedHomecoming : undefined}
+         spacePoliceLetter={roomOnly ? c.state.spacePoliceLetter : undefined}
+         onOpenSpacePoliceLetter={roomOnly ? openSpacePoliceLetter : undefined} />
       {!window.pandaDesktop && c.pet.stage !== 'returning'
         && <GiftDrop gift={c.state.pendingGift} startedAt={c.state.giftDropStartedAt} onCollect={c.collectPresent} />}
       {roomOnly ? (
@@ -364,6 +372,19 @@ export function CompanionChat({ companion: c, roomOnly = false }: { companion: C
       )}
       {panel === 'diary' && <Diary c={c} onClose={() => setPanel(null)} />}
       {panel === 'gifts' && <Gifts c={c} onClose={() => setPanel(null)} />}
+      {roomOnly && spacePoliceLetterOpen && (
+        <Modal title="空间警察署来信" sub="时空巡逻队 · 任务回执"
+          onClose={() => setSpacePoliceLetterOpen(false)} testid="dialog-space-police-letter">
+          <article className="cc-space-police-letter" data-testid="space-police-letter">
+            <header>
+              <span aria-hidden="true">✦</span>
+              <div><strong>亲爱的小熊猫和朋友：</strong><small>一封时空巡逻队的说明信</small></div>
+            </header>
+            <p>你的小熊猫被抓起来的时候，刚好被我们看见啦！我们马上把它从时空旋涡送回来啦。记得给它一个抱抱哦～</p>
+            <footer>——空间巡逻员 07</footer>
+          </article>
+        </Modal>
+      )}
       {import.meta.env.DEV && devActionOpen && c.performTestAction && (
         <Modal title="动作检测" sub="选一个动作指令，小熊猫将在 2 秒后执行。倒数时换选其他动作会重新计时。"
           onClose={() => setDevActionOpen(false)} testid="dialog-dev-action">

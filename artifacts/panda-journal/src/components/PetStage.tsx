@@ -36,6 +36,7 @@ const CHAT_IDLE_TIMEOUT_MS = 30000;
 const DIRECTION_EPSILON = 0.0001;
 const GRAB_HOLD_MS = 420;
 const GRAB_CLICK_SUPPRESS_MOVE_PX = 10;
+const SPACE_POLICE_LETTER_REMINDER_MS = 60_000;
 const WAKE_CLICK_COOLDOWN_MS = 500;
 const STARTLE_DURATION_MS = 720;
 const ACTIVITY_SETTLE_MS = 320;
@@ -150,7 +151,7 @@ type BathBallPointer = {
   offsetY: number;
 };
 
-export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = false, debugClicks = false, showInteractionBubble = false, interactionBubbleText, developerPose = null, developerEvent = null, onChatModeChange, onCapturedHomecomingInteraction }: {
+export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = false, debugClicks = false, showInteractionBubble = false, interactionBubbleText, developerPose = null, developerEvent = null, onChatModeChange, onCapturedHomecomingInteraction, spacePoliceLetter, onOpenSpacePoliceLetter }: {
   pet: PetEffect;
   thinking?: boolean;
   motion?: 'idle' | 'sleep';
@@ -162,6 +163,8 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   developerEvent?: { event: DeveloperEvent; token: number } | null;
   onChatModeChange?: (isChat: boolean) => void;
   onCapturedHomecomingInteraction?: () => void;
+  spacePoliceLetter?: { deliveredAt: number; openedAt?: number };
+  onOpenSpacePoliceLetter?: () => void;
 }) {
   const hidden = pet.stage === 'fallen' || pet.stage === 'away';
   const seconds = Math.min(5, Math.max(2, pet.duration > 100 ? pet.duration / 1000 : pet.duration || 2));
@@ -197,9 +200,11 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   worldFallPhaseRef.current = worldFallPhase;
   const [worldFallMessageVisible, setWorldFallMessageVisible] = useState(false);
   const [capturedHomecomingArrived, setCapturedHomecomingArrived] = useState(false);
-  const [spacePoliceLetterPosition, setSpacePoliceLetterPosition] = useState<{ left: number; top: number } | null>(null);
+  const [spacePoliceEnvelopePosition, setSpacePoliceEnvelopePosition] = useState<{ x: number; y: number } | null>(null);
+  const [spacePoliceLetterReminderVisible, setSpacePoliceLetterReminderVisible] = useState(false);
   const capturedHomecomingArrivedRef = useRef(false);
   const capturedHomecomingTokenRef = useRef<number | null>(null);
+  const positionedSpacePoliceLetterRef = useRef<number | null>(null);
   const [dirtyPleaText, setDirtyPleaText] = useState<string | null>(null);
   const [flyChaseActive, setFlyChaseActive] = useState(false);
   const [flyChaseSide, setFlyChaseSide] = useState<'left' | 'right'>('left');
@@ -591,28 +596,36 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   }, [capturedHomecoming]);
 
   useLayoutEffect(() => {
-    if (!showInteractionBubble || !capturedHomecoming || !capturedHomecomingArrived) {
-      setSpacePoliceLetterPosition(null);
+    if (!showInteractionBubble || !spacePoliceLetter) {
+      positionedSpacePoliceLetterRef.current = null;
+      setSpacePoliceEnvelopePosition(null);
       return;
     }
-    const updateLetterPosition = () => {
-      const bounds = trackRef.current?.getBoundingClientRect();
-      if (!bounds) return;
-      const width = Math.min(236, Math.max(0, window.innerWidth - 24));
-      const height = 138;
-      const left = Math.max(12, Math.min(window.innerWidth - width - 12, bounds.left + bounds.width / 2 - width / 2));
-      const above = bounds.top - height - 30;
-      const top = above >= 80
-        ? above
-        : Math.min(window.innerHeight - height - 12, bounds.bottom + 14);
-      setSpacePoliceLetterPosition(previous => previous?.left === left && previous.top === top
-        ? previous
-        : { left, top: Math.max(8, top) });
-    };
-    updateLetterPosition();
-    window.addEventListener('resize', updateLetterPosition);
-    return () => window.removeEventListener('resize', updateLetterPosition);
-  }, [capturedHomecoming, capturedHomecomingArrived, pet.token, showInteractionBubble]);
+    if (positionedSpacePoliceLetterRef.current === spacePoliceLetter.deliveredAt) return;
+    const bounds = trackRef.current?.getBoundingClientRect();
+    if (!bounds) return;
+    const width = Math.max(1, window.innerWidth);
+    const height = Math.max(1, window.innerHeight);
+    const x = Math.max(16, Math.min(width - 16, bounds.left + bounds.width / 2)) / width;
+    const y = Math.max(18, Math.min(height - 18, bounds.bottom - 13)) / height;
+    positionedSpacePoliceLetterRef.current = spacePoliceLetter.deliveredAt;
+    setSpacePoliceEnvelopePosition({ x, y });
+  }, [pet.stage, pet.token, showInteractionBubble, spacePoliceLetter?.deliveredAt]);
+
+  useEffect(() => {
+    if (!showInteractionBubble || !spacePoliceLetter || spacePoliceLetter.openedAt !== undefined) {
+      setSpacePoliceLetterReminderVisible(false);
+      return undefined;
+    }
+    const delay = spacePoliceLetter.deliveredAt + SPACE_POLICE_LETTER_REMINDER_MS - Date.now();
+    if (delay <= 0) {
+      setSpacePoliceLetterReminderVisible(true);
+      return undefined;
+    }
+    setSpacePoliceLetterReminderVisible(false);
+    const reminder = window.setTimeout(() => setSpacePoliceLetterReminderVisible(true), delay);
+    return () => window.clearTimeout(reminder);
+  }, [showInteractionBubble, spacePoliceLetter?.deliveredAt, spacePoliceLetter?.openedAt]);
 
   useEffect(() => {
     if (!showInteractionBubble || !hangingOnRack) return undefined;
@@ -1771,10 +1784,6 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
                 <img src={CAPTURED_TIME_VORTEX_SPRITE} alt="" draggable={false} />
               </span>
             )}
-            {showInteractionBubble && capturedHomecoming && (
-              <span className="ps-space-police-envelope" role="img" aria-label="随小熊猫一起送来的空间警察信封"
-                data-testid="space-police-envelope"><i aria-hidden="true" /></span>
-            )}
             {showInteractionBubble && worldFallMessageVisible && (
               <span className="ps-thinking ps-room-chat-bubble ps-world-fall-bubble" role="status" aria-live="polite"
                 data-testid="panda-world-fall-message">掉出去啦！</span>
@@ -1854,18 +1863,24 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
               )}
           </div>
         )}
-        {showInteractionBubble && capturedHomecoming && capturedHomecomingArrived && spacePoliceLetterPosition && (
-          <aside className="ps-space-police-letter" role="status" aria-live="polite"
-            style={{ left: spacePoliceLetterPosition.left, top: spacePoliceLetterPosition.top }}
-            data-testid="space-police-letter">
-            <header>
-              <span className="ps-space-police-stamp" aria-hidden="true">✦</span>
-              <strong>空间警察署</strong>
-              <small>时空巡逻队来信</small>
-            </header>
-            <p>你的小熊猫被抓起来的时候，刚好被我们看见啦！我们马上把它从时空旋涡送回来啦。记得给它一个抱抱哦～</p>
-            <footer>——空间巡逻员 07</footer>
-          </aside>
+        {showInteractionBubble && spacePoliceLetter && spacePoliceEnvelopePosition && onOpenSpacePoliceLetter && (
+          <>
+            <button type="button"
+              className={`ps-space-police-envelope${capturedHomecoming && !capturedHomecomingArrived ? ' ps-space-police-envelope-flying' : ''}${spacePoliceLetter.openedAt !== undefined ? ' ps-space-police-envelope-opened' : ''}`}
+              style={{ left: `${spacePoliceEnvelopePosition.x * 100}%`, top: `${spacePoliceEnvelopePosition.y * 100}%` }}
+              disabled={capturedHomecoming && !capturedHomecomingArrived}
+              aria-label={spacePoliceLetter.openedAt !== undefined ? '重新打开空间警察来信' : '打开空间警察的信封'}
+              data-testid="space-police-envelope"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => { event.stopPropagation(); onOpenSpacePoliceLetter(); }}>
+              <i aria-hidden="true" />
+            </button>
+            {spacePoliceLetter.openedAt === undefined && spacePoliceLetterReminderVisible && (
+              <span className="ps-space-letter-arrow"
+                style={{ left: `calc(${spacePoliceEnvelopePosition.x * 100}% + 36px)`, top: `calc(${spacePoliceEnvelopePosition.y * 100}% - 26px)` }}
+                aria-hidden="true" data-testid="space-police-envelope-arrow">↓</span>
+            )}
+          </>
         )}
         {showInteractionBubble && bathPhase === 'bathing' && bathBallPosition && (
           <button ref={bathBallButtonRef} type="button"

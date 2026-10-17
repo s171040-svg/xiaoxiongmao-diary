@@ -47,6 +47,14 @@ position:relative;isolation:isolate;display:flex;flex-direction:column;height:10
 .night .cc-dialog,.cc-app.night ~ .cc-dialog{background:#1e2e29;color:#dce8dc;border-color:#38504a}
 .cc-dialog::backdrop{background:#10201a80;backdrop-filter:blur(4px)}
 .cc-dhead{display:flex;justify-content:space-between;gap:12px;margin-bottom:14px}.cc-dhead h2{margin:0;font:600 22px "Noto Serif SC",serif}.cc-dhead p{margin:4px 0 0;font-size:13px;opacity:.75}
+.cc-space-police-letter{padding:18px 17px;border:2px solid #8d6a48;border-radius:6px;background:#fff2d0;color:#4d3927;box-shadow:3px 3px 0 #442f2438,inset 0 0 0 2px #fff9e8}
+.cc-space-police-letter header{display:flex;align-items:flex-start;gap:11px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px dashed #b59a70}
+.cc-space-police-letter header>span{display:grid;width:30px;height:30px;flex:none;place-items:center;border:1px solid #aa5a4d;border-radius:50%;background:#f4d6b6;color:#a74742;font-size:17px}
+.cc-space-police-letter header strong,.cc-space-police-letter header small{display:block}
+.cc-space-police-letter header strong{font-size:14px}.cc-space-police-letter header small{margin-top:4px;color:#80674e;font-size:11px}
+.cc-space-police-letter p{margin:0;font-size:16px;line-height:1.8;overflow-wrap:anywhere}
+.cc-space-police-letter footer{margin-top:16px;color:#735840;font-size:13px;text-align:right}
+.night .cc-space-police-letter{border-color:#866d55;background:#302e28;color:#f3e8d2}
 .cc-icon{width:36px;height:36px;border:0;border-radius:50%;background:#dfe7d3;color:#40694f;display:grid;place-items:center;flex:none}
 .cc-tabs{display:flex;gap:6px;margin-bottom:12px}.cc-tabs button.on{background:#5b8a6e;color:#fbf8ee}
 .cc-card{border:1px solid #dcdac9;border-radius:16px;padding:13px 15px;margin-bottom:10px;background:#faf8ee66;animation:cc-in .3s ease both}

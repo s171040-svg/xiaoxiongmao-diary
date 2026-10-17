@@ -50,6 +50,9 @@ export function readState(storage: Pick<Storage, 'getItem'>, now = Date.now()): 
     || (value.returnEvent !== undefined && (!value.returnEvent || value.returnEvent.kind !== 'captured'
       || !Number.isFinite(value.returnEvent.until)
       || (value.returnEvent.awaitingInteraction !== undefined && typeof value.returnEvent.awaitingInteraction !== 'boolean')))
+    || (value.spacePoliceLetter !== undefined && (!value.spacePoliceLetter
+      || !Number.isFinite(value.spacePoliceLetter.deliveredAt)
+      || (value.spacePoliceLetter.openedAt !== undefined && !Number.isFinite(value.spacePoliceLetter.openedAt))))
     || (value.recentGiftStories !== undefined && (!Array.isArray(value.recentGiftStories)
       || value.recentGiftStories.some(story => typeof story !== 'string')))
     || ![value.lastUserAt, value.nextIdleAt, value.proactiveCount, value.nextTripAt].every(Number.isFinite)
@@ -58,7 +61,15 @@ export function readState(storage: Pick<Storage, 'getItem'>, now = Date.now()): 
     || value.diary.some(m => !m || !['worry', 'idea', 'action'].includes(m.kind) || typeof m.text !== 'string' || !Number.isFinite(m.createdAt))) {
     throw new Error('本机聊天记录暂时无法读取；没有覆盖原记录。');
   }
+  if (value.returnEvent?.kind === 'captured' && value.returnEvent.awaitingInteraction !== false && !value.spacePoliceLetter) {
+    return { ...value, spacePoliceLetter: { deliveredAt: Math.max(0, value.returnEvent.until - CAPTURED_HOMECOMING_DURATION_MS) } };
+  }
   return value;
+}
+export function markSpacePoliceLetterOpened(state: CompanionState, now = Date.now()): CompanionState {
+  const letter = state.spacePoliceLetter;
+  if (!letter || letter.openedAt !== undefined) return state;
+  return { ...state, spacePoliceLetter: { ...letter, openedAt: now } };
 }
 export function writeState(storage: Pick<Storage, 'setItem'>, state: CompanionState) {
   storage.setItem(COMPANION_KEY, JSON.stringify(state));
@@ -228,6 +239,7 @@ export function tickCompanion(state: CompanionState, now: number, random = Math.
     const { returnEvent: _previousReturnEvent, ...stateWithoutReturnEvent } = next;
     next = { ...stateWithoutReturnEvent, trip: undefined, nextTripAt: now + tripDelay(random),
       ...(capturedReturn ? { returnEvent: { kind: 'captured' as const, until: now + CAPTURED_HOMECOMING_DURATION_MS, awaitingInteraction: true } } : {}),
+      ...(capturedReturn ? { spacePoliceLetter: { deliveredAt: now } } : {}),
       pendingGift: gift, giftDropStartedAt: undefined,
       messages: [...next.messages, assistant(text, 'event', now)] };
     return { state: next, event: 'gift', text, capturedReturn };

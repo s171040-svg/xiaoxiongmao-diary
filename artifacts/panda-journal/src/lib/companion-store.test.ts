@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ACTIONS, initialState, idleDelay, localDay, performancePlan, contextFor, receiveReply, recordUserMessage, waitingForAnswer, tickCompanion, welcome, beginTrip, startGiftDrop, collectGift, feedGift, favoriteGift, injectTestGift, markPendingInterrupted, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, CAPTURED_TRIP_EXTRA_MS, DAY, MINUTE, COMPANION_KEY, readState, writeState } from './companion-store';
+import { ACTIONS, initialState, idleDelay, localDay, performancePlan, contextFor, receiveReply, recordUserMessage, waitingForAnswer, tickCompanion, welcome, beginTrip, startGiftDrop, collectGift, feedGift, favoriteGift, injectTestGift, markPendingInterrupted, markSpacePoliceLetterOpened, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, CAPTURED_TRIP_EXTRA_MS, DAY, MINUTE, COMPANION_KEY, readState, writeState } from './companion-store';
 import type { CompanionState } from './companion-types';
 
 const now = new Date(2026, 9, 8, 12).getTime();
@@ -131,9 +131,22 @@ test('captured outing adds a return delay and keeps the homecoming form until in
   assert.equal(returned.state.returnEvent?.kind, 'captured');
   assert.equal(returned.state.returnEvent?.until, trip.trip!.returnAt + CAPTURED_HOMECOMING_DURATION_MS);
   assert.equal(returned.state.returnEvent?.awaitingInteraction, true);
+  assert.equal(returned.state.spacePoliceLetter?.deliveredAt, trip.trip!.returnAt);
   assert.match(returned.text!, /找回来啦.*呆呆的/);
   const afterWait = tickCompanion(returned.state, returned.state.returnEvent!.until + 1, () => 0);
   assert.equal(afterWait.state.returnEvent?.awaitingInteraction, true);
+  assert.equal(afterWait.state.spacePoliceLetter?.deliveredAt, trip.trip!.returnAt);
+  const openedAt = trip.trip!.returnAt + 60 * MINUTE;
+  const opened = markSpacePoliceLetterOpened(afterWait.state, openedAt);
+  assert.equal(opened.spacePoliceLetter?.openedAt, openedAt);
+  assert.equal(markSpacePoliceLetterOpened(opened, openedAt + 1), opened);
+  const data = new Map<string, string>();
+  writeState({ setItem: (key, value) => data.set(key, value) }, opened);
+  const restored = readState({ getItem: key => data.get(key) ?? null }, openedAt + 1);
+  assert.equal(restored.spacePoliceLetter?.openedAt, openedAt);
+  const legacyReturn = { ...afterWait.state, spacePoliceLetter: undefined };
+  const migrated = readState({ getItem: () => JSON.stringify(legacyReturn) }, openedAt + 1);
+  assert.equal(migrated.spacePoliceLetter?.deliveredAt, trip.trip!.returnAt);
 });
 test('gift trips tell varied stories that match the souvenir and avoid immediate repeats', () => {
   const first = beginTrip(sample(), now, () => 0);
