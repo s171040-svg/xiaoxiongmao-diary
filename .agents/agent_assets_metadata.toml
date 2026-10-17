@@ -582,3 +582,17 @@ mtime_ms = 1792124263766
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/621bb6ad-7264-42a9-976d-8e9e5be59a92/f05a4be5-2849-4a14-b38f-d25e6ec899c3"
 storage_version_token = "1792124345952013"
 content_type = "image/png"
+
+[[outputs]]
+id = "Ssh5D5ETWqM7aIXvd2jcK"
+uri = "file://artifacts/panda-journal/public/static/panda/captured-dazed.png"
+type = "image"
+title = "小熊猫·被找回后发懵"
+description = "96×96 像素姿势更新：可怜、发懵、头脸灰污、毛发蓬乱；已接入网页房间，并配有 6 帧衔接。"
+logical_id = "8996ff3e-b29f-44b0-a02f-921ad9394dfe"
+content_hash = "sha256:85a5fcdab6051b2daf0f4e54369b2618a728dda022043409346aee7a8395a97e"
+size = 3134
+mtime_ms = 1792214484331
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/8996ff3e-b29f-44b0-a02f-921ad9394dfe/a3c0340b-b514-4094-a8cf-2f704af66fd4"
+storage_version_token = "1792214691090371"
+content_type = "image/png"

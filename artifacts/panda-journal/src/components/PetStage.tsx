@@ -90,7 +90,7 @@ const PIXELLAB_TRANSITION_FRAMES: Record<TransitionKey, string[]> = Object.fromE
     name,
     Array.from({ length: name === 'sleep' || name === 'tail' ? 7 : name === 'captured-dazed' ? 6 : 5 }, (_, index) =>
       pandaStaticUrl(name === 'captured-dazed'
-        ? `frames/captured-dazed-${index + 1}.png?v=captured-rescue-pixen-1`
+        ? `frames/captured-dazed-${index + 1}.png?v=captured-rescue-pixen-2`
         : `transitions/pixellab-walk-to-${name}-${index + 1}.png?v=${
           name === 'chew' ? 'chew-feed-1'
             : name === 'sleep' ? 'sleep-transition-2'
@@ -1618,7 +1618,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
         ? `${import.meta.env.BASE_URL}static/panda/grab.png?v=scruff-grab-1`
         : pandaStaticUrl(`frames/dizzy-${Math.min(frame, DIZZY_FRAME_COUNT)}.png?v=dizzy-drop-1`)
      : sprite === 'captured-dazed'
-       ? pandaStaticUrl('captured-dazed.png?v=captured-rescue-pixen-1')
+       ? pandaStaticUrl('captured-dazed.png?v=captured-rescue-pixen-2')
     : frame === 0
       ? pandaStaticUrl(`${sprite}.png?v=${sprite === 'chew' ? 'chew-feed-4' : sprite === 'tail-chase' ? 'tail-chase-ccw-3' : 'tail-left-3'}`)
       : pandaStaticUrl(`frames/${sprite}-${frame}.png?v=${sprite === 'chew' ? 'chew-feed-4' : sprite === 'tail-chase' ? 'tail-chase-ccw-3' : 'tail-left-3'}`);
