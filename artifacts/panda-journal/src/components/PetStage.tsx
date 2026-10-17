@@ -585,7 +585,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const finishCapturedHomecomingPath = useCallback(() => {
     if (!capturedHomecoming || capturedHomecomingArrivedRef.current) return;
     const start = positionRef.current;
-    const targetY = Math.min(94, projectScreenPoint(start).y + 9);
+    const targetY = Math.min(94, projectScreenPoint(start).y + 5);
     let low = start.v;
     let high = 1;
     for (let step = 0; step < 18; step += 1) {

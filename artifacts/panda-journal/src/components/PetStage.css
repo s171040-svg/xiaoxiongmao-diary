@@ -45,7 +45,7 @@
 .ps-ground-shadow-sleeping{animation:ps-room-sleep-shadow 2.6s ease-in-out infinite}
 .ps-track.ps-returning{animation:ps-crawl 2.5s ease-out both}
 .ps-track.ps-world-returning{animation:ps-crawl 2.5s ease-out both}
-.ps-track.ps-captured-homecoming{animation:ps-captured-homecoming-path 2.1s cubic-bezier(.2,.72,.25,1) both}
+.ps-track.ps-captured-homecoming{animation:ps-captured-homecoming-path 2.1s cubic-bezier(.35,.65,.25,1) both}
 .ps-track.ps-captured-homecoming .ps-ground-shadow{animation:ps-captured-impact-shadow 2.1s ease-out both}
 .ps-captured-impact-dust{position:absolute;z-index:2;left:50%;bottom:0;display:flex;align-items:flex-end;gap:3px;translate:-50% 0;pointer-events:none;animation:ps-captured-impact-dust 2.1s ease-out both}
 .ps-captured-impact-dust i{display:block;width:7px;height:4px;border-radius:50%;background:#b9a184;box-shadow:0 1px 1px #6e51384d}
@@ -154,9 +154,9 @@
 .ps-panda[data-facing="left"].ps-startled .ps-scared-mark{right:auto;left:8%}
 .ps-grab-daze{position:absolute;z-index:4;top:-10%;left:calc(50% + 14px);color:#776d5f;font:700 15px/1 "Noto Sans CJK SC",sans-serif;letter-spacing:2px;text-shadow:0 1px 2px #fff9;pointer-events:none;animation:ps-grab-daze 1.15s ease-in-out infinite}
 .ps-daydream-dots{position:absolute;z-index:2;top:4%;right:5%;color:#527459;font:700 22px/1 "Noto Sans CJK SC",sans-serif;letter-spacing:2px;text-shadow:0 1px 2px #fff9;pointer-events:none;animation:ps-daydream 1.5s ease-in-out infinite}
-@keyframes ps-captured-homecoming-path{0%{translate:54vw -36vh;rotate:18deg;scale:.82;opacity:0}12%{translate:34vw -23vh;rotate:7deg;scale:.9;opacity:1}28%{translate:13vw -3vh;rotate:-8deg;scale:1.08 .76}34%{translate:13vw -3vh;rotate:5deg;scale:1.16 .62}42%{translate:13vw -3vh;rotate:-3deg;scale:.94 1.06}58%{translate:8vw 3vh;rotate:0deg;scale:1}100%{translate:0 9vh;rotate:0deg;scale:1}}
-@keyframes ps-captured-impact-shadow{0%,24%{scale:.2 .7;opacity:0}34%{scale:1.3 1.2;opacity:.82}48%{scale:1.8 .8;opacity:.32}70%,100%{scale:1;opacity:.68}}
-@keyframes ps-captured-impact-dust{0%,24%{opacity:0;scale:.25;translate:-50% 4px}34%{opacity:.9;scale:1.1;translate:-50% 0}52%{opacity:.5;scale:1.45;translate:-50% -3px}72%,100%{opacity:0;scale:1.7;translate:-50% -5px}}
+@keyframes ps-captured-homecoming-path{0%{translate:52vw -22vh;rotate:10deg;scale:.9;opacity:0}12%{translate:30vw -12vh;rotate:4deg;scale:.96;opacity:1}28%{translate:9vw -1vh;rotate:-4deg;scale:1.03 .9}34%{translate:9vw -1vh;rotate:2deg;scale:1.08 .82}42%{translate:9vw -1vh;rotate:-1deg;scale:.98 1.03}58%{translate:4vw 2vh;rotate:0deg;scale:1}100%{translate:0 5vh;rotate:0deg;scale:1}}
+@keyframes ps-captured-impact-shadow{0%,24%{scale:.35 .8;opacity:0}34%{scale:1.12 1.05;opacity:.68}48%{scale:1.35 .9;opacity:.4}70%,100%{scale:1;opacity:.68}}
+@keyframes ps-captured-impact-dust{0%,24%{opacity:0;scale:.35;translate:-50% 3px}34%{opacity:.62;scale:.82;translate:-50% 0}52%{opacity:.3;scale:1.1;translate:-50% -2px}72%,100%{opacity:0;scale:1.25;translate:-50% -3px}}
 @keyframes ps-captured-hug-bubble{from{opacity:0;scale:.75;translate:-50% -85%}to{opacity:1;scale:1;translate:-50% -100%}}
 .ps-gift{position:absolute;z-index:4;font-size:calc(24px * var(--room-scale,.89));font-family:"Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif;line-height:1;filter:drop-shadow(0 1px 1px #35251b55);pointer-events:none}
 .ps-bamboo i{position:absolute;top:-14px;left:-4px;font:600 12px "Noto Sans CJK SC",sans-serif;color:#6a8a5a;font-style:normal;white-space:nowrap}
