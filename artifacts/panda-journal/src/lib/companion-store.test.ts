@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ACTIONS, initialState, idleDelay, localDay, performancePlan, contextFor, receiveReply, recordUserMessage, waitingForAnswer, tickCompanion, welcome, beginTrip, startGiftDrop, collectGift, feedGift, favoriteGift, injectTestGift, markPendingInterrupted, GIFT_DROP_MS, DAY, MINUTE, COMPANION_KEY, readState, writeState } from './companion-store';
+import { ACTIONS, initialState, idleDelay, localDay, performancePlan, contextFor, receiveReply, recordUserMessage, waitingForAnswer, tickCompanion, welcome, beginTrip, startGiftDrop, collectGift, feedGift, favoriteGift, injectTestGift, markPendingInterrupted, GIFT_DROP_MS, CAPTURED_DAZED_DURATION_MS, CAPTURED_TRIP_EXTRA_MS, DAY, MINUTE, COMPANION_KEY, readState, writeState } from './companion-store';
 import type { CompanionState } from './companion-types';
 
 const now = new Date(2026, 9, 8, 12).getTime();
@@ -106,18 +106,33 @@ test('five performance choices exclude rolling and only jumps can fall at ten pe
 test('excursions take thirty to one hundred twenty seconds and gift settlement is durable and one-time', () => {
   for (const value of [0, 1]) {
     const state = beginTrip(sample(), now, () => value);
-    assert.equal(state.trip!.returnAt - now, 30_000 + value * 90_000);
+    const captured = value === 1;
+    assert.equal(state.trip!.captured, captured);
+    assert.equal(state.trip!.returnAt - now, 30_000 + value * 90_000 + (captured ? CAPTURED_TRIP_EXTRA_MS : 0));
     const pending = tickCompanion(state, state.trip!.returnAt - 1, () => 0);
     assert.equal(pending.state.gifts.length, 0);
     const back = tickCompanion(pending.state, state.trip!.returnAt, () => 0);
     assert.equal(back.event, 'gift'); assert.equal(back.state.gifts.length, 0);
     assert.match(back.state.pendingGift!.story, /给小乐/);
+    assert.equal(back.capturedReturn, captured);
     const clicked = startGiftDrop(back.state, back.state.pendingGift!.id, state.trip!.returnAt);
     assert.equal(collectGift(clicked, clicked.pendingGift!.id, state.trip!.returnAt + GIFT_DROP_MS - 1).gifts.length, 0);
     const stored = collectGift(clicked, clicked.pendingGift!.id, state.trip!.returnAt + GIFT_DROP_MS);
     assert.equal(stored.gifts.length, 1);
     assert.equal(collectGift(stored, clicked.pendingGift!.id, state.trip!.returnAt + GIFT_DROP_MS + 1).gifts.length, 1);
   }
+});
+test('captured outing adds a return delay, then persists a brief dazed-homecoming state', () => {
+  const trip = beginTrip(sample(), now, () => 1);
+  assert.equal(trip.trip!.captured, true);
+  assert.match(trip.messages.at(-1)!.text, /太可爱.*抱走/);
+  const returned = tickCompanion(trip, trip.trip!.returnAt, () => 0);
+  assert.equal(returned.capturedReturn, true);
+  assert.equal(returned.state.returnEvent?.kind, 'captured');
+  assert.equal(returned.state.returnEvent?.until, trip.trip!.returnAt + CAPTURED_DAZED_DURATION_MS);
+  assert.match(returned.text!, /找回来啦.*呆呆的/);
+  const afterDaze = tickCompanion(returned.state, returned.state.returnEvent!.until, () => 0);
+  assert.equal(afterDaze.state.returnEvent, undefined);
 });
 test('gift trips tell varied stories that match the souvenir and avoid immediate repeats', () => {
   const first = beginTrip(sample(), now, () => 0);

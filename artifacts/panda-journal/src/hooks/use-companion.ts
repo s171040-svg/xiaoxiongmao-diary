@@ -5,7 +5,7 @@ import { isQuietHours } from '@/lib/quiet-hours';
 import { replyFrame, replyRhythm } from '@/lib/reply-rhythm';
 import type { ChatMessage, CompanionState, PerformanceAction, PetEffect } from '@/lib/companion-types';
 import type { JournalEntry } from '@/lib/journal-types';
-import { assistant, contextFor, id, initialState, markPendingInterrupted, readState, receiveReply, recordUserMessage, performancePlan, tickCompanion, welcome, writeState, startGiftDrop, collectGift, favoriteGift, feedGift, injectTestGift, GIFT_DROP_MS, COMPANION_KEY, type TestGiftInput } from '@/lib/companion-store';
+import { assistant, contextFor, id, initialState, markPendingInterrupted, readState, receiveReply, recordUserMessage, performancePlan, tickCompanion, welcome, writeState, startGiftDrop, collectGift, favoriteGift, feedGift, injectTestGift, GIFT_DROP_MS, CAPTURED_DAZED_DURATION_MS, COMPANION_KEY, type TestGiftInput } from '@/lib/companion-store';
 
 function initial() {
   try {
@@ -47,7 +47,14 @@ export function useCompanion() {
   listeningRef.current = listening; photoLoadingRef.current = isPhotoLoading;
   const [nightMode, setNightMode] = useState(isQuietHours);
   const [legacyEntries] = useState(legacy);
-  const [pet, setPet] = useState<PetEffect>({ action: 'idle', stage: state.trip ? 'away' : 'present', duration: 3000, token: 0 });
+  const [pet, setPet] = useState<PetEffect>(() => {
+    if (state.trip) return { action: 'idle', stage: 'away', duration: 3000, token: 0 };
+    if (state.returnEvent?.kind === 'captured' && state.returnEvent.until > Date.now()) {
+      return { action: 'captured-dazed', stage: 'performing',
+        duration: state.returnEvent.until - Date.now(), token: state.returnEvent.until };
+    }
+    return { action: 'idle', stage: 'present', duration: 3000, token: 0 };
+  });
   const petRef = useRef(pet);
   const timers = useRef<number[]>([]);
   const welcomeAt = useRef(0), queuedPerformance = useRef(false);
@@ -144,11 +151,12 @@ export function useCompanion() {
       ...petRef.current,
       action,
       stage: 'performing',
-      duration: action === 'bamboo' ? 7000 : 3500,
+      duration: action === 'bamboo' ? 7000 : action === 'captured-dazed' ? CAPTURED_DAZED_DURATION_MS : 3500,
       token: Date.now(),
       userName: current.current.userName,
     };
     motion(base);
+    if (action === 'captured-dazed') return true;
     later(() => {
       if (petRef.current.token !== base.token || petRef.current.stage !== 'performing') return;
       motion({ ...base, action: 'idle', stage: 'present', duration: 3000 });
@@ -156,6 +164,26 @@ export function useCompanion() {
     }, base.duration);
     return true;
   }, [later, motion]);
+  useEffect(() => {
+    if (pet.stage !== 'performing' || pet.action !== 'captured-dazed') return undefined;
+    const token = pet.token;
+    const returnEvent = state.returnEvent;
+    const duration = returnEvent?.kind === 'captured'
+      ? Math.max(0, returnEvent.until - Date.now())
+      : pet.duration;
+    const timer = window.setTimeout(() => {
+      if (petRef.current.stage !== 'performing' || petRef.current.token !== token) return;
+      motion({ ...petRef.current, action: 'idle', stage: 'present', duration: 3000, carrying: undefined });
+      if (returnEvent?.kind === 'captured') {
+        try {
+          transact(currentState => currentState.returnEvent?.until === returnEvent.until
+            ? { ...currentState, returnEvent: undefined } : currentState);
+        } catch (e) { report(e); }
+      }
+      settle.current();
+    }, duration);
+    return () => window.clearTimeout(timer);
+  }, [motion, pet.action, pet.duration, pet.stage, pet.token, report, state.returnEvent, transact]);
   settle.current = () => { if (queuedPerformance.current) { queuedPerformance.current = false; perform(); } };
   const greet = useCallback((manual = false) => {
     if (!manual && Date.now() - welcomeAt.current < 300) return;
@@ -199,8 +227,16 @@ export function useCompanion() {
           if (result.text) notify(result.text);
           if (result.event === 'departure') motion({ ...petRef.current, stage: 'away', token: Date.now(), carrying: undefined });
           if (result.event === 'gift') {
-            motion({ ...petRef.current, stage: 'returning', token: Date.now(), carrying: result.state.pendingGift?.emoji });
-            later(() => { motion({ ...petRef.current, stage: 'present', action: 'idle', carrying: undefined }); settle.current(); }, 2500);
+            motion({ ...petRef.current, action: 'idle', stage: 'returning', token: Date.now(), carrying: result.state.pendingGift?.emoji });
+            later(() => {
+              if (result.capturedReturn) {
+                motion({ ...petRef.current, action: 'captured-dazed', stage: 'performing',
+                  duration: CAPTURED_DAZED_DURATION_MS, token: Date.now(), carrying: undefined });
+              } else {
+                motion({ ...petRef.current, stage: 'present', action: 'idle', duration: 3000, carrying: undefined });
+                settle.current();
+              }
+            }, 2500);
           }
         } catch (e) { report(e); }
       };

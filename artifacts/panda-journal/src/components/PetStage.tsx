@@ -84,16 +84,18 @@ const BAMBOO_SNACK_SPRITE = pandaStaticUrl('snack.png?v=chew-feed-2');
 const LYING_SPRITE = pandaStaticUrl('lying.png?v=lying-pose-2');
 const PEEKING_SPRITE = pandaStaticUrl('peeking.png?v=look-back-1');
 const ROOM_FURNITURE_POINT: RoomPoint = { u: 0.72, v: 0.7 };
-type TransitionKey = 'idle' | 'chew' | 'jump' | 'cuddle' | 'tail' | 'lying' | 'sleep' | 'peeking';
+type TransitionKey = 'idle' | 'chew' | 'jump' | 'cuddle' | 'tail' | 'lying' | 'sleep' | 'peeking' | 'captured-dazed';
 const PIXELLAB_TRANSITION_FRAMES: Record<TransitionKey, string[]> = Object.fromEntries(
-  (['idle', 'chew', 'jump', 'cuddle', 'tail', 'lying', 'sleep', 'peeking'] as const).map((name) => [
+  (['idle', 'chew', 'jump', 'cuddle', 'tail', 'lying', 'sleep', 'peeking', 'captured-dazed'] as const).map((name) => [
     name,
-    Array.from({ length: name === 'sleep' || name === 'tail' ? 7 : 5 }, (_, index) =>
-      pandaStaticUrl(`transitions/pixellab-walk-to-${name}-${index + 1}.png?v=${
-        name === 'chew' ? 'chew-feed-1'
-          : name === 'sleep' ? 'sleep-transition-2'
-            : name === 'tail' ? 'tail-chase-ccw-3' : 'pixellab-transition-1'
-      }`)),
+    Array.from({ length: name === 'sleep' || name === 'tail' ? 7 : name === 'captured-dazed' ? 6 : 5 }, (_, index) =>
+      pandaStaticUrl(name === 'captured-dazed'
+        ? `frames/captured-dazed-${index + 1}.png?v=captured-rescue-pixen-1`
+        : `transitions/pixellab-walk-to-${name}-${index + 1}.png?v=${
+          name === 'chew' ? 'chew-feed-1'
+            : name === 'sleep' ? 'sleep-transition-2'
+              : name === 'tail' ? 'tail-chase-ccw-3' : 'pixellab-transition-1'
+        }`)),
   ]),
 ) as Record<TransitionKey, string[]>;
 const ACTION_TRANSITION_KEY: Record<PerformanceAction, TransitionKey> = {
@@ -105,6 +107,7 @@ const ACTION_TRANSITION_KEY: Record<PerformanceAction, TransitionKey> = {
   tail: 'tail',
   tumble: 'idle',
   cuddle: 'cuddle',
+  'captured-dazed': 'captured-dazed',
 };
 const DEVELOPER_POSE_TRANSITION_KEY: Record<DeveloperPose, TransitionKey> = {
   idle: 'idle',
@@ -1009,7 +1012,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     }
     let next = motionPreference.matches ? reducedMotionFrame : 0;
     setFrame(next);
-    if (sprite === 'grab' || sprite === 'dirty-grab') return;
+    if (sprite === 'grab' || sprite === 'dirty-grab' || sprite === 'captured-dazed') return;
     const frameCount = animationManifest.frameCountBySprite[sprite as keyof typeof animationManifest.frameCountBySprite]
       ?? animationManifest.frameCount;
     const frameIntervalMs = animationManifest.frameIntervalMs[sprite as keyof typeof animationManifest.frameIntervalMs];
@@ -1614,6 +1617,8 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       ? frame === 0
         ? `${import.meta.env.BASE_URL}static/panda/grab.png?v=scruff-grab-1`
         : pandaStaticUrl(`frames/dizzy-${Math.min(frame, DIZZY_FRAME_COUNT)}.png?v=dizzy-drop-1`)
+     : sprite === 'captured-dazed'
+       ? pandaStaticUrl('captured-dazed.png?v=captured-rescue-pixen-1')
     : frame === 0
       ? pandaStaticUrl(`${sprite}.png?v=${sprite === 'chew' ? 'chew-feed-4' : sprite === 'tail-chase' ? 'tail-chase-ccw-3' : 'tail-left-3'}`)
       : pandaStaticUrl(`frames/${sprite}-${frame}.png?v=${sprite === 'chew' ? 'chew-feed-4' : sprite === 'tail-chase' ? 'tail-chase-ccw-3' : 'tail-left-3'}`);
@@ -1745,6 +1750,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
                 </>
               )}
               {startled && showInteractionBubble && <span className="ps-scared-mark" aria-hidden="true"><b>!</b><i /></span>}
+              {action === 'captured-dazed' && <span className="ps-captured-dazed-dots" aria-hidden="true">···</span>}
               {(showInteractionBubble || developerPose === 'sleeping') && interactionState !== 'chat' && isSleeping && (
                 <span className="ps-sleep-zzz" aria-hidden="true"><i>z</i><i>z</i><i>z</i></span>
               )}

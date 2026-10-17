@@ -133,7 +133,7 @@
 .ps-panda.ps-sleeping .ps-body{animation:ps-sleep-breathe 2.6s ease-in-out infinite}
 .ps-panda.ps-sleeping::before{animation:ps-sleep-shadow 2.6s ease-in-out infinite}
 .ps-panda[data-facing="left"] .ps-body{transform:scaleX(-1)}
-.ps-stage[data-room-only="true"] .ps-body[data-sprite="idle"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="walk"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="grab"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="dizzy"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="chew"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="dirty-grab"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="dirty-grab-lift"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="bathing"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="startled"]{width:calc(88px * var(--room-scale,.89));height:calc(88px * var(--room-scale,.89))}
+.ps-stage[data-room-only="true"] .ps-body[data-sprite="idle"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="walk"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="grab"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="dizzy"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="chew"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="dirty-grab"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="dirty-grab-lift"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="bathing"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="startled"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="captured-dazed"]{width:calc(88px * var(--room-scale,.89));height:calc(88px * var(--room-scale,.89))}
 .ps-stage[data-room-only="true"] .ps-panda.ps-lying .ps-body,.ps-stage[data-room-only="true"] .ps-panda.ps-sleeping .ps-body{width:calc(90px * var(--room-scale,.89));height:calc(90px * var(--room-scale,.89))}
 .ps-stage[data-room-only="true"] .ps-panda.ps-peeking .ps-body{width:calc(110px * var(--room-scale,.89));height:calc(110px * var(--room-scale,.89))}
 .ps-sleep-zzz{position:absolute;z-index:2;top:-4%;left:4%;display:flex;align-items:flex-start;color:#526f91;font-family:"Noto Sans CJK SC",sans-serif;font-weight:800;line-height:1;text-shadow:0 1px 2px #fff9;pointer-events:none;animation:ps-zzz-float 1.9s ease-in-out infinite}
@@ -146,6 +146,11 @@
 .ps-panda[data-facing="left"].ps-startled .ps-scared-mark{right:auto;left:8%}
 .ps-grab-daze{position:absolute;z-index:4;top:-10%;left:calc(50% + 14px);color:#776d5f;font:700 15px/1 "Noto Sans CJK SC",sans-serif;letter-spacing:2px;text-shadow:0 1px 2px #fff9;pointer-events:none;animation:ps-grab-daze 1.15s ease-in-out infinite}
 .ps-daydream-dots{position:absolute;z-index:2;top:4%;right:5%;color:#527459;font:700 22px/1 "Noto Sans CJK SC",sans-serif;letter-spacing:2px;text-shadow:0 1px 2px #fff9;pointer-events:none;animation:ps-daydream 1.5s ease-in-out infinite}
+.ps-panda.ps-captured-dazed .ps-body{transform-origin:50% 90%;animation:ps-captured-dazed-sway 1.7s ease-in-out infinite}
+.ps-captured-dazed-dots{position:absolute;z-index:3;top:-10%;left:66%;color:#847e74;font:700 20px/1 "Noto Sans CJK SC",sans-serif;letter-spacing:2px;text-shadow:0 1px 2px #fff9;pointer-events:none;animation:ps-captured-dazed-dots 1.8s ease-in-out infinite}
+.ps-panda[data-facing="left"].ps-captured-dazed .ps-captured-dazed-dots{left:auto;right:7%}
+@keyframes ps-captured-dazed-sway{0%,100%{translate:0 0;rotate:0deg}42%{translate:0 1px;rotate:-2deg}72%{translate:0 0;rotate:2deg}}
+@keyframes ps-captured-dazed-dots{0%,100%{translate:0 2px;opacity:.45}50%{translate:0 -3px;opacity:1}}
 .ps-gift{position:absolute;z-index:4;font-size:calc(24px * var(--room-scale,.89));font-family:"Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif;line-height:1;filter:drop-shadow(0 1px 1px #35251b55);pointer-events:none}
 .ps-bamboo i{position:absolute;top:-14px;left:-4px;font:600 12px "Noto Sans CJK SC",sans-serif;color:#6a8a5a;font-style:normal;white-space:nowrap}
 .ps-gift-held{left:calc(50% + 7px);right:auto;bottom:calc(10px * var(--room-scale,.89));animation:ps-gift-carry .34s ease-in-out infinite alternate}

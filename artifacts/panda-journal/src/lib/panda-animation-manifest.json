@@ -4,7 +4,8 @@
     "chew": 14,
     "dizzy": 8,
     "tail-chase": 5,
-    "dirty-grab-lift": 6
+    "dirty-grab-lift": 6,
+    "captured-dazed": 6
   },
   "frameIntervalMs": {
     "idle": 420,
@@ -16,7 +17,8 @@
     "cuddle": 230,
     "dizzy": 140,
     "tail-chase": 160,
-    "dirty-grab-lift": 140
+    "dirty-grab-lift": 140,
+    "captured-dazed": 80
   },
   "motionSprites": {
     "idle": "idle",
@@ -32,6 +34,7 @@
     "somersault": "jump",
     "tail": "tail-chase",
     "tumble": "idle",
-    "cuddle": "cuddle"
+    "cuddle": "cuddle",
+    "captured-dazed": "captured-dazed"
   }
 }

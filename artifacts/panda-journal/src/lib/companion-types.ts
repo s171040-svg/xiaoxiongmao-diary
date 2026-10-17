@@ -1,5 +1,5 @@
 export type MemoryKind = 'worry' | 'idea' | 'action';
-export type PerformanceAction = 'bamboo' | 'roll' | 'jump' | 'spin' | 'somersault' | 'tail' | 'tumble' | 'cuddle';
+export type PerformanceAction = 'bamboo' | 'roll' | 'jump' | 'spin' | 'somersault' | 'tail' | 'tumble' | 'cuddle' | 'captured-dazed';
 export type DeveloperPose = 'idle' | 'lying' | 'sleeping' | 'peeking';
 export type DeveloperEvent = 'startle' | 'grab' | 'dirty-grab' | 'dizzy-drop' | 'world-fall' | 'bath-drop' | 'bath-rub' | 'dirty-bath' | 'dirty-bath-rub' | 'dirty-fly-chase';
 export type ChatMessage = {
@@ -24,7 +24,9 @@ export type CompanionState = {
   version: 1; messages: ChatMessage[]; diary: DiaryMemory[]; gifts: Gift[];
   userName: string; draft: string; draftPhoto?: string; lastUserAt: number;
   nextIdleAt: number; proactiveDay: string; proactiveCount: number;
-  nextTripAt: number; trip?: { id: string; returnAt: number; gift: Omit<Gift, 'receivedAt'> };
+  nextTripAt: number;
+  trip?: { id: string; returnAt: number; gift: Omit<Gift, 'receivedAt'>; captured?: boolean };
+  returnEvent?: { kind: 'captured'; until: number };
   recentGiftStories?: string[];
   privateQuestionsPaused?: boolean;
   pendingGift?: Gift; giftDropStartedAt?: number;

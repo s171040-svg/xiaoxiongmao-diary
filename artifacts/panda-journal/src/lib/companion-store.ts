@@ -6,6 +6,9 @@ export const MINUTE = 60_000;
 export const DAY = 24 * 60 * MINUTE;
 export const PROACTIVE_LIMIT = 4;
 export const GIFT_DROP_MS = 1800;
+export const CAPTURED_TRIP_CHANCE = 0.1;
+export const CAPTURED_TRIP_EXTRA_MS = 2 * MINUTE;
+export const CAPTURED_DAZED_DURATION_MS = 8000;
 export const canFeedGift = (gift: Gift) => ['🍌', '🥕', '🐟', '🍬'].includes(gift.emoji);
 export function startGiftDrop(state: CompanionState, giftId: string, now = Date.now()): CompanionState {
   return state.pendingGift?.id === giftId && !state.giftDropStartedAt
@@ -43,6 +46,9 @@ export function readState(storage: Pick<Storage, 'getItem'>, now = Date.now()): 
   const value = JSON.parse(raw) as CompanionState;
   if (value.version !== 1 || !Array.isArray(value.messages) || !Array.isArray(value.diary) || !Array.isArray(value.gifts)
     || typeof value.userName !== 'string' || typeof value.draft !== 'string'
+    || (value.trip?.captured !== undefined && typeof value.trip.captured !== 'boolean')
+    || (value.returnEvent !== undefined && (!value.returnEvent || value.returnEvent.kind !== 'captured'
+      || !Number.isFinite(value.returnEvent.until)))
     || (value.recentGiftStories !== undefined && (!Array.isArray(value.recentGiftStories)
       || value.recentGiftStories.some(story => typeof story !== 'string')))
     || ![value.lastUserAt, value.nextIdleAt, value.proactiveCount, value.nextTripAt].every(Number.isFinite)
@@ -192,23 +198,38 @@ export function beginTrip(state: CompanionState, now = Date.now(), random = Math
   const storyChoices = unusedStories.length ? unusedStories : pick.stories;
   const story = storyChoices[Math.min(storyChoices.length - 1, Math.floor(random() * storyChoices.length))];
   const personalizedStory = state.userName ? story.replaceAll('给你', `给${state.userName}`) : story;
+  const captured = random() >= 1 - CAPTURED_TRIP_CHANCE;
+  const returnAt = now + 30_000 + random() * 90_000 + (captured ? CAPTURED_TRIP_EXTRA_MS : 0);
   const gift: Omit<Gift, 'receivedAt'> = {
     id: id(), emoji: pick.emoji, item: pick.item, animal: pick.animal,
     story: `${state.userName ? `${state.userName}，` : ''}${personalizedStory}` };
-  return { ...state, recentGiftStories: [...recentGiftStories, story].slice(-12),
-    trip: { id: gift.id, gift, returnAt: now + 30_000 + random() * 90_000 },
-    messages: [...state.messages, assistant(`诶，${state.userName ? state.userName + '，' : ''}小熊猫出去逛一圈，一会儿回来哦。（它轻轻挥挥爪子）`, 'event', now)] };
+  const { returnEvent: _returnEvent, ...stateWithoutReturnEvent } = state;
+  return { ...stateWithoutReturnEvent, recentGiftStories: [...recentGiftStories, story].slice(-12),
+    trip: { id: gift.id, gift, returnAt, captured },
+    messages: [...state.messages, assistant(captured
+      ? `哎呀，小熊猫太可爱，被路过的人抱走啦！大家正在找它，小熊猫会晚一点回家哦。`
+      : `诶，${state.userName ? state.userName + '，' : ''}小熊猫出去逛一圈，一会儿回来哦。（它轻轻挥挥爪子）`, 'event', now)] };
 }
 export function tickCompanion(state: CompanionState, now: number, random = Math.random): {
-  state: CompanionState; event?: 'proactive' | 'departure' | 'gift'; text?: string;
+  state: CompanionState; event?: 'proactive' | 'departure' | 'gift'; text?: string; capturedReturn?: boolean;
 } {
   let next = state.proactiveDay === localDay(now) ? state : { ...state, proactiveDay: localDay(now), proactiveCount: 0 };
+  if (next.returnEvent && now >= next.returnEvent.until) {
+    const { returnEvent: _expiredReturnEvent, ...stateWithoutReturnEvent } = next;
+    next = stateWithoutReturnEvent;
+  }
   if (next.trip && now >= next.trip.returnAt) {
     const gift: Gift = { ...next.trip.gift, receivedAt: now };
-    next = { ...next, trip: undefined, nextTripAt: now + tripDelay(random),
+    const capturedReturn = next.trip.captured === true;
+    const text = capturedReturn
+      ? `小熊猫终于被找回来啦……它还呆呆的，脑袋里好像只剩下“好可爱”这几个字。${gift.story}`
+      : gift.story;
+    const { returnEvent: _previousReturnEvent, ...stateWithoutReturnEvent } = next;
+    next = { ...stateWithoutReturnEvent, trip: undefined, nextTripAt: now + tripDelay(random),
+      ...(capturedReturn ? { returnEvent: { kind: 'captured' as const, until: now + CAPTURED_DAZED_DURATION_MS } } : {}),
       pendingGift: gift, giftDropStartedAt: undefined,
-      messages: [...next.messages, assistant(gift.story, 'event', now)] };
-    return { state: next, event: 'gift', text: gift.story };
+      messages: [...next.messages, assistant(text, 'event', now)] };
+    return { state: next, event: 'gift', text, capturedReturn };
   }
   if (next.trip) return { state: next };
   if (next.pendingGift) {
