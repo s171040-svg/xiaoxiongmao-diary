@@ -334,23 +334,20 @@ async function main() {
   await until(() => webRoom.evaluate(() => document.visibilityState === "visible"), "web room active for behavior checks");
   assert.equal(await webRoom.getByTestId("companion-chat").getAttribute("data-room-only"), "true");
   const welcomeBubble = webRoom.getByTestId("panda-chat-bubble");
-  if (await welcomeBubble.count()) {
-    await welcomeBubble.waitFor();
-    const roomSpeech = await welcomeBubble.textContent();
-    assert.ok(roomSpeech?.trim(), "the current room message appears in the panda dialogue");
-    assert.doesNotMatch(roomSpeech, /[（(][^）)]*[）)]/u, "web room hides parenthetical action asides");
-  }
+  await until(async () => await welcomeBubble.count() === 1 && await welcomeBubble.isVisible(),
+    "the initial welcome appears in the web room", 12000);
+  const roomSpeech = await welcomeBubble.textContent();
+  assert.ok(roomSpeech?.trim(), "the current room message appears in the panda dialogue");
+  assert.doesNotMatch(roomSpeech, /[（(][^）)]*[）)]/u, "web room hides parenthetical action asides");
   assert.equal(await webRoom.locator(".cc-room-narration").count(), 0, "no separate fixed caption covers the moving panda");
-  if (await welcomeBubble.count()) {
-    const bubbleAnchor = await welcomeBubble.evaluate(el => {
-      const bubble = el.getBoundingClientRect();
-      const panda = document.querySelector(".ps-panda").getBoundingClientRect();
-      return { centerOffset: (bubble.left + bubble.right) / 2 - (panda.left + panda.right) / 2,
-        verticalGap: panda.top - bubble.bottom };
-    });
-    assert.ok(Math.abs(bubbleAnchor.centerOffset) < 1 && bubbleAnchor.verticalGap >= 7,
-      "room dialogue stays centered above the moving panda rather than covering its body");
-  }
+  const bubbleAnchor = await welcomeBubble.evaluate(el => {
+    const bubble = el.getBoundingClientRect();
+    const panda = document.querySelector(".ps-panda").getBoundingClientRect();
+    return { centerOffset: (bubble.left + bubble.right) / 2 - (panda.left + panda.right) / 2,
+      verticalGap: panda.top - bubble.bottom };
+  });
+  assert.ok(Math.abs(bubbleAnchor.centerOffset) < 1 && bubbleAnchor.verticalGap >= 7,
+    "room dialogue stays centered above the moving panda rather than covering its body");
   assert.equal(await webRoom.locator('[data-testid="input-chat"], [data-testid="input-photo"], [data-testid="button-send"]').count(), 0,
     "web room does not render the old composer or message inputs");
   assert.equal(await webRoom.locator(".cc-scroll, .cc-row, .cc-bubble, .cc-composer").count(), 0,
@@ -545,8 +542,41 @@ async function main() {
   await webRoom.mouse.up();
   await until(async () => await webPandaButton.getAttribute("data-bath-state") === "none",
     "lifting the panda out of the bathtub restores roaming");
-  await webRoom.waitForTimeout(160);
+  await until(async () => await webRoom.getByTestId("panda-interaction-state").getAttribute("data-transition-direction") === null
+      && await webPandaButton.getAttribute("data-activity-state") === "roaming",
+    "the panda finishes returning to roaming before the next room drag");
   console.info("PASS bathtub drop, persistent bathing pose, draggable bath puff and lift-to-exit");
+  const dryingRack = webRoom.getByTestId("room-clothes-rack");
+  await dryingRack.waitFor();
+  const rackBounds = await dryingRack.boundingBox();
+  const dampPandaBounds = await webPandaButton.boundingBox();
+  assert.ok(rackBounds && dampPandaBounds, "the damp panda and drying rack are available");
+  const rackHangX = rackBounds.x + rackBounds.width * 0.5;
+  const rackHangY = rackBounds.y + rackBounds.height * 0.27 + dampPandaBounds.height * 0.5;
+  await webRoom.mouse.move(dampPandaBounds.x + dampPandaBounds.width / 2, dampPandaBounds.y + dampPandaBounds.height / 2);
+  await webRoom.mouse.down();
+  await webRoom.waitForTimeout(480);
+  await webRoom.mouse.move(rackHangX, rackHangY, { steps: 5 });
+  await webRoom.mouse.up();
+  await until(async () => await webPandaButton.getAttribute("data-hanging-on-rack") === "true"
+      && await webRoom.getByTestId("panda-damp-status").textContent().then(text => text.includes("晾干中")),
+    "the damp panda hangs on the drying rack");
+  await until(async () => (await webRoom.getByTestId("panda-damp-status").textContent()).includes("晾好啦"),
+    "the drying rack clears the five-second damp timer", 7000);
+  const rackPandaBounds = await webPandaButton.boundingBox();
+  assert.ok(rackPandaBounds, "the dried panda remains on the rack");
+  await webRoom.mouse.move(rackPandaBounds.x + rackPandaBounds.width / 2, rackPandaBounds.y + rackPandaBounds.height / 2);
+  await webRoom.mouse.down();
+  await webRoom.waitForTimeout(480);
+  await webRoom.mouse.move(webViewport.width * 0.52, webViewport.height * 0.55, { steps: 5 });
+  await webRoom.mouse.up();
+  await until(async () => await webPandaButton.getAttribute("data-hanging-on-rack") === null
+      && await webRoom.getByTestId("panda-damp-status").count() === 0,
+    "lifting the dried panda clears its damp state");
+  await until(async () => await webRoom.getByTestId("panda-interaction-state").getAttribute("data-transition-direction") === null
+      && await webPandaButton.getAttribute("data-activity-state") === "roaming",
+    "the dried panda resumes roaming before the bed check");
+  console.info("PASS five-second drying rack and lift-to-dry transition");
   const webBed = webRoom.getByTestId("room-bed");
   await webBed.waitFor();
   await until(() => webBed.evaluate(el => el.complete && el.naturalWidth > 0 && el.naturalHeight > 0),
@@ -577,7 +607,7 @@ async function main() {
   await webRoom.mouse.move(pandaOnBed.x + pandaOnBed.width / 2, pandaOnBed.y + pandaOnBed.height / 2);
   await webRoom.mouse.down();
   await webRoom.waitForTimeout(480);
-  await webRoom.mouse.move(webViewport.width * 0.68, webViewport.height * 0.55, { steps: 5 });
+  await webRoom.mouse.move(webViewport.width * 0.52, webViewport.height * 0.55, { steps: 5 });
   await webRoom.mouse.up();
   await until(async () => await webPandaButton.getAttribute("data-sleeping-on-bed") === "false"
       && await webPandaButton.getAttribute("data-activity-state") === "roaming",
@@ -692,19 +722,23 @@ async function main() {
     return current.u !== positionAfterTimeout.u || current.v !== positionAfterTimeout.v;
   }, "web panda resumes roaming after the chat timeout", 4000);
 
-  await until(async () => await webPandaButton.evaluate(el => el.classList.contains("ps-walking")),
-    "web panda starts a route before the world-fall event check", 5000);
-  await webRoom.evaluate(() => {
-    window.__savedWorldFallRandom = Math.random;
-    const rolls = [0.8, 0.05];
-    Math.random = () => rolls.length ? rolls.shift() : 0.5;
-  });
+  await webRoom.getByTestId("button-dev-action").click();
+  await webRoom.getByTestId("button-dev-event-world-fall").click();
+  await until(async () => await webRoom.getByTestId("space-time-black-hole").count() === 1,
+    "the world-fall check creates its black hole");
+  const blackHole = webRoom.getByTestId("space-time-black-hole");
+  const blackHoleBounds = await blackHole.boundingBox();
+  const pandaBeforeBlackHole = await webPandaButton.boundingBox();
+  assert.ok(blackHoleBounds && pandaBeforeBlackHole, "the black hole and panda are available for the collision check");
+  await webRoom.mouse.move(pandaBeforeBlackHole.x + pandaBeforeBlackHole.width / 2,
+    pandaBeforeBlackHole.y + pandaBeforeBlackHole.height / 2);
+  await webRoom.mouse.down();
+  await webRoom.waitForTimeout(480);
+  await webRoom.mouse.move(blackHoleBounds.x + blackHoleBounds.width / 2,
+    blackHoleBounds.y + blackHoleBounds.height / 2, { steps: 5 });
+  await webRoom.mouse.up();
   await until(async () => await webInteraction.getAttribute("data-world-fall-state") === "falling",
-    "random route event begins the world fall", 20000);
-  await webRoom.evaluate(() => {
-    if (window.__savedWorldFallRandom) Math.random = window.__savedWorldFallRandom;
-    delete window.__savedWorldFallRandom;
-  });
+    "touching the black hole begins the world fall", 5000);
   assert.equal((await webRoom.getByTestId("panda-world-fall-message").textContent()).trim(), "掉出去啦！",
     "the fall leaves the requested short message");
   assert.equal(await webPandaButton.evaluate(el => getComputedStyle(el).animationName), "ps-world-fall",
@@ -760,8 +794,10 @@ async function main() {
     "two seconds of continuous circling trigger the drop only on release");
   await until(async () => await webPandaButton.getAttribute("data-dizzy-state") === "dazed",
     "the generated fall animation ends in a seated dizzy pose", 5000);
-  assert.equal(await webPandaButton.locator(".ps-body").getAttribute("data-frame"), "8",
-    "the final dizzy-eye sprite frame is held while the panda sits");
+  assert.equal(await webPandaButton.locator(".ps-body").getAttribute("data-sprite"), "dirty-return",
+    "the dirty return sprite stays visible while the panda is dizzy");
+  assert.equal(await webPandaButton.locator(".ps-body").getAttribute("data-frame"), "0",
+    "the static dirty return pose is preserved during the dizzy pause");
   assert.equal(await webPandaButton.locator(".ps-body").evaluate(img => img.naturalWidth), 96,
     "the generated dizzy sprite frame loads at its native pixel dimensions");
   await until(async () => await webPandaButton.getAttribute("data-dizzy-state") === "none",
