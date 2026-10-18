@@ -2980,7 +2980,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
           </aside>
         )}
       </div>
-      {showInteractionBubble && (
+      {showInteractionBubble && interactionState !== 'chat' && (
         <RoomPropDock
           equippedToy={equippedToy}
           onSelectToy={(toy) => setEquippedToy((current) => current === toy ? null : toy)}
@@ -2988,7 +2988,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
           onTogglePlaced={toggleRoomProp}
           locked={{ tub: bathPhase !== 'none', rack: hangingOnRack, bed: sleepingOnBed }} />
       )}
-      {showInteractionBubble && equippedToy && toyPointer && (
+      {showInteractionBubble && interactionState !== 'chat' && equippedToy && toyPointer && (
         <span className={`ps-toy ps-toy-${equippedToy}`} aria-hidden="true" data-testid={`room-toy-${equippedToy}`}
           style={{ left: toyPointer.x, top: toyPointer.y }}>
           <i /><b />
