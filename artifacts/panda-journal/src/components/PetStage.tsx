@@ -1491,11 +1491,14 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     worldFallPhase,
   ]);
 
+  // 脏兮兮只是等待洗澡的姿势。转晕落下时要让出眩晕帧，否则松手后眼睛不会停在最后一帧。
+  // 拖动过程中仍保持脏衣服，避免中途换图把转圈手势打断。
+  const holdDirtySprite = dirtyReturn && dizzyPhase === 'none';
   const image = dirtyReturn && showInteractionBubble && bathPhase === 'bathing'
     ? bathRubbing ? dirtyBathingRubbingFrameUrl(bathFrame) : dirtyBathingFrameUrl(bathFrame)
     : dirtyReturn && isFlyChasing
       ? pandaStaticUrl('dirty-flee.png?v=dirty-flee-pixflux-1')
-    : dirtyReturn
+    : holdDirtySprite
       ? pandaStaticUrl('dirty-return.png?v=world-fall-1')
     : showInteractionBubble && bathPhase === 'bathing'
       ? bathRubbing ? bathingRubbingFrameUrl(bathFrame) : bathingFrameUrl(bathFrame)
@@ -1615,8 +1618,8 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
                 data-transition-direction={pixelTransitionDirection ?? undefined}
                  data-world-fall-state={showInteractionBubble ? worldFallPhase : undefined}>
                 <img className="ps-body" src={image}
-                 data-sprite={dirtyReturn && bathPhase === 'bathing' ? (bathRubbing ? 'dirty-bathing-soap' : 'dirty-bathing') : dirtyReturn && isFlyChasing ? 'dirty-flee' : dirtyReturn ? 'dirty-return' : bathPhase === 'bathing' ? 'bathing' : startled && showInteractionBubble ? 'startled' : sprite}
-                 data-frame={showInteractionBubble && bathPhase === 'bathing' ? bathFrame : dirtyReturn ? '0' : frame}
+                 data-sprite={dirtyReturn && bathPhase === 'bathing' ? (bathRubbing ? 'dirty-bathing-soap' : 'dirty-bathing') : dirtyReturn && isFlyChasing ? 'dirty-flee' : holdDirtySprite ? 'dirty-return' : bathPhase === 'bathing' ? 'bathing' : startled && showInteractionBubble ? 'startled' : sprite}
+                 data-frame={showInteractionBubble && bathPhase === 'bathing' ? bathFrame : holdDirtySprite ? '0' : frame}
                  width={60} height={60} alt="" draggable={false} />
                {bathPhase === 'bathing' && bathRubbing && (
                  <span className="ps-bath-foam" aria-hidden="true">

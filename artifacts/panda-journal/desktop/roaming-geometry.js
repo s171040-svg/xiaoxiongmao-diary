@@ -120,5 +120,21 @@
     return candidates[Math.floor(random() * candidates.length)];
   }
 
-  return { projectRoomPoint, actorBounds, isPointClear, isSegmentClear: segmentIsClear, findSafePoint };
+  // 把屏幕上的落脚点换算回房间坐标，拖动时用。百分比和 projectRoomPoint 互为逆运算。
+  function roomPointFromAnchor(xPercent, yPercent, fullDesktop) {
+    if (!fullDesktop) return null;
+    return {
+      u: clamp((xPercent - 5) / 90, 0, 1),
+      v: clamp((yPercent - 15) / 76, 0, 1),
+    };
+  }
+
+  return {
+    projectRoomPoint,
+    actorBounds,
+    isPointClear,
+    isSegmentClear: segmentIsClear,
+    findSafePoint,
+    roomPointFromAnchor,
+  };
 });

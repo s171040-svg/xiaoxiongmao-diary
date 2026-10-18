@@ -102,7 +102,8 @@ async function main() {
   });
   assert.ok(Math.abs(nativeRoom.stage.width - nativeRoom.width) < 2 && Math.abs(nativeRoom.stage.height - nativeRoom.height) < 2,
     "desktop room stage fills its complete viewport");
-  assert.ok(nativeRoom.plane.width >= nativeRoom.stage.width - 2 && nativeRoom.plane.height >= nativeRoom.stage.height - 2,
+  // 1px 边框在 125%/150% 缩放下会比 2px 再多出亚像素，地板仍然盖住房间。
+  assert.ok(nativeRoom.plane.width >= nativeRoom.stage.width - 4 && nativeRoom.plane.height >= nativeRoom.stage.height - 4,
     "tilted floor covers the complete desktop room");
   assert.match(nativeRoom.grid, /repeating-linear-gradient/);
   await until(async () => await pet.locator(".pet-presence").getAttribute("data-motion") === "walk", "native pet begins roaming");
@@ -281,7 +282,11 @@ async function main() {
   await application.evaluate(({ BrowserWindow }) => {
     const roomWindow = new BrowserWindow({
       width: 1280, height: 800, show: true,
-      webPreferences: { partition: "panda-web-room-smoke", contextIsolation: true, nodeIntegration: false },
+      webPreferences: {
+        partition: "panda-web-room-smoke", contextIsolation: true, nodeIntegration: false,
+        // 桌宠置顶时这扇网页可能被挡住；不节流，洗澡动画的帧计时器才能在测试里走起来。
+        backgroundThrottling: false,
+      },
     });
     roomWindow.loadURL("http://127.0.0.1:21836/");
   });
@@ -502,8 +507,9 @@ async function main() {
     el.currentSrc.includes("/static/panda/bathing-wash/")),
   "the panda returns to its ordinary bathing animation after the puff is moved away");
   const bathingPosition = await webPosition.evaluate(el => ({ u: el.dataset.roomU, v: el.dataset.roomV }));
-  await webRoom.waitForTimeout(450);
-  assert.notEqual(await webRoom.locator(".ps-body").getAttribute("data-frame"), "0",
+  const bathingFrame = await webRoom.locator(".ps-body").getAttribute("data-frame");
+  // 洗澡帧会转回 0，不能用「不等于 0」判断它有没有在动。
+  await until(async () => await webRoom.locator(".ps-body").getAttribute("data-frame") !== bathingFrame,
     "the bathing pose advances through its animation frames");
   assert.deepEqual(await webPosition.evaluate(el => ({ u: el.dataset.roomU, v: el.dataset.roomV })), bathingPosition,
     "the panda remains still while bathing");

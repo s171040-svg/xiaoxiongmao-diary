@@ -4,14 +4,18 @@ const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 
+const { desktopBundleFiles } = require("./pet-window.cjs");
 const packageRoot = path.resolve(__dirname, "..");
 const workspaceRoot = path.resolve(packageRoot, "../..");
 const stageRoot = path.join(packageRoot, "dist", "windows-app");
 const outputRoot = path.join(workspaceRoot, "generated-artifacts", "windows-installer");
 const packageInfo = JSON.parse(fs.readFileSync(path.join(packageRoot, "package.json"), "utf8"));
-const electronVersion = JSON.parse(
-  fs.readFileSync(path.join(packageRoot, "node_modules", "electron", "package.json"), "utf8"),
-).version;
+const electronPackagePath = path.join(packageRoot, "node_modules", "electron", "package.json");
+if (!fs.existsSync(electronPackagePath)) {
+  throw new Error("找不到 electron。请在仓库根目录运行 pnpm install，并允许 electron 的安装脚本。");
+}
+const electronVersion = JSON.parse(fs.readFileSync(electronPackagePath, "utf8")).version;
+const appVersion = packageInfo.version && packageInfo.version !== "0.0.0" ? packageInfo.version : "0.1.0";
 const pnpm = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 
 function run(command, args, cwd, label, env = process.env) {
@@ -66,7 +70,7 @@ async function main() {
   fs.mkdirSync(path.join(stageRoot, "desktop"), { recursive: true });
   fs.mkdirSync(outputRoot, { recursive: true });
 
-  for (const file of ["main.cjs", "preload.cjs", "pet.html", "pet.css", "pet-renderer.js", "roaming-geometry.js"]) {
+  for (const file of desktopBundleFiles) {
     fs.copyFileSync(path.join(__dirname, file), path.join(stageRoot, "desktop", file));
   }
   copyDirectory(path.join(packageRoot, "dist", "desktop"), path.join(stageRoot, "dist", "desktop"));
@@ -102,7 +106,7 @@ async function main() {
     `${JSON.stringify(
       {
         name: "xiaoxiongmao-journal-desktop",
-        version: packageInfo.version,
+        version: appVersion,
         private: true,
         description: "小熊猫日记 Windows 桌面客户端",
         main: "desktop/main.cjs",
@@ -121,8 +125,11 @@ async function main() {
     directories: { output: outputRoot },
     files: ["desktop/**/*", "dist/desktop/**/*", "public/static/**/*", "src/lib/panda-animation-manifest.json", "package.json"],
     win: {
+      icon: "desktop/icon.ico",
+      executableName: "XiaoxiongmaoJournal",
       target: [{ target: "nsis", arch: ["x64"] }],
       artifactName: "${productName}-Setup-${version}-${arch}.${ext}",
+      requestedExecutionLevel: "asInvoker",
     },
     nsis: {
       oneClick: false,
@@ -131,6 +138,8 @@ async function main() {
       createDesktopShortcut: true,
       createStartMenuShortcut: true,
       shortcutName: "小熊猫日记",
+      installerIcon: "desktop/icon.ico",
+      uninstallerIcon: "desktop/icon.ico",
       deleteAppDataOnUninstall: false,
       runAfterFinish: true,
     },
@@ -141,16 +150,16 @@ async function main() {
     `${JSON.stringify(builderConfig, null, 2)}\n`,
   );
 
-  const builder = path.join(
-    packageRoot,
-    "node_modules",
-    ".bin",
-    process.platform === "win32" ? "electron-builder.cmd" : "electron-builder",
-  );
+  // 用包内的 cli，而不是依赖 .bin 的工作目录。projectDir 指向暂存目录，
+  // 这样 pnpm 的依赖解析仍留在 panda-journal 里。
+  const builderCli = ["electron-builder/cli.js", "electron-builder/out/cli/cli.js"]
+    .map((id) => { try { return require.resolve(id, { paths: [packageRoot] }); } catch { return ""; } })
+    .find(Boolean);
+  if (!builderCli) throw new Error("找不到 electron-builder。请先在仓库根目录运行 pnpm install。");
   run(
-    builder,
-    ["--config", "electron-builder.json", "--win", "nsis", "--x64"],
-    stageRoot,
+    process.execPath,
+    [builderCli, "--projectDir", stageRoot, "--config", path.join(stageRoot, "electron-builder.json"), "--win", "nsis", "--x64"],
+    packageRoot,
     "Create Windows installer",
     getBuilderEnvironment(),
   );

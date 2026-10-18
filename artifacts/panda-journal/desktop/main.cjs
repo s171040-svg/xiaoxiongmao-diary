@@ -6,6 +6,12 @@ const fs = require("node:fs");
 const { classify } = require("./ai.cjs");
 const { chat } = require("@workspace/companion-ai");
 const createTrayIcon = require("./tray-icon.cjs");
+const {
+  clampWindowOrigin,
+  parseWindowScanOutput,
+  transparentPetOptions,
+  windowScanCommand,
+} = require("./pet-window.cjs");
 
 app.setName("小熊猫日记");
 if (process.env.PANDA_PROFILE_DIR) app.setPath("userData", path.resolve(process.env.PANDA_PROFILE_DIR));
@@ -30,63 +36,98 @@ let obstaclePollInFlight = false;
 let obstacleScanWarned = false;
 let obstacleScanFailed = false;
 let journalWasVisible = false;
+let petOnTop = true;
+let userPinned = false;
+let userDragging = false;
+let savedRoom = null;
+let savedBounds = null;
+let menu;
+let settingsTimer;
 const windowedPetWidth = 340, windowedPetHeight = 360;
 const fullDesktopMode = process.platform === "win32" && !process.env.REPL_ID;
 const useInlineGift = process.platform === "linux" && Boolean(process.env.REPL_ID);
 
-function windowScanScript() {
-  return `
-$ErrorActionPreference = 'SilentlyContinue'
-Add-Type -TypeDefinition @'
-using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Text;
-public static class PandaWindowBounds {
-  [StructLayout(LayoutKind.Sequential)]
-  private struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
-  private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
-  public sealed class WindowRect {
-    public int x { get; set; }
-    public int y { get; set; }
-    public int width { get; set; }
-    public int height { get; set; }
-  }
-  [DllImport("user32.dll")] private static extern bool SetProcessDPIAware();
-  [DllImport("user32.dll")] private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
-  [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr hWnd);
-  [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
-  [DllImport("user32.dll", CharSet=CharSet.Unicode)] private static extern int GetClassName(IntPtr hWnd, StringBuilder className, int maxCount);
-  [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
-  public static WindowRect[] GetWindows(int ownProcessId) {
-    try { SetProcessDPIAware(); } catch { }
-    var result = new List<WindowRect>();
-    EnumWindowsProc callback = (hWnd, lParam) => {
-      if (!IsWindowVisible(hWnd)) return true;
-      uint processId;
-      GetWindowThreadProcessId(hWnd, out processId);
-      if (processId == (uint)ownProcessId) return true;
-      var className = new StringBuilder(128);
-      GetClassName(hWnd, className, className.Capacity);
-      var name = className.ToString();
-      if (name == "Progman" || name == "WorkerW" || name == "Shell_TrayWnd" || name == "Shell_SecondaryTrayWnd") return true;
-      RECT rect;
-      if (!GetWindowRect(hWnd, out rect)) return true;
-      var width = rect.Right - rect.Left;
-      var height = rect.Bottom - rect.Top;
-      if (width < 48 || height < 48) return true;
-      result.Add(new WindowRect { x = rect.Left, y = rect.Top, width = width, height = height });
-      return true;
-    };
-    EnumWindows(callback, IntPtr.Zero);
-    GC.KeepAlive(callback);
-    return result.ToArray();
+function settingsFile() {
+  return path.join(app.getPath("userData"), "pet-settings.json");
+}
+
+function loadSettings() {
+  try {
+    const value = JSON.parse(fs.readFileSync(settingsFile(), "utf8"));
+    if (typeof value.alwaysOnTop === "boolean") petOnTop = value.alwaysOnTop;
+    if (typeof value.pinned === "boolean") userPinned = value.pinned;
+    if (value.room && Number.isFinite(value.room.u) && Number.isFinite(value.room.v)) {
+      savedRoom = { u: Math.min(1, Math.max(0, value.room.u)), v: Math.min(1, Math.max(0, value.room.v)) };
+    }
+    if (value.bounds && [value.bounds.x, value.bounds.y, value.bounds.width, value.bounds.height].every(Number.isFinite)) {
+      savedBounds = value.bounds;
+    }
+  } catch {
+    // 第一次打开没有设置文件。
   }
 }
-'@
-$windows = [PandaWindowBounds]::GetWindows(${process.pid})
-ConvertTo-Json -InputObject @($windows) -Compress
-`;
+
+function saveSettings() {
+  clearTimeout(settingsTimer);
+  settingsTimer = setTimeout(() => {
+    try {
+      fs.mkdirSync(path.dirname(settingsFile()), { recursive: true });
+      fs.writeFileSync(settingsFile(), JSON.stringify({
+        alwaysOnTop: petOnTop, pinned: userPinned, room: savedRoom, bounds: savedBounds,
+      }));
+    } catch (error) {
+      console.warn("无法保存桌宠位置：", error.message);
+    }
+  }, 200);
+}
+
+function journalIsOpen() {
+  return Boolean(journalWindow && !journalWindow.isDestroyed() && journalWindow.isVisible() && !journalWindow.isMinimized());
+}
+
+// 全屏透明层如果停在 screen-saver 级，日记窗口永远被压在下面。
+function applyLayering() {
+  if (!petWindow || petWindow.isDestroyed()) return;
+  const journalOpen = journalIsOpen();
+  if (!petOnTop) {
+    petWindow.setAlwaysOnTop(false);
+    if (journalWindow && !journalWindow.isDestroyed()) journalWindow.setAlwaysOnTop(false);
+    if (journalOpen) journalWindow.moveTop();
+    return;
+  }
+  if (journalOpen) {
+    petWindow.setAlwaysOnTop(true, "floating");
+    journalWindow.setAlwaysOnTop(true, "screen-saver");
+    journalWindow.moveTop();
+    return;
+  }
+  if (journalWindow && !journalWindow.isDestroyed()) journalWindow.setAlwaysOnTop(false);
+  petWindow.setAlwaysOnTop(true, "screen-saver");
+}
+
+function refreshTray() {
+  menu = Menu.buildFromTemplate([
+    { label: "打开小熊猫聊天", click: () => openJournal() },
+    { label: "显示小熊猫", click: () => {
+      if (!petWindow || petWindow.isDestroyed() || ["fallen", "away"].includes(companionEffect.stage)) return;
+      petWindow.showInactive();
+      petWindow.moveTop();
+      applyLayering();
+    } },
+    { type: "separator" },
+    { label: petOnTop ? "取消置顶" : "窗口置顶", click: () => { petOnTop = !petOnTop; applyLayering(); saveSettings(); refreshTray(); } },
+    { label: userPinned ? "继续闲逛" : "停在这里", click: () => {
+      userPinned = !userPinned;
+      roam = null;
+      if (userPinned) setMotion("idle");
+      else restUntil = Date.now() + 400;
+      saveSettings();
+      refreshTray();
+    } },
+    { type: "separator" },
+    { label: "退出桌宠", click: () => app.quit() },
+  ]);
+  if (tray && !tray.isDestroyed()) tray.setContextMenu(menu);
 }
 
 function sendPet(channel, value) {
@@ -108,8 +149,8 @@ function collectDesktopObstacles() {
   if (!fullDesktopMode) return [];
   const display = screen.getPrimaryDisplay();
   const area = display.workArea;
-  if (obstacleScanFailed) return [{ x: 0, y: 0, width: area.width, height: area.height }];
-  const obstacles = desktopWindowRects
+  // 扫不到其他窗口时继续闲逛，只避开日记和礼物。整屏封死会让桌宠看起来坏掉。
+  const obstacles = obstacleScanFailed ? [] : desktopWindowRects
     .map((rect) => clipToWorkArea(rect, area, display.scaleFactor || 1))
     .filter(Boolean);
   for (const window of [journalWindow, giftWindow]) {
@@ -129,34 +170,21 @@ function pollDesktopWindows() {
   if (!fullDesktopMode || obstaclePollInFlight || !petWindow || petWindow.isDestroyed()) return;
   obstaclePollInFlight = true;
   execFile("powershell.exe", [
-    "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", windowScanScript(),
-  ], { windowsHide: true, timeout: 2500, maxBuffer: 256 * 1024 }, (error, stdout) => {
+    "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", windowScanCommand(process.pid),
+  ], { windowsHide: true, timeout: 2500, maxBuffer: 256 * 1024, encoding: "buffer" }, (error, stdout) => {
     obstaclePollInFlight = false;
-    if (error) {
-      obstacleScanFailed = true;
-      if (!obstacleScanWarned) {
-        obstacleScanWarned = true;
-        console.warn("读取桌面应用窗口范围失败；为避免挡住工作内容，小熊猫暂时停止漫游。");
-      }
-      publishDesktopObstacles();
-      return;
-    }
     try {
-      const parsed = JSON.parse(stdout.trim() || "[]");
-      const rects = Array.isArray(parsed) ? parsed : parsed ? [parsed] : [];
-      desktopWindowRects = rects.filter((rect) => rect
-        && [rect.x, rect.y, rect.width, rect.height].every(Number.isFinite)
-        && rect.width > 0 && rect.height > 0);
+      if (error) throw error;
+      desktopWindowRects = parseWindowScanOutput(stdout);
       obstacleScanFailed = false;
       obstacleScanWarned = false;
     } catch {
       obstacleScanFailed = true;
+      desktopWindowRects = [];
       if (!obstacleScanWarned) {
         obstacleScanWarned = true;
-        console.warn("读取桌面应用窗口范围失败；为避免挡住工作内容，小熊猫暂时停止漫游。");
+        console.warn("读取桌面窗口范围失败；小熊猫会继续活动，但暂时不会避开其他窗口。");
       }
-      publishDesktopObstacles();
-      return;
     }
     publishDesktopObstacles();
   });
@@ -167,6 +195,8 @@ function setMotion(value) {
   sendPet("pet:motion", value);
 }
 function setIgnored(value) {
+  // 拖动过程中如果重新穿透，指针会在半路丢失，小熊猫就拖不动了。
+  if (userDragging) value = false;
   if (!petWindow || petWindow.isDestroyed() || ignored === value) return;
   ignored = value;
   petWindow.setIgnoreMouseEvents(value, { forward: true });
@@ -191,8 +221,8 @@ function displayGift() {
     const bounds = petWindow?.getBounds();
     const area = (bounds ? screen.getDisplayNearestPoint({ x: bounds.x, y: bounds.y }) : screen.getPrimaryDisplay()).workArea;
     giftWindow = new BrowserWindow({
-      ...area, transparent: true, frame: false, alwaysOnTop: true, skipTaskbar: true,
-      resizable: false, hasShadow: false, focusable: false, show: false, backgroundColor: "#00000000",
+      ...area, ...transparentPetOptions(), alwaysOnTop: true, skipTaskbar: true,
+      focusable: false, show: false,
       webPreferences: { preload: path.join(__dirname, "preload.cjs"), contextIsolation: true,
         nodeIntegration: false, sandbox: true, backgroundThrottling: false },
     });
@@ -208,6 +238,7 @@ function displayGift() {
     giftWindow.webContents.send("gift:state", giftState);
     giftWindow.showInactive();
   }
+  applyLayering();
 }
 ipcMain.on("gift:show", (event, state) => {
   if (!trusted(event, journalWindow) || !state) return;
@@ -288,8 +319,14 @@ function openJournal(show = true) {
       if (shouldShow) { journalWindow.show(); journalWindow.focus(); }
       else journalWindow.webContents.send("companion:visibility", false);
     });
-    journalWindow.on("show", () => journalWindow.webContents.send("companion:visibility", true));
-    journalWindow.on("hide", () => journalWindow.webContents.send("companion:visibility", false));
+    journalWindow.on("show", () => {
+      journalWindow.webContents.send("companion:visibility", true);
+      applyLayering();
+    });
+    journalWindow.on("hide", () => {
+      journalWindow.webContents.send("companion:visibility", false);
+      applyLayering();
+    });
     journalWindow.on("close", (event) => {
       if (!quitting) { event.preventDefault(); hideJournal(); }
     });
@@ -323,7 +360,7 @@ function updatePet() {
     return x >= rect.x && y >= rect.y && x <= rect.x + rect.width && y <= rect.y + rect.height;
   });
   // Cursor polling also works on Linux, where forward:true is unsupported.
-  setIgnored(!overPet);
+  setIgnored(userDragging ? false : !overPet);
   if (["fallen", "away"].includes(companionEffect.stage)) return;
   if (["returning", "performing"].includes(companionEffect.stage)) return;
   const journalVisible = Boolean(journalWindow?.isVisible() && !journalWindow.isMinimized());
@@ -333,6 +370,11 @@ function updatePet() {
     roam = null;
     restUntil = now + (journalVisible ? 20_000 : 1_800);
     setMotion("idle");
+  }
+  if (userPinned || userDragging) {
+    roam = null;
+    setMotion("idle");
+    return;
   }
   if (overPet || hitRegions.length > 1) {
     roam = null;
@@ -365,6 +407,41 @@ function updatePet() {
 }
 
 ipcMain.on("pet:ignore", (event, ignore) => { if (trusted(event, petWindow)) setIgnored(Boolean(ignore)); });
+ipcMain.on("pet:dragging", (event, dragging) => {
+  if (!trusted(event, petWindow)) return;
+  userDragging = Boolean(dragging);
+  if (userDragging) {
+    roam = null;
+    setMotion("idle");
+    setIgnored(false);
+  }
+});
+ipcMain.on("pet:pin", (event, pinned) => {
+  if (!trusted(event, petWindow)) return;
+  userPinned = Boolean(pinned);
+  roam = null;
+  if (userPinned) setMotion("idle");
+  else restUntil = Date.now() + 400;
+  saveSettings();
+  refreshTray();
+});
+ipcMain.on("pet:room", (event, point) => {
+  if (!trusted(event, petWindow) || !point || !Number.isFinite(point.u) || !Number.isFinite(point.v)) return;
+  savedRoom = { u: Math.min(1, Math.max(0, point.u)), v: Math.min(1, Math.max(0, point.v)) };
+  saveSettings();
+});
+ipcMain.on("pet:move-by", (event, delta) => {
+  if (!trusted(event, petWindow) || fullDesktopMode || !delta) return;
+  const dx = Number(delta.dx);
+  const dy = Number(delta.dy);
+  if (!Number.isFinite(dx) || !Number.isFinite(dy) || Math.abs(dx) > 2000 || Math.abs(dy) > 2000) return;
+  const bounds = petWindow.getBounds();
+  const area = screen.getDisplayMatching(bounds).workArea;
+  const next = clampWindowOrigin({ x: bounds.x + dx, y: bounds.y + dy }, bounds, area);
+  petWindow.setPosition(next.x, next.y);
+  savedBounds = petWindow.getBounds();
+  saveSettings();
+});
 ipcMain.on("pet:hit-regions", (event, value) => {
   if (!trusted(event, petWindow) || !Array.isArray(value) || value.length > 8) return;
   const bounds = petWindow.getBounds();
@@ -448,30 +525,51 @@ if (!gotLock) app.quit();
 else {
   app.on("second-instance", () => openJournal());
   app.whenReady().then(() => {
+    loadSettings();
     const area = screen.getPrimaryDisplay().workArea;
-    const initialBounds = fullDesktopMode ? area : {
+    let initialBounds = fullDesktopMode ? area : {
       width: windowedPetWidth,
       height: windowedPetHeight,
       x: area.x + Math.max(0, area.width - windowedPetWidth - 24),
       y: area.y + Math.max(0, area.height - windowedPetHeight - 20),
     };
+    if (!fullDesktopMode && savedBounds) {
+      const display = screen.getDisplayMatching(savedBounds);
+      const origin = clampWindowOrigin(
+        savedBounds,
+        { width: windowedPetWidth, height: windowedPetHeight },
+        display.workArea,
+      );
+      initialBounds = { ...origin, width: windowedPetWidth, height: windowedPetHeight };
+    }
     petWindow = new BrowserWindow({
       ...initialBounds,
-      transparent: true, frame: false, alwaysOnTop: true, skipTaskbar: true,
-      resizable: false, hasShadow: false, backgroundColor: "#00000000",
+      ...transparentPetOptions(),
+      alwaysOnTop: petOnTop,
+      skipTaskbar: true,
+      show: false,
       webPreferences: {
         preload: path.join(__dirname, "preload.cjs"), contextIsolation: true,
         nodeIntegration: false, sandbox: true, backgroundThrottling: false,
       },
     });
-    petWindow.setAlwaysOnTop(true, "screen-saver");
+    applyLayering();
+    // 虚拟桌面切换后小熊猫还在。只在 Windows 上开，避免改掉 Linux 冒烟测试的窗口行为。
+    if (process.platform === "win32") petWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
     petWindow.setIgnoreMouseEvents(true, { forward: true });
     secureWindow(petWindow, "null");
     petWindow.loadFile(path.join(__dirname, "pet.html"), {
       query: { desktopMode: fullDesktopMode ? "full" : "windowed" },
     });
+    petWindow.once("ready-to-show", () => {
+      if (!petWindow.isDestroyed() && !["fallen", "away"].includes(companionEffect.stage)) petWindow.showInactive();
+    });
     petWindow.webContents.on("did-finish-load", () => {
+      if (!petWindow.isDestroyed() && !petWindow.isVisible() && !["fallen", "away"].includes(companionEffect.stage)) {
+        petWindow.showInactive();
+      }
       sendPet("companion:motion", companionEffect);
+      if (savedRoom) sendPet("pet:restore", savedRoom);
       if (useInlineGift) sendPet("gift:state", giftState?.gift ? giftState : null);
       publishDesktopObstacles();
     });
@@ -486,25 +584,20 @@ else {
     }
     // Keep the local companion clock alive without displaying the chat page.
     openJournal(false);
-    const menu = Menu.buildFromTemplate([
-      { label: "打开小熊猫聊天", click: () => openJournal() },
-      { type: "separator" },
-      { label: "退出桌宠", click: () => app.quit() },
-    ]);
-    petWindow.webContents.on("context-menu", () => menu.popup({ window: petWindow }));
+    petWindow.webContents.on("context-menu", () => menu?.popup({ window: petWindow }));
     try {
       // A self-contained monochrome tray icon; no third-party skin assets.
       const icon = createTrayIcon(nativeImage);
       tray = new Tray(icon);
-      tray.setToolTip("小熊猫日记 · 双击桌宠说说心事");
-      tray.setContextMenu(menu);
+      tray.setToolTip("小熊猫日记 · 拖动小熊猫可以换位置，双击说说心事");
       tray.on("click", () => openJournal());
     } catch {
       // The pet's right-click menu remains available if no system tray exists.
       console.warn("系统托盘不可用，可右键小熊猫打开日记或退出。");
     }
+    refreshTray();
     tick = setInterval(() => { updatePet(); updateGiftHit(); }, 80);
-    console.info("小熊猫桌宠已启动；双击小熊猫打开互动气泡。");
+    console.info("小熊猫桌宠已启动；拖动小熊猫换位置，双击打开互动气泡。");
   }).catch((error) => { console.error("桌宠启动失败：", error.message); app.quit(); });
 }
 app.on("before-quit", () => {
@@ -512,6 +605,7 @@ app.on("before-quit", () => {
   clearInterval(tick);
   clearInterval(obstaclePollTimer);
   clearTimeout(saveTimer);
+  clearTimeout(settingsTimer);
 });
 app.on("window-all-closed", () => {});
 app.on("activate", () => {

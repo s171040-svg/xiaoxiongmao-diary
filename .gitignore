@@ -48,3 +48,9 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# 附件压缩包，源码已展开到仓库根目录
+/uploads/
+
+# 冒烟测试写出的截图
+/screenshots/

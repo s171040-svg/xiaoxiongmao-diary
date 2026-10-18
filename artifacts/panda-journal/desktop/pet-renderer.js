@@ -309,7 +309,71 @@
     }, doubleClickWindow);
   }
 
-  panda.addEventListener("click", handlePandaActivation);
+  let drag = null;
+  let suppressClick = false;
+
+  function finishDrag(event) {
+    if (!drag) return;
+    if (event && event.pointerId !== undefined && event.pointerId !== drag.pointerId) return;
+    const moved = drag.moved;
+    drag = null;
+    delete panda.dataset.dragging;
+    if (desktop && typeof desktop.setDragging === "function") desktop.setDragging(false);
+    if (moved && fullDesktop && desktop && typeof desktop.rememberRoom === "function") desktop.rememberRoom(roomPoint);
+    if (moved && fullDesktop && desktop && typeof desktop.setPinned === "function") desktop.setPinned(true);
+  }
+
+  panda.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || !desktop) return;
+    const projected = projectRoomPoint(roomPoint);
+    drag = {
+      pointerId: event.pointerId,
+      startX: event.screenX,
+      startY: event.screenY,
+      lastX: event.screenX,
+      lastY: event.screenY,
+      moved: false,
+      offsetX: event.clientX - window.innerWidth * projected.x / 100,
+      offsetY: event.clientY - window.innerHeight * projected.y / 100,
+    };
+    if (typeof desktop.setDragging === "function") desktop.setDragging(true);
+    try { panda.setPointerCapture(event.pointerId); } catch { /* 指针可能已经捕获 */ }
+  });
+
+  panda.addEventListener("pointermove", (event) => {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    if (!drag.moved && Math.hypot(event.screenX - drag.startX, event.screenY - drag.startY) < 6) return;
+    drag.moved = true;
+    suppressClick = true;
+    panda.dataset.dragging = "true";
+    stopRoomRoaming();
+    if (fullDesktop && roamingGeometry && typeof roamingGeometry.roomPointFromAnchor === "function") {
+      const anchorX = (event.clientX - drag.offsetX) / Math.max(1, window.innerWidth) * 100;
+      const anchorY = (event.clientY - drag.offsetY) / Math.max(1, window.innerHeight) * 100;
+      const next = roamingGeometry.roomPointFromAnchor(anchorX, anchorY, true);
+      if (next) setRoomPoint(next);
+      return;
+    }
+    if (typeof desktop.moveBy === "function") {
+      desktop.moveBy(event.screenX - drag.lastX, event.screenY - drag.lastY);
+      drag.lastX = event.screenX;
+      drag.lastY = event.screenY;
+    }
+  });
+
+  panda.addEventListener("pointerup", finishDrag);
+  panda.addEventListener("pointercancel", finishDrag);
+  window.addEventListener("blur", () => finishDrag());
+
+  panda.addEventListener("click", (event) => {
+    if (suppressClick) {
+      suppressClick = false;
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    handlePandaActivation(event);
+  });
   panda.addEventListener("focus", () => setMouseCapture(false));
   panda.addEventListener("blur", () => setMouseCapture(true));
 
@@ -357,6 +421,13 @@
   }
   const regionTimer = window.setInterval(publishHitRegions, 100);
   publishHitRegions();
+
+  if (desktop && typeof desktop.onRestore === "function") {
+    desktop.onRestore((point) => {
+      if (!point || !Number.isFinite(point.u) || !Number.isFinite(point.v)) return;
+      setRoomPoint({ u: Math.min(1, Math.max(0, point.u)), v: Math.min(1, Math.max(0, point.v)) });
+    });
+  }
 
   if (desktop && typeof desktop.onPetMotion === "function") {
     desktop.onPetMotion((motion) => {

@@ -70,6 +70,8 @@ autoInstallPeers: false
 
 onlyBuiltDependencies:
   - '@swc/core'
+  # electron 的 postinstall 才会下载可执行文件。漏掉这项时 Windows 上 pnpm install 成功，但桌宠起不来。
+  - electron
   - esbuild
   - msw
   - unrs-resolver
