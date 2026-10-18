@@ -59,6 +59,7 @@ async function main() {
   const journal = application.windows().find(w => !w.url().includes("pet.html"));
   await pet.waitForLoadState("domcontentloaded");
   await journal.getByTestId("input-chat").waitFor();
+  await pet.emulateMedia({ reducedMotion: "no-preference" });
   assert.equal(await journal.getByTestId("companion-chat").getAttribute("data-room-only"), "false",
     "Electron journal retains the desktop chat view");
   assert.equal(await journal.getByTestId("panda-click-debug").count(), 0,
@@ -135,6 +136,29 @@ async function main() {
   assert.equal(await pet.locator("#panda-sprite").evaluate((img, width) => img.complete && img.naturalWidth === width, spriteSizes.walk.width), true);
   await until(async () => Number(await pet.locator("#panda-sprite").getAttribute("data-frame")) !== idleFrame, "idle pixel animation advances");
   assert.equal(await pet.locator("#panda-sprite").evaluate((img, width) => img.complete && img.naturalWidth === width, spriteSizes.walk.width), true);
+  await journal.evaluate(effect => window.pandaDesktop.companionMotion(effect),
+    { stage: "performing", action: "bamboo", duration: 5000, token: Date.now() });
+  await until(async () => !(await pet.locator(".pet-action-transition").isHidden()),
+    "desktop snack action begins its normal transition frames");
+  await pet.emulateMedia({ reducedMotion: "reduce" });
+  assert.equal(await pet.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches), true,
+    "desktop window receives the reduced-motion preference change");
+  await until(async () => await pet.locator(".pet-presence").getAttribute("data-bamboo-phase") === "eating",
+    "desktop snack action finishes its transition and reaches the eating state");
+  assert.equal(await pet.locator(".pet-action-transition").isHidden(), true,
+    "reduced-motion desktop snack action does not flash transition frames");
+  assert.equal(await pet.locator("#panda-sprite").isHidden(), false,
+    "reduced-motion desktop snack action keeps its action pose visible");
+  assert.equal(await pet.locator("#panda-sprite").getAttribute("data-frame"), "14",
+    "reduced-motion desktop snack action holds its completed static pose");
+  await journal.evaluate(() => window.pandaDesktop.companionMotion({
+    stage: "present", action: "idle", duration: 3000, token: Date.now(),
+  }));
+  await until(async () => await pet.locator(".pet-presence").getAttribute("data-stage") === "present",
+    "reduced-motion desktop snack action returns to roaming state");
+  assert.equal(await pet.locator(".pet-action-transition").isHidden(), true,
+    "reduced-motion desktop snack action does not flash exit frames");
+  await pet.emulateMedia({ reducedMotion: "no-preference" });
   await pet.screenshot({ path: path.join(os.tmpdir(), "panda-pet-room.png") });
   const rect = await pet.locator("#panda").boundingBox();
   await application.evaluate(({ screen, BrowserWindow }, r) => {
@@ -209,6 +233,15 @@ async function main() {
   await until(async () => await journal.getByTestId("panda-interaction-state").getAttribute("data-transition-direction") === "entering", "dynamic action uses generated entry frames");
   await until(async () => await journal.getByTestId("panda-interaction-state").getAttribute("data-transition-direction") === null, "dynamic action entry frames finish before the action");
   await until(async () => !(await journal.locator(".ps-panda").getAttribute("class") || "").split(/\s+/).includes("ps-jump"), "developer action returns to idle");
+  await journal.emulateMedia({ reducedMotion: "reduce" });
+  await journal.getByTestId("button-dev-action").click();
+  await journal.getByTestId("button-dev-action-jump").click();
+  await until(async () => (await journal.locator(".ps-panda").getAttribute("class") || "").split(/\s+/).includes("ps-jump"), "reduced-motion action still starts");
+  assert.equal(await journal.getByTestId("panda-interaction-state").getAttribute("data-transition-direction"), null,
+    "reduced-motion action uses its pose without playing transition frames");
+  await until(async () => !(await journal.locator(".ps-panda").getAttribute("class") || "").split(/\s+/).includes("ps-jump"),
+    "reduced-motion action completes and returns to idle");
+  await journal.emulateMedia({ reducedMotion: "no-preference" });
   await journal.getByTestId("button-dev-action").click();
   await journal.getByTestId("button-dev-action-bamboo").click();
   await Promise.all([

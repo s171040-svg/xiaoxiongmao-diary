@@ -391,6 +391,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const spaceBlackHoleTouchingRef = useRef(false);
   const activityTransitionTimerRef = useRef(0);
   const activityTransitionCancelRef = useRef<(() => void) | null>(null);
+  const activityTransitionFinishRef = useRef<(() => void) | null>(null);
   const bambooDropTimerRef = useRef(0);
   const hoverCuddleTimerRef = useRef(0);
   const lastHoverCuddleAtRef = useRef(Number.NEGATIVE_INFINITY);
@@ -629,11 +630,29 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const clearTransitionFrames = useCallback(() => {
     activityTransitionCancelRef.current?.();
     activityTransitionCancelRef.current = null;
+    activityTransitionFinishRef.current = null;
     setTransitionFrameSrc(null);
   }, []);
 
   const playTransitionFrames = useCallback((frames: string[], direction: 'entering' | 'waking', onComplete: () => void) => {
     clearTransitionFrames();
+    let completed = false;
+    const finish = () => {
+      if (completed) return;
+      completed = true;
+      const cancel = activityTransitionCancelRef.current;
+      activityTransitionCancelRef.current = null;
+      activityTransitionFinishRef.current = null;
+      cancel?.();
+      setTransitionFrameSrc(null);
+      setActivityTransition(null);
+      onComplete();
+    };
+    activityTransitionFinishRef.current = finish;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      finish();
+      return;
+    }
     activityTransitionCancelRef.current = playPixelTransitionFrames(
       frames,
       direction,
@@ -641,14 +660,20 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       {
         onFrame: setTransitionFrameSrc,
         onPhase: (phase: PixelTransitionPhase) => setActivityTransition(phase),
-        onComplete: () => {
-          activityTransitionCancelRef.current = null;
-          onComplete();
-        },
+        onComplete: finish,
       },
       PIXEL_TRANSITION_FRAME_MS,
     );
   }, [clearTransitionFrames]);
+
+  useEffect(() => {
+    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const finishTransitionIfNeeded = (event: MediaQueryListEvent) => {
+      if (event.matches) activityTransitionFinishRef.current?.();
+    };
+    preference.addEventListener('change', finishTransitionIfNeeded);
+    return () => preference.removeEventListener('change', finishTransitionIfNeeded);
+  }, []);
 
   const clearActivityTransition = useCallback(() => {
     window.clearTimeout(activityTransitionTimerRef.current);

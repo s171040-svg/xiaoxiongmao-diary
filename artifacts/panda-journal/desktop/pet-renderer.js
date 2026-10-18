@@ -52,6 +52,7 @@
   let bambooDropTimer = 0;
   let actionTransitionTimer = 0;
   let actionTransitionSequence = 0;
+  let actionTransitionFinish = null;
   let activeBambooToken = null;
   const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
   let roomPoint = { u: 0.5, v: 0.58 };
@@ -225,7 +226,11 @@
   }
 
   applySprite();
-  motionPreference.addEventListener("change", () => { applySprite(); syncRoomRoaming(); });
+  motionPreference.addEventListener("change", () => {
+    if (motionPreference.matches) actionTransitionFinish?.();
+    applySprite();
+    syncRoomRoaming();
+  });
   document.addEventListener("visibilitychange", syncRoomRoaming);
 
   fetch("../src/lib/panda-animation-manifest.json")
@@ -435,19 +440,30 @@
     const sequence = ++actionTransitionSequence;
     window.clearTimeout(actionTransitionTimer);
     let index = 0;
+    const finish = () => {
+      if (sequence !== actionTransitionSequence) return;
+      window.clearTimeout(actionTransitionTimer);
+      actionTransitionTimer = 0;
+      actionTransitionFinish = null;
+      actionTransition.hidden = true;
+      pandaSprite.hidden = false;
+      onComplete();
+    };
+    actionTransitionFinish = finish;
+    if (motionPreference.matches) {
+      finish();
+      return;
+    }
     pandaSprite.hidden = true;
     actionTransition.hidden = false;
     const next = () => {
       if (sequence !== actionTransitionSequence) return;
       if (index >= frames.length) {
-        actionTransitionTimer = 0;
-        actionTransition.hidden = true;
-        pandaSprite.hidden = false;
-        onComplete();
+        finish();
         return;
       }
       actionTransition.src = frames[index++];
-      actionTransitionTimer = window.setTimeout(next, motionPreference.matches ? 1 : 80);
+      actionTransitionTimer = window.setTimeout(next, 80);
     };
     next();
   }
@@ -458,6 +474,7 @@
     bambooDropTimer = 0;
     actionTransitionTimer = 0;
     actionTransitionSequence += 1;
+    actionTransitionFinish = null;
     snackDrop.hidden = true;
     actionTransition.hidden = true;
     pandaSprite.hidden = false;
