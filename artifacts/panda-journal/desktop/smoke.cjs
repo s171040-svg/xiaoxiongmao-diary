@@ -502,41 +502,15 @@ async function main() {
     "the panda keeps the same displayed size while bathing");
   assert.ok(Math.abs(bathtubWidthInBath - bathtubWidthBeforeBath) < 0.1,
     "the bathtub keeps its original displayed size while bathing");
-  const bathBox = webRoom.getByTestId("bath-ball-box");
-  await bathBox.waitFor();
-  const bathBoxBounds = await bathBox.boundingBox();
-  const bathtubBounds = await webBathtub.boundingBox();
-  assert.ok(bathBoxBounds && bathtubBounds, "the bath-ball box is beside the bathtub");
-  assert.ok(bathBoxBounds.x + bathBoxBounds.width < bathtubBounds.x,
-    "the bath-ball box does not overlap the bathtub");
+  assert.equal(await webRoom.getByTestId("bath-ball-box").count(), 0, "the separate bath-ball box is gone");
   const bathBall = webRoom.getByTestId("bath-ball");
-  await until(async () => await bathBall.count() === 0,
-    "the bath puff stays in its box until the user takes it out");
-  await bathBox.click();
   await bathBall.waitFor();
-  await until(async () => await bathBall.getAttribute("data-dropping") === "true"
-      && await bathBall.evaluate(el => getComputedStyle(el).animationName === "ps-bath-ball-drop"),
-    "clicking the box makes the bath puff drop out with a bounce");
-  await until(async () => await bathBall.getAttribute("data-dropping") === "false",
-    "the bath puff settles beside the bathtub before it is dragged");
-  await until(() => bathBall.evaluate(el => el.querySelector("img")?.naturalWidth === 48),
-    "the draggable bath puff sprite loads");
-  const bathBallBox = await bathBall.boundingBox();
-  const bathPandaBox = await webPandaButton.boundingBox();
-  assert.ok(bathBallBox && bathPandaBox, "bath puff and panda hit target are visible");
-  await webRoom.mouse.move(bathBallBox.x + bathBallBox.width / 2, bathBallBox.y + bathBallBox.height / 2);
-  await webRoom.mouse.down();
-  await webRoom.mouse.move(bathPandaBox.x + bathPandaBox.width / 2, bathPandaBox.y + bathPandaBox.height / 2, { steps: 5 });
-  await until(async () => await webPandaButton.getAttribute("data-bath-rubbing") === "true",
-    "the rubbing animation starts as soon as the bath puff touches the panda");
+  await until(async () => await bathBall.getAttribute("data-on-panda") === "true"
+      && await webPandaButton.getAttribute("data-bath-rubbing") === "true",
+    "the bath puff appears by itself and starts the soap-washing animation");
   await until(async () => webRoom.locator(".ps-body").evaluate(el =>
     el.currentSrc.includes("/static/panda/bathing-soap/")),
-  "touching the panda switches to the separate PixelLab soap-washing frames");
-  assert.equal(await webRoom.locator(".ps-bath-foam i").count(), 4,
-    "visible soap bubbles appear while the puff touches the panda");
-  assert.equal(await webRoom.locator(".ps-body").evaluate(el => getComputedStyle(el).animationName),
-    "ps-bath-scrub", "the panda visibly moves its body while soaping");
-  await webRoom.mouse.up();
+  "the automatic puff uses the PixelLab soap-washing frames");
   await until(async () => await bathBall.getAttribute("data-on-panda") === "true",
     "the bath puff can be placed on the panda");
   assert.equal(await webPandaButton.getAttribute("data-bath-state"), "bathing",

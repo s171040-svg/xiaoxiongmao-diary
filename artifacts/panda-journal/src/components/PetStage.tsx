@@ -7,6 +7,7 @@ import {
   projectDesktopPoint,
   projectRoomPoint,
   isWalkableRoomPoint,
+  isWalkableRoomSegment,
   nearestWalkableRoomPoint,
   planRoomWalkPath,
   pointAlongRoomWalkPath,
@@ -51,8 +52,10 @@ import {
 } from '@/lib/room-furniture-layout';
 import { SPACE_POLICE_LETTER_EAT_DELAY_MS } from '@/lib/companion-store';
 import animationManifest from '@/lib/panda-animation-manifest.json';
+import { RoomPropDock, type RoomProp, type RoomToy } from './RoomPropDock';
 import './PetStage.css';
 
+const ROOM_PROPS_KEY = 'little-panda-room-props-v1';
 const DOUBLE_CLICK_WINDOW_MS = 3000;
 const REACTION_DURATION_MS = 1400;
 const CHAT_IDLE_TIMEOUT_MS = 30000;
@@ -311,6 +314,19 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     width: typeof window === 'undefined' ? 1 : window.innerWidth,
     height: typeof window === 'undefined' ? 1 : window.innerHeight,
   }));
+  const [placedProps, setPlacedProps] = useState<Record<RoomProp, boolean>>(() => {
+    const defaults = { bed: true, rack: true, tub: true };
+    try {
+      const raw = window.localStorage.getItem(ROOM_PROPS_KEY);
+      return raw ? { ...defaults, ...(JSON.parse(raw) as Partial<Record<RoomProp, boolean>>) } : defaults;
+    } catch { return defaults; }
+  });
+  const [equippedToy, setEquippedToy] = useState<RoomToy | null>(null);
+  const equippedToyRef = useRef<RoomToy | null>(null);
+  equippedToyRef.current = equippedToy;
+  const [toyPointer, setToyPointer] = useState<{ x: number; y: number } | null>(null);
+  const toyPointerRef = useRef<{ x: number; y: number } | null>(null);
+  const [toyPose, setToyPose] = useState<'swat' | 'pounce' | null>(null);
   const capturedHomecomingArrivedRef = useRef(false);
   const capturedHomecomingTokenRef = useRef<number | null>(null);
   const positionedSpacePoliceLetterRef = useRef<number | null>(null);
@@ -371,7 +387,6 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const clothesRackRef = useRef<HTMLImageElement>(null);
   const spacePoliceMailboxRef = useRef<HTMLButtonElement>(null);
   const spaceBlackHoleRef = useRef<HTMLDivElement>(null);
-  const bathBoxButtonRef = useRef<HTMLButtonElement>(null);
   const bathBallButtonRef = useRef<HTMLButtonElement>(null);
   const pandaButtonRef = useRef<HTMLButtonElement>(null);
   const firstActivationAtRef = useRef<number | null>(null);
@@ -579,7 +594,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       || (showInteractionBubble && (activityState === 'sleeping' || (activityState === 'roaming' && motion === 'sleep' && !nightWakeOverride))));
   const isSleepingRef = useRef(isSleeping);
   isSleepingRef.current = isSleeping;
-  const hoverCuddleVisible = showInteractionBubble && hoverCuddleActive && pet.stage === 'present'
+  const hoverCuddleVisible = showInteractionBubble && !equippedToy && hoverCuddleActive && pet.stage === 'present'
     && interactionState !== 'chat' && !isSleeping && !isDragging && !isPressPending && !developerGrab
     && !hangingOnRack && !dampAfterBath && bathPhase === 'none' && !startled && dizzyPhase === 'none'
     && worldFallPhase === 'none' && !dirtyReturn && !developerPose;
@@ -594,6 +609,8 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     ? 'grab'
     : startled && showInteractionBubble
     ? animationManifest.motionSprites.idle
+    : showInteractionBubble && toyPose && pet.stage === 'present' && activityState === 'roaming'
+    ? (toyPose === 'swat' ? 'jump' : 'tail-chase')
     : pet.stage === 'performing' && action === 'captured-homecoming'
     ? animationManifest.actionSprites[action]
     : pet.stage === 'performing' && (interactionState !== 'chat' || pet.actionPreview)
@@ -1340,7 +1357,16 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     setBathRubbing(false);
     setBathBallPosition(null);
     setBathBallPlaced(false);
-  }, [bathPhase, setBathPhaseNow, showInteractionBubble]);
+    const autoBall = window.setTimeout(() => {
+      if (bathPhaseRef.current !== 'bathing' || !startDeveloperBathRub()) return;
+      setBathBallDropping(true);
+      bathBallDropTimerRef.current = window.setTimeout(() => {
+        bathBallDropTimerRef.current = 0;
+        setBathBallDropping(false);
+      }, BATH_BALL_DROP_MS);
+    }, 700);
+    return () => window.clearTimeout(autoBall);
+  }, [bathPhase, setBathPhaseNow, showInteractionBubble, startDeveloperBathRub]);
 
   useEffect(() => {
     if (bathPhase !== 'bathing') {
@@ -2048,26 +2074,116 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     finishPandaPointer(event, true);
   };
 
-  const handleTakeBathBall = () => {
-    if (bathPhaseRef.current !== 'bathing' || bathBallPosition) return;
-    const boxRect = bathBoxButtonRef.current?.getBoundingClientRect();
-    if (!boxRect) return;
+  useEffect(() => {
+    try { window.localStorage.setItem(ROOM_PROPS_KEY, JSON.stringify(placedProps)); } catch { /* storage unavailable */ }
+  }, [placedProps]);
 
-    const origin = {
-      x: boxRect.left + (boxRect.width - 40) / 2,
-      y: boxRect.top - 24,
+  useEffect(() => {
+    const root = document.documentElement.style;
+    const scale = Math.min(viewportSize.width / ROOM_IMAGE_WIDTH, viewportSize.height / ROOM_IMAGE_HEIGHT);
+    const width = ROOM_IMAGE_WIDTH * scale;
+    const height = ROOM_IMAGE_HEIGHT * scale;
+    const left = (viewportSize.width - width) / 2;
+    const top = (viewportSize.height - height) / 2;
+    root.setProperty('--room-left', `${left}px`);
+    root.setProperty('--room-top', `${top}px`);
+    root.setProperty('--room-w', `${width}px`);
+    root.setProperty('--room-h', `${height}px`);
+    root.setProperty('--room-gap-bottom', `${top}px`);
+    root.setProperty('--room-gap-right', `${left}px`);
+  }, [viewportSize]);
+
+  useEffect(() => {
+    if (!showInteractionBubble || !equippedToy) {
+      toyPointerRef.current = null;
+      setToyPointer(null);
+      return undefined;
+    }
+    const onMove = (event: PointerEvent) => {
+      const overDock = (event.target as Element | null)?.closest?.('.rp-dock, .cc-top, .ps-room-layout-controls, [role="dialog"]');
+      const next = overDock ? null : { x: event.clientX, y: event.clientY };
+      toyPointerRef.current = next;
+      setToyPointer(next);
     };
-    bathBallOriginRef.current = origin;
-    setBathBallPosition(origin);
-    setBathBallPlaced(false);
-    setBathRubbing(false);
-    window.clearTimeout(bathBallDropTimerRef.current);
-    setBathBallDropping(true);
-    bathBallDropTimerRef.current = window.setTimeout(() => {
-      bathBallDropTimerRef.current = 0;
-      setBathBallDropping(false);
-    }, BATH_BALL_DROP_MS);
-  };
+    const onLeave = () => { toyPointerRef.current = null; setToyPointer(null); };
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setEquippedToy(null); };
+    window.addEventListener('pointermove', onMove);
+    document.documentElement.addEventListener('pointerleave', onLeave);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      document.documentElement.removeEventListener('pointerleave', onLeave);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [equippedToy, showInteractionBubble]);
+
+  useEffect(() => {
+    if (!showInteractionBubble || !equippedToy) return undefined;
+    let raf = 0;
+    let last = performance.now();
+    let nearSince = 0;
+    let walking = false;
+    let pose: 'swat' | 'pounce' | null = null;
+    const setPose = (next: 'swat' | 'pounce' | null) => { if (pose !== next) { pose = next; setToyPose(next); } };
+    const setWalk = (next: boolean) => { if (walking !== next) { walking = next; setRoomWalking(next); } };
+    const tick = (now: number) => {
+      raf = window.requestAnimationFrame(tick);
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      const pointer = toyPointerRef.current;
+      const busy = !pointer || pet.stage !== 'present' || activityState !== 'roaming' || draggingRef.current
+        || bathPhaseRef.current !== 'none' || hangingOnRackRef.current || startledRef.current
+        || interactionStateRef.current !== 'roaming';
+      if (busy) { setWalk(false); setPose(null); nearSince = 0; return; }
+      const width = Math.max(1, window.innerWidth);
+      const height = Math.max(1, window.innerHeight);
+      const goal = nearestWalkableRoomPoint(unprojectRoomPoint((pointer.x / width) * 100, (pointer.y / height) * 100, width, height));
+      const from = positionRef.current;
+      const dx = goal.u - from.u;
+      const dy = goal.v - from.v;
+      const distance = Math.hypot(dx, dy);
+      if (distance > 0.06) {
+        nearSince = 0;
+        setPose(null);
+        const step = Math.min(distance, (equippedToyRef.current === 'laser' ? 0.55 : 0.34) * dt);
+        let next = { u: from.u + (dx / distance) * step, v: from.v + (dy / distance) * step };
+        if (!isWalkableRoomSegment(from, next)) {
+          const slideU = { u: next.u, v: from.v };
+          const slideV = { u: from.u, v: next.v };
+          next = isWalkableRoomSegment(from, slideU) ? slideU : isWalkableRoomSegment(from, slideV) ? slideV : from;
+        }
+        if (next !== from) {
+          updateFacing(next.u - from.u);
+          applyRoomPoint(next);
+          setWalk(true);
+        } else setWalk(false);
+        return;
+      }
+      setWalk(false);
+      updateFacing(dx);
+      if (!nearSince) nearSince = now;
+      const phase = (now - nearSince) % 2800;
+      if (equippedToyRef.current === 'teaser') setPose(phase < 760 ? 'swat' : null);
+      else setPose(phase < 1700 ? 'pounce' : null);
+    };
+    raf = window.requestAnimationFrame(tick);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      setToyPose(null);
+      setRoomWalking(false);
+    };
+  }, [activityState, applyRoomPoint, equippedToy, pet.stage, showInteractionBubble, updateFacing]);
+
+  useEffect(() => {
+    if (!equippedToy) return undefined;
+    const previous = document.body.style.cursor;
+    document.body.style.cursor = 'none';
+    return () => { document.body.style.cursor = previous; };
+  }, [equippedToy]);
+
+  const toggleRoomProp = useCallback((prop: RoomProp) => {
+    setPlacedProps((current) => ({ ...current, [prop]: !current[prop] }));
+  }, []);
 
   const handleBathBallPointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (!event.isPrimary || bathPhaseRef.current !== 'bathing' || !bathBallPosition) return;
@@ -2212,7 +2328,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       if (showInteractionBubble) setRoomWalking(walking);
     };
 
-    const canRoam = () => interactionState === 'roaming' && dizzyPhase === 'none' && !reacting && !startled && !developerGrab && !hangingOnRackRef.current && !dampAfterBath && !startledRef.current && !hidden
+    const canRoam = () => interactionState === 'roaming' && !equippedToyRef.current && dizzyPhase === 'none' && !reacting && !startled && !developerGrab && !hangingOnRackRef.current && !dampAfterBath && !startledRef.current && !hidden
       && (worldFallPhase === 'none' || worldFallPhase === 'dirty') && bathPhase === 'none'
       && pet.stage !== 'performing' && pet.stage !== 'returning' && !hoverCuddleActive
       && !developerPose && !pixelTransitionDirection && activityState === 'roaming' && !isDragging && !isPressPending && !draggingRef.current
@@ -2333,6 +2449,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     pet.token,
     reacting,
     developerGrab,
+    equippedToy,
     startled,
     updateFacing,
     worldFallPhase,
@@ -2502,7 +2619,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const roomImageStyle = showInteractionBubble ? {
     backgroundImage: roomBackgroundImage,
     backgroundSize: roomBackgroundSize,
-    backgroundPosition: 'center bottom',
+    backgroundPosition: 'center center',
     backgroundRepeat: 'no-repeat',
   } : undefined;
   return (
@@ -2548,7 +2665,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
               zIndex: roomFurnitureZIndex(furniture.depth),
               backgroundImage: roomBackgroundImage,
               backgroundSize: roomBackgroundSize,
-              backgroundPosition: 'center bottom',
+              backgroundPosition: 'center center',
               backgroundRepeat: 'no-repeat',
               clipPath: roomImageRegionClipPath(furniture.region, window.innerWidth, window.innerHeight),
             }} />
@@ -2568,7 +2685,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
             )}
           </div>
         )}
-        {showInteractionBubble && (
+        {showInteractionBubble && placedProps.rack && (
           <img ref={clothesRackRef}
             className={`ps-room-rack${draggingFurnitureId === 'rack' ? ' ps-furniture-dragging' : ''}`}
             src={`${import.meta.env.BASE_URL}static/room/panda-clothes-rack.png?v=bamboo-rack-1`}
@@ -2581,7 +2698,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
             onPointerCancel={finishFurnitureMove}
             data-testid="room-clothes-rack" />
         )}
-        {showInteractionBubble && (
+        {showInteractionBubble && placedProps.bed && (
           <img ref={bedRef}
             className={`ps-room-bed${draggingFurnitureId === 'bed' ? ' ps-furniture-dragging' : ''}`}
             src={`${import.meta.env.BASE_URL}static/room/panda-nest-bed.png?v=panda-fresh-isometric-bed-5-paw-axis-perspective`}
@@ -2613,7 +2730,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
             {spacePoliceUnreadCount > 0 && <span className="ps-space-letter-box-count" aria-hidden="true">{spacePoliceUnreadCount > 9 ? '9+' : spacePoliceUnreadCount}</span>}
           </button>
         )}
-        {showInteractionBubble && (
+        {showInteractionBubble && placedProps.tub && (
           <div ref={bathStationRef}
             className={`ps-bath-station${draggingFurnitureId === 'bathStation' ? ' ps-furniture-dragging' : ''}`}
             style={roomFurnitureStyle('bathStation', bathStationRef)}
@@ -2623,14 +2740,6 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
             onPointerCancel={finishFurnitureMove}
             onClickCapture={(event) => suppressFurnitureClick('bathStation', event)}
             data-testid="bath-station">
-            <button ref={bathBoxButtonRef} type="button" className="ps-bath-box"
-              disabled={bathPhase !== 'bathing' || bathBallPosition !== null}
-              aria-label={bathPhase === 'bathing' && !bathBallPosition ? '打开浴球小箱子，取出浴球；长按浴缸区域可移动整套浴室' : '浴球收纳箱；把小熊猫放进浴缸后可以取浴球；长按浴缸区域可移动整套浴室'}
-              title={bathPhase === 'bathing' && !bathBallPosition ? '点击打开小箱子取出浴球；长按浴缸区域可移动整套浴室' : bathBallPosition ? '浴球已经取出，可以拖到小熊猫身上；长按浴缸区域可移动整套浴室' : '把小熊猫放进浴缸后就可以取浴球；长按浴缸区域可移动整套浴室'}
-              onClick={handleTakeBathBall} data-testid="bath-ball-box">
-              <img className="ps-bath-box-puff" src={BATH_PUFF_SPRITE} alt="" aria-hidden="true" draggable={false} />
-              <span className="ps-bath-box-label">浴球</span>
-            </button>
             <img ref={bathTubRef} className="ps-room-bathtub"
               src={`${import.meta.env.BASE_URL}static/room/pet-bathtub.png?v=pet-bathtub-1`}
               alt="" aria-hidden="true" draggable={false} data-testid="room-bathtub" />
@@ -2796,6 +2905,20 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
           </aside>
         )}
       </div>
+      {showInteractionBubble && (
+        <RoomPropDock
+          equippedToy={equippedToy}
+          onSelectToy={(toy) => setEquippedToy((current) => current === toy ? null : toy)}
+          placed={placedProps}
+          onTogglePlaced={toggleRoomProp}
+          locked={{ tub: bathPhase !== 'none', rack: hangingOnRack, bed: sleepingOnBed }} />
+      )}
+      {showInteractionBubble && equippedToy && toyPointer && (
+        <span className={`ps-toy ps-toy-${equippedToy}`} aria-hidden="true" data-testid={`room-toy-${equippedToy}`}
+          style={{ left: toyPointer.x, top: toyPointer.y }}>
+          <i /><b />
+        </span>
+      )}
       {showInteractionBubble && (
         <div className="ps-bubble-layer" aria-live="off">
           <div ref={bubbleAnchorRef} className="ps-bubble-anchor">

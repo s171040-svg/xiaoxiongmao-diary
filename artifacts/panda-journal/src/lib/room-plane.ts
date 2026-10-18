@@ -31,7 +31,7 @@ export function roomFloorBoundsPercent(width: number, height: number): { far: nu
   const viewportWidth = Math.max(1, width);
   const viewportHeight = Math.max(1, height);
   const imageScale = Math.min(viewportWidth / ROOM_IMAGE_WIDTH, viewportHeight / ROOM_IMAGE_HEIGHT);
-  const imageTop = viewportHeight - ROOM_IMAGE_HEIGHT * imageScale;
+  const imageTop = (viewportHeight - ROOM_IMAGE_HEIGHT * imageScale) / 2;
   const toViewportPercent = (imageY: number) => ((imageTop + imageY * imageScale) / viewportHeight) * 100;
   return {
     far: toViewportPercent(ROOM_IMAGE_FLOOR_FAR_Y),
@@ -46,7 +46,7 @@ export function roomImageRegionClipPath(
 ): string {
   const scale = Math.min(viewportWidth / ROOM_IMAGE_WIDTH, viewportHeight / ROOM_IMAGE_HEIGHT);
   const imageLeft = (viewportWidth - ROOM_IMAGE_WIDTH * scale) / 2;
-  const imageTop = viewportHeight - ROOM_IMAGE_HEIGHT * scale;
+  const imageTop = (viewportHeight - ROOM_IMAGE_HEIGHT * scale) / 2;
   const point = (x: number, y: number) => `${(
     (imageLeft + x * scale) / viewportWidth * 100
   ).toFixed(3)}% ${((imageTop + y * scale) / viewportHeight * 100).toFixed(3)}%`;

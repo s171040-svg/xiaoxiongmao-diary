@@ -1,0 +1,51 @@
+/*
+ * Pixel-art UI skin. Loaded last so it restyles every journal control:
+ * square corners, hard 2px-step borders, drop-blocks instead of blurs.
+ */
+:root{
+  --px-ink:#2b1d12;--px-edge:#1d130a;--px-wood:#c9a56a;--px-wood-hi:#e8cf9c;--px-wood-lo:#8f6a38;
+  --px-paper:#f4ead2;--px-paper-lo:#d8c9a3;--px-green:#8fbf62;--px-green-hi:#c7e89b;--px-green-lo:#5c8a3a;
+  --px-red:#d9483b;
+  --px-font:"Zpix","Fusion Pixel","Noto Sans Mono CJK SC","Noto Sans CJK SC",ui-monospace,monospace;
+}
+.cc-app,.cc-dialog,.memory-dialog,.rp-dock{font-family:var(--px-font);-webkit-font-smoothing:none;font-smooth:never}
+.cc-app *,.cc-dialog *,.memory-dialog *{border-radius:0!important;backdrop-filter:none!important}
+
+/* Top bar */
+.cc-top{background:var(--px-edge)!important;border:0!important;border-bottom:4px solid #a97c46!important;box-shadow:0 4px 0 var(--px-edge);color:var(--px-paper)}
+.cc-title strong{font-family:var(--px-font)!important;font-weight:700;color:#f2c744;letter-spacing:.08em}
+.cc-title span{color:var(--px-paper-lo)!important}
+
+/* All journal buttons */
+.cc-actions button,.cc-tabs button,.cc-confirm button,.cc-del,.cc-stamp button,.cc-send,.cc-gift-actions button,.cc-feelings button,
+.cc-police-pay-button,.cc-dialog button:not(.cc-icon):not(.cc-space-mail-item),.memory-dialog button,.ps-room-layout-reset{
+  border:3px solid var(--px-edge)!important;background:var(--px-wood)!important;color:var(--px-ink)!important;
+  box-shadow:inset -3px -3px 0 var(--px-wood-lo),inset 3px 3px 0 var(--px-wood-hi);
+  font:700 13px/1.2 var(--px-font)!important;padding:6px 11px;transition:none!important;cursor:pointer;text-shadow:none}
+.cc-actions button:hover,.cc-tabs button:hover,.cc-send:hover:not(:disabled),.cc-gift-actions button:hover,.ps-room-layout-reset:hover{background:#d8b878!important;transform:none!important}
+.cc-actions button:active,.cc-tabs button:active,.cc-send:active:not(:disabled),.cc-gift-actions button:active,.cc-dialog button:active{transform:translateY(2px)!important;box-shadow:inset 3px 3px 0 var(--px-wood-lo),inset -3px -3px 0 var(--px-wood-hi)}
+.cc-tabs button[aria-selected=true],.cc-tabs button.on,.cc-gift-actions button[aria-pressed=true]{background:var(--px-green)!important;box-shadow:inset -3px -3px 0 var(--px-green-lo),inset 3px 3px 0 var(--px-green-hi)}
+.cc-danger,.cc-confirm .cc-danger{background:var(--px-red)!important;color:#fff!important;box-shadow:inset -3px -3px 0 #9c2e25,inset 3px 3px 0 #f08278}
+button:disabled{opacity:.55}
+.cc-app button:focus-visible,.cc-dialog button:focus-visible{outline:3px solid #fff3b0!important;outline-offset:2px}
+
+/* Panels, cards and dialogs */
+.cc-dialog,.memory-dialog{background:var(--px-paper)!important;color:var(--px-ink)!important;border:4px solid var(--px-edge)!important;box-shadow:inset 0 0 0 3px #a97c46,6px 6px 0 #1d130a99!important}
+.cc-dhead{background:var(--px-edge)!important;color:var(--px-paper)!important;border:0!important;border-bottom:4px solid #a97c46!important}
+.cc-card,.cc-feelings,.cc-gift,.cc-space-police-letter,.cc-police-payment,.cc-space-mail-item,.cc-photo{border:3px solid var(--px-edge)!important;background:#fffaf0!important;box-shadow:inset -3px -3px 0 var(--px-paper-lo),3px 3px 0 #1d130a55}
+.cc-tag,.cc-space-mail-status{border:2px solid var(--px-edge)!important;background:var(--px-green)!important;color:var(--px-ink)!important;padding:1px 6px}
+
+/* Chat bubbles and inputs */
+.cc-bubble{border:3px solid var(--px-edge)!important;box-shadow:3px 3px 0 #1d130a55;clip-path:none}
+.bot .cc-bubble{background:#fffaf0!important;color:var(--px-ink)!important;font-family:var(--px-font)!important}
+.me .cc-bubble{background:var(--px-green)!important;color:var(--px-ink)!important}
+.cc-room-input,.cc-box textarea,.cc-feelings input,.cc-dev-gift-form input,.cc-dev-gift-form select,.cc-dialog input,.cc-dialog textarea{border:3px solid var(--px-edge)!important;background:#fffaf0!important;color:var(--px-ink)!important;font-family:var(--px-font)!important;box-shadow:inset 3px 3px 0 var(--px-paper-lo)}
+.cc-box,.cc-composer{border:0!important;background:transparent!important;box-shadow:none!important}
+
+/* Room-side bars and notices */
+.ps-room-layout-hint{border:3px solid var(--px-edge)!important;border-radius:0!important;background:var(--px-paper)!important;color:var(--px-ink)!important;font:700 12px/1.3 var(--px-font)!important;box-shadow:3px 3px 0 #1d130a88!important}
+.ps-room-layout-reset{min-height:0}
+.ps-thinking,.ps-bubble-layer [class*="bubble"],.ps-room-chat-bubble{border-radius:0!important}
+.ps-room-chat-bubble{border:3px solid var(--px-edge)!important;background:#fffaf0!important;color:var(--px-ink)!important;box-shadow:3px 3px 0 #1d130a66!important;font-family:var(--px-font)!important}
+.ps-space-letter-box{border-radius:0!important}
+.cc-icon{border:3px solid var(--px-edge)!important;background:var(--px-wood)!important;color:var(--px-ink)!important}

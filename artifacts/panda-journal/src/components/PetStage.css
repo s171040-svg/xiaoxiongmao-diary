@@ -360,3 +360,23 @@
 /* Speech bubbles live above every room layer (furniture, bed, bath station, panda). */
 .ps-bubble-layer{position:fixed;z-index:9;inset:0;overflow:visible;pointer-events:none}
 .ps-bubble-anchor{position:absolute;left:var(--room-x,50%);top:var(--room-y,53%);width:calc(92px * var(--room-scale,.89));height:calc(92px * var(--room-scale,.89));transform:translate(-50%,-100%);pointer-events:none}
+
+/* Room framed in the screen centre; furniture defaults follow the framed room (vars set by PetStage). */
+.ps-room-surface[data-room-only=true]{background-color:#1b1722;background-image:linear-gradient(45deg,#241d2e 25%,transparent 25% 75%,#241d2e 75%),linear-gradient(45deg,#241d2e 25%,transparent 25% 75%,#241d2e 75%);background-size:16px 16px;background-position:0 0,8px 8px}
+.ps-room-surface[data-room-only=true] .ps-room-backdrop{background-color:transparent}
+.ps-room-surface[data-room-only=true] .ps-room-floor{background-color:transparent}
+.ps-room-surface[data-room-only=true]::after{content:"";position:absolute;left:var(--room-left,0);top:var(--room-top,0);width:var(--room-w,100%);height:var(--room-h,100%);box-sizing:border-box;border:6px solid #1d130a;box-shadow:0 0 0 4px #a97c46,0 0 0 8px #1d130a;z-index:3;pointer-events:none}
+.ps-room-rack{bottom:calc(var(--room-gap-bottom,0px) + var(--room-h,100vh) * .24)}
+.ps-room-bed{top:calc(var(--room-top,0px) + var(--room-h,100vh) * .68);left:calc(var(--room-left,0px) + var(--room-w,100vw) * .26)}
+.ps-bath-station{right:calc(var(--room-gap-right,0px) + var(--room-w,100vw) * .05);bottom:calc(var(--room-gap-bottom,0px) + var(--room-h,100vh) * .12)}
+.ps-space-letter-box{left:calc(var(--room-left,0px) + var(--room-w,100vw) * .05);bottom:calc(var(--room-gap-bottom,0px) + var(--room-h,100vh) * .12)}
+.ps-room-layout-controls{top:calc(var(--room-top,0px) + 14px)}
+
+/* Toys held by the pointer */
+.ps-toy{position:fixed;z-index:14;width:0;height:0;pointer-events:none}
+.ps-toy-laser i{position:absolute;left:-6px;top:-6px;width:12px;height:12px;background:#ff3b30;box-shadow:0 0 0 3px #ff3b3055,0 0 0 6px #ff3b3026,0 0 12px 4px #ff3b3088;animation:ps-laser-pulse .5s steps(2) infinite alternate}
+.ps-toy-laser b{display:none}
+.ps-toy-teaser i{position:absolute;left:-2px;top:-2px;width:4px;height:78px;background:#7a512f;transform-origin:50% 0;transform:rotate(-34deg) translateY(-2px);box-shadow:inset -2px 0 #4a2f1a}
+.ps-toy-teaser b{position:absolute;left:-14px;top:-18px;width:20px;height:20px;background:#e8453c;box-shadow:inset -4px -4px 0 #b5302a,inset 4px 4px 0 #ff8f7a,-6px 4px 0 -2px #ffd23f;animation:ps-teaser-wiggle .38s steps(2) infinite alternate}
+@keyframes ps-laser-pulse{from{transform:scale(1)}to{transform:scale(1.35)}}
+@keyframes ps-teaser-wiggle{from{translate:-2px 0;rotate:-8deg}to{translate:3px -2px;rotate:10deg}}
