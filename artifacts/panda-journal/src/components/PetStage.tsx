@@ -28,6 +28,13 @@ import {
   type RoomActivityState,
 } from '@/lib/room-activity';
 import {
+  PIXELLAB_TRANSITION_FRAME_FILES,
+  PIXEL_TRANSITION_FRAME_MS,
+  playPixelTransitionFrames,
+  type PixelTransitionKey,
+  type PixelTransitionPhase,
+} from '@/lib/pixel-transition';
+import {
   createGrabMotionStats,
   qualifiesAsWildGrab,
   recordGrabMotion,
@@ -89,8 +96,6 @@ const DIRTY_PLEAS = [
   '呜……小熊猫想洗香香。',
   '身上脏脏的，想泡个澡澡……',
 ];
-const ROOM_TRANSITION_FRAME_MS = 80;
-
 const BATHING_FRAME_COUNT = 8;
 const pandaStaticUrl = (path: string) => `${import.meta.env.BASE_URL}static/panda/${path}`;
 const CHEW_FRAME_COUNT = 14;
@@ -119,7 +124,7 @@ const ROOM_FURNITURE_OCCLUDERS = [
   { id: 'wardrobe', depth: 0.14, region: { left: 815, top: 45, right: 975, bottom: 335 } },
   { id: 'dresser', depth: 0.22, region: { left: 925, top: 215, right: 1024, bottom: 365 } },
 ] as const;
-type TransitionKey = 'idle' | 'chew' | 'jump' | 'cuddle' | 'tail' | 'lying' | 'sleep' | 'peeking' | 'captured-homecoming';
+type TransitionKey = PixelTransitionKey;
 type RoomWastePoint = { x: number; y: number };
 type RoomWastePointer = {
   pointerId: number;
@@ -127,17 +132,21 @@ type RoomWastePointer = {
   kind: 'pack' | 'drag';
   holdTimer: number;
 };
-const PIXELLAB_TRANSITION_FRAMES: Record<TransitionKey, string[]> = Object.fromEntries(
-  (['idle', 'chew', 'jump', 'cuddle', 'tail', 'lying', 'sleep', 'peeking', 'captured-homecoming'] as const).map((name) => [
-    name,
-    Array.from({ length: name === 'sleep' || name === 'tail' ? 7 : name === 'captured-homecoming' ? 6 : 5 }, (_, index) =>
-      pandaStaticUrl(name === 'captured-homecoming'
-        ? `frames/captured-homecoming-exit-${index + 1}.png?v=captured-homecoming-exit-1`
-        : `transitions/pixellab-walk-to-${name}-${index + 1}.png?v=${
-          name === 'chew' ? 'chew-feed-1'
-            : name === 'sleep' ? 'sleep-transition-2'
-              : name === 'tail' ? 'tail-chase-ccw-3' : 'pixellab-transition-1'
-        }`)),
+const TRANSITION_ASSET_VERSIONS: Record<TransitionKey, string> = {
+  idle: 'pixellab-transition-1',
+  chew: 'chew-feed-1',
+  jump: 'pixellab-transition-1',
+  cuddle: 'pixellab-transition-1',
+  tail: 'tail-chase-ccw-3',
+  lying: 'pixellab-transition-1',
+  sleep: 'sleep-transition-2',
+  peeking: 'pixellab-transition-1',
+  'captured-homecoming': 'captured-homecoming-exit-1',
+};
+const PIXELLAB_TRANSITION_FRAMES = Object.fromEntries(
+  Object.entries(PIXELLAB_TRANSITION_FRAME_FILES).map(([key, files]) => [
+    key,
+    files.map(file => `${pandaStaticUrl(file)}?v=${TRANSITION_ASSET_VERSIONS[key as TransitionKey]}`),
   ]),
 ) as Record<TransitionKey, string[]>;
 const ACTION_TRANSITION_KEY: Record<PerformanceAction, TransitionKey> = {
@@ -381,8 +390,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const lastWorldFallAtRef = useRef(Number.NEGATIVE_INFINITY);
   const spaceBlackHoleTouchingRef = useRef(false);
   const activityTransitionTimerRef = useRef(0);
-  const activityTransitionFrameTimerRef = useRef(0);
-  const activityTransitionSequenceRef = useRef(0);
+  const activityTransitionCancelRef = useRef<(() => void) | null>(null);
   const bambooDropTimerRef = useRef(0);
   const hoverCuddleTimerRef = useRef(0);
   const lastHoverCuddleAtRef = useRef(Number.NEGATIVE_INFINITY);
@@ -619,31 +627,27 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   }, [debugClicks]);
 
   const clearTransitionFrames = useCallback(() => {
-    activityTransitionSequenceRef.current += 1;
-    window.clearTimeout(activityTransitionFrameTimerRef.current);
-    activityTransitionFrameTimerRef.current = 0;
+    activityTransitionCancelRef.current?.();
+    activityTransitionCancelRef.current = null;
     setTransitionFrameSrc(null);
   }, []);
 
   const playTransitionFrames = useCallback((frames: string[], direction: 'entering' | 'waking', onComplete: () => void) => {
     clearTransitionFrames();
-    const sequence = activityTransitionSequenceRef.current;
-    let index = 0;
-    setActivityTransition(`frames-${direction}`);
-    const showNextFrame = () => {
-      if (activityTransitionSequenceRef.current !== sequence) return;
-      if (index >= frames.length) {
-        activityTransitionFrameTimerRef.current = 0;
-        setTransitionFrameSrc(null);
-        setActivityTransition(null);
-        onComplete();
-        return;
-      }
-      setTransitionFrameSrc(frames[index]);
-      index += 1;
-      activityTransitionFrameTimerRef.current = window.setTimeout(showNextFrame, ROOM_TRANSITION_FRAME_MS);
-    };
-    showNextFrame();
+    activityTransitionCancelRef.current = playPixelTransitionFrames(
+      frames,
+      direction,
+      { setTimeout: (callback, delay) => window.setTimeout(callback, delay), clearTimeout: timer => window.clearTimeout(timer) },
+      {
+        onFrame: setTransitionFrameSrc,
+        onPhase: (phase: PixelTransitionPhase) => setActivityTransition(phase),
+        onComplete: () => {
+          activityTransitionCancelRef.current = null;
+          onComplete();
+        },
+      },
+      PIXEL_TRANSITION_FRAME_MS,
+    );
   }, [clearTransitionFrames]);
 
   const clearActivityTransition = useCallback(() => {
@@ -811,7 +815,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
 
   useEffect(() => () => {
     window.clearTimeout(activityTransitionTimerRef.current);
-    window.clearTimeout(activityTransitionFrameTimerRef.current);
+    activityTransitionCancelRef.current?.();
   }, []);
 
   const triggerStartle = useCallback(() => {
