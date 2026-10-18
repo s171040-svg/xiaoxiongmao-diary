@@ -16,6 +16,7 @@ const catLabel: Record<string, string> = { leisure: '日常', idea: '点子', wo
 const devActionOptions: { action: PerformanceAction; label: string }[] = [
   { action: 'bamboo', label: '啃竹子' },
   { action: 'jump', label: '蹦跳' },
+  { action: 'spin', label: '原地转圈' },
   { action: 'somersault', label: '翻跟斗' },
   { action: 'tail', label: '追尾巴' },
   { action: 'cuddle', label: '蹭蹭撒娇' },

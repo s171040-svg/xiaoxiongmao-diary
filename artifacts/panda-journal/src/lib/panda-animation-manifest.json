@@ -3,6 +3,7 @@
   "frameCountBySprite": {
     "chew": 14,
     "dizzy": 8,
+    "roll": 4,
     "tail-chase": 5,
     "dirty-grab-lift": 6,
     "captured-homecoming": 6,
@@ -33,7 +34,7 @@
     "roll": "idle",
     "jump": "jump",
     "spin": "idle",
-    "somersault": "jump",
+    "somersault": "roll",
     "tail": "tail-chase",
     "tumble": "idle",
     "cuddle": "cuddle-wriggle",

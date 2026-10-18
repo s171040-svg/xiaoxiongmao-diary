@@ -27,7 +27,7 @@ export type SpacePoliceLetter = {
 export type PetEffect = {
   action: PerformanceAction | 'idle';
   stage: 'present' | 'performing' | 'fallen' | 'returning' | 'away';
-  duration: number; token: number; carrying?: string; userName?: string;
+  duration: number; token: number; carrying?: string; userName?: string; actionPreview?: boolean;
 };
 export type CompanionState = {
   version: 1; messages: ChatMessage[]; diary: DiaryMemory[]; gifts: Gift[];

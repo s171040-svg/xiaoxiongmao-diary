@@ -138,6 +138,7 @@ const TRANSITION_ASSET_VERSIONS: Record<TransitionKey, string> = {
   jump: 'pixellab-transition-1',
   cuddle: 'pixellab-transition-1',
   tail: 'tail-chase-ccw-3',
+  somersault: 'roll-to-lie-pose-2',
   lying: 'pixellab-transition-1',
   sleep: 'sleep-transition-2',
   peeking: 'pixellab-transition-1',
@@ -154,7 +155,7 @@ const ACTION_TRANSITION_KEY: Record<PerformanceAction, TransitionKey> = {
   roll: 'idle',
   jump: 'jump',
   spin: 'idle',
-  somersault: 'jump',
+  somersault: 'somersault',
   tail: 'tail',
   tumble: 'idle',
   cuddle: 'lying',
@@ -250,7 +251,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const seconds = Math.min(5, Math.max(2, pet.duration > 100 ? pet.duration / 1000 : pet.duration || 2));
   const requestedAction = pet.stage === 'performing' ? pet.action : 'idle';
   const action: PerformanceAction | 'idle' =
-    ['roll', 'spin', 'tumble'].includes(requestedAction) ? 'idle' : requestedAction;
+    ['roll', 'tumble'].includes(requestedAction) ? 'idle' : requestedAction;
   const capturedHomecoming = pet.stage === 'performing' && action === 'captured-homecoming';
   const basePoseClass = developerPose ? developerPose === 'sleeping' ? 'sleep' : 'idle' : motion;
   const [interactionState, setInteractionState] = useState<'roaming' | 'chat'>('roaming');
@@ -337,7 +338,12 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const [nightWakeOverride, setNightWakeOverride] = useState(false);
   const [debugEntries, setDebugEntries] = useState<string[]>([]);
   const previousDeveloperPoseRef = useRef<DeveloperPose | null>(null);
-  const previousPetStageRef = useRef({ stage: pet.stage, token: pet.token, action: pet.action });
+  const previousPetStageRef = useRef({
+    stage: pet.stage,
+    token: pet.token,
+    action: pet.action,
+    actionPreview: pet.actionPreview,
+  });
   const interactionStateRef = useRef<'roaming' | 'chat'>('roaming');
   const activityStateRef = useRef(activityState);
   activityStateRef.current = activityState;
@@ -590,6 +596,8 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     ? animationManifest.motionSprites.idle
     : pet.stage === 'performing' && action === 'captured-homecoming'
     ? animationManifest.actionSprites[action]
+    : pet.stage === 'performing' && (interactionState !== 'chat' || pet.actionPreview)
+    ? animationManifest.actionSprites[action]
     : interactionState === 'chat'
     ? animationManifest.motionSprites.idle
     : pet.stage === 'returning'
@@ -749,7 +757,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       && (previous.stage !== 'performing' || previous.token !== pet.token);
     const finishedPerformance = previous.stage === 'performing' && pet.stage === 'present';
 
-    if ((interactionStateRef.current !== 'chat' || pet.action === 'captured-homecoming') && startedPerformance) {
+    if ((interactionStateRef.current !== 'chat' || pet.action === 'captured-homecoming' || pet.actionPreview) && startedPerformance) {
       clearActivityTransition();
       setActivityState('roaming');
       setRoomWalking(false);
@@ -760,7 +768,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       playPixelTransition(performanceTransitionKey(pet.action), 'entering', () => {
         if (pet.action === 'bamboo') startBambooFeeding();
       });
-    } else if (interactionStateRef.current !== 'chat' && finishedPerformance) {
+    } else if ((interactionStateRef.current !== 'chat' || previous.actionPreview) && finishedPerformance) {
       clearActivityTransition();
       setRoomWalking(false);
       window.clearTimeout(bambooDropTimerRef.current);
@@ -789,8 +797,13 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       setBambooPhase('idle');
     }
 
-    previousPetStageRef.current = { stage: pet.stage, token: pet.token, action: pet.action };
-  }, [clearActivityTransition, pet.action, pet.stage, pet.token, playPixelTransition, playTransitionFrames, startBambooFeeding]);
+    previousPetStageRef.current = {
+      stage: pet.stage,
+      token: pet.token,
+      action: pet.action,
+      actionPreview: pet.actionPreview,
+    };
+  }, [clearActivityTransition, pet.action, pet.actionPreview, pet.stage, pet.token, playPixelTransition, playTransitionFrames, startBambooFeeding]);
 
   const beginActivityWake = useCallback(() => {
     if (interactionStateRef.current === 'chat') return;
@@ -1556,7 +1569,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     const isTransitioningFrames = activityTransition === 'frames-entering' || activityTransition === 'frames-waking';
     const waitingForSnack = pet.stage === 'performing' && pet.action === 'bamboo' && bambooPhase !== 'eating';
     const start = () => {
-      if (hidden || (interactionState === 'chat' && !isCapturedHomecoming) || document.visibilityState === 'hidden' || motionPreference.matches || timer
+      if (hidden || (interactionState === 'chat' && !isCapturedHomecoming && !pet.actionPreview) || document.visibilityState === 'hidden' || motionPreference.matches || timer
         || waitingForSnack
         || (showInteractionBubble && (activityState === 'lying' || isTransitioningFrames) && !isDirtyPickupTransition)) return;
       timer = window.setInterval(() => {
@@ -1598,7 +1611,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       motionPreference.removeEventListener('change', onMotionPreferenceChange);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, [activityState, activityTransition, bambooPhase, dirtyGrab, dizzyPhase, finishCapturedHomecomingPath, hidden, interactionState, motion, pet.action, pet.stage, pet.token, setFrame, setDirtyGrabLiftComplete, showInteractionBubble, sprite]);
+  }, [activityState, activityTransition, bambooPhase, dirtyGrab, dizzyPhase, finishCapturedHomecomingPath, hidden, interactionState, motion, pet.action, pet.actionPreview, pet.stage, pet.token, setFrame, setDirtyGrabLiftComplete, showInteractionBubble, sprite]);
 
   useEffect(() => {
     if (dirtyGrab) return;
@@ -2138,6 +2151,51 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   }, []);
 
   useEffect(() => {
+    if (!showInteractionBubble || !pet.actionPreview || pet.action !== 'tail' || pet.stage !== 'performing') return;
+
+    const center = nearestWalkableRoomPoint(positionRef.current);
+    const right = nearestWalkableRoomPoint({ u: center.u + 0.045, v: center.v });
+    const top = nearestWalkableRoomPoint({ u: center.u, v: center.v - 0.03 });
+    const left = nearestWalkableRoomPoint({ u: center.u - 0.045, v: center.v });
+    const bottom = nearestWalkableRoomPoint({ u: center.u, v: center.v + 0.03 });
+    const route = [center];
+    let from = center;
+    for (const target of [right, top, left, bottom, right]) {
+      const segment = planRoomWalkPath(from, target);
+      route.push(...segment.slice(1));
+      from = segment.at(-1) ?? from;
+    }
+    if (route.length < 2) return;
+
+    let frame = 0;
+    const startedAt = performance.now();
+    const duration = pet.duration > 100 ? pet.duration : pet.duration * 1000;
+    setRoomWalking(true);
+    const step = (now: number) => {
+      const progress = Math.min(1, (now - startedAt) / Math.max(1, duration));
+      const point = pointAlongRoomWalkPath(route, progress);
+      updateFacing(point.u - positionRef.current.u);
+      applyRoomPoint(point);
+      if (progress < 1) frame = window.requestAnimationFrame(step);
+    };
+    frame = window.requestAnimationFrame(step);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      setRoomWalking(false);
+    };
+  }, [
+    applyRoomPoint,
+    pet.action,
+    pet.actionPreview,
+    pet.duration,
+    pet.stage,
+    pet.token,
+    showInteractionBubble,
+    updateFacing,
+  ]);
+
+  useEffect(() => {
     const track = trackRef.current;
     if (!track) return;
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -2625,7 +2683,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
               <span className="ps-captured-impact-dust" aria-hidden="true"><i /><i /><i /></span>
             )}
               {!worldAway && (
-              <button ref={pandaButtonRef} type="button" className={`ps-panda ps-${hangingOnRack ? 'idle' : isCuddling ? 'cuddle' : pet.stage === 'performing' ? action : basePoseClass}${showInteractionBubble && roomWalking && !hangingOnRack ? ' ps-walking' : ''}${showInteractionBubble && activityTransition ? ` ps-transition-${activityTransition}` : ''}${pixelTransitionDirection ? ' ps-pixel-transition' : ''}${interactionState === 'chat' ? ' ps-chatting' : ''}${(showInteractionBubble && activityState === 'lying' || developerPose === 'lying') ? ' ps-lying' : ''}${(showInteractionBubble && activityState === 'peeking' || developerPose === 'peeking') ? ' ps-peeking' : ''}${isSleeping ? ' ps-sleeping' : ''}${developerPose === 'idle' ? ' ps-dev-idle' : ''}${startled ? ' ps-startled' : ''}${isPressPending ? ' ps-pressing' : ''}${reacting ? ' ps-reacting' : ''}${isDragging || developerGrab ? ' ps-dragging' : ''}${hangingOnRack ? ' ps-hanging' : ''}${dirtyGrab ? ' ps-dirty-grabbing' : ''}${showInteractionBubble && dizzyPhase !== 'none' ? ' ps-dizzy' : ''}${worldFallPhase === 'falling' ? ' ps-world-falling' : ''}${bathPhase === 'falling' ? ' ps-bath-dropping' : ''}${bathPhase === 'bathing' ? ' ps-bathing' : ''}${dirtyReturn ? ' ps-world-dirty' : ''}${isFlyChasing ? ' ps-fly-flee' : ''}`}
+      <button ref={pandaButtonRef} type="button" className={`ps-panda ps-${hangingOnRack ? 'idle' : isCuddling ? 'cuddle' : pet.stage === 'performing' ? action : basePoseClass}${showInteractionBubble && roomWalking && !hangingOnRack ? ' ps-walking' : ''}${showInteractionBubble && activityTransition ? ` ps-transition-${activityTransition}` : ''}${pixelTransitionDirection ? ' ps-pixel-transition' : ''}${interactionState === 'chat' ? ' ps-chatting' : ''}${(showInteractionBubble && activityState === 'lying' || developerPose === 'lying') ? ' ps-lying' : ''}${(showInteractionBubble && activityState === 'peeking' || developerPose === 'peeking') ? ' ps-peeking' : ''}${isSleeping ? ' ps-sleeping' : ''}${developerPose === 'idle' ? ' ps-dev-idle' : ''}${startled ? ' ps-startled' : ''}${isPressPending ? ' ps-pressing' : ''}${reacting ? ' ps-reacting' : ''}${isDragging || developerGrab ? ' ps-dragging' : ''}${hangingOnRack ? ' ps-hanging' : ''}${dirtyGrab ? ' ps-dirty-grabbing' : ''}${showInteractionBubble && dizzyPhase !== 'none' ? ' ps-dizzy' : ''}${worldFallPhase === 'falling' ? ' ps-world-falling' : ''}${bathPhase === 'falling' ? ' ps-bath-dropping' : ''}${bathPhase === 'bathing' ? ' ps-bathing' : ''}${dirtyReturn ? ' ps-world-dirty' : ''}${isFlyChasing ? ' ps-fly-flee' : ''}`}
                data-damp-after-bath={dampAfterBath && bathPhase === 'none' ? 'true' : undefined}
               onPointerEnter={handlePandaPointerEnter}
               onClick={handlePandaClick}

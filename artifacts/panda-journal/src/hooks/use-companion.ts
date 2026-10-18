@@ -121,6 +121,7 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
     const base: PetEffect = {
       ...petRef.current,
       ...plan,
+      actionPreview: undefined,
       duration: plan.action === 'bamboo' ? Math.max(plan.duration, 7000) : plan.duration,
       stage: 'performing',
       token: Date.now(),
@@ -151,7 +152,7 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
   }, [allowRandomPerformanceFall, append, later, motion, report]);
   const performTestAction = useCallback((action: PerformanceAction) => {
     if (!import.meta.env.DEV) throw new Error('动画检视仅在开发环境可用。');
-    if (['roll', 'spin', 'tumble'].includes(action)) return false;
+    if (['roll', 'tumble'].includes(action)) return false;
     if (petRef.current.stage !== 'present') return false;
     if (action === 'captured-homecoming') {
       try {
@@ -165,12 +166,13 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
       duration: action === 'bamboo' ? 7000 : action === 'captured-homecoming' ? CAPTURED_HOMECOMING_DURATION_MS : 3500,
       token: Date.now(),
       userName: current.current.userName,
+      actionPreview: true,
     };
     motion(base);
     if (action === 'captured-homecoming') return true;
     later(() => {
       if (petRef.current.token !== base.token || petRef.current.stage !== 'performing') return;
-      motion({ ...base, action: 'idle', stage: 'present', duration: 3000 });
+      motion({ ...base, action: 'idle', stage: 'present', duration: 3000, actionPreview: undefined });
       settle.current();
     }, base.duration);
     return true;
@@ -184,7 +186,15 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
       }
     } catch (e) { report(e); }
     queuedPerformance.current = false;
-    motion({ ...active, action: 'idle', stage: 'present', duration: 3000, token: Date.now(), carrying: undefined });
+    motion({
+      ...active,
+      action: 'idle',
+      stage: 'present',
+      duration: 3000,
+      token: Date.now(),
+      carrying: undefined,
+      actionPreview: undefined,
+    });
     return true;
   }, [motion, report, transact]);
   const markSpacePoliceLetterOpened = useCallback((letterId?: string) => {
