@@ -100,15 +100,15 @@ type Props = {
   locked: Record<RoomProp, boolean>;
 };
 
-const TOYS: { id: RoomToy; label: string; hint: string }[] = [
-  { id: 'teaser', label: '逗猫棒', hint: '拿起逗猫棒，小熊猫会跟着羽毛跑、扑一扑；再点一次或按 Esc 放回' },
-  { id: 'laser', label: '激光笔', hint: '拿起激光笔，红点移到哪里小熊猫就追到哪里；再点一次或按 Esc 放回' },
+const TOYS: { id: RoomToy; label: string }[] = [
+  { id: 'teaser', label: '逗猫棒' },
+  { id: 'laser', label: '激光笔' },
 ];
 
-const FURNITURE: { id: RoomProp; label: string; hint: string }[] = [
-  { id: 'tub', label: '浴缸', hint: '浴缸：把小熊猫拖进去洗澡，浴球会自动出现' },
-  { id: 'bed', label: '小窝', hint: '小窝：把小熊猫拖上去会睡觉' },
-  { id: 'rack', label: '晾衣架', hint: '晾衣架：把洗完澡的小熊猫挂上去晾干' },
+const FURNITURE: { id: RoomProp; label: string }[] = [
+  { id: 'tub', label: '浴缸' },
+  { id: 'bed', label: '小窝' },
+  { id: 'rack', label: '晾衣架' },
 ];
 
 export function RoomPropDock({ equippedToy, onSelectToy, placed, onTogglePlaced, locked }: Props) {
@@ -119,7 +119,7 @@ export function RoomPropDock({ equippedToy, onSelectToy, placed, onTogglePlaced,
       <div className="rp-group" role="group" aria-label="小玩具">
         {TOYS.map((toy) => (
           <button key={toy.id} type="button" className="rp-slot" aria-pressed={equippedToy === toy.id}
-            title={toy.hint} onClick={() => onSelectToy(toy.id)} data-testid={`prop-toy-${toy.id}`}>
+            aria-label={toy.label} onClick={() => onSelectToy(toy.id)} data-testid={`prop-toy-${toy.id}`}>
             <PixelIcon name={toy.id} />
             <span>{toy.label}</span>
           </button>
@@ -130,7 +130,7 @@ export function RoomPropDock({ equippedToy, onSelectToy, placed, onTogglePlaced,
         {FURNITURE.map((item) => (
           <button key={item.id} type="button" className="rp-slot" aria-pressed={placed[item.id]}
             disabled={locked[item.id]} data-placed={placed[item.id] ? 'true' : 'false'}
-            title={`${item.hint}；${placed[item.id] ? '点击收进道具区' : '点击摆进房间'}`}
+            aria-label={item.label}
             onClick={() => onTogglePlaced(item.id)} data-testid={`prop-furniture-${item.id}`}>
             <PixelIcon name={item.id} />
             <span>{item.label}</span>

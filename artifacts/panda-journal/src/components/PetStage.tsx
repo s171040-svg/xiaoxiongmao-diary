@@ -44,7 +44,6 @@ import {
 import {
   clampRoomFurnitureCenter,
   readRoomFurnitureLayout,
-  ROOM_FURNITURE_LAYOUT_KEY,
   writeRoomFurnitureLayout,
   type RoomFurnitureId,
   type RoomFurnitureLayout,
@@ -108,6 +107,7 @@ const DIZZY_HOLD_MS = 2400;
 const BAMBOO_DROP_MS = 780;
 const BATH_DROP_MS = 680;
 const BATH_BALL_DROP_MS = 720;
+const BATH_RUB_MS = 5000;
 const BATHING_FRAME_INTERVAL_MS = 160;
 const bathingFrameUrl = (frame: number) => pandaStaticUrl(`bathing-wash/${frame}.png?v=bath-wash-pixellab-1`);
 const bathingRubbingFrameUrl = (frame: number) => pandaStaticUrl(`bathing-soap/${frame}.png?v=bath-soap-pixellab-1`);
@@ -296,17 +296,14 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const [spacePoliceEnvelopeDragging, setSpacePoliceEnvelopeDragging] = useState(false);
   const [spacePoliceEnvelopeStoring, setSpacePoliceEnvelopeStoring] = useState(false);
   const [spacePoliceLetterReminderVisible, setSpacePoliceLetterReminderVisible] = useState(false);
-  const [roomFurnitureState, setRoomFurnitureState] = useState(() => {
+  const [roomFurnitureLayout, setRoomFurnitureLayout] = useState<RoomFurnitureLayout>(() => {
     if (typeof window === 'undefined') {
-      return { layout: {} as RoomFurnitureLayout, notice: '家具长按可移动 · 布局保存在本机' };
+      return {};
     }
     try {
-      return { layout: readRoomFurnitureLayout(window.localStorage), notice: '家具长按可移动 · 布局保存在本机' };
-    } catch {
-      return { layout: {} as RoomFurnitureLayout, notice: '本机布局读取失败，当前使用默认摆放。' };
-    }
+      return readRoomFurnitureLayout(window.localStorage);
+    } catch { return {}; }
   });
-  const roomFurnitureLayout = roomFurnitureState.layout;
   const roomFurnitureLayoutRef = useRef(roomFurnitureLayout);
   roomFurnitureLayoutRef.current = roomFurnitureLayout;
   const [draggingFurnitureId, setDraggingFurnitureId] = useState<RoomFurnitureId | null>(null);
@@ -381,6 +378,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const dirtyPleaTimerRef = useRef(0);
   const dirtyPleaHideTimerRef = useRef(0);
   const bathBallDropTimerRef = useRef(0);
+  const bathRubMsRef = useRef(0);
   const bathTubRef = useRef<HTMLImageElement>(null);
   const bathStationRef = useRef<HTMLDivElement>(null);
   const bedRef = useRef<HTMLImageElement>(null);
@@ -427,27 +425,35 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const updateRoomFurniturePoint = useCallback((id: RoomFurnitureId, point: RoomFurniturePoint) => {
     const next = { ...roomFurnitureLayoutRef.current, [id]: point };
     roomFurnitureLayoutRef.current = next;
-    setRoomFurnitureState((current) => ({ ...current, layout: next }));
+    setRoomFurnitureLayout(next);
   }, []);
 
   const persistRoomFurnitureLayout = useCallback((layout: RoomFurnitureLayout) => {
     try {
       writeRoomFurnitureLayout(window.localStorage, layout);
-      setRoomFurnitureState((current) => ({ ...current, notice: '家具摆放已保存在本机。' }));
-    } catch {
-      setRoomFurnitureState((current) => ({ ...current, notice: '家具位置已移动，但本机保存失败。' }));
-    }
+    } catch (error) { console.error('Could not save the room furniture layout.', error); }
   }, []);
 
-  const resetRoomFurnitureLayout = useCallback(() => {
-    try {
-      window.localStorage.removeItem(ROOM_FURNITURE_LAYOUT_KEY);
-      roomFurnitureLayoutRef.current = {};
-      setRoomFurnitureState({ layout: {}, notice: '已恢复默认摆放。' });
-    } catch {
-      setRoomFurnitureState((current) => ({ ...current, notice: '无法清除本机家具布局，请检查浏览器存储权限。' }));
+  const mailboxPlacement = useMemo(() => {
+    const width = 54;
+    const height = 52;
+    const scale = Math.min(viewportSize.width / ROOM_IMAGE_WIDTH, viewportSize.height / ROOM_IMAGE_HEIGHT);
+    const roomWidth = ROOM_IMAGE_WIDTH * scale;
+    const roomHeight = ROOM_IMAGE_HEIGHT * scale;
+    const left = (viewportSize.width - roomWidth) / 2;
+    const top = (viewportSize.height - roomHeight) / 2;
+    const below = viewportSize.height - (top + roomHeight);
+    let x = 6;
+    let y = viewportSize.height - height - 6;
+    if (left >= width + 8) {
+      x = left / 2 - width / 2;
+      y = top + roomHeight * 0.8;
+    } else if (below >= height + 120) {
+      x = 10;
+      y = top + roomHeight + 10;
     }
-  }, []);
+    return { left: x, top: y, bottom: 'auto', width, height } as const;
+  }, [viewportSize]);
 
   const roomFurnitureStyle = useCallback((
     id: RoomFurnitureId,
@@ -610,7 +616,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     : startled && showInteractionBubble
     ? animationManifest.motionSprites.idle
     : showInteractionBubble && toyPose && pet.stage === 'present' && activityState === 'roaming'
-    ? (toyPose === 'swat' ? 'jump' : 'tail-chase')
+    ? (equippedToy === 'teaser' ? 'toy-teaser' : 'toy-laser')
     : pet.stage === 'performing' && action === 'captured-homecoming'
     ? animationManifest.actionSprites[action]
     : pet.stage === 'performing' && (interactionState !== 'chat' || pet.actionPreview)
@@ -1107,6 +1113,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       x: pandaRect.left + pandaRect.width * 0.62 - 20,
       y: pandaRect.top + pandaRect.height * 0.08,
     };
+    bathRubMsRef.current = 0;
     bathBallOriginRef.current = position;
     setBathBallPosition(position);
     setBathBallPlaced(true);
@@ -1200,6 +1207,28 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
           setFlyChaseActive(false);
         }, DIRTY_FLY_DURATION_MS);
         break;
+      case 'toy-teaser':
+      case 'toy-laser': {
+        const toy = developerEvent.event === 'toy-teaser' ? 'teaser' : 'laser';
+        const pandaRect = pandaButtonRef.current?.getBoundingClientRect();
+        setEquippedToy(toy);
+        if (pandaRect) {
+          const pointer = {
+            x: Math.min(window.innerWidth - 24, pandaRect.right + 40),
+            y: pandaRect.top + pandaRect.height / 2,
+          };
+          toyPointerRef.current = pointer;
+          setToyPointer(pointer);
+        }
+        developerEventTimerRef.current = window.setTimeout(() => {
+          developerEventTimerRef.current = 0;
+          setEquippedToy(null);
+          toyPointerRef.current = null;
+          setToyPointer(null);
+          setToyPose(null);
+        }, 3200);
+        break;
+      }
     }
   }, [clearActivityTransition, developerEvent, setFrame, showInteractionBubble, startBathDropToTub, startDeveloperBathRub, startFlyChase, triggerStartle]);
 
@@ -1332,6 +1361,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
 
   useEffect(() => {
     if (!showInteractionBubble) {
+      bathRubMsRef.current = 0;
       if (bathPhaseRef.current !== 'none') setBathPhaseNow('none');
       window.clearTimeout(bathBallDropTimerRef.current);
       bathBallDropTimerRef.current = 0;
@@ -1344,6 +1374,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       return;
     }
     if (bathPhase !== 'bathing') {
+      bathRubMsRef.current = 0;
       window.clearTimeout(bathBallDropTimerRef.current);
       bathBallDropTimerRef.current = 0;
       setBathBallDropping(false);
@@ -2093,6 +2124,40 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     root.setProperty('--room-gap-right', `${left}px`);
   }, [viewportSize]);
 
+  // Movable furniture sorts against the fixed room cut-outs by where its base stands.
+  useLayoutEffect(() => {
+    if (!showInteractionBubble) return;
+    for (const element of [clothesRackRef.current, bedRef.current, bathStationRef.current]) {
+      if (!element) continue;
+      const rect = element.getBoundingClientRect();
+      const depth = unprojectRoomPoint(
+        ((rect.left + rect.width / 2) / Math.max(1, window.innerWidth)) * 100,
+        (rect.bottom / Math.max(1, window.innerHeight)) * 100,
+        window.innerWidth,
+        window.innerHeight,
+      ).v;
+      element.style.zIndex = String(roomFurnitureZIndex(depth) + 1);
+    }
+  }, [draggingFurnitureId, placedProps, roomFurnitureLayout, showInteractionBubble, viewportSize]);
+
+  useEffect(() => {
+    if (!showInteractionBubble || bathPhase !== 'bathing' || !bathRubbing) return undefined;
+    const startedAt = performance.now();
+    const alreadyRubbed = bathRubMsRef.current;
+    const timer = window.setTimeout(() => {
+      bathRubMsRef.current = BATH_RUB_MS;
+      bathBallDragRef.current = null;
+      setBathBallDragging(false);
+      setBathRubbing(false);
+      setBathBallPlaced(false);
+      setBathBallPosition(null);
+    }, Math.max(0, BATH_RUB_MS - alreadyRubbed));
+    return () => {
+      window.clearTimeout(timer);
+      bathRubMsRef.current = Math.min(BATH_RUB_MS, alreadyRubbed + performance.now() - startedAt);
+    };
+  }, [bathPhase, bathRubbing, showInteractionBubble]);
+
   useEffect(() => {
     if (!showInteractionBubble || !equippedToy) {
       toyPointerRef.current = null;
@@ -2100,7 +2165,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       return undefined;
     }
     const onMove = (event: PointerEvent) => {
-      const overDock = (event.target as Element | null)?.closest?.('.rp-dock, .cc-top, .ps-room-layout-controls, [role="dialog"]');
+      const overDock = (event.target as Element | null)?.closest?.('.rp-dock, .cc-top, [role="dialog"]');
       const next = overDock ? null : { x: event.clientX, y: event.clientY };
       toyPointerRef.current = next;
       setToyPointer(next);
@@ -2131,7 +2196,8 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       const pointer = toyPointerRef.current;
-      const busy = !pointer || pet.stage !== 'present' || activityState !== 'roaming' || draggingRef.current
+      const busy = !pointer || pet.stage !== 'present' || activityState !== 'roaming' || hidden || dampAfterBath
+        || developerGrab || flyChaseActive || worldFallPhase !== 'none' || draggingRef.current
         || bathPhaseRef.current !== 'none' || hangingOnRackRef.current || startledRef.current
         || interactionStateRef.current !== 'roaming';
       if (busy) { setWalk(false); setPose(null); nearSince = 0; return; }
@@ -2162,9 +2228,9 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       setWalk(false);
       updateFacing(dx);
       if (!nearSince) nearSince = now;
-      const phase = (now - nearSince) % 2800;
-      if (equippedToyRef.current === 'teaser') setPose(phase < 760 ? 'swat' : null);
-      else setPose(phase < 1700 ? 'pounce' : null);
+      const phase = (now - nearSince) % 4200;
+      if (equippedToyRef.current === 'teaser') setPose(phase < 2000 ? 'swat' : null);
+      else setPose(phase < 2000 ? 'pounce' : null);
     };
     raf = window.requestAnimationFrame(tick);
     return () => {
@@ -2172,7 +2238,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       setToyPose(null);
       setRoomWalking(false);
     };
-  }, [activityState, applyRoomPoint, equippedToy, pet.stage, showInteractionBubble, updateFacing]);
+  }, [activityState, applyRoomPoint, dampAfterBath, developerGrab, equippedToy, flyChaseActive, hidden, pet.stage, showInteractionBubble, updateFacing, worldFallPhase]);
 
   useEffect(() => {
     if (!equippedToy) return undefined;
@@ -2473,6 +2539,10 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       ? bathRubbing ? bathingRubbingFrameUrl(bathFrame) : bathingFrameUrl(bathFrame)
     : startled && showInteractionBubble
       ? pandaStaticUrl('startled.png?v=mouse-startle-pixflux-1')
+    : sprite === 'toy-teaser' || sprite === 'toy-laser'
+    ? frame === 0
+      ? pandaStaticUrl('idle.png?v=toy-loop-base-1')
+      : pandaStaticUrl(`frames/${sprite}-${frame}.png?v=pixellab-toy-actions-1`)
     : sprite === 'lying'
     ? LYING_SPRITE
     : sprite === 'cuddle-wriggle'
@@ -2670,27 +2740,11 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
               clipPath: roomImageRegionClipPath(furniture.region, window.innerWidth, window.innerHeight),
             }} />
         ))}
-        {showInteractionBubble && (
-          <div className="ps-room-layout-controls" data-testid="room-layout-controls">
-            <span className="ps-room-layout-hint" role="status" aria-live="polite">
-              {roomFurnitureState.notice}
-            </span>
-            {Object.keys(roomFurnitureLayout).length > 0 && (
-              <button type="button" className="ps-room-layout-reset"
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={(event) => { event.stopPropagation(); resetRoomFurnitureLayout(); }}
-                data-testid="reset-room-layout">
-                恢复默认摆放
-              </button>
-            )}
-          </div>
-        )}
         {showInteractionBubble && placedProps.rack && (
           <img ref={clothesRackRef}
             className={`ps-room-rack${draggingFurnitureId === 'rack' ? ' ps-furniture-dragging' : ''}`}
             src={`${import.meta.env.BASE_URL}static/room/panda-clothes-rack.png?v=bamboo-rack-1`}
-            alt="小熊猫晾衣架；把潮湿的小熊猫拖到横杆附近晾5秒，再长按抱下来；长按并拖动衣架可以调整位置"
-            title="长按并拖动，调整衣架位置" draggable={false}
+            alt="晾衣架" draggable={false}
             style={roomFurnitureStyle('rack', clothesRackRef)}
             onPointerDown={(event) => beginFurnitureMove('rack', event)}
             onPointerMove={moveFurniture}
@@ -2702,8 +2756,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
           <img ref={bedRef}
             className={`ps-room-bed${draggingFurnitureId === 'bed' ? ' ps-furniture-dragging' : ''}`}
             src={`${import.meta.env.BASE_URL}static/room/panda-nest-bed.png?v=panda-fresh-isometric-bed-5-paw-axis-perspective`}
-            alt="圆形藤编小熊猫窝；把小熊猫拖到床上就会睡觉；长按并拖动床可以调整位置"
-            title="长按并拖动，调整小熊猫窝的位置" draggable={false}
+            alt="小熊猫窝" draggable={false}
             style={roomFurnitureStyle('bed', bedRef)}
             onPointerDown={(event) => beginFurnitureMove('bed', event)}
             onPointerMove={moveFurniture}
@@ -2713,20 +2766,14 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
         )}
         {showInteractionBubble && onOpenSpacePoliceMailbox && (
           <button ref={spacePoliceMailboxRef} type="button"
-            className={`ps-space-letter-box${draggingFurnitureId === 'mailbox' ? ' ps-furniture-dragging' : ''}`}
+            className="ps-space-letter-box"
             aria-haspopup="dialog"
             aria-label={`打开时空警察来信箱，${spacePoliceMailCount ?? 0}封来信，${spacePoliceUnreadCount ?? 0}封未读`}
-            title={`${spacePoliceUnreadCount ? `时空警察来信箱 · ${spacePoliceUnreadCount}封未读` : '时空警察来信箱'}；长按并拖动可以调整位置`}
             data-testid="space-police-mailbox"
-            style={roomFurnitureStyle('mailbox', spacePoliceMailboxRef)}
-            onPointerDown={(event) => beginFurnitureMove('mailbox', event)}
-            onPointerMove={moveFurniture}
-            onPointerUp={finishFurnitureMove}
-            onPointerCancel={finishFurnitureMove}
-            onClickCapture={(event) => suppressFurnitureClick('mailbox', event)}
+            style={mailboxPlacement}
             onClick={(event) => { event.stopPropagation(); onOpenSpacePoliceMailbox(); }}>
             <span className="ps-space-letter-box-stamp" aria-hidden="true">✉</span>
-            <span className="ps-space-letter-box-label">时空信箱</span>
+            <span className="ps-space-letter-box-label">信箱</span>
             {spacePoliceUnreadCount > 0 && <span className="ps-space-letter-box-count" aria-hidden="true">{spacePoliceUnreadCount > 9 ? '9+' : spacePoliceUnreadCount}</span>}
           </button>
         )}
@@ -2929,8 +2976,8 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
             {showInteractionBubble && dampAfterBath && bathPhase === 'none' && (
               <span className="ps-damp-status" aria-live="off" data-testid="panda-damp-status">
                 {hangingOnRack
-                  ? dampDryingReady ? '晾好啦，长按抱下来' : `晾干中 ${dampDrySecondsRemaining} 秒`
-                  : '湿漉漉的，挂到衣架上晾 5 秒'}
+                  ? dampDryingReady ? '晾好啦' : `晾干中 ${dampDrySecondsRemaining} 秒`
+                  : '还湿着呢'}
               </span>
             )}
             {showInteractionBubble && worldFallPhase === 'dirty' && bathPhase === 'none'

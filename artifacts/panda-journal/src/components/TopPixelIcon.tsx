@@ -1,0 +1,110 @@
+const PALETTE: Record<string, string> = {
+  k: '#4a2f1a', w: '#fff6df', b: '#8a5a32', B: '#d9a15e', g: '#5f9e56', G: '#b6e083',
+  r: '#e0524a', R: '#ff9a88', y: '#f6cd47', Y: '#fff1a0', p: '#f19bbc', s: '#8f9aa0', S: '#cfd6d8',
+};
+
+const ICONS = {
+  diary: [
+    '................',
+    '..kkkkkkkkkkkk..',
+    '.kBBBBBkBBBBBBk.',
+    '.kBwwwwkwwwwwBk.',
+    '.kBwkkwkwkkkwBk.',
+    '.kBwwwwkwwwwwBk.',
+    '.kBwkkkkwkkwwBk.',
+    '.kBwwwwkwwwwwBk.',
+    '.kBwkkwkwprpwBk.',
+    '.kBwwwwkwwrwwBk.',
+    '.kBBBBBkBBBBBBk.',
+    '..kkkkkkkkkkkk..',
+    '................',
+    '................',
+    '................',
+    '................',
+  ],
+  inspect: [
+    '................',
+    '................',
+    '..kkkkkkkkkkkk..',
+    '.kYYkYYkYYkYYYk.',
+    '.kkkkkkkkkkkkkk.',
+    '.kGGGGGGGGGGGGk.',
+    '.kGGGkGGGGGGGGk.',
+    '.kGGGkkGGGGGGGk.',
+    '.kGGGkkkGGGGGGk.',
+    '.kGGGkkGGGGGGGk.',
+    '.kGGGkGGGGGGGGk.',
+    '.kGGGGGGGGGGGGk.',
+    '..kkkkkkkkkkkk..',
+    '................',
+    '................',
+    '................',
+  ],
+  gift: [
+    '................',
+    '.....kk..kk.....',
+    '....krrkkrrk....',
+    '....krRrrRrk....',
+    '.....kkrrkk.....',
+    '..kkkkkrrkkkkk..',
+    '.kRRRRRyyRRRRRk.',
+    '.kkkkkkkkkkkkkk.',
+    '.kRRRRryyrRRRRk.',
+    '.kRRRRryyrRRRRk.',
+    '.kRRRRryyrRRRRk.',
+    '.kRRRRryyrRRRRk.',
+    '.kRRRRryyrRRRRk.',
+    '..kkkkkkkkkkkk..',
+    '................',
+    '................',
+  ],
+  tool: [
+    '................',
+    '.........kkk....',
+    '........kSSSk...',
+    '.......kSSkkk...',
+    '......kSSk......',
+    '.....kSSk.......',
+    '....kBBk........',
+    '...kBBk.........',
+    '..kBBk..........',
+    '.kBBk...........',
+    '.kBk............',
+    '..k.............',
+    '................',
+    '................',
+    '................',
+    '................',
+  ],
+  close: [
+    '................',
+    '................',
+    '..kk........kk..',
+    '..krk......krk..',
+    '...krk....krk...',
+    '....krk..krk....',
+    '.....krkkrk.....',
+    '......krrk......',
+    '.....krkkrk.....',
+    '....krk..krk....',
+    '...krk....krk...',
+    '..krk......krk..',
+    '..kk........kk..',
+    '................',
+    '................',
+    '................',
+  ],
+} as const;
+
+export type TopPixelIconName = keyof typeof ICONS;
+
+export function TopPixelIcon({ name }: { name: TopPixelIconName }) {
+  const rows = ICONS[name];
+  return (
+    <svg className="top-pixel-icon" viewBox="0 0 16 16" shapeRendering="crispEdges" aria-hidden="true">
+      {rows.flatMap((row, y) => [...row].map((cell, x) => (
+        cell === '.' ? null : <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={PALETTE[cell]} />
+      )))}
+    </svg>
+  );
+}

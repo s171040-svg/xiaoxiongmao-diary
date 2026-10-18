@@ -1,11 +1,12 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { BookOpen, Gift as GiftIcon, ImagePlus, Pause, Play, RotateCw, SendHorizontal, Trash2, Wrench, X } from 'lucide-react';
+import { ImagePlus, Pause, Play, RotateCw, SendHorizontal, Trash2, X } from 'lucide-react';
 import type { CompanionController } from '@/hooks/use-companion';
 import type { ChatMessage, DeveloperEvent, DeveloperPose, MemoryKind, PerformanceAction, SpacePoliceLetter } from '@/lib/companion-types';
 import type { JournalEntry } from '@/lib/journal-types';
 import { splitReply } from '@/lib/reply-rhythm';
 import { VoiceButton } from '@/components/VoiceButton';
 import { PetStage } from '@/components/PetStage';
+import { TopPixelIcon } from '@/components/TopPixelIcon';
 import { GiftDrop } from '@/components/GiftDrop';
 import { EmotionCheckIn } from '@/components/EmotionCheckIn';
 import './CompanionChat.css';
@@ -39,6 +40,8 @@ const devEventOptions: { event: DeveloperEvent; label: string; durationMs: numbe
   { event: 'dirty-bath', label: '脏兮兮状态洗澡', durationMs: 5000, persistent: true },
   { event: 'dirty-bath-rub', label: '脏兮兮状态浴球搓洗', durationMs: 5000, persistent: true },
   { event: 'dirty-fly-chase', label: '脏兮兮小熊猫被苍蝇追', durationMs: 7000, persistent: true },
+  { event: 'toy-teaser', label: '逗猫棒追逐与扑抓', durationMs: 3200 },
+  { event: 'toy-laser', label: '追激光与扑点', durationMs: 3200 },
 ];
 type DevTestSelection =
   | { kind: 'action'; action: PerformanceAction }
@@ -357,13 +360,13 @@ export function CompanionChat({ companion: c, roomOnly = false }: { companion: C
       {(!roomOnly || !roomChatOpen) && <header className="cc-top">
         <div className="cc-title"><strong>小熊猫日记</strong><span>{c.nightMode ? '夜深了，轻轻聊' : '今天想聊点什么'}</span></div>
         <div className="cc-actions">
-          <button type="button" onClick={() => setPanel('diary')} data-testid="button-diary"><BookOpen size={16} /> 日记本</button>
+          <button type="button" onClick={() => setPanel('diary')} data-testid="button-diary" aria-label="日记本" title="日记本"><TopPixelIcon name="diary" /></button>
           {import.meta.env.DEV && c.performTestAction && (
-            <button type="button" onClick={() => setDevActionOpen(true)} data-testid="button-dev-action"><Play size={15} /> 动画检视</button>
+            <button type="button" onClick={() => setDevActionOpen(true)} data-testid="button-dev-action" aria-label="动画检视" title="动画检视"><TopPixelIcon name="inspect" /></button>
           )}
-          <button type="button" onClick={() => setPanel('gifts')} data-testid="button-gifts"><GiftIcon size={16} /> 小礼物</button>
+          <button type="button" onClick={() => setPanel('gifts')} data-testid="button-gifts" aria-label="小礼物" title="小礼物"><TopPixelIcon name="gift" /></button>
           {import.meta.env.DEV && DevGiftTool && c.addTestGift && (
-            <button type="button" onClick={() => setDevGiftOpen(true)} data-testid="button-dev-gift"><Wrench size={15} /> 测试礼物</button>
+            <button type="button" onClick={() => setDevGiftOpen(true)} data-testid="button-dev-gift" aria-label="测试礼物" title="测试礼物"><TopPixelIcon name="tool" /></button>
           )}
           {window.pandaDesktop && <button type="button" aria-label="收起聊天，回到桌面" onClick={() => window.pandaDesktop?.hideJournal()} data-testid="button-hide-chat"><X size={16} /></button>}
         </div>

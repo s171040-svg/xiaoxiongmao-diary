@@ -50,3 +50,22 @@ test('every animation inspector action has its own visible animation assets', ()
   assert.match(stageCss, /\.ps-panda\.ps-spin \.ps-body\{[^}]*ps-spin-in-place/);
   assert.match(stageCss, /\.ps-panda\.ps-somersault \.ps-body\{[^}]*ps-somersault-hop/);
 });
+
+test('both new toy interactions have complete transparent 96px frame sequences', () => {
+  assert.ok(manifestPath, 'could not locate the panda animation manifest');
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+    frameCountBySprite: Record<string, number>;
+  };
+  const assetRoot = resolve(dirname(manifestPath), '../../public/static/panda');
+
+  for (const sprite of ['toy-teaser', 'toy-laser']) {
+    assert.equal(manifest.frameCountBySprite[sprite], 8, `${sprite} should have eight generated poses`);
+    for (let frame = 1; frame <= 8; frame += 1) {
+      const image = readFileSync(resolve(assetRoot, `frames/${sprite}-${frame}.png`));
+      assert.equal(image.subarray(0, 8).toString('hex'), '89504e470d0a1a0a', `${sprite}-${frame} is a PNG`);
+      assert.equal(image.readUInt32BE(16), 96, `${sprite}-${frame} keeps the 96px width`);
+      assert.equal(image.readUInt32BE(20), 96, `${sprite}-${frame} keeps the 96px height`);
+      assert.ok(image.length > 1000, `${sprite}-${frame} contains real sprite artwork`);
+    }
+  }
+});
