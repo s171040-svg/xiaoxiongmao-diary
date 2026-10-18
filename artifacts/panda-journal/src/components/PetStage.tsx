@@ -13,6 +13,7 @@ import {
   pointAlongRoomWalkPath,
   randomWalkableRoomPoint,
   randomRoomPoint,
+  roomImagePolygonClipPath,
   roomImageRegionClipPath,
   roomWalkPathLength,
   ROOM_IMAGE_HEIGHT,
@@ -121,12 +122,31 @@ const chewFrameUrl = (frame: number) => pandaStaticUrl(
 const BAMBOO_SNACK_SPRITE = pandaStaticUrl('snack.png?v=chew-feed-2');
 const LYING_SPRITE = pandaStaticUrl('lying.png?v=lying-pose-2');
 const PEEKING_SPRITE = pandaStaticUrl('peeking.png?v=look-back-1');
-const ROOM_FURNITURE_OCCLUDERS = [
+const SPACE_BLACK_HOLE_OCCLUDER_Z_INDEX = 121;
+const ROOM_FURNITURE_OCCLUDERS: {
+  id: string;
+  depth: number;
+  region?: { left: number; top: number; right: number; bottom: number };
+  polygon?: readonly (readonly [number, number])[];
+  coversBlackHole?: boolean;
+}[] = [
   { id: 'cat-tree', depth: 0.05, region: { left: 300, top: 150, right: 550, bottom: 300 } },
   { id: 'armchair', depth: 0.03, region: { left: 590, top: 170, right: 790, bottom: 295 } },
   { id: 'wardrobe', depth: 0.14, region: { left: 815, top: 45, right: 975, bottom: 335 } },
   { id: 'dresser', depth: 0.22, region: { left: 925, top: 215, right: 1024, bottom: 365 } },
-] as const;
+  {
+    id: 'lower-left-plant',
+    depth: 0.82,
+    coversBlackHole: true,
+    polygon: [[0, 390], [15, 393], [29, 404], [43, 408], [56, 420], [73, 424], [88, 436], [101, 441], [92, 448], [74, 446], [61, 440], [47, 446], [31, 440], [16, 448], [0, 444]],
+  },
+  {
+    id: 'lower-right-plant',
+    depth: 0.92,
+    coversBlackHole: true,
+    polygon: [[880, 478], [884, 465], [894, 456], [906, 449], [922, 444], [938, 446], [950, 435], [968, 436], [981, 445], [1001, 449], [1014, 460], [1024, 461], [1024, 576], [931, 576], [921, 560], [905, 548], [895, 531], [883, 518], [875, 502], [879, 490]],
+  },
+];
 type TransitionKey = PixelTransitionKey;
 type RoomWastePoint = { x: number; y: number };
 type RoomWastePointer = {
@@ -2140,7 +2160,10 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
         window.innerWidth,
         window.innerHeight,
       ).v;
-      element.style.zIndex = String(roomFurnitureZIndex(depth) + 1);
+      const rackCoversBlackHole = element === clothesRackRef.current && depth >= 0.42;
+      element.style.zIndex = String(rackCoversBlackHole
+        ? SPACE_BLACK_HOLE_OCCLUDER_Z_INDEX
+        : roomFurnitureZIndex(depth) + 1);
     }
     if (bathPhaseRef.current === 'bathing' && draggingFurnitureId === 'bathStation') {
       const stationRect = bathStationRef.current?.getBoundingClientRect();
@@ -2760,12 +2783,18 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
             data-testid={`room-occlusion-${furniture.id}`}
             data-room-depth={furniture.depth.toFixed(3)}
             style={{
-              zIndex: roomFurnitureZIndex(furniture.depth),
+              zIndex: furniture.coversBlackHole
+                ? SPACE_BLACK_HOLE_OCCLUDER_Z_INDEX
+                : roomFurnitureZIndex(furniture.depth),
               backgroundImage: roomBackgroundImage,
               backgroundSize: roomBackgroundSize,
               backgroundPosition: 'center center',
               backgroundRepeat: 'no-repeat',
-              clipPath: roomImageRegionClipPath(furniture.region, window.innerWidth, window.innerHeight),
+              clipPath: furniture.polygon
+                ? roomImagePolygonClipPath(furniture.polygon, window.innerWidth, window.innerHeight)
+                : furniture.region
+                  ? roomImageRegionClipPath(furniture.region, window.innerWidth, window.innerHeight)
+                  : undefined,
             }} />
         ))}
         {showInteractionBubble && placedProps.rack && (

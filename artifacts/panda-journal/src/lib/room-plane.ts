@@ -52,6 +52,21 @@ export function roomImageRegionClipPath(
   ).toFixed(3)}% ${((imageTop + y * scale) / viewportHeight * 100).toFixed(3)}%`;
   return `polygon(${point(region.left, region.top)}, ${point(region.right, region.top)}, ${point(region.right, region.bottom)}, ${point(region.left, region.bottom)})`;
 }
+
+export function roomImagePolygonClipPath(
+  points: readonly (readonly [number, number])[],
+  viewportWidth: number,
+  viewportHeight: number,
+): string {
+  if (points.length < 3) throw new Error('A room image polygon needs at least three points.');
+  const scale = Math.min(viewportWidth / ROOM_IMAGE_WIDTH, viewportHeight / ROOM_IMAGE_HEIGHT);
+  const imageLeft = (viewportWidth - ROOM_IMAGE_WIDTH * scale) / 2;
+  const imageTop = (viewportHeight - ROOM_IMAGE_HEIGHT * scale) / 2;
+  return `polygon(${points.map(([x, y]) => `${(
+    (imageLeft + x * scale) / viewportWidth * 100
+  ).toFixed(3)}% ${((imageTop + y * scale) / viewportHeight * 100).toFixed(3)}%`).join(', ')})`;
+}
+
 function lightFalloff(u: number, v: number, centerU: number, centerV: number, radiusU: number, radiusV: number) {
   return Math.max(0, 1 - Math.hypot((u - centerU) / radiusU, (v - centerV) / radiusV));
 }

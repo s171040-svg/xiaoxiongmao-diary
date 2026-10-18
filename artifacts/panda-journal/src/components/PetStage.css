@@ -30,7 +30,7 @@
 .ps-room-bed{position:fixed;z-index:1;left:clamp(28px,26vw,360px);top:clamp(260px,66vh,560px);width:clamp(103px,12vw,150px);height:auto;transform:translate(-50%,-80%);image-rendering:pixelated;filter:drop-shadow(0 4px 5px #17131d40);pointer-events:auto;touch-action:none;user-select:none;cursor:grab}
 .ps-bath-station{position:fixed;z-index:2;right:clamp(14px,4vw,56px);bottom:clamp(78px,12vh,112px);display:flex;width:max-content;align-items:flex-end;gap:9px;pointer-events:auto;touch-action:none;user-select:none;cursor:grab}
 .ps-room-bathtub{position:static;display:block;width:clamp(96px,13vw,164px);height:auto;image-rendering:pixelated;filter:drop-shadow(0 3px 4px #443a2730);pointer-events:none;user-select:none}
-.ps-space-letter-box{position:fixed;z-index:3;left:clamp(18px,7vw,90px);bottom:clamp(82px,12vh,120px);box-sizing:border-box;display:flex;width:70px;height:62px;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:14px 5px 4px;border:2px solid #61432b;border-radius:3px;background:linear-gradient(90deg,#98683b 0 12%,#c08a50 13% 86%,#98683b 87%);box-shadow:inset 0 0 0 2px #dfbd7e,0 4px 0 #4e3523,0 6px 8px #29201938;image-rendering:pixelated;cursor:pointer;user-select:none;pointer-events:auto}
+.ps-space-letter-box{position:fixed;z-index:130;left:clamp(18px,7vw,90px);bottom:clamp(82px,12vh,120px);box-sizing:border-box;display:flex;width:70px;height:62px;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:14px 5px 4px;border:2px solid #61432b;border-radius:3px;background:linear-gradient(90deg,#98683b 0 12%,#c08a50 13% 86%,#98683b 87%);box-shadow:inset 0 0 0 2px #dfbd7e,0 4px 0 #4e3523,0 6px 8px #29201938;image-rendering:pixelated;cursor:pointer;user-select:none;pointer-events:auto}
 .ps-furniture-dragging{z-index:200!important;cursor:grabbing!important;filter:drop-shadow(0 7px 8px #201a1660) brightness(1.04)}
 .ps-bath-station.ps-furniture-dragging .ps-bath-box{cursor:grabbing}
 .ps-space-letter-box::before{position:absolute;top:3px;left:-5px;right:-5px;height:9px;border:2px solid #67472c;border-radius:2px;background:linear-gradient(#e8ca91 0 25%,#af7745 27%);box-shadow:0 2px 0 #66452a;content:""}
@@ -55,17 +55,17 @@
 .ps-bath-ball.ps-bath-ball-dragging{z-index:261;cursor:grabbing}
 .ps-bath-ball.ps-bath-ball-dropping{animation:ps-bath-ball-drop 720ms cubic-bezier(.2,.72,.3,1) both}
 .ps-bath-ball:focus-visible{outline:2px solid #5f8f72;outline-offset:2px}
-.ps-space-black-hole{position:fixed;z-index:0;display:grid;width:76px;height:76px;place-items:center;translate:-50% -50%;opacity:.96;pointer-events:none;transition:left 7.9s cubic-bezier(.22,.62,.28,1),top 7.9s cubic-bezier(.22,.62,.28,1);filter:drop-shadow(0 3px 0 #49352788)}
+.ps-space-black-hole{position:fixed;z-index:120;display:grid;width:76px;height:76px;place-items:center;translate:-50% -50%;opacity:.96;pointer-events:none;transition:left 7.9s cubic-bezier(.22,.62,.28,1),top 7.9s cubic-bezier(.22,.62,.28,1);filter:drop-shadow(0 3px 0 #49352788)}
 .ps-space-black-hole img{display:block;width:100%;height:100%;object-fit:contain;image-rendering:pixelated;animation:ps-space-hole-pulse 1.8s steps(2,end) infinite}
-.ps-room-waste{position:fixed;z-index:8;display:grid;width:48px;height:48px;padding:0;place-items:center;translate:-50% -50%;border:0;border-radius:50%;background:transparent;cursor:grab;pointer-events:auto;touch-action:none;user-select:none}
+.ps-room-waste{position:fixed;z-index:130;display:grid;width:48px;height:48px;padding:0;place-items:center;translate:-50% -50%;border:0;border-radius:50%;background:transparent;cursor:grab;pointer-events:auto;touch-action:none;user-select:none}
 .ps-room-waste-fresh{animation:ps-waste-wiggle 2.8s ease-in-out infinite}
 .ps-room-waste-poop{display:block;font:30px/1 "Apple Color Emoji","Segoe UI Emoji",sans-serif;filter:drop-shadow(0 2px 2px #39281e66);pointer-events:none}
 .ps-room-waste-bag{position:relative;display:block;width:26px;height:29px;border:2px solid #242124;border-radius:5px 5px 8px 8px;background:linear-gradient(90deg,#111114 0 20%,#29282a 21% 70%,#141315 71%);box-shadow:0 3px 4px #17121752;pointer-events:none}
 .ps-room-waste-bag::before{position:absolute;top:-6px;left:5px;width:12px;height:7px;border:2px solid #242124;border-bottom:0;border-radius:6px 6px 0 0;content:""}
 .ps-room-waste-bag::after{position:absolute;top:5px;left:5px;width:3px;height:16px;border-radius:3px;background:#ffffff2c;content:""}
 .ps-room-waste-bag i{position:absolute;top:2px;right:3px;width:5px;height:3px;background:#0b0b0d;transform:rotate(24deg)}
-.ps-room-waste-dragging{z-index:10;cursor:grabbing;filter:drop-shadow(0 7px 6px #18151c70)}
-.ps-room-waste-disposing{pointer-events:none;animation:ps-waste-into-hole 720ms cubic-bezier(.55,.08,.82,.36) both}
+.ps-room-waste-dragging{z-index:130;cursor:grabbing;filter:drop-shadow(0 7px 6px #18151c70)}
+.ps-room-waste-disposing{z-index:130;pointer-events:none;animation:ps-waste-into-hole 720ms cubic-bezier(.55,.08,.82,.36) both}
 .ps-room-waste-wrap{position:absolute;z-index:1;display:block;width:32px;height:34px;pointer-events:none}
 .ps-room-waste-wrap::before{position:absolute;inset:2px;border:2px solid #171719;border-radius:6px 6px 9px 9px;background:linear-gradient(90deg,#09090b 0 20%,#262528 21% 72%,#111113 73%);box-shadow:0 2px 2px #1b141770;content:"";animation:ps-waste-wrap-over 880ms cubic-bezier(.2,.8,.25,1) both}
 .ps-room-waste-wrap i{position:absolute;top:0;left:12px;width:6px;height:8px;border:2px solid #211f22;border-bottom:0;border-radius:5px 5px 0 0;content:"";animation:ps-waste-wrap-tie 880ms ease-in-out both}
@@ -350,7 +350,7 @@
 @keyframes ps-waste-into-hole{0%{rotate:0deg;scale:1;opacity:1}35%{rotate:160deg;scale:.78;opacity:.95}100%{rotate:720deg;scale:.05;opacity:0}}
 @media (prefers-reduced-motion:reduce){.ps-space-black-hole,.ps-space-black-hole img,.ps-room-waste-fresh,.ps-room-waste-wrap::before,.ps-room-waste-wrap i,.ps-room-waste-disposing{animation:none!important;transition-duration:.01ms!important}}
 /* Speech bubbles live above every room layer (furniture, bed, bath station, panda). */
-.ps-bubble-layer{position:fixed;z-index:9;inset:0;overflow:visible;pointer-events:none}
+.ps-bubble-layer{position:fixed;z-index:200;inset:0;overflow:visible;pointer-events:none}
 .ps-bubble-anchor{position:absolute;left:var(--room-x,50%);top:var(--room-y,53%);width:calc(92px * var(--room-scale,.89));height:calc(92px * var(--room-scale,.89));transform:translate(-50%,-100%);pointer-events:none}
 
 /* Room framed in the screen centre; furniture defaults follow the framed room (vars set by PetStage). */

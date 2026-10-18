@@ -14,6 +14,7 @@ import {
   randomRoomControlPoint,
   randomRoomPoint,
   randomWalkableRoomPoint,
+  roomImagePolygonClipPath,
   roomImageRegionClipPath,
   roomWalkPathLength,
   roomFurnitureZIndex,
@@ -148,9 +149,13 @@ for (let index = 0; index <= 300; index += 1) {
 
 const wideFurnitureClip = roomImageRegionClipPath({ left: 48, top: 68, right: 166, bottom: 142 }, 1200, 800);
 const tallFurnitureClip = roomImageRegionClipPath({ left: 48, top: 68, right: 166, bottom: 142 }, 400, 874);
+const widePlantClip = roomImagePolygonClipPath([[0, 390], [80, 410], [70, 470], [0, 460]], 1200, 800);
+const tallPlantClip = roomImagePolygonClipPath([[0, 390], [80, 410], [70, 470], [0, 460]], 400, 874);
 assert.equal(ROOM_IMAGE_WIDTH, 1024);
 assert.equal(ROOM_IMAGE_HEIGHT, 576);
 assert.ok(wideFurnitureClip.startsWith('polygon(') && tallFurnitureClip.startsWith('polygon('));
 assert.notEqual(wideFurnitureClip, tallFurnitureClip, 'furniture occlusion follows the image on wide and tall viewports');
+assert.ok(widePlantClip.startsWith('polygon(') && widePlantClip.split(',').length === 4);
+assert.notEqual(widePlantClip, tallPlantClip, 'plant occlusion follows the image on wide and tall viewports');
 
 console.log('PASS room projection, walkable targets, furniture-safe routes, image clipping and stepwise gait');
