@@ -193,6 +193,7 @@ type PandaDragPointer = {
   grabbedAt: number;
   motion: GrabMotionStats;
   movedBeforeGrab: boolean;
+  liftedFromBath: boolean;
 };
 
 type WorldFallPhase = 'none' | 'falling' | 'away' | 'returning' | 'dirty';
@@ -927,7 +928,8 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       bubbleAnchor.style.setProperty('--room-y', `${projected.y}%`);
       bubbleAnchor.style.setProperty('--room-scale', projected.scale.toFixed(3));
     }
-    track.style.zIndex = String(projected.zIndex);
+    // Room characters stay in front of movable furniture and fixed cut-outs.
+    track.style.zIndex = showInteractionBubble ? '240' : String(projected.zIndex);
     track.dataset.roomU = point.u.toFixed(3);
     track.dataset.roomV = point.v.toFixed(3);
     track.dataset.roomScale = projected.scale.toFixed(3);
@@ -1926,6 +1928,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       grabbedAt: 0,
       motion: createGrabMotionStats(performance.now()),
       movedBeforeGrab: false,
+      liftedFromBath: false,
     };
     dragPointerRef.current = drag;
     setIsPressPending(true);
@@ -1959,6 +1962,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       setActivityState('roaming');
       setSleepingOnBed(false);
       if (bathPhaseRef.current === 'bathing') {
+        activeDrag.liftedFromBath = true;
         setBathPhaseNow('none');
         setDampAfterBathNow(true);
         if (worldFallPhase !== 'none') setWorldFallPhase('none');
@@ -2021,7 +2025,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       && pandaCenterX >= bedRect.left && pandaCenterX <= bedRect.right
       && pandaCenterY >= bedRect.top && pandaCenterY <= bedRect.bottom;
     const droppedIntoTub = drag.grabbed && !cancelled && showInteractionBubble
-      && bathPhaseRef.current === 'none' && tubRect !== undefined
+      && !drag.liftedFromBath && bathPhaseRef.current === 'none' && tubRect !== undefined
       && event.clientX >= tubRect.left && event.clientX <= tubRect.right
       && event.clientY >= tubRect.top && event.clientY <= tubRect.bottom;
     const rackRodY = rackRect ? rackRect.top + rackRect.height * 0.27 : 0;
@@ -2138,7 +2142,31 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       ).v;
       element.style.zIndex = String(roomFurnitureZIndex(depth) + 1);
     }
-  }, [draggingFurnitureId, placedProps, roomFurnitureLayout, showInteractionBubble, viewportSize]);
+    if (bathPhaseRef.current === 'bathing' && draggingFurnitureId === 'bathStation') {
+      const stationRect = bathStationRef.current?.getBoundingClientRect();
+      const tubRect = bathTubRef.current?.getBoundingClientRect();
+      if (stationRect && tubRect) {
+        const screenX = tubRect.left + tubRect.width / 2;
+        const screenY = tubRect.top + tubRect.height * 0.86;
+        const target = unprojectRoomPoint(
+          (screenX / Math.max(1, window.innerWidth)) * 100,
+          (screenY / Math.max(1, window.innerHeight)) * 100,
+          window.innerWidth,
+          window.innerHeight,
+        );
+        updateFacing(target.u - positionRef.current.u);
+        applyRoomPoint(target);
+        const track = trackRef.current;
+        const bubbleAnchor = bubbleAnchorRef.current;
+        const screenXPercent = `${(screenX / Math.max(1, window.innerWidth)) * 100}%`;
+        const screenYPercent = `${(screenY / Math.max(1, window.innerHeight)) * 100}%`;
+        track?.style.setProperty('--room-x', screenXPercent);
+        track?.style.setProperty('--room-y', screenYPercent);
+        bubbleAnchor?.style.setProperty('--room-x', screenXPercent);
+        bubbleAnchor?.style.setProperty('--room-y', screenYPercent);
+      }
+    }
+  }, [applyRoomPoint, draggingFurnitureId, placedProps, roomFurnitureLayout, showInteractionBubble, updateFacing, viewportSize]);
 
   useEffect(() => {
     if (!showInteractionBubble || bathPhase !== 'bathing' || !bathRubbing) return undefined;
@@ -2743,7 +2771,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
         {showInteractionBubble && placedProps.rack && (
           <img ref={clothesRackRef}
             className={`ps-room-rack${draggingFurnitureId === 'rack' ? ' ps-furniture-dragging' : ''}`}
-            src={`${import.meta.env.BASE_URL}static/room/panda-clothes-rack.png?v=bamboo-rack-1`}
+            src={`${import.meta.env.BASE_URL}static/room/panda-clothes-rack.png?v=bamboo-rack-clean-2`}
             alt="晾衣架" draggable={false}
             style={roomFurnitureStyle('rack', clothesRackRef)}
             onPointerDown={(event) => beginFurnitureMove('rack', event)}
