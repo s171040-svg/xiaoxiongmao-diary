@@ -120,18 +120,18 @@ for (let index = 0; index < 500; index += 1) {
     'random room destinations stay on clear floor away from furniture');
 }
 
-const blockedPoint = { u: 0.6, v: 0.25 };
-assert.equal(isWalkableRoomPoint(blockedPoint), false, 'the panda bed footprint is blocked');
+const blockedPoint = { u: 0.88, v: 0.08 };
+assert.equal(isWalkableRoomPoint(blockedPoint), false, 'the wardrobe footprint is blocked');
 assert.ok(isWalkableRoomPoint(nearestWalkableRoomPoint(blockedPoint)),
   'a dragged point can be relocated to the nearest clear floor');
 assert.ok(isWalkableRoomPoint(nearestWalkableRoomPoint({ u: -1, v: 0.25 })),
   'points outside the room are clamped back onto clear floor');
 
-const obstacleRouteStart = { u: 0.42, v: 0.4 };
-const obstacleRouteEnd = { u: 0.83, v: 0.4 };
+const obstacleRouteStart = { u: 0.2, v: 0.09 };
+const obstacleRouteEnd = { u: 0.65, v: 0.2 };
 assert.ok(isWalkableRoomPoint(obstacleRouteStart) && isWalkableRoomPoint(obstacleRouteEnd));
 const obstacleRoute = planRoomWalkPath(obstacleRouteStart, obstacleRouteEnd);
-assert.ok(obstacleRoute.length > 2, 'the route detours around the panda bed instead of crossing it');
+assert.ok(obstacleRoute.length > 2, 'the route detours around the cat tree instead of crossing it');
 assert.ok(roomWalkPathLength(obstacleRoute)
   > Math.hypot(obstacleRouteEnd.u - obstacleRouteStart.u, obstacleRouteEnd.v - obstacleRouteStart.v));
 for (const [index, point] of obstacleRoute.entries()) {
@@ -148,8 +148,8 @@ for (let index = 0; index <= 300; index += 1) {
 
 const wideFurnitureClip = roomImageRegionClipPath({ left: 48, top: 68, right: 166, bottom: 142 }, 1200, 800);
 const tallFurnitureClip = roomImageRegionClipPath({ left: 48, top: 68, right: 166, bottom: 142 }, 400, 874);
-assert.equal(ROOM_IMAGE_WIDTH, 400);
-assert.equal(ROOM_IMAGE_HEIGHT, 180);
+assert.equal(ROOM_IMAGE_WIDTH, 1024);
+assert.equal(ROOM_IMAGE_HEIGHT, 576);
 assert.ok(wideFurnitureClip.startsWith('polygon(') && tallFurnitureClip.startsWith('polygon('));
 assert.notEqual(wideFurnitureClip, tallFurnitureClip, 'furniture occlusion follows the image on wide and tall viewports');
 

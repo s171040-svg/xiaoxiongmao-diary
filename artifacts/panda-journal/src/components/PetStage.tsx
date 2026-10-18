@@ -114,10 +114,10 @@ const BAMBOO_SNACK_SPRITE = pandaStaticUrl('snack.png?v=chew-feed-2');
 const LYING_SPRITE = pandaStaticUrl('lying.png?v=lying-pose-2');
 const PEEKING_SPRITE = pandaStaticUrl('peeking.png?v=look-back-1');
 const ROOM_FURNITURE_OCCLUDERS = [
-  { id: 'bed', depth: 0.52, region: { left: 48, top: 68, right: 166, bottom: 142 } },
-  { id: 'panda-bed', depth: 0.42, region: { left: 206, top: 80, right: 289, bottom: 137 } },
-  { id: 'gift-cabinet', depth: 0.28, region: { left: 297, top: 44, right: 355, bottom: 122 } },
-  { id: 'side-table', depth: 0.55, region: { left: 344, top: 84, right: 387, bottom: 144 } },
+  { id: 'cat-tree', depth: 0.05, region: { left: 300, top: 150, right: 550, bottom: 300 } },
+  { id: 'armchair', depth: 0.03, region: { left: 590, top: 170, right: 790, bottom: 295 } },
+  { id: 'wardrobe', depth: 0.14, region: { left: 815, top: 45, right: 975, bottom: 335 } },
+  { id: 'dresser', depth: 0.22, region: { left: 925, top: 215, right: 1024, bottom: 365 } },
 ] as const;
 type TransitionKey = 'idle' | 'chew' | 'jump' | 'cuddle' | 'tail' | 'lying' | 'sleep' | 'peeking' | 'captured-homecoming';
 type RoomWastePoint = { x: number; y: number };
@@ -390,6 +390,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const [facing, setFacing] = useState<'left' | 'right'>('right');
   const facingRef = useRef<'left' | 'right'>('right');
   const trackRef = useRef<HTMLDivElement>(null);
+  const bubbleAnchorRef = useRef<HTMLDivElement>(null);
   const positionRef = useRef<RoomPoint>({ u: 0.5, v: 0.58 });
   const mousePositionRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -855,6 +856,12 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     track.style.setProperty('--room-x', `${projected.x}%`);
     track.style.setProperty('--room-y', `${projected.y}%`);
     track.style.setProperty('--room-scale', projected.scale.toFixed(3));
+    const bubbleAnchor = bubbleAnchorRef.current;
+    if (bubbleAnchor) {
+      bubbleAnchor.style.setProperty('--room-x', `${projected.x}%`);
+      bubbleAnchor.style.setProperty('--room-y', `${projected.y}%`);
+      bubbleAnchor.style.setProperty('--room-scale', projected.scale.toFixed(3));
+    }
     track.style.zIndex = String(projected.zIndex);
     track.dataset.roomU = point.u.toFixed(3);
     track.dataset.roomV = point.v.toFixed(3);
@@ -956,9 +963,9 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       if (!rackRect || !pandaRect) return;
       const width = Math.max(1, window.innerWidth);
       const height = Math.max(1, window.innerHeight);
-      const rodY = rackRect.top + rackRect.height * 0.15;
+      const rodY = rackRect.top + rackRect.height * 0.27;
       const target = unprojectRoomPoint(
-        ((rackRect.left + rackRect.width * 0.4) / width) * 100,
+        ((rackRect.left + rackRect.width * 0.2) / width) * 100,
         ((rodY + pandaRect.height) / height) * 100,
         width,
         height,
@@ -1918,13 +1925,13 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       && bathPhaseRef.current === 'none' && tubRect !== undefined
       && event.clientX >= tubRect.left && event.clientX <= tubRect.right
       && event.clientY >= tubRect.top && event.clientY <= tubRect.bottom;
-    const rackRodY = rackRect ? rackRect.top + rackRect.height * 0.15 : 0;
+    const rackRodY = rackRect ? rackRect.top + rackRect.height * 0.27 : 0;
     const rackHangCenterY = rackRodY + (pandaRect?.height ?? 0) * 0.5;
     const droppedOntoRack = drag.grabbed && !cancelled && showInteractionBubble
       && rackRect !== undefined && pandaRect !== undefined
-      && pandaCenterX >= rackRect.left + rackRect.width * 0.08
+      && pandaCenterX >= rackRect.left - rackRect.width * 0.35
       && pandaCenterX <= rackRect.right - rackRect.width * 0.08
-      && Math.abs(pandaCenterY - rackHangCenterY) <= Math.max(48, rackRect.height * 0.16);
+      && Math.abs(pandaCenterY - rackHangCenterY) <= Math.max(48, rackRect.height * 0.2);
     if (drag.holdTimer) window.clearTimeout(drag.holdTimer);
     dragPointerRef.current = null;
     setIsPressPending(false);
@@ -2402,7 +2409,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     setPoopDragPosition(null);
   }, [onDisposeSpacePolicePoopBag, onMoveSpacePolicePoopBag, poopDragPosition]);
 
-  const roomBackgroundImage = `url("${import.meta.env.BASE_URL}static/room/room-background-pixellab.png")`;
+  const roomBackgroundImage = `url("${import.meta.env.BASE_URL}static/room/room-background-pixellab.png?v=bamboo-room-1")`;
   const roomBackgroundSize = `min(100vw, ${(ROOM_IMAGE_WIDTH / ROOM_IMAGE_HEIGHT) * 100}vh) auto`;
   const roomFloorBounds = roomFloorBoundsPercent(window.innerWidth, window.innerHeight);
   const roomImageStyle = showInteractionBubble ? {
@@ -2477,7 +2484,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
         {showInteractionBubble && (
           <img ref={clothesRackRef}
             className={`ps-room-rack${draggingFurnitureId === 'rack' ? ' ps-furniture-dragging' : ''}`}
-            src={`${import.meta.env.BASE_URL}static/room/panda-clothes-rack.svg?v=panda-hanging-rack-1`}
+            src={`${import.meta.env.BASE_URL}static/room/panda-clothes-rack.png?v=bamboo-rack-1`}
             alt="小熊猫晾衣架；把潮湿的小熊猫拖到横杆附近晾5秒，再长按抱下来；长按并拖动衣架可以调整位置"
             title="长按并拖动，调整衣架位置" draggable={false}
             style={roomFurnitureStyle('rack', clothesRackRef)}
@@ -2580,27 +2587,6 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
               <span className="ps-captured-time-vortex" aria-hidden="true">
                 <img src={CAPTURED_TIME_VORTEX_SPRITE} alt="" draggable={false} />
               </span>
-            )}
-            {showInteractionBubble && worldFallMessageVisible && (
-              <span className="ps-thinking ps-room-chat-bubble ps-world-fall-bubble" role="status" aria-live="polite"
-                data-testid="panda-world-fall-message">掉出去啦！</span>
-            )}
-            {showInteractionBubble && dampAfterBath && bathPhase === 'none' && (
-              <span className="ps-damp-status" aria-live="off" data-testid="panda-damp-status">
-                {hangingOnRack
-                  ? dampDryingReady ? '晾好啦，长按抱下来' : `晾干中 ${dampDrySecondsRemaining} 秒`
-                  : '湿漉漉的，挂到衣架上晾 5 秒'}
-              </span>
-            )}
-            {showInteractionBubble && worldFallPhase === 'dirty' && bathPhase === 'none'
-              && interactionState === 'roaming' && activityState === 'roaming' && !developerPose
-              && !isSleeping && !isDragging && !hangingOnRack && dirtyPleaText && (
-                <span className="ps-thinking ps-room-chat-bubble ps-world-dirty-plea" role="status" aria-live="polite"
-                  data-testid="panda-dirty-plea">{dirtyPleaText}</span>
-            )}
-            {showInteractionBubble && !dampAfterBath && !capturedHomecoming && worldFallPhase === 'none' && !isSleeping && !startled && !isDragging && !hangingOnRack && interactionBubbleText && (
-              <span className="ps-thinking ps-room-chat-bubble" role="status" aria-live="polite"
-                data-testid="panda-chat-bubble">{interactionBubbleText}</span>
             )}
             {showInteractionBubble && !worldAway && bathPhase !== 'bathing' && !hangingOnRack && (
               <span className={`ps-ground-shadow${isSleeping ? ' ps-ground-shadow-sleeping' : ''}${capturedHomecoming ? ' ps-captured-impact-shadow' : ''}${isCuddling ? ' ps-ground-shadow-cuddling' : ''}`}
@@ -2723,6 +2709,33 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
           </aside>
         )}
       </div>
+      {showInteractionBubble && (
+        <div className="ps-bubble-layer" aria-live="off">
+          <div ref={bubbleAnchorRef} className="ps-bubble-anchor">
+            {showInteractionBubble && worldFallMessageVisible && (
+              <span className="ps-thinking ps-room-chat-bubble ps-world-fall-bubble" role="status" aria-live="polite"
+                data-testid="panda-world-fall-message">掉出去啦！</span>
+            )}
+            {showInteractionBubble && dampAfterBath && bathPhase === 'none' && (
+              <span className="ps-damp-status" aria-live="off" data-testid="panda-damp-status">
+                {hangingOnRack
+                  ? dampDryingReady ? '晾好啦，长按抱下来' : `晾干中 ${dampDrySecondsRemaining} 秒`
+                  : '湿漉漉的，挂到衣架上晾 5 秒'}
+              </span>
+            )}
+            {showInteractionBubble && worldFallPhase === 'dirty' && bathPhase === 'none'
+              && interactionState === 'roaming' && activityState === 'roaming' && !developerPose
+              && !isSleeping && !isDragging && !hangingOnRack && dirtyPleaText && (
+                <span className="ps-thinking ps-room-chat-bubble ps-world-dirty-plea" role="status" aria-live="polite"
+                  data-testid="panda-dirty-plea">{dirtyPleaText}</span>
+            )}
+            {showInteractionBubble && !dampAfterBath && !capturedHomecoming && worldFallPhase === 'none' && !isSleeping && !startled && !isDragging && !hangingOnRack && interactionBubbleText && (
+              <span className="ps-thinking ps-room-chat-bubble" role="status" aria-live="polite"
+                data-testid="panda-chat-bubble">{interactionBubbleText}</span>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

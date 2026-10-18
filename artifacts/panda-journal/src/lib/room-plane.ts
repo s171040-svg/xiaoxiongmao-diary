@@ -16,12 +16,12 @@ const clamp = (value: number) => Math.min(1, Math.max(0, value));
 const ROOM_MIN = 0.08;
 const ROOM_MAX = 0.92;
 const PANDA_MIN_SCALE = 0.62;
-export const ROOM_IMAGE_WIDTH = 400;
-export const ROOM_IMAGE_HEIGHT = 180;
-const ROOM_IMAGE_FLOOR_FAR_Y = 101;
-const ROOM_IMAGE_FLOOR_NEAR_Y = 173;
-const FLOOR_FAR_HALF_WIDTH = 37;
-const FLOOR_NEAR_HALF_WIDTH = 45;
+export const ROOM_IMAGE_WIDTH = 1024;
+export const ROOM_IMAGE_HEIGHT = 576;
+const ROOM_IMAGE_FLOOR_FAR_Y = 300;
+const ROOM_IMAGE_FLOOR_NEAR_Y = 565;
+const FLOOR_FAR_HALF_WIDTH = 46;
+const FLOOR_NEAR_HALF_WIDTH = 48;
 
 const WALKER_CLEARANCE = 0.018;
 const clampRoom = (value: number) => Math.min(ROOM_MAX, Math.max(ROOM_MIN, value));
@@ -231,13 +231,13 @@ export function isWalkableRoomPoint(point: RoomPoint): boolean {
 }
 
 const ROOM_OBSTACLES = [
-  { minU: 0.025, maxU: 0.39, minV: 0.26, maxV: 0.56 }, // bed and its footboard
-  { minU: 0.49, maxU: 0.79, minV: 0.13, maxV: 0.43 }, // panda bed
-  { minU: 0.34, maxU: 0.48, minV: 0.015, maxV: 0.16 }, // small chest
-  { minU: 0.77, maxU: 0.98, minV: 0.02, maxV: 0.31 }, // display wardrobe
-  { minU: 0.87, maxU: 0.99, minV: 0.34, maxV: 0.55 }, // side table
-  { minU: 0.08, maxU: 0.16, minV: 0.37, maxV: 0.56 }, // bamboo planter
-  { minU: 0.42, maxU: 0.57, minV: 0.015, maxV: 0.14 }, // floor lamp and plant
+  { minU: 0.31, maxU: 0.54, minV: 0, maxV: 0.1 }, // cat tree base
+  { minU: 0.57, maxU: 0.77, minV: 0, maxV: 0.08 }, // panda armchair
+  { minU: 0.79, maxU: 0.96, minV: 0, maxV: 0.16 }, // wardrobe
+  { minU: 0.9, maxU: 1, minV: 0.1, maxV: 0.3 }, // dresser
+  { minU: 0, maxU: 0.13, minV: 0, maxV: 0.28 }, // left shelf and table
+  { minU: 0, maxU: 0.14, minV: 0.38, maxV: 1 }, // bottom-left planter
+  { minU: 0.82, maxU: 1, minV: 0.52, maxV: 1 }, // bottom-right plant
 ] as const;
 
 function getWalkableRoomSamples(): RoomPoint[] {

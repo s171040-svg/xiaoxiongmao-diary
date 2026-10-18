@@ -352,7 +352,7 @@ async function main() {
     const plane = planeElement.getBoundingClientRect();
     const backdrop = planeElement.querySelector(".ps-room-backdrop");
     const floor = planeElement.querySelector(".ps-room-floor");
-    const furniture = document.querySelector('[data-testid="room-occlusion-bed"]');
+    const furniture = document.querySelector('[data-testid="room-occlusion-cat-tree"]');
     return {
       stage, plane,
       surfaceDisplay: getComputedStyle(planeElement).display,
