@@ -114,7 +114,7 @@ const bathingRubbingFrameUrl = (frame: number) => pandaStaticUrl(`bathing-soap/$
 const dirtyBathingFrameUrl = (frame: number) => pandaStaticUrl(`bathing-dirty/${frame}.png?v=dirty-bath-pixellab-1`);
 const dirtyBathingRubbingFrameUrl = (frame: number) => pandaStaticUrl(`bathing-dirty-soap/${frame}.png?v=dirty-bath-soap-pixellab-1`);
 const BATH_PUFF_SPRITE = `${import.meta.env.BASE_URL}static/room/bath-puff.png?v=bath-puff-1`;
-const CAPTURED_TIME_VORTEX_SPRITE = pandaStaticUrl('captured-time-portal.png?v=space-portal-1');
+const CAPTURED_TIME_VORTEX_SPRITE = pandaStaticUrl('captured-time-portal.svg?v=room-portal-pixel-2');
 const chewFrameUrl = (frame: number) => pandaStaticUrl(
   frame === 0 ? 'chew.png?v=chew-feed-4' : `frames/chew-${frame}.png?v=chew-feed-4`,
 );
@@ -2745,14 +2745,14 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
          data-damp-drying-ready={dampDryingReady ? 'true' : undefined}
          style={{ ['--ps-dur' as string]: `${seconds}s` }}>
         {spaceBlackHoleVisible && (
-          <div ref={spaceBlackHoleRef} className="ps-space-black-hole" aria-label="缓慢移动的时空黑洞"
+          <div ref={spaceBlackHoleRef} className="ps-space-black-hole" aria-label="时空回收门；拖动黑色袋子到这里，小熊猫碰到会掉出房间"
             role="img" data-testid="space-time-black-hole"
             style={{
               left: `${spaceBlackHolePosition.x}%`,
               top: `${spaceBlackHolePosition.y}%`,
               transitionDuration: developerEvent?.event === 'world-fall' ? '0ms' : undefined,
             }}>
-            <span aria-hidden="true" />
+            <img src={CAPTURED_TIME_VORTEX_SPRITE} alt="" aria-hidden="true" draggable={false} />
           </div>
         )}
         {showInteractionBubble && ROOM_FURNITURE_OCCLUDERS.map((furniture) => (
