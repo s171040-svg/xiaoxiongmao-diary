@@ -1,6 +1,6 @@
 {
   "name": "@workspace/panda-journal",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,7 +9,7 @@
     "desktop:build": "node desktop/build.cjs",
     "desktop:start": "node desktop/launch.cjs",
     "desktop:installer:win": "node desktop/package-win.cjs",
-    "desktop:test": "node --test desktop/ai.test.cjs desktop/roaming-geometry.test.cjs ../../lib/companion-ai/src/index.test.cjs && pnpm --filter @workspace/api-server exec esbuild ../panda-journal/src/lib/companion-store.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/panda-companion-unit.cjs && node /tmp/panda-companion-unit.cjs && pnpm --filter @workspace/api-server exec esbuild ../panda-journal/src/lib/room-plane.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/panda-room-plane-unit.cjs && node /tmp/panda-room-plane-unit.cjs && pnpm --filter @workspace/api-server exec esbuild ../panda-journal/src/lib/panda-grab-motion.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/panda-grab-motion-unit.cjs && node /tmp/panda-grab-motion-unit.cjs && node desktop/smoke.cjs",
+    "desktop:test": "node --test desktop/ai.test.cjs desktop/pet-window.test.cjs desktop/roaming-geometry.test.cjs ../../lib/companion-ai/src/index.test.cjs && pnpm --filter @workspace/api-server exec esbuild ../panda-journal/src/lib/companion-store.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/panda-companion-unit.cjs && node /tmp/panda-companion-unit.cjs && pnpm --filter @workspace/api-server exec esbuild ../panda-journal/src/lib/room-plane.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/panda-room-plane-unit.cjs && node /tmp/panda-room-plane-unit.cjs && pnpm --filter @workspace/api-server exec esbuild ../panda-journal/src/lib/panda-grab-motion.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/panda-grab-motion-unit.cjs && node /tmp/panda-grab-motion-unit.cjs && node desktop/smoke.cjs",
     "build": "vite build --config vite.config.ts",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit"

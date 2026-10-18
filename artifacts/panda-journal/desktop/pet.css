@@ -157,14 +157,21 @@ html[data-full-desktop="true"] .pet-home-bathtub {
   border-radius: 8px;
   outline: none;
   background: transparent;
-  cursor: pointer;
+  cursor: grab;
   -webkit-app-region: no-drag;
-  touch-action: manipulation;
+  touch-action: none;
   animation: panda-float 4.1s ease-in-out infinite;
   scale: var(--depth-scale, .62);
 }
 
 .panda-button:hover { transform: translateY(-3px); scale: calc(var(--depth-scale, .62) * 1.035); }
+.panda-button[data-dragging="true"],
+.panda-button[data-dragging="true"]:hover,
+.panda-button[data-dragging="true"]:active {
+  cursor: grabbing;
+  transform: none;
+  animation: none;
+}
 .panda-button:active { transform: translateY(1px); scale: calc(var(--depth-scale, .62) * .97); }
 .panda-button:focus-visible {
   outline: 2px solid #668b70;

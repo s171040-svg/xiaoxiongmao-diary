@@ -8,7 +8,7 @@ const vm = require("node:vm");
 
 const sandbox = { module: { exports: {} }, globalThis: {} };
 vm.runInNewContext(fs.readFileSync(path.join(__dirname, "roaming-geometry.js"), "utf8"), sandbox);
-const { projectRoomPoint, actorBounds, isPointClear, isSegmentClear, findSafePoint } = sandbox.module.exports;
+const { projectRoomPoint, actorBounds, isPointClear, isSegmentClear, findSafePoint, roomPointFromAnchor } = sandbox.module.exports;
 
 test("full desktop roaming covers the screen while keeping the current panda scale", () => {
   const nearLeft = projectRoomPoint({ u: 0, v: 0 }, 1920, 1080, true);
@@ -48,4 +48,16 @@ test("roaming finds a clear route around a window and stops if no clear space ex
     () => 0.5,
   );
   assert.equal(noSpace, null);
+});
+
+test("dragging maps a screen anchor back onto the same room point", () => {
+  const point = { u: 0.37, v: 0.62 };
+  const projected = projectRoomPoint(point, 1600, 900, true);
+  const restored = roomPointFromAnchor(projected.x, projected.y, true);
+  assert.ok(Math.abs(restored.u - point.u) < 1e-9);
+  assert.ok(Math.abs(restored.v - point.v) < 1e-9);
+  const clamped = roomPointFromAnchor(-40, 400, true);
+  assert.equal(clamped.u, 0);
+  assert.equal(clamped.v, 1);
+  assert.equal(roomPointFromAnchor(50, 50, false), null);
 });
