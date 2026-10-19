@@ -6,6 +6,7 @@ import {
   type RoomFurnitureLayout,
   type RoomFurniturePoint,
 } from '@/lib/room-furniture-layout';
+import { ROOM_IMAGE_HEIGHT, ROOM_IMAGE_WIDTH } from '@/lib/room-plane';
 
 type EyeFurnitureId = Exclude<RoomFurnitureId, 'mailbox'>;
 type ScreenPosition = { x: number; y: number };
@@ -46,7 +47,7 @@ type RoomEyeControlOptions = {
 };
 
 const ROOM_EYE_HOLD_MS = 520;
-const ROOM_EYE_HOME_ANCHOR = { xRatio: 0.48, yRatio: 0.33 } as const;
+const ROOM_EYE_SOFA_ANCHOR = { xRatio: 0.66, yRatio: 0.45 } as const;
 
 export function useRoomEyeControl({
   showInteractionBubble,
@@ -103,11 +104,21 @@ export function useRoomEyeControl({
 
   useLayoutEffect(() => {
     if (!showInteractionBubble || dragging) return;
+    if (placement.kind === 'home') {
+      const scale = Math.min(viewportSize.width / ROOM_IMAGE_WIDTH, viewportSize.height / ROOM_IMAGE_HEIGHT);
+      const imageLeft = (viewportSize.width - ROOM_IMAGE_WIDTH * scale) / 2;
+      const imageTop = (viewportSize.height - ROOM_IMAGE_HEIGHT * scale) / 2;
+      updateScreenPosition({
+        x: imageLeft + ROOM_IMAGE_WIDTH * ROOM_EYE_SOFA_ANCHOR.xRatio * scale,
+        y: imageTop + ROOM_IMAGE_HEIGHT * ROOM_EYE_SOFA_ANCHOR.yRatio * scale,
+      });
+      return;
+    }
     if (placement.kind === 'free') {
       updateScreenPosition({ x: placement.x, y: placement.y });
       return;
     }
-    const id = placement.kind === 'home' ? 'rack' : placement.id;
+    const id = placement.id;
     if (!furniturePlaced(id)) {
       updateScreenPosition(null);
       return;
@@ -117,11 +128,9 @@ export function useRoomEyeControl({
       updateScreenPosition(null);
       return;
     }
-    const xRatio = placement.kind === 'home' ? ROOM_EYE_HOME_ANCHOR.xRatio : placement.xRatio;
-    const yRatio = placement.kind === 'home' ? ROOM_EYE_HOME_ANCHOR.yRatio : placement.yRatio;
     updateScreenPosition({
-      x: rect.left + rect.width * xRatio,
-      y: rect.top + rect.height * yRatio,
+      x: rect.left + rect.width * placement.xRatio,
+      y: rect.top + rect.height * placement.yRatio,
     });
   }, [dragging, furnitureElement, furniturePlaced, placement, roomFurnitureLayout, showInteractionBubble, updateScreenPosition, viewportSize]);
 
@@ -172,9 +181,7 @@ export function useRoomEyeControl({
   const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     if (!showInteractionBubble || !event.isPrimary || event.button !== 0 || hasEquippedToy || hasSelectedSnack) return;
-    const sourceFurniture = placement.kind === 'home'
-      ? 'rack'
-      : placement.kind === 'attached' ? placement.id : null;
+    const sourceFurniture = placement.kind === 'attached' ? placement.id : null;
     if (sourceFurniture && !canControlFurniture(sourceFurniture)) return;
     event.preventDefault();
     const element = event.currentTarget;

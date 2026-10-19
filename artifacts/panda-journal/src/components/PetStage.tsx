@@ -3165,7 +3165,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
         {showInteractionBubble && placedProps.rack && (
           <img ref={clothesRackRef}
             className={`ps-room-rack${draggingFurnitureId === 'rack' ? ' ps-furniture-dragging' : ''}${roomEye.controlledFurnitureId === 'rack' ? ' ps-furniture-controlled' : ''}`}
-            src={`${import.meta.env.BASE_URL}static/room/${roomEye.placement.kind === 'home' ? 'panda-clothes-rack.png?v=bamboo-rack-clean-2' : 'panda-clothes-rack-web-no-eyes.png?v=rack-eyes-detached-1'}`}
+            src={`${import.meta.env.BASE_URL}static/room/${showInteractionBubble ? 'panda-clothes-rack-web-no-eyes.png?v=rack-eyes-detached-1' : 'panda-clothes-rack.png?v=bamboo-rack-clean-2'}`}
             alt="晾衣架" draggable={false}
             style={roomFurnitureStyle('rack', clothesRackRef)}
             onPointerDown={(event) => beginFurnitureMove('rack', event)}
@@ -3220,20 +3220,19 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
               className={`ps-room-rack-eye${roomEye.dragging ? ' ps-room-rack-eye-dragging' : ''}${roomEye.controlledFurnitureId ? ' ps-room-rack-eye-controlled' : ''}`}
               style={{ left: `${roomEye.screenPosition.x}px`, top: `${roomEye.screenPosition.y}px` }}
               aria-label={roomEye.controlledFurnitureId
-                ? `衣帽架小眼睛已附在${roomEye.controlledFurnitureId === 'bathStation' ? '浴缸' : roomEye.controlledFurnitureId === 'bed' ? '小熊猫窝' : '晾衣架'}上，方向键移动，Escape收回`
-                : roomEye.placement.kind === 'home' ? '衣帽架小眼睛，长按拖动' : '小眼睛，长按拖动并放到家具上以控制家具'}
+                ? `小眼睛已附在${roomEye.controlledFurnitureId === 'bathStation' ? '浴缸' : roomEye.controlledFurnitureId === 'bed' ? '小熊猫窝' : '晾衣架'}上，方向键移动，Escape收回`
+                : roomEye.placement.kind === 'home' ? '沙发坐垫上的小眼睛，长按拖动' : '小眼睛，长按拖动并放到家具上以控制家具'}
               title={roomEye.controlledFurnitureId ? '方向键移动家具，Shift加速，Escape收回眼睛' : '长按移动'}
               data-testid="room-rack-eye"
               data-controlled-furniture={roomEye.controlledFurnitureId ?? undefined}
+              data-eye-start="sofa"
               onPointerDown={roomEye.handlePointerDown}
               onPointerMove={roomEye.handlePointerMove}
               onPointerUp={roomEye.handlePointerUp}
               onPointerCancel={roomEye.handlePointerCancel}
               onClick={(event) => event.stopPropagation()}>
-              {roomEye.placement.kind !== 'home' && (
-                <img src={`${import.meta.env.BASE_URL}static/room/panda-clothes-rack-eyes.png?v=split-rack-eyes-1`}
-                  alt="" aria-hidden="true" draggable={false} />
-              )}
+              <img src={`${import.meta.env.BASE_URL}static/room/panda-clothes-rack-eyes.png?v=split-rack-eyes-1`}
+                alt="" aria-hidden="true" draggable={false} />
             </button>
             {roomEye.controlledFurnitureId && (
               <span className="ps-room-rack-eye-hint" role="status" aria-live="polite"
