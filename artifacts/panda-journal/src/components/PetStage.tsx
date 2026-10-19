@@ -1041,9 +1041,8 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     return () => window.clearTimeout(reminder);
   }, [showInteractionBubble, spacePoliceLetter?.deliveredAt, spacePoliceLetter?.openedAt]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!showInteractionBubble || !hangingOnRack) return undefined;
-    let scheduledFrame = 0;
     const alignToRack = () => {
       const rackRect = clothesRackRef.current?.getBoundingClientRect();
       const pandaRect = pandaButtonRef.current?.getBoundingClientRect();
@@ -1059,17 +1058,12 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       );
       applyRoomPoint(target);
     };
-    const scheduleAlignment = () => {
-      window.cancelAnimationFrame(scheduledFrame);
-      scheduledFrame = window.requestAnimationFrame(alignToRack);
-    };
-    scheduleAlignment();
-    window.addEventListener('resize', scheduleAlignment);
+    alignToRack();
+    window.addEventListener('resize', alignToRack);
     return () => {
-      window.cancelAnimationFrame(scheduledFrame);
-      window.removeEventListener('resize', scheduleAlignment);
+      window.removeEventListener('resize', alignToRack);
     };
-  }, [applyRoomPoint, hangingOnRack, showInteractionBubble]);
+  }, [applyRoomPoint, draggingFurnitureId, hangingOnRack, roomFurnitureLayout, showInteractionBubble, viewportSize]);
 
   const startBathDropToTub = useCallback(() => {
     const tubRect = bathTubRef.current?.getBoundingClientRect();
