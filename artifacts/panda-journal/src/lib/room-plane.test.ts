@@ -34,8 +34,16 @@ import {
 const far = projectRoomPoint({ u: 0.5, v: 0.1 });
 const near = projectRoomPoint({ u: 0.5, v: 0.9 });
 assert.ok(near.y > far.y);
-assert.equal(near.scale, far.scale, 'the web-room panda stays at its minimum size at every depth');
-assert.equal(far.scale, 0.62, 'the fixed scale matches the existing minimum animation size');
+assert.ok(near.scale > far.scale, 'the panda appears larger closer to the front of the room');
+assert.ok(far.scale < 0.62, 'the panda appears smaller toward the back of the room');
+assert.equal(projectRoomPoint({ u: 0.5, v: 0.92 }).scale, 0.62,
+  'the panda keeps its original size at the lower walkable edge');
+assert.equal(projectRoomPoint({ u: 0.5, v: 1 }).scale, 0.62,
+  'the panda keeps its original size at the nearest room edge');
+assert.ok(Math.abs(projectRoomPoint(CAT_TREE_NEST_POINT).scale - (0.62 * 2 / 3)) < 1e-12,
+  'the panda scales to two-thirds at the nest');
+assert.ok(projectRoomPoint(CAT_TREE_WALK_PATH[0]).scale > projectRoomPoint(CAT_TREE_NEST_POINT).scale,
+  'the panda gradually shrinks while climbing toward the nest');
 assert.ok(near.zIndex > far.zIndex);
 assert.ok(near.shadowScale > far.shadowScale);
 assert.ok(near.shadowOpacity > far.shadowOpacity);

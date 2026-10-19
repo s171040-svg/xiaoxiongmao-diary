@@ -15,7 +15,8 @@ export type RoomProjection = {
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
 const ROOM_MIN = 0.08;
 const ROOM_MAX = 0.92;
-const PANDA_MIN_SCALE = 0.62;
+const PANDA_BASE_SCALE = 0.62;
+const PANDA_NEST_SCALE_RATIO = 2 / 3;
 export const ROOM_IMAGE_WIDTH = 1024;
 export const ROOM_IMAGE_HEIGHT = 576;
 const ROOM_IMAGE_FLOOR_FAR_Y = 300;
@@ -30,6 +31,8 @@ const ROOM_WALK_DEPTH = ROOM_MIN;
 const ROOM_WALK_BASE_IMAGE_Y = ROOM_IMAGE_FLOOR_FAR_Y
   + ROOM_WALK_DEPTH * (ROOM_IMAGE_FLOOR_NEAR_Y - ROOM_IMAGE_FLOOR_FAR_Y);
 const CAT_TREE_NEST_ELLIPSE = { x: 400, y: 118, radiusX: 35, radiusY: 27 };
+const PANDA_PERSPECTIVE_BOTTOM_Y = ROOM_IMAGE_FLOOR_FAR_Y
+  + ROOM_MAX * (ROOM_IMAGE_FLOOR_NEAR_Y - ROOM_IMAGE_FLOOR_FAR_Y);
 
 const CAT_TREE_WALK_IMAGE_PATH = [
   { x: 560, y: 321 },
@@ -69,6 +72,8 @@ function roomPointImagePosition(point: RoomPoint): { x: number; y: number } {
       - (point.elevation ?? 0) * ROOM_IMAGE_HEIGHT,
   };
 }
+
+const PANDA_PERSPECTIVE_TOP_Y = roomPointImagePosition(CAT_TREE_NEST_POINT).y;
 
 function isInsideCatTreeNest(imagePoint: { x: number; y: number }): boolean {
   const dx = (imagePoint.x - CAT_TREE_NEST_ELLIPSE.x) / CAT_TREE_NEST_ELLIPSE.radiusX;
@@ -212,6 +217,13 @@ export function projectRoomPoint(point: RoomPoint, viewportWidth = ROOM_IMAGE_WI
   const depth = clamp(point.v);
   const floor = roomFloorBoundsPercent(viewportWidth, viewportHeight);
   const halfWidth = lerp(FLOOR_FAR_HALF_WIDTH, FLOOR_NEAR_HALF_WIDTH, depth);
+  const imageY = ROOM_IMAGE_FLOOR_FAR_Y
+    + depth * (ROOM_IMAGE_FLOOR_NEAR_Y - ROOM_IMAGE_FLOOR_FAR_Y)
+    - (point.elevation ?? 0) * ROOM_IMAGE_HEIGHT;
+  const perspectiveDepth = clamp(
+    (imageY - PANDA_PERSPECTIVE_TOP_Y)
+    / (PANDA_PERSPECTIVE_BOTTOM_Y - PANDA_PERSPECTIVE_TOP_Y),
+  );
   const windowLight = lightFalloff(u, depth, 0.24, 0.24, 0.38, 0.28) * 0.028;
   const lampLight = lightFalloff(u, depth, 0.74, 0.46, 0.24, 0.2) * 0.02;
   const ambientBrightness = Math.min(1, 0.88 + depth * 0.1 + windowLight + lampLight);
@@ -220,7 +232,7 @@ export function projectRoomPoint(point: RoomPoint, viewportWidth = ROOM_IMAGE_WI
   return {
     x: 50 + (u - 0.5) * 2 * halfWidth,
     y: lerp(floor.far, floor.near, depth) - elevationPercent,
-    scale: PANDA_MIN_SCALE,
+    scale: PANDA_BASE_SCALE * lerp(PANDA_NEST_SCALE_RATIO, 1, perspectiveDepth),
     zIndex: roomDepthZIndex(depth),
     depth,
     shadowScale: lerp(0.58, 1.06, depth),
@@ -240,7 +252,7 @@ export function projectDesktopPoint(point: RoomPoint): RoomProjection {
   return {
     x: 50 + (u - 0.5) * 2 * halfWidth,
     y: 14 + v * 62,
-    scale: PANDA_MIN_SCALE,
+    scale: PANDA_BASE_SCALE,
     zIndex: 10 + Math.round(v * 100),
     depth: v,
     shadowScale: 1,
@@ -257,7 +269,7 @@ export function projectScreenPoint(point: RoomPoint): RoomProjection {
   return {
     x: u * 100,
     y: depth * 100,
-    scale: PANDA_MIN_SCALE,
+    scale: PANDA_BASE_SCALE,
     zIndex: roomDepthZIndex(depth),
     depth,
     shadowScale: 0.9,
