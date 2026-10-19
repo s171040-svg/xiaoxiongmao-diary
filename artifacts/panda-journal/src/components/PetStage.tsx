@@ -292,6 +292,8 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const [isDragging, setIsDragging] = useState(false);
   const [isPressPending, setIsPressPending] = useState(false);
   const [bathPhase, setBathPhase] = useState<BathPhase>('none');
+  const [bathTransition, setBathTransition] = useState<'exiting' | null>(null);
+  const [bathExitImage, setBathExitImage] = useState<string | null>(null);
   const [dampAfterBath, setDampAfterBath] = useState(false);
   const [dampDryingReady, setDampDryingReady] = useState(false);
   const [dampDrySecondsRemaining, setDampDrySecondsRemaining] = useState(DAMP_RACK_DRY_MS / 1000);
@@ -393,6 +395,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const bathBallDragRef = useRef<BathBallPointer | null>(null);
   const bathBallOriginRef = useRef<ScreenPosition | null>(null);
   const bathDropTimerRef = useRef(0);
+  const bathExitTimerRef = useRef(0);
   const developerEventTimerRef = useRef(0);
   const dirtyFlyTimerRef = useRef(0);
   const dirtyFlyEndTimerRef = useRef(0);
@@ -1085,6 +1088,9 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     updateFacing(target.u - previous.u);
     applyRoomPoint(target);
     setDampAfterBathNow(false);
+    setBathTransition(null);
+    setBathExitImage(null);
+    window.clearTimeout(bathExitTimerRef.current);
     window.clearTimeout(bathDropTimerRef.current);
     setBathPhaseNow('falling');
     bathDropTimerRef.current = window.setTimeout(() => {
@@ -1962,6 +1968,12 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       reactionTimerRef.current = 0;
       firstActivationAtRef.current = null;
       window.clearTimeout(startleTimerRef.current);
+       window.clearTimeout(bathExitTimerRef.current);
+       bathExitTimerRef.current = 0;
+       if (bathTransition === 'exiting') {
+         setBathTransition(null);
+         setBathExitImage(null);
+       }
       startleTimerRef.current = 0;
       startledRef.current = false;
       setStartled(false);
@@ -1977,6 +1989,16 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       setSleepingOnBed(false);
       if (bathPhaseRef.current === 'bathing') {
         activeDrag.liftedFromBath = true;
+         const exitImage = dirtyReturn
+           ? bathRubbing ? dirtyBathingRubbingFrameUrl(bathFrame) : dirtyBathingFrameUrl(bathFrame)
+           : bathRubbing ? bathingRubbingFrameUrl(bathFrame) : bathingFrameUrl(bathFrame);
+         setBathExitImage(exitImage);
+         setBathTransition('exiting');
+         bathExitTimerRef.current = window.setTimeout(() => {
+           bathExitTimerRef.current = 0;
+           setBathTransition(null);
+           setBathExitImage(null);
+         }, 380);
         setBathPhaseNow('none');
         setDampAfterBathNow(true);
         if (worldFallPhase !== 'none') setWorldFallPhase('none');
@@ -2367,6 +2389,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     window.clearTimeout(chatIdleTimerRef.current);
     window.clearTimeout(startleTimerRef.current);
     window.clearTimeout(bathDropTimerRef.current);
+    window.clearTimeout(bathExitTimerRef.current);
     window.clearTimeout(developerEventTimerRef.current);
     window.clearTimeout(dirtyFlyTimerRef.current);
     window.clearTimeout(dirtyFlyEndTimerRef.current);
@@ -2566,7 +2589,9 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     worldFallPhase,
   ]);
 
-  const image = dirtyGrab && sprite === 'dirty-grab-lift'
+  const image = bathTransition === 'exiting' && bathExitImage
+    ? bathExitImage
+    : dirtyGrab && sprite === 'dirty-grab-lift'
     ? frame === 0
       ? pandaStaticUrl('dirty-return.png?v=world-fall-1')
       : pandaStaticUrl(`frames/dirty-grab-lift-${frame}.png?v=dirty-grab-lift-pixen-2`)
@@ -2890,7 +2915,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
               <span className="ps-captured-impact-dust" aria-hidden="true"><i /><i /><i /></span>
             )}
               {!worldAway && (
-      <button ref={pandaButtonRef} type="button" className={`ps-panda ps-${hangingOnRack ? 'idle' : isCuddling ? 'cuddle' : pet.stage === 'performing' ? action : basePoseClass}${showInteractionBubble && roomWalking && !hangingOnRack ? ' ps-walking' : ''}${showInteractionBubble && activityTransition ? ` ps-transition-${activityTransition}` : ''}${pixelTransitionDirection ? ' ps-pixel-transition' : ''}${interactionState === 'chat' ? ' ps-chatting' : ''}${(showInteractionBubble && activityState === 'lying' || developerPose === 'lying') ? ' ps-lying' : ''}${(showInteractionBubble && activityState === 'peeking' || developerPose === 'peeking') ? ' ps-peeking' : ''}${isSleeping ? ' ps-sleeping' : ''}${developerPose === 'idle' ? ' ps-dev-idle' : ''}${startled ? ' ps-startled' : ''}${isPressPending ? ' ps-pressing' : ''}${reacting ? ' ps-reacting' : ''}${isDragging || developerGrab ? ' ps-dragging' : ''}${hangingOnRack ? ' ps-hanging' : ''}${dirtyGrab ? ' ps-dirty-grabbing' : ''}${showInteractionBubble && dizzyPhase !== 'none' ? ' ps-dizzy' : ''}${worldFallPhase === 'falling' ? ' ps-world-falling' : ''}${bathPhase === 'falling' ? ' ps-bath-dropping' : ''}${bathPhase === 'bathing' ? ' ps-bathing' : ''}${dirtyReturn ? ' ps-world-dirty' : ''}${isFlyChasing ? ' ps-fly-flee' : ''}`}
+      <button ref={pandaButtonRef} type="button" className={`ps-panda ps-${hangingOnRack ? 'idle' : isCuddling ? 'cuddle' : pet.stage === 'performing' ? action : basePoseClass}${showInteractionBubble && roomWalking && !hangingOnRack ? ' ps-walking' : ''}${showInteractionBubble && activityTransition ? ` ps-transition-${activityTransition}` : ''}${pixelTransitionDirection ? ' ps-pixel-transition' : ''}${interactionState === 'chat' ? ' ps-chatting' : ''}${(showInteractionBubble && activityState === 'lying' || developerPose === 'lying') ? ' ps-lying' : ''}${(showInteractionBubble && activityState === 'peeking' || developerPose === 'peeking') ? ' ps-peeking' : ''}${isSleeping ? ' ps-sleeping' : ''}${developerPose === 'idle' ? ' ps-dev-idle' : ''}${startled ? ' ps-startled' : ''}${isPressPending ? ' ps-pressing' : ''}${reacting ? ' ps-reacting' : ''}${isDragging || developerGrab ? ' ps-dragging' : ''}${hangingOnRack ? ' ps-hanging' : ''}${dirtyGrab ? ' ps-dirty-grabbing' : ''}${showInteractionBubble && dizzyPhase !== 'none' ? ' ps-dizzy' : ''}${worldFallPhase === 'falling' ? ' ps-world-falling' : ''}${bathPhase === 'falling' ? ' ps-bath-dropping' : ''}${bathPhase === 'bathing' ? ' ps-bathing' : ''}${showInteractionBubble && bathTransition === 'exiting' ? ' ps-bath-exiting' : ''}${dirtyReturn ? ' ps-world-dirty' : ''}${isFlyChasing ? ' ps-fly-flee' : ''}`}
                data-damp-after-bath={dampAfterBath && bathPhase === 'none' ? 'true' : undefined}
               onPointerEnter={handlePandaPointerEnter}
               onClick={handlePandaClick}
@@ -2899,7 +2924,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
               onPointerUp={handlePandaPointerUp}
               onPointerCancel={handlePandaPointerCancel}
                    aria-label={capturedHomecoming ? '小熊猫从时空旋涡被送回，旁边有空间警察来信' : hangingOnRack ? '小熊猫挂在晾衣架上；长按可以把它抱下来' : isFlyChasing ? '脏兮兮的小熊猫被苍蝇追着跑' : bathPhase === 'falling' ? '小熊猫掉进浴缸了' : bathPhase === 'bathing' ? '小熊猫正在洗澡；长按可以提起' : worldFallPhase === 'falling' ? '小熊猫掉出房间了' : dirtyReturn ? '小熊猫灰头土脸地哭着回来了' : dizzyPhase === 'falling' ? '小熊猫松手后掉到地上' : dizzyPhase === 'dazed' ? '小熊猫坐在地上眩晕了一会儿' : isDragging ? '正在拎起小熊猫；拖动到目标位置后松手' : isPressPending ? '按住小熊猫即可拎起' : startled ? '小熊猫被吓了一跳' : isSleeping ? '小熊猫正在睡觉；点击叫醒' : interactionState === 'chat' ? '小熊猫正在聊天；点击房间空白处退出' : '点击小熊猫和它互动'}
-                  data-testid="button-panda" data-cuddling={isCuddling ? 'true' : undefined} data-sprite={sprite} data-hanging-on-rack={hangingOnRack ? 'true' : undefined} data-bath-state={showInteractionBubble ? bathPhase : undefined} data-bath-ball-on-panda={bathBallPlaced ? 'true' : undefined} data-bath-rubbing={showInteractionBubble && bathPhase === 'bathing' ? (bathRubbing ? 'true' : 'false') : undefined} data-sleeping-on-bed={sleepingOnBed ? 'true' : 'false'} data-reacting={reacting ? 'true' : undefined} data-startled={startled ? 'true' : undefined} data-dizzy-state={showInteractionBubble ? dizzyPhase : undefined} data-facing={facing}
+                  data-testid="button-panda" data-cuddling={isCuddling ? 'true' : undefined} data-sprite={sprite} data-hanging-on-rack={hangingOnRack ? 'true' : undefined} data-bath-state={showInteractionBubble ? bathPhase : undefined} data-bath-transition={showInteractionBubble ? bathTransition ?? (bathPhase === 'falling' ? 'entering' : undefined) : undefined} data-bath-ball-on-panda={bathBallPlaced ? 'true' : undefined} data-bath-rubbing={showInteractionBubble && bathPhase === 'bathing' ? (bathRubbing ? 'true' : 'false') : undefined} data-sleeping-on-bed={sleepingOnBed ? 'true' : 'false'} data-reacting={reacting ? 'true' : undefined} data-startled={startled ? 'true' : undefined} data-dizzy-state={showInteractionBubble ? dizzyPhase : undefined} data-facing={facing}
                  data-bamboo-phase={action === 'bamboo' ? bambooPhase : undefined}
                 data-activity-state={showInteractionBubble ? developerPose ?? activityState : undefined}
                 data-dev-pose={developerPose ?? undefined}
@@ -2907,9 +2932,20 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
                 data-transition-direction={pixelTransitionDirection ?? undefined}
                  data-world-fall-state={showInteractionBubble ? worldFallPhase : undefined}>
                 <img className="ps-body" src={image}
-                 data-sprite={dirtyGrab ? sprite : hangingOnRack ? 'grab' : dirtyReturn && bathPhase === 'bathing' ? (bathRubbing ? 'dirty-bathing-soap' : 'dirty-bathing') : dirtyReturn && isFlyChasing ? 'dirty-flee' : dirtyReturn ? 'dirty-return' : bathPhase === 'bathing' ? 'bathing' : startled && showInteractionBubble ? 'startled' : sprite}
-                 data-frame={dirtyGrab ? frame : hangingOnRack ? '0' : showInteractionBubble && bathPhase === 'bathing' ? bathFrame : dirtyReturn ? '0' : frame}
+                 data-sprite={bathTransition === 'exiting' ? dirtyReturn ? bathRubbing ? 'dirty-bathing-soap' : 'dirty-bathing' : 'bathing' : dirtyGrab ? sprite : hangingOnRack ? 'grab' : dirtyReturn && bathPhase === 'bathing' ? (bathRubbing ? 'dirty-bathing-soap' : 'dirty-bathing') : dirtyReturn && isFlyChasing ? 'dirty-flee' : dirtyReturn ? 'dirty-return' : bathPhase === 'bathing' ? 'bathing' : startled && showInteractionBubble ? 'startled' : sprite}
+                 data-frame={bathTransition === 'exiting' ? bathFrame : dirtyGrab ? frame : hangingOnRack ? '0' : showInteractionBubble && bathPhase === 'bathing' ? bathFrame : dirtyReturn ? '0' : frame}
                  width={60} height={60} alt="" draggable={false} />
+                 {showInteractionBubble && bathPhase === 'bathing' && (
+                   <span className="ps-bath-water-bubbles" aria-hidden="true" data-testid="bath-water-bubbles">
+                     <i /><i />
+                   </span>
+                 )}
+                 {showInteractionBubble && (bathPhase === 'falling' || bathTransition === 'exiting') && (
+                   <span className={`ps-bath-splash${bathPhase === 'falling' ? ' ps-bath-splash-entering' : ''}`}
+                     aria-hidden="true" data-testid="bath-transition-splash">
+                     <i /><i /><i />
+                   </span>
+                 )}
                 {dampAfterBath && bathPhase === 'none' && (
                   <span className="ps-damp-drops" aria-hidden="true"><i /><i /><i /></span>
                 )}

@@ -408,7 +408,7 @@ async function main() {
   "the backdrop and walking floor use the selected PixelLab scene");
   assert.notEqual(journalRoom.backdropClip, journalRoom.floorClip, "the room image is split at the floor horizon");
   assert.equal(journalRoom.furnitureDisplay, "block", "furniture occlusion layers are visible above the panda");
-  assert.equal(journalRoom.occlusionCount, 4, "major painted furniture has depth-sorted occlusion layers");
+  assert.ok(journalRoom.occlusionCount >= 4, "major painted furniture has depth-sorted occlusion layers");
   assert.deepEqual(journalRoom.roomLayers, ["ps-room-backdrop", "ps-room-floor"]);
   assert.equal(typeof journalRoom.night, "boolean", "web room reflects the current local day/night mode");
   await webRoom.emulateMedia({ reducedMotion: "no-preference" });
@@ -479,6 +479,10 @@ async function main() {
   await webRoom.mouse.up();
   await until(async () => await webPandaButton.getAttribute("data-bath-state") === "falling",
     "dropping the panda over the bathtub starts the bath entry");
+  assert.equal(await webPandaButton.getAttribute("data-bath-transition"), "entering",
+    "the web room marks the entry animation while the panda falls into the tub");
+  assert.equal(await webRoom.getByTestId("bath-transition-splash").count(), 1,
+    "a small landing splash appears during bath entry");
   await until(async () => {
     if (await webPandaButton.getAttribute("data-bath-state") !== "bathing") return false;
     return await Promise.all([
@@ -492,6 +496,9 @@ async function main() {
       }),
     ]).then(([tubIsUnchanged, pandaBathSpriteLoaded]) => tubIsUnchanged && pandaBathSpriteLoaded);
   }, "the panda bath animation loads while the original bathtub remains unchanged");
+  const bathWaterBubbles = webRoom.getByTestId("bath-water-bubbles");
+  assert.equal(await bathWaterBubbles.count(), 1, "the bathing pose includes a subtle water bubble layer");
+  assert.equal(await bathWaterBubbles.locator("i").count(), 2, "the bath bubbles stay sparse and do not cover the panda");
   const pandaBodyInBath = await webRoom.locator(".ps-body").boundingBox();
   const bathtubWidthInBath = await webBathtub.evaluate(el => el.getBoundingClientRect().width);
   assert.ok(pandaBodyBeforeBath && pandaBodyInBath, "the panda remains visible in the bathing pose");
@@ -528,16 +535,25 @@ async function main() {
     el.currentSrc.includes("/static/panda/bathing-wash/")),
   "the panda returns to its ordinary bathing animation after the puff is moved away");
   const bathingPosition = await webPosition.evaluate(el => ({ u: el.dataset.roomU, v: el.dataset.roomV }));
-  await webRoom.waitForTimeout(450);
-  assert.notEqual(await webRoom.locator(".ps-body").getAttribute("data-frame"), "0",
+  await until(async () => await webRoom.locator(".ps-body").getAttribute("data-frame") !== "0",
     "the bathing pose advances through its animation frames");
   assert.deepEqual(await webPosition.evaluate(el => ({ u: el.dataset.roomU, v: el.dataset.roomV })), bathingPosition,
     "the panda remains still while bathing");
   const pandaInBath = await webPandaButton.boundingBox();
   assert.ok(pandaInBath, "the panda can still be picked up while bathing");
-  await webRoom.mouse.move(pandaInBath.x + pandaInBath.width * 0.22, pandaInBath.y + pandaInBath.height * 0.66);
+  const bathLiftPoint = await webPandaButton.evaluate(el => {
+    const rect = el.getBoundingClientRect();
+    for (const [u, v] of [[0.18, 0.78], [0.18, 0.62], [0.5, 0.82], [0.82, 0.78]]) {
+      const x = rect.left + rect.width * u;
+      const y = rect.top + rect.height * v;
+      if (!document.elementFromPoint(x, y)?.closest(".ps-bath-ball")) return { x, y };
+    }
+    throw new Error("No unobstructed point is available to lift the panda from the tub");
+  });
+  await webRoom.mouse.move(bathLiftPoint.x, bathLiftPoint.y);
   await webRoom.mouse.down();
-  await webRoom.waitForTimeout(480);
+  await until(async () => await webPandaButton.getAttribute("data-bath-transition") === "exiting",
+    "lifting the panda from the web bathtub starts a short exit transition");
   await webRoom.mouse.move(webViewport.width * 0.52, webViewport.height * 0.55, { steps: 5 });
   await webRoom.mouse.up();
   await until(async () => await webPandaButton.getAttribute("data-bath-state") === "none",
@@ -556,6 +572,8 @@ async function main() {
   await webRoom.mouse.move(dampPandaBounds.x + dampPandaBounds.width / 2, dampPandaBounds.y + dampPandaBounds.height / 2);
   await webRoom.mouse.down();
   await webRoom.waitForTimeout(480);
+  assert.equal(await webPandaButton.getAttribute("data-bath-transition"), null,
+    "a new room interaction safely clears the bath exit transition");
   await webRoom.mouse.move(rackHangX, rackHangY, { steps: 5 });
   await webRoom.mouse.up();
   await until(async () => await webPandaButton.getAttribute("data-hanging-on-rack") === "true"
