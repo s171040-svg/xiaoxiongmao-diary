@@ -172,6 +172,7 @@ const TRANSITION_ASSET_VERSIONS: Record<TransitionKey, string> = {
   sleep: 'sleep-transition-2',
   peeking: 'pixellab-transition-1',
   'captured-homecoming': 'captured-homecoming-exit-1',
+  'climb-up': 'stairs-back-run-1',
 };
 const PIXELLAB_TRANSITION_FRAMES = Object.fromEntries(
   Object.entries(PIXELLAB_TRANSITION_FRAME_FILES).map(([key, files]) => [
@@ -189,6 +190,7 @@ const ACTION_TRANSITION_KEY: Record<PerformanceAction, TransitionKey> = {
   tumble: 'idle',
   cuddle: 'lying',
   'captured-homecoming': 'captured-homecoming',
+  'climb-up': 'climb-up',
 };
 const DEVELOPER_POSE_TRANSITION_KEY: Record<DeveloperPose, TransitionKey> = {
   idle: 'idle',
@@ -288,6 +290,11 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const [reacting, setReacting] = useState(false);
   const [hoverCuddleActive, setHoverCuddleActive] = useState(false);
   const [roomWalking, setRoomWalking] = useState(false);
+  const roomWalkingRef = useRef(roomWalking);
+  roomWalkingRef.current = roomWalking;
+  const [climbingUp, setClimbingUp] = useState(false);
+  const climbingUpRef = useRef(false);
+  const previousClimbingUpRef = useRef(false);
   const [activityState, setActivityState] = useState<RoomActivityState>('roaming');
   const [sleepingOnBed, setSleepingOnBed] = useState(false);
   const [sleepingInNest, setSleepingInNest] = useState(false);
@@ -644,7 +651,11 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     && !hangingOnRack && !dampAfterBath && bathPhase === 'none' && !startled && dizzyPhase === 'none'
     && worldFallPhase === 'none' && !dirtyReturn && !developerPose;
   const isCuddling = (pet.stage === 'performing' && action === 'cuddle') || hoverCuddleVisible;
-  const sprite = hoverCuddleVisible
+  const sprite = showInteractionBubble && climbingUp && roomWalking && pet.stage === 'present'
+    && interactionState !== 'chat' && !developerPose && !isDragging && !developerGrab
+    && !hangingOnRack && !startled && dizzyPhase === 'none' && bathPhase === 'none'
+    ? 'climb-up'
+    : hoverCuddleVisible
     ? 'cuddle-wriggle'
     : dirtyGrab
     ? dirtyGrabLiftComplete ? 'dirty-grab' : 'dirty-grab-lift'
@@ -761,6 +772,24 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       onComplete();
     });
   }, [playTransitionFrames]);
+
+  useLayoutEffect(() => {
+    if (!showInteractionBubble) {
+      previousClimbingUpRef.current = false;
+      return;
+    }
+    if (previousClimbingUpRef.current === climbingUp) return;
+    previousClimbingUpRef.current = climbingUp;
+    if (!climbingUp && (sleepingInNest || sleepingOnBed || activityState === 'sleeping')) return;
+    clearActivityTransition();
+    playPixelTransition('climb-up', climbingUp ? 'entering' : 'waking', () => {});
+  }, [activityState, clearActivityTransition, climbingUp, playPixelTransition, showInteractionBubble, sleepingInNest, sleepingOnBed]);
+
+  useEffect(() => {
+    if (roomWalking || !climbingUpRef.current) return;
+    climbingUpRef.current = false;
+    setClimbingUp(false);
+  }, [roomWalking]);
 
   const startBambooFeeding = useCallback(() => {
     window.clearTimeout(bambooDropTimerRef.current);
@@ -955,6 +984,17 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   }, [activityState, hidden, pet.stage, showInteractionBubble, triggerStartle]);
 
   const applyRoomPoint = useCallback((point: RoomPoint) => {
+    const previousPoint = positionRef.current;
+    const elevationDelta = (point.elevation ?? 0) - (previousPoint.elevation ?? 0);
+    if (!showInteractionBubble || !roomWalkingRef.current || elevationDelta < -0.0001) {
+      if (climbingUpRef.current) {
+        climbingUpRef.current = false;
+        setClimbingUp(false);
+      }
+    } else if (elevationDelta > 0.0001 && (point.elevation ?? 0) > 0.01 && !climbingUpRef.current) {
+      climbingUpRef.current = true;
+      setClimbingUp(true);
+    }
     positionRef.current = point;
     const track = trackRef.current;
     if (!track) return;
@@ -2752,8 +2792,8 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
             ? pandaStaticUrl('captured-hug.png?v=captured-homecoming-pixen-1')
             : pandaStaticUrl(`frames/captured-homecoming-${frame}.png?v=captured-homecoming-pixen-1`)
     : frame === 0
-      ? pandaStaticUrl(`${sprite}.png?v=${sprite === 'chew' ? 'chew-feed-4' : sprite === 'tail-chase' ? 'tail-chase-ccw-3' : 'tail-left-3'}`)
-      : pandaStaticUrl(`frames/${sprite}-${frame}.png?v=${sprite === 'chew' ? 'chew-feed-4' : sprite === 'tail-chase' ? 'tail-chase-ccw-3' : 'tail-left-3'}`);
+      ? pandaStaticUrl(`${sprite}.png?v=${sprite === 'chew' ? 'chew-feed-4' : sprite === 'tail-chase' ? 'tail-chase-ccw-3' : sprite === 'climb-up' ? 'stairs-back-run-1' : 'tail-left-3'}`)
+      : pandaStaticUrl(`frames/${sprite}-${frame}.png?v=${sprite === 'chew' ? 'chew-feed-4' : sprite === 'tail-chase' ? 'tail-chase-ccw-3' : sprite === 'climb-up' ? 'stairs-back-run-1' : 'tail-left-3'}`);
   currentImageRef.current = image;
 
   useLayoutEffect(() => {

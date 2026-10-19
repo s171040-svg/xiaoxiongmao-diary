@@ -24,6 +24,7 @@ test('every animation inspector action has its own visible animation assets', ()
     'tail',
     'cuddle',
     'captured-homecoming',
+    'climb-up',
   ];
 
   for (const action of previewActions) {

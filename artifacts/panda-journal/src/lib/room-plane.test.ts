@@ -161,6 +161,12 @@ for (let index = 0; index <= 300; index += 1) {
 }
 
 assert.ok(CAT_TREE_WALK_PATH.every(isWalkableRoomPoint), 'the cat-tree landing and stairs are part of the walkable room');
+assert.ok(isWalkableRoomPoint(roomPointAtImagePosition(503, 250)),
+  'a point on a horizontal stair tread is walkable');
+assert.ok(isWalkableRoomPoint(roomPointAtImagePosition(484, 226)),
+  'a point on the diagonal stair rail is walkable');
+assert.equal(isWalkableRoomPoint(roomPointAtImagePosition(496, 238)), false,
+  'the open gap between a tread and rails is not walkable');
 for (let index = 1; index < CAT_TREE_WALK_PATH.length; index += 1) {
   assert.ok(isWalkableRoomSegment(CAT_TREE_WALK_PATH[index - 1], CAT_TREE_WALK_PATH[index]),
     `cat-tree stair segment ${index - 1} remains walkable`);
@@ -187,7 +193,7 @@ for (const [index, point] of nestExitRoute.entries()) {
 const draggedNestPoint = unprojectRoomWalkableSurfacePoint((400 / ROOM_IMAGE_WIDTH) * 100, (140 / ROOM_IMAGE_HEIGHT) * 100);
 assert.ok(isWalkableRoomPoint(draggedNestPoint) && (draggedNestPoint.elevation ?? 0) > 0.3,
   'dragging into the visible den keeps the panda on its raised surface');
-const draggedLadderPoint = unprojectRoomWalkableSurfacePoint((470 / ROOM_IMAGE_WIDTH) * 100, (230 / ROOM_IMAGE_HEIGHT) * 100);
+const draggedLadderPoint = unprojectRoomWalkableSurfacePoint((503 / ROOM_IMAGE_WIDTH) * 100, (250 / ROOM_IMAGE_HEIGHT) * 100);
 assert.ok(isWalkableRoomPoint(draggedLadderPoint) && (draggedLadderPoint.elevation ?? 0) > 0.1,
   'dropping the panda midway up the ladder does not snap it to the floor');
 assert.equal(isCatTreeNestScreenPoint(400, 140), true);

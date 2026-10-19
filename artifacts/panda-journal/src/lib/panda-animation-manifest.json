@@ -9,7 +9,8 @@
     "captured-homecoming": 6,
     "cuddle-wriggle": 8,
     "toy-teaser": 8,
-    "toy-laser": 8
+    "toy-laser": 8,
+    "climb-up": 8
   },
   "frameIntervalMs": {
     "idle": 420,
@@ -25,7 +26,8 @@
     "captured-homecoming": 300,
     "cuddle-wriggle": 160,
     "toy-teaser": 180,
-    "toy-laser": 180
+    "toy-laser": 180,
+    "climb-up": 120
   },
   "motionSprites": {
     "idle": "idle",
@@ -42,6 +44,7 @@
     "tail": "tail-chase",
     "tumble": "idle",
     "cuddle": "cuddle-wriggle",
-    "captured-homecoming": "captured-homecoming"
+    "captured-homecoming": "captured-homecoming",
+    "climb-up": "climb-up"
   }
 }

@@ -34,22 +34,51 @@ const CAT_TREE_NEST_ELLIPSE = { x: 400, y: 118, radiusX: 35, radiusY: 27 };
 const PANDA_PERSPECTIVE_BOTTOM_Y = ROOM_IMAGE_FLOOR_FAR_Y
   + ROOM_MAX * (ROOM_IMAGE_FLOOR_NEAR_Y - ROOM_IMAGE_FLOOR_FAR_Y);
 
+const CAT_TREE_STAIR_RAILS = [
+  { from: { x: 502, y: 299 }, to: { x: 471, y: 178 } },
+  { from: { x: 530, y: 299 }, to: { x: 497, y: 178 } },
+] as const;
+const CAT_TREE_STAIR_TREADS = [
+  { from: { x: 502, y: 299 }, to: { x: 530, y: 299 } },
+  { from: { x: 496, y: 275 }, to: { x: 523, y: 275 } },
+  { from: { x: 490, y: 250 }, to: { x: 516, y: 250 } },
+  { from: { x: 484, y: 226 }, to: { x: 510, y: 226 } },
+  { from: { x: 478, y: 202 }, to: { x: 503, y: 202 } },
+  { from: { x: 471, y: 178 }, to: { x: 497, y: 178 } },
+] as const;
+const CAT_TREE_STAIR_CONNECTORS = [
+  { from: { x: 578, y: 330 }, to: { x: 560, y: 321 }, clearance: 7 },
+  { from: { x: 560, y: 321 }, to: { x: 530, y: 299 }, clearance: 7 },
+  { from: { x: 471, y: 178 }, to: { x: 460, y: 161 }, clearance: 8 },
+  { from: { x: 460, y: 161 }, to: { x: 432, y: 151 }, clearance: 8 },
+  { from: { x: 432, y: 151 }, to: { x: 410, y: 140 }, clearance: 8 },
+] as const;
+
+/** A grounded route that alternates across each tread and climbs along the rails. */
 const CAT_TREE_WALK_IMAGE_PATH = [
+  { x: 578, y: 330 },
   { x: 560, y: 321 },
-  { x: 538, y: 315 },
-  { x: 516, y: 295 },
-  { x: 501, y: 274 },
-  { x: 486, y: 251 },
-  { x: 471, y: 228 },
-  { x: 456, y: 205 },
-  { x: 441, y: 182 },
-  { x: 426, y: 160 },
-  { x: 410, y: 145 },
+  { x: 530, y: 299 },
+  { x: 502, y: 299 },
+  { x: 496, y: 275 },
+  { x: 523, y: 275 },
+  { x: 516, y: 250 },
+  { x: 490, y: 250 },
+  { x: 484, y: 226 },
+  { x: 510, y: 226 },
+  { x: 503, y: 202 },
+  { x: 478, y: 202 },
+  { x: 471, y: 178 },
+  { x: 497, y: 178 },
+  { x: 471, y: 178 },
+  { x: 460, y: 161 },
+  { x: 432, y: 151 },
+  { x: 410, y: 140 },
 ] as const;
 
 /** Points along the visible cat-tree landing, ladder, and den opening. */
-export const CAT_TREE_WALK_PATH: RoomPoint[] = CAT_TREE_WALK_IMAGE_PATH.map(({ x, y }) =>
-  roomPointAtImagePosition(x, y));
+export const CAT_TREE_WALK_PATH: RoomPoint[] = CAT_TREE_WALK_IMAGE_PATH.map(({ x, y }, index) =>
+  index === 0 ? roomFloorPointAtImagePosition(x, y) : roomPointAtImagePosition(x, y));
 export const CAT_TREE_NEST_POINT = roomPointAtImagePosition(400, 140);
 
 export function roomPointAtImagePosition(imageX: number, imageY: number): RoomPoint {
@@ -59,6 +88,18 @@ export function roomPointAtImagePosition(imageX: number, imageY: number): RoomPo
     u: clampRoom(0.5 + (xPercent - 50) / (2 * halfWidth)),
     v: ROOM_WALK_DEPTH,
     elevation: Math.max(0, (ROOM_WALK_BASE_IMAGE_Y - imageY) / ROOM_IMAGE_HEIGHT),
+  };
+}
+
+function roomFloorPointAtImagePosition(imageX: number, imageY: number): RoomPoint {
+  const depth = clampRoom(
+    (imageY - ROOM_IMAGE_FLOOR_FAR_Y) / (ROOM_IMAGE_FLOOR_NEAR_Y - ROOM_IMAGE_FLOOR_FAR_Y),
+  );
+  const halfWidth = lerp(FLOOR_FAR_HALF_WIDTH, FLOOR_NEAR_HALF_WIDTH, depth);
+  const xPercent = (imageX / ROOM_IMAGE_WIDTH) * 100;
+  return {
+    u: clampRoom(0.5 + (xPercent - 50) / (2 * halfWidth)),
+    v: depth,
   };
 }
 
@@ -97,12 +138,10 @@ function distanceToSegment(
 
 function isCatTreeWalkImagePoint(imagePoint: { x: number; y: number }): boolean {
   if (isInsideCatTreeNest(imagePoint)) return true;
-  for (let index = 1; index < CAT_TREE_WALK_IMAGE_PATH.length; index += 1) {
-    if (distanceToSegment(imagePoint, CAT_TREE_WALK_IMAGE_PATH[index - 1], CAT_TREE_WALK_IMAGE_PATH[index]) <= 15) {
-      return true;
-    }
-  }
-  return false;
+  return CAT_TREE_STAIR_RAILS.some(segment => distanceToSegment(imagePoint, segment.from, segment.to) <= 5)
+    || CAT_TREE_STAIR_TREADS.some(segment => distanceToSegment(imagePoint, segment.from, segment.to) <= 5)
+    || CAT_TREE_STAIR_CONNECTORS.some(segment =>
+      distanceToSegment(imagePoint, segment.from, segment.to) <= segment.clearance);
 }
 
 function screenPixelToRoomImagePoint(
@@ -443,7 +482,11 @@ export function planRoomWalkPath(fromPoint: RoomPoint, toPoint: RoomPoint): Room
     for (let next = 0; next < nodes.length; next += 1) {
       if (next === current || visited.has(next) || !roomSegmentIsWalkable(nodes[current], nodes[next])) continue;
       const candidateDistance = distances[current]
-        + Math.hypot(nodes[next].u - nodes[current].u, nodes[next].v - nodes[current].v);
+        + Math.hypot(
+          nodes[next].u - nodes[current].u,
+          nodes[next].v - nodes[current].v,
+          (nodes[next].elevation ?? 0) - (nodes[current].elevation ?? 0),
+        );
       if (candidateDistance >= distances[next]) continue;
       distances[next] = candidateDistance;
       previous[next] = current;
@@ -460,8 +503,12 @@ export function planRoomWalkPath(fromPoint: RoomPoint, toPoint: RoomPoint): Room
 }
 
 function roomSegmentIsWalkable(from: RoomPoint, to: RoomPoint): boolean {
-  const distance = Math.hypot(to.u - from.u, to.v - from.v);
-  const steps = Math.max(1, Math.ceil(distance / 0.01));
+  const distance = Math.hypot(
+    to.u - from.u,
+    to.v - from.v,
+    (to.elevation ?? 0) - (from.elevation ?? 0),
+  );
+  const steps = Math.max(1, Math.ceil(distance / 0.0025));
   for (let index = 0; index <= steps; index += 1) {
     const progress = index / steps;
     const point: RoomPoint = {
@@ -483,7 +530,11 @@ export function pointAlongRoomWalkPath(path: RoomPoint[], progress: number): Roo
   for (let index = 1; index < path.length; index += 1) {
     const from = path[index - 1];
     const to = path[index];
-    const segmentLength = Math.hypot(to.u - from.u, to.v - from.v);
+    const segmentLength = Math.hypot(
+      to.u - from.u,
+      to.v - from.v,
+      (to.elevation ?? 0) - (from.elevation ?? 0),
+    );
     if (remaining <= segmentLength || index === path.length - 1) {
       const segmentProgress = segmentLength === 0 ? 1 : Math.min(1, remaining / segmentLength);
       return {
