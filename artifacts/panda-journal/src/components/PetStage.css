@@ -38,6 +38,13 @@
 .ps-room-bathtub{position:static;display:block;width:clamp(96px,13vw,164px);height:auto;image-rendering:pixelated;filter:drop-shadow(0 3px 4px #443a2730);pointer-events:none;user-select:none}
 .ps-space-letter-box{position:fixed;z-index:130;left:clamp(18px,7vw,90px);bottom:clamp(82px,12vh,120px);box-sizing:border-box;display:flex;width:70px;height:62px;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:14px 5px 4px;border:2px solid #61432b;border-radius:3px;background:linear-gradient(90deg,#98683b 0 12%,#c08a50 13% 86%,#98683b 87%);box-shadow:inset 0 0 0 2px #dfbd7e,0 4px 0 #4e3523,0 6px 8px #29201938;image-rendering:pixelated;cursor:pointer;user-select:none;pointer-events:auto}
 .ps-furniture-dragging{z-index:200!important;cursor:grabbing!important;filter:drop-shadow(0 7px 8px #201a1660) brightness(1.04)}
+.ps-furniture-controlled{outline:2px dashed #f5d98d;outline-offset:3px}
+.ps-room-rack-eye{position:fixed;z-index:230;display:grid;width:44px;height:44px;place-items:center;padding:0;border:0;border-radius:50%;background:transparent;transform:translate(-50%,-50%);cursor:grab;touch-action:none;user-select:none}
+.ps-room-rack-eye img{display:block;width:19px;height:auto;image-rendering:pixelated;filter:drop-shadow(0 1px 2px #241b1a90);pointer-events:none}
+.ps-room-rack-eye:focus-visible{outline:2px solid #f5d98d;outline-offset:1px}
+.ps-room-rack-eye-dragging{z-index:260;cursor:grabbing;transform:translate(-50%,-50%) scale(1.08)}
+.ps-room-rack-eye-controlled img{filter:drop-shadow(0 0 3px #fff2b7) drop-shadow(0 2px 3px #241b1a90)}
+.ps-room-rack-eye-hint{position:fixed;z-index:231;max-width:220px;padding:5px 8px;border:1px solid #d2bd8a;border-radius:10px;background:#fff8e8ed;box-shadow:0 2px 8px #291c1730;color:#59442d;font:600 11px/1.35 "Noto Sans CJK SC",sans-serif;white-space:nowrap;pointer-events:none}
 .ps-bath-station.ps-furniture-dragging .ps-bath-box{cursor:grabbing}
 .ps-space-letter-box::before{position:absolute;top:3px;left:-5px;right:-5px;height:9px;border:2px solid #67472c;border-radius:2px;background:linear-gradient(#e8ca91 0 25%,#af7745 27%);box-shadow:0 2px 0 #66452a;content:""}
 .ps-space-letter-box::after{position:absolute;top:24px;right:5px;left:5px;height:2px;background:#76502e;box-shadow:0 4px 0 #76502e;content:"";opacity:.55}
@@ -220,6 +227,17 @@
 .ps-sleep-zzz i:nth-child(2){left:2px;font-size:13px;--zzz-drift:3px;animation-delay:.85s}
 .ps-sleep-zzz i:nth-child(3){left:0;font-size:17px;--zzz-drift:-2px;animation-delay:1.7s}
 .ps-panda[data-facing="left"].ps-sleeping .ps-sleep-zzz{right:4%;left:auto}
+.ps-dream-cloud{position:absolute;z-index:12;top:-18%;display:grid;width:34px;height:32px;place-items:center;padding:0;border:1px solid #c7dbe2;border-radius:50%;background:linear-gradient(145deg,#fff 5%,#eaf7fb 100%);box-shadow:0 2px 7px #344c5530;color:#6f99aa;font:24px/1 "Apple Color Emoji","Segoe UI Emoji",sans-serif;cursor:pointer;pointer-events:auto;animation:ps-dream-float 2.8s ease-in-out infinite;transition:scale 140ms ease}
+.ps-dream-cloud-right{left:calc(50% + 15px)}
+.ps-dream-cloud-left{right:calc(50% + 15px)}
+.ps-dream-cloud:hover,.ps-dream-cloud-open{scale:1.08;box-shadow:0 3px 9px #344c5540}
+.ps-dream-popover{position:absolute;z-index:13;top:-18%;box-sizing:border-box;width:min(220px,calc(100vw - 24px));padding:11px 28px 10px 13px;border:1px solid #bfd4d8;border-radius:14px 14px 14px 5px;background:#fffdf1f2;box-shadow:0 4px 14px #243c3830;color:#43594f;pointer-events:auto;animation:ps-dream-pop 180ms ease-out both}
+.ps-dream-popover-right{left:calc(50% + 20px);transform:translateY(-100%)}
+.ps-dream-popover-left{right:calc(50% + 20px);transform:translateY(-100%)}
+.ps-dream-popover strong{display:block;margin-bottom:4px;color:#628071;font:700 12px/1.35 "Noto Sans CJK SC",sans-serif}
+.ps-dream-popover p{margin:0;font:500 13px/1.55 "Noto Sans CJK SC",sans-serif;overflow-wrap:anywhere}
+.ps-dream-close{position:absolute;top:4px;right:5px;display:grid;width:20px;height:20px;place-items:center;padding:0;border:0;border-radius:50%;background:transparent;color:#72867d;font:18px/1 sans-serif;cursor:pointer}
+.ps-dream-close:hover{background:#dcebe6;color:#3c594e}
 .ps-scared-mark{position:absolute;z-index:3;top:-9%;right:8%;display:flex;align-items:flex-start;color:#d87947;font:800 20px/1 "Noto Sans CJK SC",sans-serif;text-shadow:0 1px 2px #fff9;pointer-events:none;animation:ps-scared-mark 620ms cubic-bezier(.2,.8,.2,1) both}
 .ps-scared-mark i{display:block;width:6px;height:9px;margin:11px 0 0 -2px;border-radius:70% 20% 70% 70%;background:#83b9ce;rotate:35deg}
 .ps-panda[data-facing="left"].ps-startled .ps-scared-mark{right:auto;left:8%}
@@ -318,6 +336,8 @@
 @keyframes ps-zzz-wake{0%{translate:0 0;opacity:.8}100%{translate:0 -8px;opacity:0}}
 @keyframes ps-dots-wake{0%{translate:0 0;opacity:.8}100%{translate:0 -4px;opacity:0}}
 @keyframes ps-zzz-smoke{0%{translate:0 7px;scale:.55;opacity:0;filter:blur(1.5px)}14%{opacity:.8;filter:blur(.2px)}60%{translate:var(--zzz-drift,0) -14px;scale:.92;opacity:.45}100%{translate:var(--zzz-drift,0) -27px;scale:1.12;opacity:0;filter:blur(1.8px)}}
+@keyframes ps-dream-float{0%,100%{translate:0 0}50%{translate:0 -3px}}
+@keyframes ps-dream-pop{from{opacity:0;scale:.96}to{opacity:1;scale:1}}
 @keyframes ps-daydream{0%,100%{translate:0 1px;opacity:.45}50%{translate:2px -4px;opacity:1}}
 @keyframes ps-crawl{from{transform:translate(calc(-50% - 80px),-100%);opacity:.6}to{transform:translate(-50%,-100%);opacity:1}}
 @keyframes ps-world-fall{
@@ -399,3 +419,4 @@
 .ps-toy-teaser img{position:absolute;top:0;left:0;display:block;width:48px;height:128px;object-fit:contain;transform-origin:50% 42%;image-rendering:pixelated;filter:drop-shadow(1px 2px 1px #1d1a1266);animation:ps-teaser-wiggle .42s steps(2,end) infinite alternate}
 @keyframes ps-laser-pulse{from{transform:scale(1)}to{transform:scale(1.35)}}
 @keyframes ps-teaser-wiggle{from{transform:rotate(-12deg) translateX(-1px)}to{transform:rotate(12deg) translateX(1px)}}
+@media (prefers-reduced-motion:reduce){.ps-dream-cloud{animation:none}}

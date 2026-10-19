@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import type { CareStatCategory, DeveloperEvent, DeveloperPose, Gift, PerformanceAction, PetEffect, SpacePoliceLetter } from '@/lib/companion-types';
 import {
@@ -56,6 +56,7 @@ import {
 import { SPACE_POLICE_LETTER_EAT_DELAY_MS } from '@/lib/companion-store';
 import animationManifest from '@/lib/panda-animation-manifest.json';
 import { PANDA_TEASER_WAND_URL, RoomPropDock, type RoomProp, type RoomToy } from './RoomPropDock';
+import { useRoomEyeControl } from './useRoomEyeControl';
 import './PetStage.css';
 
 const ROOM_PROPS_KEY = 'little-panda-room-props-v1';
@@ -82,6 +83,21 @@ const STARTLE_DURATION_MS = 720;
 const ACTIVITY_SETTLE_MS = 320;
 const ACTIVITY_POSE_MS = 360;
 const CAT_TREE_SLEEP_MS = 5 * 60 * 1000;
+const PANDA_DREAM_READY_MS = 2 * 60 * 1000;
+const PANDA_DREAMS = [
+  '梦见自己坐着竹叶船顺河漂流，萤火虫一路替它照亮前方。',
+  '梦见月亮山长满了竹笋，月光闻起来像甜甜的蜂蜜。',
+  '梦见开了一家竹笋冰淇淋店，第一勺要留给你。',
+  '梦见一朵胖云变成软枕头，托着它慢慢飘过星星。',
+  '梦见竹林深处有间热乎乎的包子铺，蒸笼还会唱歌。',
+  '梦见和小鱼在星河里比赛，看谁先找到北极星。',
+  '梦见一颗会打呼噜的星星，和它一起打出轻轻的节拍。',
+  '梦见把森林里的露珠收集起来，做成闪闪发亮的玻璃珠。',
+  '梦见自己成了小小飞船船长，载着竹笋去拜访月亮。',
+  '梦见枕头长出翅膀，带它去看了一片会发光的海。',
+  '梦见和小鸟搭了一座树顶图书馆，每本书都藏着一片竹叶。',
+  '梦见云上开野餐会，它给每一朵云都分了一粒糖。',
+] as const;
 const CAT_TREE_AUTO_NAP_COOLDOWN_MS = 90 * 1000;
 const CAT_TREE_AUTO_NAP_CHANCE = 0.08;
 const WORLD_FALL_ANIMATION_MS = 1100;
@@ -314,6 +330,11 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
   const [activityState, setActivityState] = useState<RoomActivityState>('roaming');
   const [sleepingOnBed, setSleepingOnBed] = useState(false);
   const [sleepingInNest, setSleepingInNest] = useState(false);
+  const [dreamAvailable, setDreamAvailable] = useState(false);
+  const [dreamText, setDreamText] = useState<string | null>(null);
+  const [dreamOpen, setDreamOpen] = useState(false);
+  const dreamPopoverId = useId();
+  const previousDreamRef = useRef<string | null>(null);
   const [hangingOnRack, setHangingOnRack] = useState(false);
   const [dirtyGrabLiftComplete, setDirtyGrabLiftComplete] = useState(false);
   const [activityTransition, setActivityTransition] = useState<'settling' | 'entering' | 'waking' | 'frames-entering' | 'frames-waking' | null>(null);
@@ -760,6 +781,25 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
     && activityTransition !== 'frames-entering' && activityTransition !== 'frames-waking'
     && (developerPose === 'sleeping'
       || (showInteractionBubble && (activityState === 'sleeping' || (activityState === 'roaming' && motion === 'sleep' && !nightWakeOverride))));
+  useEffect(() => {
+    if (!showInteractionBubble || !isSleeping) {
+      setDreamAvailable(false);
+      setDreamText(null);
+      setDreamOpen(false);
+      return undefined;
+    }
+    setDreamAvailable(false);
+    setDreamText(null);
+    setDreamOpen(false);
+    const timer = window.setTimeout(() => {
+      const options = PANDA_DREAMS.filter(dream => dream !== previousDreamRef.current);
+      const nextDream = options[Math.floor(Math.random() * options.length)] ?? PANDA_DREAMS[0];
+      previousDreamRef.current = nextDream;
+      setDreamText(nextDream);
+      setDreamAvailable(true);
+    }, PANDA_DREAM_READY_MS);
+    return () => window.clearTimeout(timer);
+  }, [isSleeping, showInteractionBubble]);
   const isSleepingRef = useRef(isSleeping);
   isSleepingRef.current = isSleeping;
   const hoverCuddleVisible = showInteractionBubble && !equippedToy && hoverCuddleActive && pet.stage === 'present'
@@ -1081,6 +1121,28 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
       setStartled(false);
     }, STARTLE_DURATION_MS);
   }, [clearActivityTransition, hidden, recordDebug, showInteractionBubble]);
+
+  const roomEye = useRoomEyeControl({
+    showInteractionBubble,
+    hidden,
+    interactionState,
+    placedProps,
+    hangingOnRack,
+    sleepingOnBed,
+    bathPhase,
+    hasEquippedToy: Boolean(equippedToy),
+    hasSelectedSnack: Boolean(selectedSnack),
+    viewportSize,
+    roomFurnitureLayout,
+    roomFurnitureLayoutRef,
+    clothesRackRef,
+    bedRef,
+    bathStationRef,
+    pandaButtonRef,
+    updateRoomFurniturePoint,
+    persistRoomFurnitureLayout,
+    triggerStartle,
+  });
 
   const updateFacing = useCallback((horizontalDelta: number) => {
     if (Math.abs(horizontalDelta) < DIRECTION_EPSILON) return;
@@ -3102,8 +3164,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
         ))}
         {showInteractionBubble && placedProps.rack && (
           <img ref={clothesRackRef}
-            className={`ps-room-rack${draggingFurnitureId === 'rack' ? ' ps-furniture-dragging' : ''}`}
-            src={`${import.meta.env.BASE_URL}static/room/panda-clothes-rack.png?v=bamboo-rack-clean-2`}
+            className={`ps-room-rack${draggingFurnitureId === 'rack' ? ' ps-furniture-dragging' : ''}${roomEye.controlledFurnitureId === 'rack' ? ' ps-furniture-controlled' : ''}`}
+            src={`${import.meta.env.BASE_URL}static/room/${roomEye.placement.kind === 'home' ? 'panda-clothes-rack.png?v=bamboo-rack-clean-2' : 'panda-clothes-rack-web-no-eyes.png?v=rack-eyes-detached-1'}`}
             alt="晾衣架" draggable={false}
             style={roomFurnitureStyle('rack', clothesRackRef)}
             onPointerDown={(event) => beginFurnitureMove('rack', event)}
@@ -3114,7 +3176,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
         )}
         {showInteractionBubble && placedProps.bed && (
           <img ref={bedRef}
-            className={`ps-room-bed${draggingFurnitureId === 'bed' ? ' ps-furniture-dragging' : ''}`}
+            className={`ps-room-bed${draggingFurnitureId === 'bed' ? ' ps-furniture-dragging' : ''}${roomEye.controlledFurnitureId === 'bed' ? ' ps-furniture-controlled' : ''}`}
             src={`${import.meta.env.BASE_URL}static/room/panda-nest-bed.png?v=panda-fresh-isometric-bed-5-paw-axis-perspective`}
             alt="小熊猫窝" draggable={false}
             style={roomFurnitureStyle('bed', bedRef)}
@@ -3139,7 +3201,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
         )}
         {showInteractionBubble && placedProps.tub && (
           <div ref={bathStationRef}
-            className={`ps-bath-station${draggingFurnitureId === 'bathStation' ? ' ps-furniture-dragging' : ''}`}
+            className={`ps-bath-station${draggingFurnitureId === 'bathStation' ? ' ps-furniture-dragging' : ''}${roomEye.controlledFurnitureId === 'bathStation' ? ' ps-furniture-controlled' : ''}`}
             style={roomFurnitureStyle('bathStation', bathStationRef)}
             onPointerDown={(event) => beginFurnitureMove('bathStation', event)}
             onPointerMove={moveFurniture}
@@ -3151,6 +3213,38 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
               src={`${import.meta.env.BASE_URL}static/room/pet-bathtub.png?v=pet-bathtub-1`}
               alt="" aria-hidden="true" draggable={false} data-testid="room-bathtub" />
           </div>
+        )}
+        {showInteractionBubble && roomEye.screenPosition && (
+          <>
+            <button ref={roomEye.eyeButtonRef} type="button"
+              className={`ps-room-rack-eye${roomEye.dragging ? ' ps-room-rack-eye-dragging' : ''}${roomEye.controlledFurnitureId ? ' ps-room-rack-eye-controlled' : ''}`}
+              style={{ left: `${roomEye.screenPosition.x}px`, top: `${roomEye.screenPosition.y}px` }}
+              aria-label={roomEye.controlledFurnitureId
+                ? `衣帽架小眼睛已附在${roomEye.controlledFurnitureId === 'bathStation' ? '浴缸' : roomEye.controlledFurnitureId === 'bed' ? '小熊猫窝' : '晾衣架'}上，方向键移动，Escape收回`
+                : roomEye.placement.kind === 'home' ? '衣帽架小眼睛，长按拖动' : '小眼睛，长按拖动并放到家具上以控制家具'}
+              title={roomEye.controlledFurnitureId ? '方向键移动家具，Shift加速，Escape收回眼睛' : '长按移动'}
+              data-testid="room-rack-eye"
+              data-controlled-furniture={roomEye.controlledFurnitureId ?? undefined}
+              onPointerDown={roomEye.handlePointerDown}
+              onPointerMove={roomEye.handlePointerMove}
+              onPointerUp={roomEye.handlePointerUp}
+              onPointerCancel={roomEye.handlePointerCancel}
+              onClick={(event) => event.stopPropagation()}>
+              {roomEye.placement.kind !== 'home' && (
+                <img src={`${import.meta.env.BASE_URL}static/room/panda-clothes-rack-eyes.png?v=split-rack-eyes-1`}
+                  alt="" aria-hidden="true" draggable={false} />
+              )}
+            </button>
+            {roomEye.controlledFurnitureId && (
+              <span className="ps-room-rack-eye-hint" role="status" aria-live="polite"
+                style={{
+                  left: `${Math.max(8, Math.min(viewportSize.width - 220, roomEye.screenPosition.x + 22))}px`,
+                  top: `${Math.max(8, roomEye.screenPosition.y - 34)}px`,
+                }}>
+                ← ↑ ↓ → 移动家具 · Shift加速 · Esc收回
+              </span>
+            )}
+          </>
         )}
         {showInteractionBubble && visibleWasteLetters.map(letter => {
           const poop = letter.poop!;
@@ -3271,6 +3365,39 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
                 </span>
               )}
               </button>
+              )}
+              {showInteractionBubble && interactionState !== 'chat' && isSleeping
+                && dreamAvailable && dreamText && (
+                <>
+                  <button type="button"
+                    className={`ps-dream-cloud ps-dream-cloud-${facing === 'left' ? 'left' : 'right'}${dreamOpen ? ' ps-dream-cloud-open' : ''}`}
+                    aria-label={dreamOpen ? '收起小熊猫的梦' : '查看小熊猫的梦'}
+                    aria-expanded={dreamOpen}
+                    aria-controls={dreamPopoverId}
+                    title={dreamOpen ? '收起梦境' : '点击查看小熊猫的梦'}
+                    data-testid="panda-dream-cloud"
+                    onPointerDown={event => event.stopPropagation()}
+                    onClick={event => {
+                      event.stopPropagation();
+                      setDreamOpen(open => !open);
+                    }}>
+                    <span aria-hidden="true">☁️</span>
+                  </button>
+                  {dreamOpen && (
+                    <div id={dreamPopoverId}
+                      className={`ps-dream-popover ps-dream-popover-${facing === 'left' ? 'left' : 'right'}`}
+                      role="group" aria-label="小熊猫的梦境" data-testid="panda-dream-popover">
+                      <button type="button" className="ps-dream-close" aria-label="关闭梦境"
+                        onPointerDown={event => event.stopPropagation()}
+                        onClick={event => {
+                          event.stopPropagation();
+                          setDreamOpen(false);
+                        }}>×</button>
+                      <strong>小熊猫的梦</strong>
+                      <p>{dreamText}</p>
+                    </div>
+                  )}
+                </>
               )}
           </div>
         )}
