@@ -105,6 +105,8 @@ const WORLD_FALL_MESSAGE_MS = 1800;
 const WORLD_AWAY_MS = 5000;
 const WORLD_RETURN_MS = 2500;
 const WORLD_FALL_COOLDOWN_MS = 120000;
+const WORLD_FALL_RANDOM_MIN_MS = 8 * 60 * 1000;
+const WORLD_FALL_RANDOM_MAX_MS = 18 * 60 * 1000;
 const DAMP_RACK_DRY_MS = 5000;
 const HOVER_CUDDLE_DURATION_MS = 3600;
 const HOVER_CUDDLE_COOLDOWN_MS = 5000;
@@ -150,13 +152,11 @@ const chewFrameUrl = (frame: number) => pandaStaticUrl(
 const BAMBOO_SNACK_SPRITE = pandaStaticUrl('snack.png?v=chew-feed-2');
 const LYING_SPRITE = pandaStaticUrl('lying.png?v=lying-pose-2');
 const PEEKING_SPRITE = pandaStaticUrl('peeking.png?v=look-back-1');
-const SPACE_BLACK_HOLE_OCCLUDER_Z_INDEX = 121;
 const ROOM_FURNITURE_OCCLUDERS: {
   id: string;
   depth: number;
   region?: { left: number; top: number; right: number; bottom: number };
   polygon?: readonly (readonly [number, number])[];
-  coversBlackHole?: boolean;
 }[] = [
   { id: 'cat-tree', depth: 0.05, region: { left: 300, top: 150, right: 550, bottom: 300 } },
   { id: 'armchair', depth: 0.03, region: { left: 590, top: 170, right: 790, bottom: 295 } },
@@ -165,13 +165,11 @@ const ROOM_FURNITURE_OCCLUDERS: {
   {
     id: 'lower-left-plant',
     depth: 0.82,
-    coversBlackHole: true,
     polygon: [[0, 390], [15, 393], [29, 404], [43, 408], [56, 420], [73, 424], [88, 436], [101, 441], [92, 448], [74, 446], [61, 440], [47, 446], [31, 440], [16, 448], [0, 444]],
   },
   {
     id: 'lower-right-plant',
     depth: 0.92,
-    coversBlackHole: true,
     polygon: [[880, 478], [884, 465], [894, 456], [906, 449], [922, 444], [938, 446], [950, 435], [968, 436], [981, 445], [1001, 449], [1014, 460], [1024, 461], [1024, 576], [931, 576], [921, 560], [905, 548], [895, 531], [883, 518], [875, 502], [879, 490]],
   },
 ];
@@ -361,7 +359,6 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
   const worldFallPhaseRef = useRef(worldFallPhase);
   worldFallPhaseRef.current = worldFallPhase;
   const [worldFallMessageVisible, setWorldFallMessageVisible] = useState(false);
-  const [spaceBlackHolePosition, setSpaceBlackHolePosition] = useState<RoomWastePoint>({ x: 17, y: 36 });
   const [packingPoopDeliveredAt, setPackingPoopDeliveredAt] = useState<number | null>(null);
   const [draggingPoopDeliveredAt, setDraggingPoopDeliveredAt] = useState<number | null>(null);
   const [poopDragPosition, setPoopDragPosition] = useState<RoomWastePoint | null>(null);
@@ -421,8 +418,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
     () => activeWasteLetters.filter(letter => ['fresh', 'bagged', 'disposing'].includes(letter.poop!.phase)),
     [activeWasteLetters],
   );
-  const spaceBlackHoleVisible = showInteractionBubble
-    && (activeWasteLetters.length > 0 || developerEvent?.event === 'world-fall');
+  const wasteBinVisible = showInteractionBubble && activeWasteLetters.length > 0;
   const isFlyChasing = flyChaseActive && bathPhase === 'none' && interactionState === 'roaming'
     && activityState === 'roaming' && !isDragging && !hangingOnRack && !hidden;
   const [nightWakeOverride, setNightWakeOverride] = useState(false);
@@ -464,7 +460,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
   const bedRef = useRef<HTMLImageElement>(null);
   const clothesRackRef = useRef<HTMLImageElement>(null);
   const spacePoliceMailboxRef = useRef<HTMLButtonElement>(null);
-  const spaceBlackHoleRef = useRef<HTMLDivElement>(null);
+  const wasteBinRef = useRef<HTMLDivElement>(null);
   const bathBallButtonRef = useRef<HTMLButtonElement>(null);
   const pandaButtonRef = useRef<HTMLButtonElement>(null);
   const snackDropPointerRef = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null);
@@ -491,7 +487,6 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
   const startledRef = useRef(false);
   const startleTimerRef = useRef(0);
   const lastWorldFallAtRef = useRef(Number.NEGATIVE_INFINITY);
-  const spaceBlackHoleTouchingRef = useRef(false);
   const activityTransitionTimerRef = useRef(0);
   const activityTransitionCancelRef = useRef<(() => void) | null>(null);
   const activityTransitionFinishRef = useRef<(() => void) | null>(null);
@@ -1553,15 +1548,9 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
         setDizzyPhase('falling');
         break;
       case 'world-fall':
-        {
-          const pandaRect = pandaButtonRef.current?.getBoundingClientRect();
-          if (pandaRect) {
-            setSpaceBlackHolePosition({
-              x: ((pandaRect.left + pandaRect.width / 2) / Math.max(1, window.innerWidth)) * 100,
-              y: ((pandaRect.top + pandaRect.height / 2) / Math.max(1, window.innerHeight)) * 100,
-            });
-          }
-        }
+        lastWorldFallAtRef.current = performance.now();
+        setWorldFallMessageVisible(true);
+        setWorldFallPhase('falling');
         break;
       case 'bath-drop':
         startBathDropToTub();
@@ -1819,55 +1808,39 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
     ));
   }, [applyRoomPoint, bathPhase, showInteractionBubble]);
 
-  const beginWorldFallFromBlackHole = useCallback(() => {
+  const beginRandomWorldFall = useCallback(() => {
     const now = performance.now();
     if (!showInteractionBubble || dampAfterBath || worldFallPhaseRef.current !== 'none'
       || interactionStateRef.current !== 'roaming' || activityStateRef.current !== 'roaming'
       || bathPhaseRef.current !== 'none' || hangingOnRackRef.current || draggingRef.current || hidden
+      || developerPose || isCuddling || reacting || startled || pet.stage !== 'present'
+      || document.visibilityState !== 'visible'
       || now - lastWorldFallAtRef.current < WORLD_FALL_COOLDOWN_MS) return false;
     lastWorldFallAtRef.current = now;
     setRoomWalking(false);
     setWorldFallMessageVisible(true);
     setWorldFallPhase('falling');
     return true;
-  }, [dampAfterBath, hidden, showInteractionBubble]);
+  }, [dampAfterBath, developerPose, hidden, isCuddling, pet.stage, reacting, showInteractionBubble, startled]);
 
   useEffect(() => {
-    if (!spaceBlackHoleVisible) {
-      spaceBlackHoleTouchingRef.current = false;
-      return undefined;
-    }
-    const movement = window.setInterval(() => {
-      setSpaceBlackHolePosition({
-        x: 13 + Math.random() * 74,
-        y: 22 + Math.random() * 56,
-      });
-    }, 8300);
-    return () => window.clearInterval(movement);
-  }, [spaceBlackHoleVisible]);
-
-  useEffect(() => {
-    if (!spaceBlackHoleVisible) {
-      spaceBlackHoleTouchingRef.current = false;
-      return undefined;
-    }
-    const checkCollision = window.setInterval(() => {
-      if (worldFallPhaseRef.current !== 'none') return;
-      const pandaRect = pandaButtonRef.current?.getBoundingClientRect();
-      const holeRect = spaceBlackHoleRef.current?.getBoundingClientRect();
-      if (!pandaRect || !holeRect) return;
-      const touching = pandaRect.left < holeRect.right && pandaRect.right > holeRect.left
-        && pandaRect.top < holeRect.bottom && pandaRect.bottom > holeRect.top;
-      if (!touching) {
-        spaceBlackHoleTouchingRef.current = false;
-        return;
-      }
-      if (spaceBlackHoleTouchingRef.current) return;
-      spaceBlackHoleTouchingRef.current = true;
-      beginWorldFallFromBlackHole();
-    }, 100);
-    return () => window.clearInterval(checkCollision);
-  }, [beginWorldFallFromBlackHole, spaceBlackHoleVisible]);
+    if (!showInteractionBubble || hidden || developerEvent || worldFallPhase !== 'none') return undefined;
+    let timer = 0;
+    let cancelled = false;
+    const scheduleNextFall = () => {
+      const delay = WORLD_FALL_RANDOM_MIN_MS
+        + Math.random() * (WORLD_FALL_RANDOM_MAX_MS - WORLD_FALL_RANDOM_MIN_MS);
+      timer = window.setTimeout(() => {
+        if (cancelled) return;
+        if (!beginRandomWorldFall()) scheduleNextFall();
+      }, delay);
+    };
+    scheduleNextFall();
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [beginRandomWorldFall, developerEvent, hidden, showInteractionBubble, worldFallPhase]);
 
   useEffect(() => {
     if (!showInteractionBubble || !roomWalking || !onPlaceSpacePolicePoop) return undefined;
@@ -2632,10 +2605,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
         window.innerWidth,
         window.innerHeight,
       ).v;
-      const rackCoversBlackHole = element === clothesRackRef.current && depth >= 0.42;
-      element.style.zIndex = String(rackCoversBlackHole
-        ? SPACE_BLACK_HOLE_OCCLUDER_Z_INDEX
-        : roomFurnitureZIndex(depth) + 1);
+      element.style.zIndex = String(roomFurnitureZIndex(depth) + 1);
     }
     if (bathPhaseRef.current === 'bathing' && draggingFurnitureId === 'bathStation') {
       const stationRect = bathStationRef.current?.getBoundingClientRect();
@@ -3216,15 +3186,15 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
     const y = cancelled && poopDragPosition
       ? poopDragPosition.y
       : Math.max(0.02, Math.min(0.98, event.clientY / Math.max(1, window.innerHeight)));
-    const holeRect = spaceBlackHoleRef.current?.getBoundingClientRect();
-    const droppedIntoHole = !cancelled && holeRect
-      && event.clientX >= holeRect.left && event.clientX <= holeRect.right
-      && event.clientY >= holeRect.top && event.clientY <= holeRect.bottom;
-    if (droppedIntoHole && holeRect) {
+    const binRect = wasteBinRef.current?.getBoundingClientRect();
+    const droppedIntoBin = !cancelled && binRect
+      && event.clientX >= binRect.left && event.clientX <= binRect.right
+      && event.clientY >= binRect.top && event.clientY <= binRect.bottom;
+    if (droppedIntoBin && binRect) {
       onDisposeSpacePolicePoopBag?.(
         pointer.deliveredAt,
-        (holeRect.left + holeRect.width / 2) / Math.max(1, window.innerWidth),
-        (holeRect.top + holeRect.height / 2) / Math.max(1, window.innerHeight),
+        (binRect.left + binRect.width / 2) / Math.max(1, window.innerWidth),
+        (binRect.top + binRect.height / 2) / Math.max(1, window.innerHeight),
       );
     } else {
       onMoveSpacePolicePoopBag?.(pointer.deliveredAt, x, y);
@@ -3266,15 +3236,15 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
          data-testid="panda-interaction-state" data-damp-after-bath={dampAfterBath ? 'true' : undefined}
          data-damp-drying-ready={dampDryingReady ? 'true' : undefined}
          style={{ ['--ps-dur' as string]: `${seconds}s` }}>
-        {spaceBlackHoleVisible && (
-          <div ref={spaceBlackHoleRef} className="ps-space-black-hole" aria-label="时空回收门；拖动黑色袋子到这里，小熊猫碰到会掉出房间"
-            role="img" data-testid="space-time-black-hole"
-            style={{
-              left: `${spaceBlackHolePosition.x}%`,
-              top: `${spaceBlackHolePosition.y}%`,
-              transitionDuration: developerEvent?.event === 'world-fall' ? '0ms' : undefined,
-            }}>
-            <img src={CAPTURED_TIME_VORTEX_SPRITE} alt="" aria-hidden="true" draggable={false} />
+        {wasteBinVisible && (
+          <div ref={wasteBinRef} className="ps-room-trash-can"
+            aria-label="像素垃圾桶；拖动包好的便便袋到这里" role="img" data-testid="room-waste-bin"
+            data-disposing={activeWasteLetters.some(letter => letter.poop?.phase === 'disposing') ? 'true' : undefined}
+            style={{ left: '89%', top: '78%' }}>
+            <span className="ps-room-trash-can-lid" aria-hidden="true" />
+            <span className="ps-room-trash-can-body" aria-hidden="true">
+              <i /><i /><i />
+            </span>
           </div>
         )}
         {showInteractionBubble && ROOM_FURNITURE_OCCLUDERS.map((furniture) => (
@@ -3282,9 +3252,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
             data-testid={`room-occlusion-${furniture.id}`}
             data-room-depth={furniture.depth.toFixed(3)}
             style={{
-              zIndex: furniture.coversBlackHole
-                ? SPACE_BLACK_HOLE_OCCLUDER_Z_INDEX
-                : roomFurnitureZIndex(furniture.depth),
+              zIndex: roomFurnitureZIndex(furniture.depth),
               backgroundImage: roomBackgroundImage,
               backgroundSize: roomBackgroundSize,
               backgroundPosition: 'center center',
@@ -3391,8 +3359,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
               style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%` }}
               aria-label={poop.phase === 'fresh'
                 ? '长按把大便打包成黑色袋子'
-                : poop.phase === 'disposing' ? '黑色袋子正在被时空黑洞吸走' : '拖动黑色袋子到时空黑洞里'}
-              title={poop.phase === 'fresh' ? '长按打包' : poop.phase === 'bagged' ? '拖进时空黑洞' : undefined}
+                : poop.phase === 'disposing' ? '垃圾桶正在处理黑色袋子' : '拖动黑色袋子到垃圾桶里'}
+              title={poop.phase === 'fresh' ? '长按打包' : poop.phase === 'bagged' ? '拖进垃圾桶' : undefined}
               disabled={poop.phase === 'disposing'}
               onPointerDown={event => beginRoomWastePointer(letter.deliveredAt, poop.phase, event)}
               onPointerMove={moveRoomWastePointer}

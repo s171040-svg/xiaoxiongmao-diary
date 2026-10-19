@@ -42,7 +42,7 @@ const devEventOptions: { event: DeveloperEvent; label: string; durationMs: numbe
   { event: 'grab', label: '被提起发懵', durationMs: 2500 },
   { event: 'dirty-grab', label: '脏脏小熊猫被提起', durationMs: 2500 },
   { event: 'dizzy-drop', label: '松手后眩晕跌落', durationMs: 3520 },
-  { event: 'world-fall', label: '黑洞碰撞掉出世界', durationMs: 13100 },
+  { event: 'world-fall', label: '随机掉出世界', durationMs: 13100 },
   { event: 'bath-drop', label: '掉进浴缸洗澡', durationMs: 5000, persistent: true },
   { event: 'bath-rub', label: '浴球搓洗', durationMs: 5000, persistent: true },
   { event: 'dirty-bath', label: '脏兮兮状态洗澡', durationMs: 5000, persistent: true },
