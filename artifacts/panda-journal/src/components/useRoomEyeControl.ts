@@ -46,8 +46,8 @@ type RoomEyeControlOptions = {
   triggerStartle: () => void;
 };
 
-const ROOM_EYE_HOLD_MS = 520;
-const ROOM_EYE_SOFA_ANCHOR = { xRatio: 0.66, yRatio: 0.45 } as const;
+const ROOM_EYE_HOLD_MS = 420;
+const ROOM_EYE_SOFA_ANCHOR = { xRatio: 0.66, yRatio: 0.47 } as const;
 
 export function useRoomEyeControl({
   showInteractionBubble,
@@ -199,6 +199,11 @@ export function useRoomEyeControl({
     const previous = pointerRef.current;
     if (previous?.holdTimer) window.clearTimeout(previous.holdTimer);
     pointerRef.current = press;
+    try {
+      element.setPointerCapture(press.pointerId);
+    } catch {
+      // Pointer capture may be unavailable in older browsers; the hold still works.
+    }
     press.holdTimer = window.setTimeout(() => {
       if (pointerRef.current !== press) return;
       press.active = true;
@@ -207,11 +212,6 @@ export function useRoomEyeControl({
       setControlledFurnitureId(null);
       setDragging(true);
       startleNearRef.current = false;
-      try {
-        element.setPointerCapture(press.pointerId);
-      } catch {
-        // Pointer capture may fail if the hold ended while the browser was changing focus.
-      }
     }, ROOM_EYE_HOLD_MS);
   }, [canControlFurniture, hasEquippedToy, hasSelectedSnack, placement, showInteractionBubble]);
 
@@ -221,9 +221,15 @@ export function useRoomEyeControl({
     if (!press || press.pointerId !== event.pointerId) return;
     event.preventDefault();
     if (!press.active) {
-      if (Math.hypot(event.clientX - press.startX, event.clientY - press.startY) > 10) {
+      const holdJitterTolerance = event.pointerType === 'touch' ? 28 : 14;
+      if (Math.hypot(event.clientX - press.startX, event.clientY - press.startY) > holdJitterTolerance) {
         window.clearTimeout(press.holdTimer);
         pointerRef.current = null;
+        try {
+          if (press.element.hasPointerCapture(press.pointerId)) press.element.releasePointerCapture(press.pointerId);
+        } catch {
+          // The pointer may already have been released by the browser.
+        }
       }
       return;
     }
