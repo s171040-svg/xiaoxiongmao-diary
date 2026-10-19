@@ -35,7 +35,8 @@
 .ps-bath-station.ps-furniture-dragging .ps-bath-box{cursor:grabbing}
 .ps-space-letter-box::before{position:absolute;top:3px;left:-5px;right:-5px;height:9px;border:2px solid #67472c;border-radius:2px;background:linear-gradient(#e8ca91 0 25%,#af7745 27%);box-shadow:0 2px 0 #66452a;content:""}
 .ps-space-letter-box::after{position:absolute;top:24px;right:5px;left:5px;height:2px;background:#76502e;box-shadow:0 4px 0 #76502e;content:"";opacity:.55}
-.ps-space-letter-box-stamp{z-index:1;display:grid;width:23px;height:18px;place-items:center;border:1px solid #8b5a39;border-radius:2px;background:#f5e5bd;color:#9c4f43;font:700 13px/1 Georgia,serif;box-shadow:0 1px 0 #603d29;pointer-events:none}
+.ps-space-letter-box-stamp{position:relative;z-index:1;display:grid;width:23px;height:18px;place-items:center;border:1px solid #8b5a39;border-radius:2px;background:#f5e5bd;color:#9c4f43;box-shadow:0 1px 0 #603d29;pointer-events:none}
+.ps-space-letter-box-stamp:before{content:"";width:13px;height:9px;border:1px solid currentColor;border-radius:1px;background:linear-gradient(145deg,transparent 47%,currentColor 48% 53%,transparent 54%),linear-gradient(35deg,transparent 47%,currentColor 48% 53%,transparent 54%)}
 .ps-space-letter-box-label{z-index:1;color:#fff2d5;font:700 10px/1.1 "Noto Sans CJK SC",sans-serif;text-shadow:0 1px #54371f;white-space:nowrap;pointer-events:none}
 .ps-space-letter-box-count{position:absolute;z-index:2;top:-8px;right:-8px;display:grid;min-width:19px;height:19px;place-items:center;padding:0 3px;border:1px solid #fff5e5;border-radius:10px;background:#b44942;color:#fff9ec;font:700 10px/1 "Noto Sans CJK SC",sans-serif;box-shadow:0 1px 2px #402c2580;pointer-events:none}
 .ps-space-letter-box:hover{filter:brightness(1.08);translate:0 -2px}
@@ -59,7 +60,7 @@
 .ps-space-black-hole img{display:block;width:100%;height:100%;object-fit:contain;image-rendering:pixelated;animation:ps-space-hole-pulse 1.8s steps(2,end) infinite}
 .ps-room-waste{position:fixed;z-index:130;display:grid;width:48px;height:48px;padding:0;place-items:center;translate:-50% -50%;border:0;border-radius:50%;background:transparent;cursor:grab;pointer-events:auto;touch-action:none;user-select:none}
 .ps-room-waste-fresh{animation:ps-waste-wiggle 2.8s ease-in-out infinite}
-.ps-room-waste-poop{display:block;font:30px/1 "Apple Color Emoji","Segoe UI Emoji",sans-serif;filter:drop-shadow(0 2px 2px #39281e66);pointer-events:none}
+.ps-room-waste-poop{display:block;width:27px;height:24px;background:radial-gradient(ellipse at 50% 99%,#754333 0 42%,transparent 44%),radial-gradient(ellipse at 34% 74%,#936044 0 33%,transparent 35%),radial-gradient(ellipse at 66% 74%,#936044 0 34%,transparent 36%),radial-gradient(ellipse at 50% 47%,#a87450 0 20%,transparent 22%);filter:drop-shadow(0 2px 2px #39281e66);pointer-events:none}
 .ps-room-waste-bag{position:relative;display:block;width:26px;height:29px;border:2px solid #242124;border-radius:5px 5px 8px 8px;background:linear-gradient(90deg,#111114 0 20%,#29282a 21% 70%,#141315 71%);box-shadow:0 3px 4px #17121752;pointer-events:none}
 .ps-room-waste-bag::before{position:absolute;top:-6px;left:5px;width:12px;height:7px;border:2px solid #242124;border-bottom:0;border-radius:6px 6px 0 0;content:""}
 .ps-room-waste-bag::after{position:absolute;top:5px;left:5px;width:3px;height:16px;border-radius:3px;background:#ffffff2c;content:""}
@@ -148,7 +149,7 @@
 .ps-panda.ps-world-dirty{cursor:default}
 .ps-panda.ps-world-dirty .ps-body{transform-origin:center bottom;animation:ps-world-sob 920ms ease-in-out infinite}
 .ps-panda.ps-fly-flee .ps-body{transform-origin:center bottom;animation:ps-dirty-flee 180ms steps(2,end) infinite!important;filter:saturate(.86) brightness(1.03)}
-.ps-fly-chaser{position:absolute;z-index:6;top:13%;display:block;font-size:16px;line-height:1;filter:drop-shadow(0 1px 1px #35251988);pointer-events:none;animation:ps-fly-buzz 150ms steps(2,end) infinite}
+.ps-fly-chaser{position:absolute;z-index:6;top:13%;display:block;width:12px;height:9px;background:radial-gradient(ellipse at 48% 55%,#393b34 0 25%,transparent 29%),radial-gradient(ellipse at 20% 35%,#d8e2ce 0 29%,transparent 32%),radial-gradient(ellipse at 76% 31%,#d8e2ce 0 28%,transparent 31%);filter:drop-shadow(0 1px 1px #35251988);pointer-events:none;animation:ps-fly-buzz 150ms steps(2,end) infinite}
 .ps-fly-chaser-left{left:-4%;transform:translate(-45%,-65%)}
 .ps-fly-chaser-right{right:-4%;transform:translate(45%,-65%)}
 .ps-world-fall-bubble{z-index:7;border-color:#9a7651;background:#fff0d1;color:#755132;font-weight:700;animation:ps-world-note 1.8s ease-out both}

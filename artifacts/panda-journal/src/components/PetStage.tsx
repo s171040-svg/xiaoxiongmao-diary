@@ -466,6 +466,10 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const persistRoomFurnitureLayout = useCallback((layout: RoomFurnitureLayout) => {
     try {
       writeRoomFurnitureLayout(window.localStorage, layout);
+      window.dispatchEvent(new CustomEvent('panda-coop-room-change', { detail: {
+        furnitureLayout: layout,
+        placedProps: JSON.parse(window.localStorage.getItem(ROOM_PROPS_KEY) ?? '{}'),
+      } }));
     } catch (error) { console.error('Could not save the room furniture layout.', error); }
   }, []);
 
@@ -2217,8 +2221,35 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   };
 
   useEffect(() => {
-    try { window.localStorage.setItem(ROOM_PROPS_KEY, JSON.stringify(placedProps)); } catch { /* storage unavailable */ }
+    try {
+      window.localStorage.setItem(ROOM_PROPS_KEY, JSON.stringify(placedProps));
+      window.dispatchEvent(new CustomEvent('panda-coop-room-change', { detail: {
+        furnitureLayout: roomFurnitureLayoutRef.current,
+        placedProps,
+      } }));
+    } catch { /* storage unavailable */ }
   }, [placedProps]);
+
+  useEffect(() => {
+    const receiveSharedRoom = (event: Event) => {
+      const shared = (event as CustomEvent<{
+        furnitureLayout?: RoomFurnitureLayout;
+        placedProps?: Record<string, boolean>;
+      }>).detail;
+      if (!shared) return;
+      const layout = shared.furnitureLayout ?? {};
+      const props = shared.placedProps ?? {};
+      try {
+        writeRoomFurnitureLayout(window.localStorage, layout);
+        window.localStorage.setItem(ROOM_PROPS_KEY, JSON.stringify(props));
+      } catch (error) { console.error('Could not apply the shared room state.', error); }
+      roomFurnitureLayoutRef.current = layout;
+      setRoomFurnitureLayout(layout);
+      setPlacedProps(current => ({ ...current, ...props }) as Record<RoomProp, boolean>);
+    };
+    window.addEventListener('panda-coop-shared-state', receiveSharedRoom);
+    return () => window.removeEventListener('panda-coop-shared-state', receiveSharedRoom);
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement.style;
@@ -2935,7 +2966,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
             data-testid="space-police-mailbox"
             style={mailboxPlacement}
             onClick={(event) => { event.stopPropagation(); onOpenSpacePoliceMailbox(); }}>
-            <span className="ps-space-letter-box-stamp" aria-hidden="true">✉</span>
+            <span className="ps-space-letter-box-stamp" aria-hidden="true" />
             <span className="ps-space-letter-box-label">信箱</span>
             {spacePoliceUnreadCount > 0 && <span className="ps-space-letter-box-count" aria-hidden="true">{spacePoliceUnreadCount > 9 ? '9+' : spacePoliceUnreadCount}</span>}
           </button>
@@ -2977,7 +3008,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
               data-testid={`room-waste-${letter.deliveredAt}`}
               data-waste-phase={poop.phase}>
               {poop.phase === 'fresh'
-                ? <span className="ps-room-waste-poop" aria-hidden="true">💩</span>
+                ? <span className="ps-room-waste-poop" aria-hidden="true" />
                 : <span className="ps-room-waste-bag" aria-hidden="true"><i /></span>}
               {isPacking && <span className="ps-room-waste-wrap" aria-hidden="true"><i /></span>}
             </button>
@@ -3042,7 +3073,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
                  </span>
                )}
                 {isFlyChasing && (
-                  <span className={`ps-fly-chaser ps-fly-chaser-${flyChaseSide}`} aria-hidden="true">🪰</span>
+                  <span className={`ps-fly-chaser ps-fly-chaser-${flyChaseSide}`} aria-hidden="true" />
                 )}
                 {(activityTransition === 'frames-entering' || activityTransition === 'frames-waking')
                  && transitionFrameSrc && (

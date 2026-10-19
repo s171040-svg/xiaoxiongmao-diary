@@ -64,7 +64,7 @@ position:relative;isolation:isolate;display:flex;flex-direction:column;height:10
 .cc-police-gift-option.selected{border-color:#a74f43;background:#fff0dc;box-shadow:0 0 0 1px #a74f4333}
 .cc-police-gift-option:focus-within{outline:2px solid #a74f4380;outline-offset:2px}
 .cc-police-gift-option input{flex:none;accent-color:#a74f43}
-.cc-police-gift-emoji{font-size:25px;line-height:1}
+.cc-police-gift-emoji{display:grid;width:31px;height:31px;flex:none;place-items:center;border:1px solid #d1b67f;background:#f2e4c4;color:#815e3d;font:600 12px "Noto Serif SC",serif}
 .cc-police-gift-copy{min-width:0}
 .cc-police-gift-copy strong,.cc-police-gift-copy small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cc-police-gift-copy strong{font-size:13px}.cc-police-gift-copy small{margin-top:3px;color:#80674e;font-size:11px}
@@ -78,7 +78,8 @@ position:relative;isolation:isolate;display:flex;flex-direction:column;height:10
 .cc-space-mailbox{display:grid;gap:10px}
 .cc-space-mail-item{display:grid;width:100%;grid-template-columns:38px minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:12px;border:1px solid #ddcba9;border-radius:14px;background:#fffaf0;color:#453c2e;text-align:left;cursor:pointer;transition:background 120ms ease,translate 120ms ease}
 .cc-space-mail-item:hover{background:#fff5df;translate:0 -1px}
-.cc-space-mail-icon{display:grid;width:36px;height:36px;place-items:center;border:1px solid #cda96f;border-radius:10px;background:#f5e5bd;color:#9c4f43;font-size:18px}
+.cc-space-mail-icon{position:relative;display:grid;width:36px;height:36px;place-items:center;border:1px solid #cda96f;border-radius:10px;background:#f5e5bd;color:#9c4f43}
+.cc-space-mail-icon:before{content:"";width:17px;height:12px;border:1.5px solid currentColor;border-radius:2px;background:linear-gradient(145deg,transparent 47%,currentColor 48% 53%,transparent 54%),linear-gradient(35deg,transparent 47%,currentColor 48% 53%,transparent 54%)}
 .cc-space-mail-copy strong,.cc-space-mail-copy small{display:block}
 .cc-space-mail-copy strong{font-size:13px}
 .cc-space-mail-copy small{margin-top:4px;color:#83735d;font-size:11px}
@@ -109,7 +110,7 @@ position:relative;isolation:isolate;display:flex;flex-direction:column;height:10
 .cc-tag{padding:3px 9px;border-radius:99px;background:#e1ebd8;color:#40694f}.k-idea{background:#f0e6c8;color:#80672f}.k-worry{background:#f1ded6;color:#8d5a50}.k-action{background:#d9e8e4;color:#37675d}
 .cc-del{border-color:transparent;color:#a65d53;background:transparent;padding:4px 8px}
 .cc-confirm{display:flex;gap:8px;align-items:center;font-size:14px;flex-wrap:wrap}.cc-danger{background:#a65d53!important;color:#fff!important;border-color:transparent!important}
-.cc-gift{display:flex;gap:14px;align-items:flex-start}.cc-gift small{display:block;opacity:.7;font-size:12px}.cc-gemoji{font-size:38px;font-family:"Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif}
+.cc-gift{display:flex;gap:14px;align-items:flex-start}.cc-gift small{display:block;opacity:.7;font-size:12px}.cc-gemoji{display:grid;width:42px;height:42px;flex:none;place-items:center;border:2px solid #b8805d;background:#eaddc3;color:#8b6149;font:700 18px "Noto Serif SC",serif;box-shadow:2px 2px 0 #c9b291}
 .cc-empty,.cc-note{text-align:center;padding:24px 8px;font-size:14px;opacity:.75}.cc-note{padding:4px}
 @keyframes cc-in{from{opacity:0;transform:translateY(6px)}}@keyframes cc-dot{50%{transform:translateY(-5px);opacity:.5}}
 .cc-dev-gift-form{display:flex;flex-direction:column;gap:12px}
@@ -135,3 +136,11 @@ position:relative;isolation:isolate;display:flex;flex-direction:column;height:10
 .cc-room-composer .cc-send{flex:none;min-height:44px;margin-left:0;border-radius:14px;padding:0 16px}
 @media(max-width:600px){.cc-row{max-width:92%}.cc-top{flex-wrap:wrap}.cc-actions{flex-wrap:wrap;justify-content:flex-end;gap:4px}.cc-actions button{padding:6px 8px;font-size:12px}.cc-title span{display:none}}
 @media(prefers-reduced-motion:reduce){.cc-row,.cc-card,.typing i{animation:none}}
+.cc-share-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:9px}
+.cc-share-button{display:inline-flex;align-items:center;gap:6px;padding:6px 9px;border:1px solid #d2d7c7;border-radius:10px;background:#eef1e5;color:#54705a;font-size:11px;cursor:pointer}
+.cc-share-button:hover:not(:disabled){background:#e1e9d7}
+.cc-share-button:disabled{opacity:.55;cursor:wait}
+.cc-share-row>span{font-size:11px;color:#66826a}
+.cc-share-row>.cc-share-error{color:#a65d53}
+.night .cc-share-button{border-color:#38504a;background:#27403a;color:#c1dac6}
+.night .cc-share-button:hover:not(:disabled){background:#314b3e}

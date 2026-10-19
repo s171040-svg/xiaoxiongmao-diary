@@ -3,6 +3,7 @@ import { ImagePlus, Pause, Play, RotateCw, SendHorizontal, Trash2, X } from 'luc
 import type { CompanionController } from '@/hooks/use-companion';
 import type { ChatMessage, DeveloperEvent, DeveloperPose, MemoryKind, PerformanceAction, SpacePoliceLetter } from '@/lib/companion-types';
 import type { JournalEntry } from '@/lib/journal-types';
+import { canFeedGift } from '@/lib/companion-store';
 import { splitReply } from '@/lib/reply-rhythm';
 import { VoiceButton } from '@/components/VoiceButton';
 import { PetStage } from '@/components/PetStage';
@@ -79,13 +80,17 @@ function Modal({ title, sub, onClose, children, testid }: { title: string; sub: 
   );
 }
 
-function Diary({ c, onClose }: { c: CompanionController; onClose: () => void }) {
+function Diary({ c, onClose }: {
+  c: CompanionController;
+  onClose: () => void;
+}) {
   const [tab, setTab] = useState<'new' | 'old'>('new');
   const [confirm, setConfirm] = useState<string | null>(null);
   const diary = [...c.state.diary].sort((a, b) => b.createdAt - a.createdAt);
   const old: JournalEntry[] = [...c.legacyEntries].sort((a, b) => b.createdAt - a.createdAt);
   return (
-    <Modal title="日记本" sub="小熊猫从聊天里自动记下的心事，只保存在本机。" onClose={onClose} testid="dialog-diary">
+    <Modal title="日记本" sub="小熊猫从聊天里自动记下的心事，只保存在本机。共同照看时，它只会带走低细节的情绪摘要。"
+      onClose={onClose} testid="dialog-diary">
       <div className="cc-tabs" role="tablist">
         <button role="tab" aria-selected={tab === 'new'} className={tab === 'new' ? 'on' : ''} onClick={() => setTab('new')} type="button">自动记录 {diary.length}</button>
         <button role="tab" aria-selected={tab === 'old'} className={tab === 'old' ? 'on' : ''} onClick={() => setTab('old')} type="button">旧日记 {old.length}</button>
@@ -122,13 +127,13 @@ function Gifts({ c, onClose }: { c: CompanionController; onClose: () => void }) 
     <Modal title="小礼物" sub="小熊猫出门遇见的朋友，和带回来的东西。" onClose={onClose} testid="dialog-gifts">
       {gifts.length ? gifts.map((g) => (
         <article className="cc-card cc-gift" key={g.id}>
-          <span className="cc-gemoji" aria-hidden="true">{g.emoji}</span>
+          <span className="cc-gemoji" aria-hidden="true">礼</span>
           <div><strong>{g.item}</strong><small>来自 {g.animal} · {fmt.format(g.receivedAt)}</small>
             <details><summary>看看带回来的故事</summary><p>{g.story}</p></details>
             <div className="cc-gift-actions">
               <button type="button" onClick={() => c.favoriteGift(g.id)} aria-pressed={Boolean(g.favorite)}>{g.favorite ? '已收藏 · 取消' : '收藏'}</button>
-              {['🍌', '🥕', '🐟', '🍬'].includes(g.emoji) && <button type="button" disabled={Boolean(g.fedAt)} onClick={() => c.feedGift(g.id)}>{g.fedAt ? '已喂给小熊猫' : '喂小熊猫'}</button>}
-              {!['🍌', '🥕', '🐟', '🍬'].includes(g.emoji) && <small>纪念小物，留着收藏</small>}
+              {canFeedGift(g) && <button type="button" disabled={Boolean(g.fedAt)} onClick={() => c.feedGift(g.id)}>{g.fedAt ? '已喂给小熊猫' : '喂小熊猫'}</button>}
+              {!canFeedGift(g) && <small>纪念小物，留着收藏</small>}
             </div>
           </div>
         </article>)) : <p className="cc-empty">还没有礼物。小熊猫偶尔会出门，回来时带点什么。</p>}
@@ -160,7 +165,10 @@ function Bubble({ m, canRetry, c }: { m: ChatMessage; canRetry: boolean; c: Comp
   );
 }
 
-export function CompanionChat({ companion: c, roomOnly = false }: { companion: CompanionController; roomOnly?: boolean }) {
+export function CompanionChat({ companion: c, roomOnly = false }: {
+  companion: CompanionController;
+  roomOnly?: boolean;
+}) {
   const [panel, setPanel] = useState<'diary' | 'gifts' | null>(null);
   const [devGiftOpen, setDevGiftOpen] = useState(false);
   const [devActionOpen, setDevActionOpen] = useState(false);
@@ -417,10 +425,10 @@ export function CompanionChat({ companion: c, roomOnly = false }: { companion: C
               spacePoliceLetters.map(letter => (
                 <button type="button" className="cc-space-mail-item" key={letter.id}
                   onClick={() => openSpacePoliceLetter(letter.id)} data-testid={`space-police-mail-${letter.id}`}>
-                  <span className="cc-space-mail-icon" aria-hidden="true">✉</span>
+                  <span className="cc-space-mail-icon" aria-hidden="true" />
                   <span className="cc-space-mail-copy">
                     <strong>空间警察署 · 护送回执</strong>
-                    <small>{letter.finePayment ? `已提交 ${letter.finePayment.emoji}${letter.finePayment.item}` : '护送完成 · 待提交 1 件纪念品'}</small>
+                    <small>{letter.finePayment ? `已提交 ${letter.finePayment.item}` : '护送完成 · 待提交 1 件纪念品'}</small>
                   </span>
                   <time>{fmt.format(letter.deliveredAt)}</time>
                   <span className={`cc-space-mail-status${letter.openedAt === undefined ? ' unread' : ''}`}>
@@ -447,7 +455,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: { companion: C
             {spacePoliceLetterOpen.finePayment ? (
               <section className="cc-police-payment paid" data-testid="space-police-fine-paid" aria-live="polite">
                 <strong>罚款已缴，结案！</strong>
-                <p>已收到 {spacePoliceLetterOpen.finePayment.emoji} {spacePoliceLetterOpen.finePayment.item}，感谢配合时空宠物保护条例。</p>
+                <p>已收到 {spacePoliceLetterOpen.finePayment.item}，感谢配合时空宠物保护条例。</p>
               </section>
             ) : (
               <section className="cc-police-payment" data-testid="space-police-fine">
@@ -461,7 +469,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: { companion: C
                       <label className={`cc-police-gift-option${spacePoliceFineGiftId === gift.id ? ' selected' : ''}`} key={gift.id}>
                         <input type="radio" name="space-police-fine-gift" value={gift.id}
                           checked={spacePoliceFineGiftId === gift.id} onChange={() => setSpacePoliceFineGiftId(gift.id)} />
-                        <span className="cc-police-gift-emoji" aria-hidden="true">{gift.emoji}</span>
+                        <span className="cc-police-gift-emoji" aria-hidden="true">物</span>
                         <span className="cc-police-gift-copy"><strong>{gift.item}</strong><small>{gift.favorite ? '已收藏 · ' : ''}来自 {gift.animal}</small></span>
                       </label>
                     ))}

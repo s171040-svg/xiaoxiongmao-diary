@@ -26,7 +26,7 @@ export function GiftDrop({ gift, startedAt, onCollect }: {
         <span className="gift-drop-box-art" aria-hidden="true">
           <span className="gift-box-body"><i /></span>
           <span className="gift-box-lid" />
-          <span className="gift-drop-object"><span className="gift-drop-emoji">{gift.emoji}</span></span>
+          <span className="gift-drop-object"><span className="gift-drop-token">{gift.item}</span></span>
         </span>
         <span className="gift-drop-hint">{startedAt ? '收好啦～' : opened ? `小熊猫带给你的${gift.item} · 再点一下收好` : '小熊猫带回来一个礼物 · 点开看看'}</span>
       </button>

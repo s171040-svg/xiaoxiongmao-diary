@@ -10,14 +10,17 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@workspace/companion-ai": "workspace:*",
-    "@workspace/integrations-openai-ai-server": "workspace:*",
+    "@clerk/express": "^2.1.80",
+    "@clerk/shared": "^4.40.0",
     "@workspace/api-zod": "workspace:*",
+    "@workspace/companion-ai": "workspace:*",
     "@workspace/db": "workspace:*",
+    "@workspace/integrations-openai-ai-server": "workspace:*",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "drizzle-orm": "catalog:",
     "express": "^5.2.1",
+    "http-proxy-middleware": "^4.2.0",
     "pino": "^9.14.0",
     "pino-http": "^10.5.0"
   },

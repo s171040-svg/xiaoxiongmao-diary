@@ -12,7 +12,175 @@ tags:
     description: Health operations
   - name: journal
     description: Stateless journal analysis
+  - name: co-op
+    description: Private two-player panda households and emotion-only messages
 paths:
+  /coop/household:
+    get:
+      operationId: getCoopHousehold
+      tags: [co-op]
+      summary: Get the authenticated player's shared panda household
+      responses:
+        "200":
+          description: Household, shared room state, pending shares, and received notes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoopHouseholdResponse"
+        "401":
+          description: Authentication required
+    post:
+      operationId: createCoopHousehold
+      tags: [co-op]
+      summary: Start a shared panda household from a private local game snapshot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CoopHouseholdInput"
+      responses:
+        "201":
+          description: Household created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoopHouseholdResponse"
+        "401":
+          description: Authentication required
+        "409":
+          description: Player already belongs to a household
+  /coop/invitations:
+    post:
+      operationId: createCoopInvitation
+      tags: [co-op]
+      summary: Create a one-time invite code for the second player
+      responses:
+        "201":
+          description: Invite code created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoopInvitationResponse"
+        "401":
+          description: Authentication required
+        "409":
+          description: Household already has two players
+  /coop/join:
+    post:
+      operationId: joinCoopHousehold
+      tags: [co-op]
+      summary: Join a household with an invite code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CoopJoinInput"
+      responses:
+        "200":
+          description: Joined household
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoopHouseholdResponse"
+        "400":
+          description: Invalid or expired invitation
+        "401":
+          description: Authentication required
+        "409":
+          description: Household is full or player already belongs to one
+  /coop/state:
+    put:
+      operationId: updateCoopState
+      tags: [co-op]
+      summary: Update the household's shared game and room state
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CoopStateInput"
+      responses:
+        "200":
+          description: Shared state saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoopStateResponse"
+        "401":
+          description: Authentication required
+        "404":
+          description: No household
+  /coop/share-notes:
+    post:
+      operationId: createCoopShareNote
+      tags: [co-op]
+      summary: Turn a private diary note into a brief emotion-only message for the other player
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CoopShareNoteInput"
+      responses:
+        "201":
+          description: Emotion-only share candidate created; original text is not stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoopShareNote"
+        "401":
+          description: Authentication required
+        "404":
+          description: No paired household
+        "502":
+          description: Summary service unavailable
+  /coop/share-notes/{id}:
+    patch:
+      operationId: updateCoopShareNote
+      tags: [co-op]
+      summary: Mark a queued note as excluded or allow it to be carried
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CoopShareNoteUpdate"
+      responses:
+        "200":
+          description: Share preference updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoopShareNote"
+        "401":
+          description: Authentication required
+        "404":
+          description: Note not found
+  /coop/deliver-next:
+    post:
+      operationId: deliverNextCoopShareNote
+      tags: [co-op]
+      summary: Deliver one queued note from the other player when the panda returns from an outing
+      responses:
+        "200":
+          description: The next note, if one was waiting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoopDeliveryResponse"
+        "401":
+          description: Authentication required
+        "404":
+          description: No paired household
   /companion/chat:
     post:
       operationId: companionChat
@@ -76,6 +244,178 @@ paths:
           description: AI analysis unavailable
 components:
   schemas:
+    CoopRoomPoint:
+      type: object
+      required: [x, y]
+      properties:
+        x:
+          type: number
+          minimum: 0
+          maximum: 1
+        y:
+          type: number
+          minimum: 0
+          maximum: 1
+    CoopGift:
+      type: object
+      required: [id, emoji, item, animal, story, receivedAt]
+      properties:
+        id:
+          type: string
+          maxLength: 120
+        emoji:
+          type: string
+          maxLength: 16
+        item:
+          type: string
+          maxLength: 120
+        animal:
+          type: string
+          maxLength: 120
+        story:
+          type: string
+          maxLength: 1200
+        receivedAt:
+          type: integer
+          minimum: 0
+        favorite:
+          type: boolean
+        fedAt:
+          type: integer
+          minimum: 0
+    CoopSharedState:
+      type: object
+      required: [gifts, furnitureLayout, placedProps]
+      properties:
+        gifts:
+          type: array
+          maxItems: 300
+          items:
+            $ref: "#/components/schemas/CoopGift"
+        furnitureLayout:
+          type: object
+          properties:
+            bed:
+              $ref: "#/components/schemas/CoopRoomPoint"
+            rack:
+              $ref: "#/components/schemas/CoopRoomPoint"
+            mailbox:
+              $ref: "#/components/schemas/CoopRoomPoint"
+            bathStation:
+              $ref: "#/components/schemas/CoopRoomPoint"
+          additionalProperties: false
+        placedProps:
+          type: object
+          additionalProperties:
+            type: boolean
+    CoopShareNote:
+      type: object
+      required: [id, category, title, message, excluded, createdAt, automatic]
+      properties:
+        id:
+          type: string
+          format: uuid
+        category:
+          type: string
+          enum: [daily, idea, worry]
+        title:
+          type: string
+          maxLength: 48
+        message:
+          type: string
+          maxLength: 180
+        excluded:
+          type: boolean
+        createdAt:
+          type: integer
+          minimum: 0
+        automatic:
+          type: boolean
+    CoopHouseholdResponse:
+      type: object
+      required: [householdId, playerNumber, memberCount, sharedState, queuedNotes, inbox]
+      properties:
+        householdId:
+          type: string
+          format: uuid
+        playerNumber:
+          type: integer
+          enum: [1, 2]
+        memberCount:
+          type: integer
+          enum: [1, 2]
+        sharedState:
+          $ref: "#/components/schemas/CoopSharedState"
+        queuedNotes:
+          type: array
+          items:
+            $ref: "#/components/schemas/CoopShareNote"
+        inbox:
+          type: array
+          items:
+            $ref: "#/components/schemas/CoopShareNote"
+    CoopHouseholdInput:
+      type: object
+      required: [sharedState]
+      properties:
+        sharedState:
+          $ref: "#/components/schemas/CoopSharedState"
+    CoopInvitationResponse:
+      type: object
+      required: [code, expiresAt]
+      properties:
+        code:
+          type: string
+          minLength: 8
+          maxLength: 12
+        expiresAt:
+          type: integer
+          minimum: 0
+    CoopJoinInput:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          minLength: 8
+          maxLength: 12
+    CoopStateInput:
+      type: object
+      required: [sharedState]
+      properties:
+        sharedState:
+          $ref: "#/components/schemas/CoopSharedState"
+    CoopStateResponse:
+      type: object
+      required: [sharedState, updatedAt]
+      properties:
+        sharedState:
+          $ref: "#/components/schemas/CoopSharedState"
+        updatedAt:
+          type: integer
+          minimum: 0
+    CoopShareNoteInput:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 1200
+    CoopShareNoteUpdate:
+      type: object
+      required: [excluded]
+      properties:
+        excluded:
+          type: boolean
+    CoopDeliveryResponse:
+      type: object
+      required: [delivered]
+      properties:
+        delivered:
+          type: boolean
+        note:
+          $ref: "#/components/schemas/CoopShareNote"
     CompanionContext:
       type: object
       required: [role, content]

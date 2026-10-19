@@ -1,7 +1,7 @@
 kind = "web"
 previewPath = "/"
 title = "小熊猫日记"
-description = "A private, single-user journaling app where a little red panda reacts warmly to notes. Saves entries only in the browser, with real AI text classification, category-based panda reactions, and automatic quiet night mode. Text is sent to AI only for analysis; journal entries and photos remain on the device."
+description = "A solo or two-player red-panda companion game with private chat and diaries, shared gifts and room furniture, and emotion-only outing notes."
 version = "1.0.0"
 id = "artifacts/panda-journal"
 router = "path"

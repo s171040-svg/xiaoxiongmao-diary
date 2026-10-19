@@ -1,0 +1,103 @@
+.coop-hub{position:fixed;z-index:30;inset:0;overflow:auto;background:#efe9d9;color:#35463a;font-family:"DM Sans","Noto Serif SC",sans-serif;padding:0 20px 38px}
+.coop-hub:before{position:fixed;inset:0;content:"";pointer-events:none;opacity:.16;background-image:radial-gradient(#765c3e 0.55px,transparent .55px);background-size:6px 6px}
+.coop-hub-frame{position:relative;max-width:1030px;margin:0 auto}
+.coop-header{height:72px;display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;border-bottom:1px solid #d8d0be}
+.coop-back,.coop-close-bottom{display:inline-flex;align-items:center;gap:8px;width:max-content;border:0;background:transparent;color:#667868;font-size:13px;font-weight:600;padding:8px 0}
+.coop-back:hover,.coop-close-bottom:hover{color:#a45f4d}
+.coop-brand{display:flex;align-items:center;justify-content:center;gap:9px;color:#3b5847;font-weight:700;font-size:13px;letter-spacing:.02em}
+.coop-brand small{display:block;margin-top:2px;color:#9a755b;font:400 10px "Silkscreen",sans-serif;letter-spacing:0}
+.coop-stamp{display:grid;place-items:center;width:33px;height:33px;background:#b96651;color:#fff2d7;border:2px solid #934b42;box-shadow:2px 2px 0 #8e6a4a;font:700 15px "Noto Serif SC",serif}
+.coop-private-mark{justify-self:end;display:flex;align-items:center;gap:7px;color:#7d897b;font-size:11px}
+.coop-intro{display:grid;grid-template-columns:1.08fr .92fr;align-items:center;gap:28px;padding:35px 0 28px}
+.coop-kicker{margin:0 0 10px;color:#9a7158;font:400 10px "Silkscreen",sans-serif;letter-spacing:.04em}
+.coop-intro h1{margin:0;color:#365244;font:500 clamp(30px,4.5vw,51px)/1.45 "Noto Serif SC",serif;letter-spacing:-.055em}
+.coop-intro h1 em{color:#b2614e;font-style:normal}
+.coop-intro-copy>p:last-child{max-width:450px;margin:15px 0 0;color:#758174;font:400 14px/1.9 "Noto Serif SC",serif}
+.coop-room-illustration{height:214px;position:relative;overflow:hidden;border:1px solid #d5c8ac;background:#ded5b9;box-shadow:6px 6px 0 #cab99a,inset 0 0 0 6px #e8dfc8}
+.coop-room-illustration:after{content:"";position:absolute;inset:12px;border:1px dashed #a89e7c;pointer-events:none}
+.coop-window{position:absolute;z-index:1;top:29px;left:32px;width:82px;height:72px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:5px;padding:6px;background:#8da89b;border:4px solid #9b7959;box-shadow:3px 3px 0 #82664d}
+.coop-window i{background:#d4e2c9}
+.coop-shelf{position:absolute;left:150px;top:67px;width:90px;height:8px;background:#997553;box-shadow:0 8px 0 #c0a47a}
+.coop-plant{position:absolute;left:165px;top:38px;width:30px;height:31px;border-left:4px solid #718b64;border-right:4px solid #718b64;background:linear-gradient(145deg,transparent 38%,#78936b 39% 47%,transparent 48%),linear-gradient(35deg,transparent 40%,#91a37a 41% 48%,transparent 49%)}
+.coop-panda{position:absolute;z-index:3;bottom:43px;left:50%;width:89px;height:75px;transform:translateX(-40%)}
+.coop-panda .face{position:absolute;bottom:0;left:8px;width:70px;height:57px;background:#f4e8cf;border:4px solid #ad654d;border-radius:44% 44% 38% 38%;box-shadow:inset 0 -7px 0 #e4d4b8}
+.coop-panda .ear{position:absolute;top:0;width:28px;height:28px;border:4px solid #ad654d;border-radius:50%;background:#493e34}
+.coop-panda .ear.left{left:7px}.coop-panda .ear.right{right:3px}
+.coop-panda .face b{position:absolute;top:21px;width:8px;height:9px;border-radius:50%;background:#443b32}
+.coop-panda .face b:first-child{left:17px}.coop-panda .face b:nth-child(2){right:17px}
+.coop-panda .face em{position:absolute;left:27px;top:38px;width:11px;height:7px;border-radius:50%;background:#bb705e}
+.coop-floor{position:absolute;bottom:0;left:0;right:0;height:54px;background:repeating-linear-gradient(90deg,#c29e73 0 43px,#b28e67 43px 46px);border-top:5px solid #92724f}
+.coop-rug{position:absolute;bottom:7px;left:40%;width:155px;height:24px;background:#9b7863;border:3px solid #80644f;border-radius:50%}
+.coop-alert{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 16px;padding:11px 14px;border:1px solid #d9aa91;background:#f5e3d7;color:#905345;font-size:13px}
+.coop-alert button{display:flex;align-items:center;gap:6px;flex:none;border:0;background:transparent;color:inherit;font-size:12px}
+.coop-loading{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:16px 0}
+.coop-skeleton-line,.coop-skeleton-card{position:relative;overflow:hidden;background:#e4ddcb;border:1px solid #d9d1bf}
+.coop-skeleton-line{grid-column:1/-1;height:44px}
+.coop-skeleton-card{height:175px}.coop-skeleton-card.short{height:132px}
+.coop-skeleton-line:after,.coop-skeleton-card:after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,#f4efe3,transparent);animation:coop-shimmer 1.5s infinite}
+.coop-household-card,.coop-note-panel,.coop-start-card{border:1px solid #d9d0bd;background:#f7f2e5;box-shadow:3px 4px 0 #dfd5c1}
+.coop-household-card{padding:20px 22px;margin-bottom:18px}
+.coop-household-heading{display:flex;align-items:center;gap:12px}
+.coop-icon-tile{display:grid;place-items:center;width:42px;height:42px;background:#e8dcc2;border:1px solid #d2c1a0;color:#9c5e4d}
+.coop-household-heading .coop-kicker,.coop-section-title .coop-kicker{margin-bottom:5px;font-size:9px}
+.coop-household-heading h2,.coop-section-title h2{margin:0;color:#3f5949;font:500 20px "Noto Serif SC",serif}
+.coop-member-count{margin-left:auto;padding:6px 10px;border:1px solid #d3d7c6;border-radius:99px;background:#edf0e4;color:#668064;font-size:11px}
+.coop-players{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0 0}
+.coop-player{position:relative;display:flex;align-items:center;gap:11px;padding:12px;border:1px solid #e1dacb;background:#f2eddf}
+.coop-player.waiting{border-style:dashed;background:#f8f5eb}
+.coop-avatar{display:grid;place-items:center;flex:none;width:38px;height:38px;border:2px solid #9b7255;background:#b56550;color:#fff0d7;font-family:"Noto Serif SC",serif}
+.coop-avatar.partner{border-color:#b8b49c;background:#e5e3d3;color:#71816d}
+.coop-player strong,.coop-player small{display:block}.coop-player strong{color:#4e5d4d;font-size:13px}.coop-player small{margin-top:4px;color:#919286;font-size:11px}
+.online-dot,.coop-waiting-dot{position:absolute;right:13px;width:8px;height:8px;border-radius:50%;background:#8aa681}
+.coop-waiting-dot{background:#d2bd8c}
+.coop-shared-gifts{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding:10px 12px;background:#eee8d9;border:1px solid #e1d8c5}
+.coop-shared-gifts strong,.coop-shared-gifts small{display:block}.coop-shared-gifts strong{color:#5b6a59;font:500 12px "Noto Serif SC",serif}.coop-shared-gifts small{margin-top:3px;color:#939285;font-size:10px}
+.coop-gift-list{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.coop-gift-list span{padding:5px 7px;border:1px solid #d8cdb5;background:#f8f3e7;color:#716d5a;font-size:10px}
+.coop-invite-box{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:16px;padding-top:15px;border-top:1px solid #e5dece}
+.coop-invite-box strong,.coop-invite-box small{display:block}.coop-invite-box strong{font:500 14px "Noto Serif SC",serif}.coop-invite-box small{margin-top:5px;color:#858a7c;font-size:11px}
+.coop-primary,.coop-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 15px;border:1px solid #974d42;background:#a85e4d;color:#fff3df;font-size:13px;font-weight:600;box-shadow:2px 2px 0 #8e5d49;transition:transform .16s,background .16s}
+.coop-primary:hover:not(:disabled),.coop-secondary:hover:not(:disabled){transform:translate(-1px,-1px);background:#934d43}
+.coop-primary:disabled,.coop-secondary:disabled{opacity:.5;cursor:not-allowed}
+.coop-code-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.coop-code-row code{padding:8px 12px;background:#e8dfca;border:1px dashed #b9a787;color:#584a3b;font:700 15px "Silkscreen",monospace;letter-spacing:.08em}
+.coop-code-row button{display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #d6cbb7;background:#fff9ea;color:#62705e;font-size:12px}
+.coop-code-row small{flex-basis:100%;margin:0!important;text-align:right}
+.coop-notes-grid{display:grid;grid-template-columns:1fr 1fr;gap:17px}
+.coop-note-panel{padding:19px 19px 15px;min-width:0}
+.coop-section-title{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.coop-count{display:grid;place-items:center;min-width:29px;height:29px;border-radius:50%;background:#e9ddc4;color:#816849;font-size:12px}
+.coop-section-copy{min-height:43px;margin:10px 0 15px;color:#83897b;font:400 12px/1.7 "Noto Serif SC",serif}
+.coop-note{margin:0 0 9px;padding:12px 13px;border:1px solid #e1d9c8;background:#fcf8ed}
+.coop-note.excluded{opacity:.58;background:#ede9df}
+.coop-note.received{border-left:3px solid #a36a58;background:#f9f1e5}
+.coop-note-top{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#9b9b8e;font-size:10px}
+.coop-category{padding:3px 7px;background:#e6eadb;color:#6f8067;font-size:10px}
+.coop-category.idea{background:#eee3c8;color:#8d7350}.coop-category.worry{background:#f1ded5;color:#a15f53}
+.coop-note>strong{display:block;margin-top:8px;color:#455647;font:600 14px "Noto Serif SC",serif}
+.coop-note>p{margin:5px 0 0;color:#73796e;font:400 12px/1.75 "Noto Serif SC",serif;overflow-wrap:anywhere}
+.coop-exclude{margin-top:8px;padding:4px 0;border:0;border-bottom:1px solid #c7b6a0;background:transparent;color:#976452;font-size:11px}
+.coop-exclude:disabled{opacity:.5}
+.coop-empty{display:flex;min-height:154px;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:15px 18px;border:1px dashed #ded6c5;background:#f8f4e9}
+.coop-empty-mark{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#e8e8da;color:#7b8b70}
+.coop-empty strong{margin-top:9px;color:#637260;font:500 14px "Noto Serif SC",serif}
+.coop-empty p{max-width:270px;margin:6px 0 0;color:#97968a;font:400 11px/1.7 "Noto Serif SC",serif}
+.coop-start-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:17px}
+.coop-start-card{padding:22px}
+.coop-step{color:#a2785b;font:400 9px "Silkscreen",sans-serif}
+.coop-start-card h2{margin:12px 0 10px;color:#3f5949;font:500 21px/1.6 "Noto Serif SC",serif}
+.coop-start-card p{max-width:370px;margin:0 0 19px;color:#808779;font:400 13px/1.8 "Noto Serif SC",serif}
+.primary-start{background:#e9e1ce}
+.primary-start .coop-primary{margin-top:4px}
+.coop-join-form{display:grid;gap:8px}
+.coop-join-form label{color:#6c796a;font-size:12px;font-weight:600}
+.coop-join-form input{height:42px;width:100%;border:1px solid #d7cdb8;background:#fffaf0;padding:0 11px;color:#485a4a;font:400 13px "Silkscreen","DM Sans",sans-serif;letter-spacing:.04em}
+.coop-join-form input:focus{outline:2px solid #9fb08f;outline-offset:1px}
+.coop-secondary{width:100%;margin-top:5px;border-color:#9fa88c;background:#e1e5d6;color:#50674f;box-shadow:2px 2px 0 #aab19a}
+.coop-secondary:hover:not(:disabled){background:#d2ddc8}
+.coop-footer-note{margin:23px 0 0;color:#969688;font:400 11px/1.7 "Noto Serif SC",serif;text-align:center}
+.coop-close-bottom{display:none}
+@keyframes coop-shimmer{100%{transform:translateX(100%)}}
+@media(max-width:700px){.coop-hub{padding:0 14px 30px}.coop-header{height:62px;grid-template-columns:1fr auto}.coop-brand{justify-content:flex-end}.coop-private-mark{display:none}.coop-intro{grid-template-columns:1fr;gap:18px;padding:25px 0 20px}.coop-intro h1{font-size:34px}.coop-intro-copy>p:last-child{font-size:12px}.coop-room-illustration{height:170px}.coop-window{transform:scale(.84);transform-origin:top left}.coop-shelf{left:125px}.coop-plant{left:139px}.coop-panda{bottom:35px;scale:.83}.coop-floor{height:45px}.coop-rug{bottom:5px}.coop-notes-grid,.coop-start-grid{grid-template-columns:1fr;gap:12px}.coop-household-card{padding:16px}.coop-player{padding:9px}.coop-player strong{font-size:12px}.coop-player small{font-size:10px}.coop-invite-box{align-items:flex-start;flex-direction:column}.coop-invite-box>.coop-primary{width:100%}.coop-section-copy{min-height:0}.coop-loading{grid-template-columns:1fr}.coop-skeleton-line{grid-column:auto}.coop-close-bottom{display:block;margin:18px auto 0}.coop-footer-note{margin-top:18px}}
+@media(max-width:380px){.coop-header{grid-template-columns:1fr}.coop-brand{display:none}.coop-players{grid-template-columns:1fr}.coop-member-count{font-size:10px;padding:5px 7px}}
+@media(prefers-reduced-motion:reduce){.coop-hub *{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}}

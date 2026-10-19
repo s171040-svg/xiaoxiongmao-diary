@@ -9,6 +9,690 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Get the authenticated player's shared panda household
+ */
+export const getCoopHouseholdResponseSharedStateGiftsItemIdMax = 120;
+
+export const getCoopHouseholdResponseSharedStateGiftsItemEmojiMax = 16;
+
+export const getCoopHouseholdResponseSharedStateGiftsItemItemMax = 120;
+
+export const getCoopHouseholdResponseSharedStateGiftsItemAnimalMax = 120;
+
+export const getCoopHouseholdResponseSharedStateGiftsItemStoryMax = 1200;
+
+export const getCoopHouseholdResponseSharedStateGiftsItemReceivedAtMin = 0;
+
+export const getCoopHouseholdResponseSharedStateGiftsItemFedAtMin = 0;
+
+export const getCoopHouseholdResponseSharedStateGiftsMax = 300;
+
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutBedXMin = 0;
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutBedXMax = 1;
+
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutBedYMin = 0;
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutBedYMax = 1;
+
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutRackXMin = 0;
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutRackXMax = 1;
+
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutRackYMin = 0;
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutRackYMax = 1;
+
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMin = 0;
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMax = 1;
+
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMin = 0;
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMax = 1;
+
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMin = 0;
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMax = 1;
+
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMin = 0;
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMax = 1;
+
+export const getCoopHouseholdResponseQueuedNotesItemTitleMax = 48;
+
+export const getCoopHouseholdResponseQueuedNotesItemMessageMax = 180;
+
+export const getCoopHouseholdResponseQueuedNotesItemCreatedAtMin = 0;
+
+export const getCoopHouseholdResponseInboxItemTitleMax = 48;
+
+export const getCoopHouseholdResponseInboxItemMessageMax = 180;
+
+export const getCoopHouseholdResponseInboxItemCreatedAtMin = 0;
+
+
+
+export const GetCoopHouseholdResponse = zod.object({
+  "householdId": zod.string().uuid(),
+  "playerNumber": zod.union([zod.literal(1),zod.literal(2)]),
+  "memberCount": zod.union([zod.literal(1),zod.literal(2)]),
+  "sharedState": zod.object({
+  "gifts": zod.array(zod.object({
+  "id": zod.string().max(getCoopHouseholdResponseSharedStateGiftsItemIdMax),
+  "emoji": zod.string().max(getCoopHouseholdResponseSharedStateGiftsItemEmojiMax),
+  "item": zod.string().max(getCoopHouseholdResponseSharedStateGiftsItemItemMax),
+  "animal": zod.string().max(getCoopHouseholdResponseSharedStateGiftsItemAnimalMax),
+  "story": zod.string().max(getCoopHouseholdResponseSharedStateGiftsItemStoryMax),
+  "receivedAt": zod.number().int().min(getCoopHouseholdResponseSharedStateGiftsItemReceivedAtMin),
+  "favorite": zod.boolean().optional(),
+  "fedAt": zod.number().int().min(getCoopHouseholdResponseSharedStateGiftsItemFedAtMin).optional()
+})).max(getCoopHouseholdResponseSharedStateGiftsMax),
+  "furnitureLayout": zod.object({
+  "bed": zod.object({
+  "x": zod.number().min(getCoopHouseholdResponseSharedStateFurnitureLayoutBedXMin).max(getCoopHouseholdResponseSharedStateFurnitureLayoutBedXMax),
+  "y": zod.number().min(getCoopHouseholdResponseSharedStateFurnitureLayoutBedYMin).max(getCoopHouseholdResponseSharedStateFurnitureLayoutBedYMax)
+}).optional(),
+  "rack": zod.object({
+  "x": zod.number().min(getCoopHouseholdResponseSharedStateFurnitureLayoutRackXMin).max(getCoopHouseholdResponseSharedStateFurnitureLayoutRackXMax),
+  "y": zod.number().min(getCoopHouseholdResponseSharedStateFurnitureLayoutRackYMin).max(getCoopHouseholdResponseSharedStateFurnitureLayoutRackYMax)
+}).optional(),
+  "mailbox": zod.object({
+  "x": zod.number().min(getCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMin).max(getCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMax),
+  "y": zod.number().min(getCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMin).max(getCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMax)
+}).optional(),
+  "bathStation": zod.object({
+  "x": zod.number().min(getCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMin).max(getCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMax),
+  "y": zod.number().min(getCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMin).max(getCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMax)
+}).optional()
+}),
+  "placedProps": zod.record(zod.string(), zod.boolean())
+}),
+  "queuedNotes": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['daily', 'idea', 'worry']),
+  "title": zod.string().max(getCoopHouseholdResponseQueuedNotesItemTitleMax),
+  "message": zod.string().max(getCoopHouseholdResponseQueuedNotesItemMessageMax),
+  "excluded": zod.boolean(),
+  "createdAt": zod.number().int().min(getCoopHouseholdResponseQueuedNotesItemCreatedAtMin),
+  "automatic": zod.boolean()
+})),
+  "inbox": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['daily', 'idea', 'worry']),
+  "title": zod.string().max(getCoopHouseholdResponseInboxItemTitleMax),
+  "message": zod.string().max(getCoopHouseholdResponseInboxItemMessageMax),
+  "excluded": zod.boolean(),
+  "createdAt": zod.number().int().min(getCoopHouseholdResponseInboxItemCreatedAtMin),
+  "automatic": zod.boolean()
+}))
+})
+
+
+/**
+ * @summary Start a shared panda household from a private local game snapshot
+ */
+export const createCoopHouseholdBodySharedStateGiftsItemIdMax = 120;
+
+export const createCoopHouseholdBodySharedStateGiftsItemEmojiMax = 16;
+
+export const createCoopHouseholdBodySharedStateGiftsItemItemMax = 120;
+
+export const createCoopHouseholdBodySharedStateGiftsItemAnimalMax = 120;
+
+export const createCoopHouseholdBodySharedStateGiftsItemStoryMax = 1200;
+
+export const createCoopHouseholdBodySharedStateGiftsItemReceivedAtMin = 0;
+
+export const createCoopHouseholdBodySharedStateGiftsItemFedAtMin = 0;
+
+export const createCoopHouseholdBodySharedStateGiftsMax = 300;
+
+export const createCoopHouseholdBodySharedStateFurnitureLayoutBedXMin = 0;
+export const createCoopHouseholdBodySharedStateFurnitureLayoutBedXMax = 1;
+
+export const createCoopHouseholdBodySharedStateFurnitureLayoutBedYMin = 0;
+export const createCoopHouseholdBodySharedStateFurnitureLayoutBedYMax = 1;
+
+export const createCoopHouseholdBodySharedStateFurnitureLayoutRackXMin = 0;
+export const createCoopHouseholdBodySharedStateFurnitureLayoutRackXMax = 1;
+
+export const createCoopHouseholdBodySharedStateFurnitureLayoutRackYMin = 0;
+export const createCoopHouseholdBodySharedStateFurnitureLayoutRackYMax = 1;
+
+export const createCoopHouseholdBodySharedStateFurnitureLayoutMailboxXMin = 0;
+export const createCoopHouseholdBodySharedStateFurnitureLayoutMailboxXMax = 1;
+
+export const createCoopHouseholdBodySharedStateFurnitureLayoutMailboxYMin = 0;
+export const createCoopHouseholdBodySharedStateFurnitureLayoutMailboxYMax = 1;
+
+export const createCoopHouseholdBodySharedStateFurnitureLayoutBathStationXMin = 0;
+export const createCoopHouseholdBodySharedStateFurnitureLayoutBathStationXMax = 1;
+
+export const createCoopHouseholdBodySharedStateFurnitureLayoutBathStationYMin = 0;
+export const createCoopHouseholdBodySharedStateFurnitureLayoutBathStationYMax = 1;
+
+
+
+export const CreateCoopHouseholdBody = zod.object({
+  "sharedState": zod.object({
+  "gifts": zod.array(zod.object({
+  "id": zod.string().max(createCoopHouseholdBodySharedStateGiftsItemIdMax),
+  "emoji": zod.string().max(createCoopHouseholdBodySharedStateGiftsItemEmojiMax),
+  "item": zod.string().max(createCoopHouseholdBodySharedStateGiftsItemItemMax),
+  "animal": zod.string().max(createCoopHouseholdBodySharedStateGiftsItemAnimalMax),
+  "story": zod.string().max(createCoopHouseholdBodySharedStateGiftsItemStoryMax),
+  "receivedAt": zod.number().int().min(createCoopHouseholdBodySharedStateGiftsItemReceivedAtMin),
+  "favorite": zod.boolean().optional(),
+  "fedAt": zod.number().int().min(createCoopHouseholdBodySharedStateGiftsItemFedAtMin).optional()
+})).max(createCoopHouseholdBodySharedStateGiftsMax),
+  "furnitureLayout": zod.object({
+  "bed": zod.object({
+  "x": zod.number().min(createCoopHouseholdBodySharedStateFurnitureLayoutBedXMin).max(createCoopHouseholdBodySharedStateFurnitureLayoutBedXMax),
+  "y": zod.number().min(createCoopHouseholdBodySharedStateFurnitureLayoutBedYMin).max(createCoopHouseholdBodySharedStateFurnitureLayoutBedYMax)
+}).optional(),
+  "rack": zod.object({
+  "x": zod.number().min(createCoopHouseholdBodySharedStateFurnitureLayoutRackXMin).max(createCoopHouseholdBodySharedStateFurnitureLayoutRackXMax),
+  "y": zod.number().min(createCoopHouseholdBodySharedStateFurnitureLayoutRackYMin).max(createCoopHouseholdBodySharedStateFurnitureLayoutRackYMax)
+}).optional(),
+  "mailbox": zod.object({
+  "x": zod.number().min(createCoopHouseholdBodySharedStateFurnitureLayoutMailboxXMin).max(createCoopHouseholdBodySharedStateFurnitureLayoutMailboxXMax),
+  "y": zod.number().min(createCoopHouseholdBodySharedStateFurnitureLayoutMailboxYMin).max(createCoopHouseholdBodySharedStateFurnitureLayoutMailboxYMax)
+}).optional(),
+  "bathStation": zod.object({
+  "x": zod.number().min(createCoopHouseholdBodySharedStateFurnitureLayoutBathStationXMin).max(createCoopHouseholdBodySharedStateFurnitureLayoutBathStationXMax),
+  "y": zod.number().min(createCoopHouseholdBodySharedStateFurnitureLayoutBathStationYMin).max(createCoopHouseholdBodySharedStateFurnitureLayoutBathStationYMax)
+}).optional()
+}),
+  "placedProps": zod.record(zod.string(), zod.boolean())
+})
+})
+
+export const createCoopHouseholdResponseSharedStateGiftsItemIdMax = 120;
+
+export const createCoopHouseholdResponseSharedStateGiftsItemEmojiMax = 16;
+
+export const createCoopHouseholdResponseSharedStateGiftsItemItemMax = 120;
+
+export const createCoopHouseholdResponseSharedStateGiftsItemAnimalMax = 120;
+
+export const createCoopHouseholdResponseSharedStateGiftsItemStoryMax = 1200;
+
+export const createCoopHouseholdResponseSharedStateGiftsItemReceivedAtMin = 0;
+
+export const createCoopHouseholdResponseSharedStateGiftsItemFedAtMin = 0;
+
+export const createCoopHouseholdResponseSharedStateGiftsMax = 300;
+
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutBedXMin = 0;
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutBedXMax = 1;
+
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutBedYMin = 0;
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutBedYMax = 1;
+
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutRackXMin = 0;
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutRackXMax = 1;
+
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutRackYMin = 0;
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutRackYMax = 1;
+
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMin = 0;
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMax = 1;
+
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMin = 0;
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMax = 1;
+
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMin = 0;
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMax = 1;
+
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMin = 0;
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMax = 1;
+
+export const createCoopHouseholdResponseQueuedNotesItemTitleMax = 48;
+
+export const createCoopHouseholdResponseQueuedNotesItemMessageMax = 180;
+
+export const createCoopHouseholdResponseQueuedNotesItemCreatedAtMin = 0;
+
+export const createCoopHouseholdResponseInboxItemTitleMax = 48;
+
+export const createCoopHouseholdResponseInboxItemMessageMax = 180;
+
+export const createCoopHouseholdResponseInboxItemCreatedAtMin = 0;
+
+
+
+export const CreateCoopHouseholdResponse = zod.object({
+  "householdId": zod.string().uuid(),
+  "playerNumber": zod.union([zod.literal(1),zod.literal(2)]),
+  "memberCount": zod.union([zod.literal(1),zod.literal(2)]),
+  "sharedState": zod.object({
+  "gifts": zod.array(zod.object({
+  "id": zod.string().max(createCoopHouseholdResponseSharedStateGiftsItemIdMax),
+  "emoji": zod.string().max(createCoopHouseholdResponseSharedStateGiftsItemEmojiMax),
+  "item": zod.string().max(createCoopHouseholdResponseSharedStateGiftsItemItemMax),
+  "animal": zod.string().max(createCoopHouseholdResponseSharedStateGiftsItemAnimalMax),
+  "story": zod.string().max(createCoopHouseholdResponseSharedStateGiftsItemStoryMax),
+  "receivedAt": zod.number().int().min(createCoopHouseholdResponseSharedStateGiftsItemReceivedAtMin),
+  "favorite": zod.boolean().optional(),
+  "fedAt": zod.number().int().min(createCoopHouseholdResponseSharedStateGiftsItemFedAtMin).optional()
+})).max(createCoopHouseholdResponseSharedStateGiftsMax),
+  "furnitureLayout": zod.object({
+  "bed": zod.object({
+  "x": zod.number().min(createCoopHouseholdResponseSharedStateFurnitureLayoutBedXMin).max(createCoopHouseholdResponseSharedStateFurnitureLayoutBedXMax),
+  "y": zod.number().min(createCoopHouseholdResponseSharedStateFurnitureLayoutBedYMin).max(createCoopHouseholdResponseSharedStateFurnitureLayoutBedYMax)
+}).optional(),
+  "rack": zod.object({
+  "x": zod.number().min(createCoopHouseholdResponseSharedStateFurnitureLayoutRackXMin).max(createCoopHouseholdResponseSharedStateFurnitureLayoutRackXMax),
+  "y": zod.number().min(createCoopHouseholdResponseSharedStateFurnitureLayoutRackYMin).max(createCoopHouseholdResponseSharedStateFurnitureLayoutRackYMax)
+}).optional(),
+  "mailbox": zod.object({
+  "x": zod.number().min(createCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMin).max(createCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMax),
+  "y": zod.number().min(createCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMin).max(createCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMax)
+}).optional(),
+  "bathStation": zod.object({
+  "x": zod.number().min(createCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMin).max(createCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMax),
+  "y": zod.number().min(createCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMin).max(createCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMax)
+}).optional()
+}),
+  "placedProps": zod.record(zod.string(), zod.boolean())
+}),
+  "queuedNotes": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['daily', 'idea', 'worry']),
+  "title": zod.string().max(createCoopHouseholdResponseQueuedNotesItemTitleMax),
+  "message": zod.string().max(createCoopHouseholdResponseQueuedNotesItemMessageMax),
+  "excluded": zod.boolean(),
+  "createdAt": zod.number().int().min(createCoopHouseholdResponseQueuedNotesItemCreatedAtMin),
+  "automatic": zod.boolean()
+})),
+  "inbox": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['daily', 'idea', 'worry']),
+  "title": zod.string().max(createCoopHouseholdResponseInboxItemTitleMax),
+  "message": zod.string().max(createCoopHouseholdResponseInboxItemMessageMax),
+  "excluded": zod.boolean(),
+  "createdAt": zod.number().int().min(createCoopHouseholdResponseInboxItemCreatedAtMin),
+  "automatic": zod.boolean()
+}))
+})
+
+
+/**
+ * @summary Create a one-time invite code for the second player
+ */
+export const createCoopInvitationResponseCodeMin = 8;
+export const createCoopInvitationResponseCodeMax = 12;
+
+export const createCoopInvitationResponseExpiresAtMin = 0;
+
+
+
+export const CreateCoopInvitationResponse = zod.object({
+  "code": zod.string().min(createCoopInvitationResponseCodeMin).max(createCoopInvitationResponseCodeMax),
+  "expiresAt": zod.number().int().min(createCoopInvitationResponseExpiresAtMin)
+})
+
+
+/**
+ * @summary Join a household with an invite code
+ */
+export const joinCoopHouseholdBodyCodeMin = 8;
+export const joinCoopHouseholdBodyCodeMax = 12;
+
+
+
+export const JoinCoopHouseholdBody = zod.object({
+  "code": zod.string().min(joinCoopHouseholdBodyCodeMin).max(joinCoopHouseholdBodyCodeMax)
+})
+
+export const joinCoopHouseholdResponseSharedStateGiftsItemIdMax = 120;
+
+export const joinCoopHouseholdResponseSharedStateGiftsItemEmojiMax = 16;
+
+export const joinCoopHouseholdResponseSharedStateGiftsItemItemMax = 120;
+
+export const joinCoopHouseholdResponseSharedStateGiftsItemAnimalMax = 120;
+
+export const joinCoopHouseholdResponseSharedStateGiftsItemStoryMax = 1200;
+
+export const joinCoopHouseholdResponseSharedStateGiftsItemReceivedAtMin = 0;
+
+export const joinCoopHouseholdResponseSharedStateGiftsItemFedAtMin = 0;
+
+export const joinCoopHouseholdResponseSharedStateGiftsMax = 300;
+
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutBedXMin = 0;
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutBedXMax = 1;
+
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutBedYMin = 0;
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutBedYMax = 1;
+
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutRackXMin = 0;
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutRackXMax = 1;
+
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutRackYMin = 0;
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutRackYMax = 1;
+
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMin = 0;
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMax = 1;
+
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMin = 0;
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMax = 1;
+
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMin = 0;
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMax = 1;
+
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMin = 0;
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMax = 1;
+
+export const joinCoopHouseholdResponseQueuedNotesItemTitleMax = 48;
+
+export const joinCoopHouseholdResponseQueuedNotesItemMessageMax = 180;
+
+export const joinCoopHouseholdResponseQueuedNotesItemCreatedAtMin = 0;
+
+export const joinCoopHouseholdResponseInboxItemTitleMax = 48;
+
+export const joinCoopHouseholdResponseInboxItemMessageMax = 180;
+
+export const joinCoopHouseholdResponseInboxItemCreatedAtMin = 0;
+
+
+
+export const JoinCoopHouseholdResponse = zod.object({
+  "householdId": zod.string().uuid(),
+  "playerNumber": zod.union([zod.literal(1),zod.literal(2)]),
+  "memberCount": zod.union([zod.literal(1),zod.literal(2)]),
+  "sharedState": zod.object({
+  "gifts": zod.array(zod.object({
+  "id": zod.string().max(joinCoopHouseholdResponseSharedStateGiftsItemIdMax),
+  "emoji": zod.string().max(joinCoopHouseholdResponseSharedStateGiftsItemEmojiMax),
+  "item": zod.string().max(joinCoopHouseholdResponseSharedStateGiftsItemItemMax),
+  "animal": zod.string().max(joinCoopHouseholdResponseSharedStateGiftsItemAnimalMax),
+  "story": zod.string().max(joinCoopHouseholdResponseSharedStateGiftsItemStoryMax),
+  "receivedAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateGiftsItemReceivedAtMin),
+  "favorite": zod.boolean().optional(),
+  "fedAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateGiftsItemFedAtMin).optional()
+})).max(joinCoopHouseholdResponseSharedStateGiftsMax),
+  "furnitureLayout": zod.object({
+  "bed": zod.object({
+  "x": zod.number().min(joinCoopHouseholdResponseSharedStateFurnitureLayoutBedXMin).max(joinCoopHouseholdResponseSharedStateFurnitureLayoutBedXMax),
+  "y": zod.number().min(joinCoopHouseholdResponseSharedStateFurnitureLayoutBedYMin).max(joinCoopHouseholdResponseSharedStateFurnitureLayoutBedYMax)
+}).optional(),
+  "rack": zod.object({
+  "x": zod.number().min(joinCoopHouseholdResponseSharedStateFurnitureLayoutRackXMin).max(joinCoopHouseholdResponseSharedStateFurnitureLayoutRackXMax),
+  "y": zod.number().min(joinCoopHouseholdResponseSharedStateFurnitureLayoutRackYMin).max(joinCoopHouseholdResponseSharedStateFurnitureLayoutRackYMax)
+}).optional(),
+  "mailbox": zod.object({
+  "x": zod.number().min(joinCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMin).max(joinCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMax),
+  "y": zod.number().min(joinCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMin).max(joinCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMax)
+}).optional(),
+  "bathStation": zod.object({
+  "x": zod.number().min(joinCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMin).max(joinCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMax),
+  "y": zod.number().min(joinCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMin).max(joinCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMax)
+}).optional()
+}),
+  "placedProps": zod.record(zod.string(), zod.boolean())
+}),
+  "queuedNotes": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['daily', 'idea', 'worry']),
+  "title": zod.string().max(joinCoopHouseholdResponseQueuedNotesItemTitleMax),
+  "message": zod.string().max(joinCoopHouseholdResponseQueuedNotesItemMessageMax),
+  "excluded": zod.boolean(),
+  "createdAt": zod.number().int().min(joinCoopHouseholdResponseQueuedNotesItemCreatedAtMin),
+  "automatic": zod.boolean()
+})),
+  "inbox": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['daily', 'idea', 'worry']),
+  "title": zod.string().max(joinCoopHouseholdResponseInboxItemTitleMax),
+  "message": zod.string().max(joinCoopHouseholdResponseInboxItemMessageMax),
+  "excluded": zod.boolean(),
+  "createdAt": zod.number().int().min(joinCoopHouseholdResponseInboxItemCreatedAtMin),
+  "automatic": zod.boolean()
+}))
+})
+
+
+/**
+ * @summary Update the household's shared game and room state
+ */
+export const updateCoopStateBodySharedStateGiftsItemIdMax = 120;
+
+export const updateCoopStateBodySharedStateGiftsItemEmojiMax = 16;
+
+export const updateCoopStateBodySharedStateGiftsItemItemMax = 120;
+
+export const updateCoopStateBodySharedStateGiftsItemAnimalMax = 120;
+
+export const updateCoopStateBodySharedStateGiftsItemStoryMax = 1200;
+
+export const updateCoopStateBodySharedStateGiftsItemReceivedAtMin = 0;
+
+export const updateCoopStateBodySharedStateGiftsItemFedAtMin = 0;
+
+export const updateCoopStateBodySharedStateGiftsMax = 300;
+
+export const updateCoopStateBodySharedStateFurnitureLayoutBedXMin = 0;
+export const updateCoopStateBodySharedStateFurnitureLayoutBedXMax = 1;
+
+export const updateCoopStateBodySharedStateFurnitureLayoutBedYMin = 0;
+export const updateCoopStateBodySharedStateFurnitureLayoutBedYMax = 1;
+
+export const updateCoopStateBodySharedStateFurnitureLayoutRackXMin = 0;
+export const updateCoopStateBodySharedStateFurnitureLayoutRackXMax = 1;
+
+export const updateCoopStateBodySharedStateFurnitureLayoutRackYMin = 0;
+export const updateCoopStateBodySharedStateFurnitureLayoutRackYMax = 1;
+
+export const updateCoopStateBodySharedStateFurnitureLayoutMailboxXMin = 0;
+export const updateCoopStateBodySharedStateFurnitureLayoutMailboxXMax = 1;
+
+export const updateCoopStateBodySharedStateFurnitureLayoutMailboxYMin = 0;
+export const updateCoopStateBodySharedStateFurnitureLayoutMailboxYMax = 1;
+
+export const updateCoopStateBodySharedStateFurnitureLayoutBathStationXMin = 0;
+export const updateCoopStateBodySharedStateFurnitureLayoutBathStationXMax = 1;
+
+export const updateCoopStateBodySharedStateFurnitureLayoutBathStationYMin = 0;
+export const updateCoopStateBodySharedStateFurnitureLayoutBathStationYMax = 1;
+
+
+
+export const UpdateCoopStateBody = zod.object({
+  "sharedState": zod.object({
+  "gifts": zod.array(zod.object({
+  "id": zod.string().max(updateCoopStateBodySharedStateGiftsItemIdMax),
+  "emoji": zod.string().max(updateCoopStateBodySharedStateGiftsItemEmojiMax),
+  "item": zod.string().max(updateCoopStateBodySharedStateGiftsItemItemMax),
+  "animal": zod.string().max(updateCoopStateBodySharedStateGiftsItemAnimalMax),
+  "story": zod.string().max(updateCoopStateBodySharedStateGiftsItemStoryMax),
+  "receivedAt": zod.number().int().min(updateCoopStateBodySharedStateGiftsItemReceivedAtMin),
+  "favorite": zod.boolean().optional(),
+  "fedAt": zod.number().int().min(updateCoopStateBodySharedStateGiftsItemFedAtMin).optional()
+})).max(updateCoopStateBodySharedStateGiftsMax),
+  "furnitureLayout": zod.object({
+  "bed": zod.object({
+  "x": zod.number().min(updateCoopStateBodySharedStateFurnitureLayoutBedXMin).max(updateCoopStateBodySharedStateFurnitureLayoutBedXMax),
+  "y": zod.number().min(updateCoopStateBodySharedStateFurnitureLayoutBedYMin).max(updateCoopStateBodySharedStateFurnitureLayoutBedYMax)
+}).optional(),
+  "rack": zod.object({
+  "x": zod.number().min(updateCoopStateBodySharedStateFurnitureLayoutRackXMin).max(updateCoopStateBodySharedStateFurnitureLayoutRackXMax),
+  "y": zod.number().min(updateCoopStateBodySharedStateFurnitureLayoutRackYMin).max(updateCoopStateBodySharedStateFurnitureLayoutRackYMax)
+}).optional(),
+  "mailbox": zod.object({
+  "x": zod.number().min(updateCoopStateBodySharedStateFurnitureLayoutMailboxXMin).max(updateCoopStateBodySharedStateFurnitureLayoutMailboxXMax),
+  "y": zod.number().min(updateCoopStateBodySharedStateFurnitureLayoutMailboxYMin).max(updateCoopStateBodySharedStateFurnitureLayoutMailboxYMax)
+}).optional(),
+  "bathStation": zod.object({
+  "x": zod.number().min(updateCoopStateBodySharedStateFurnitureLayoutBathStationXMin).max(updateCoopStateBodySharedStateFurnitureLayoutBathStationXMax),
+  "y": zod.number().min(updateCoopStateBodySharedStateFurnitureLayoutBathStationYMin).max(updateCoopStateBodySharedStateFurnitureLayoutBathStationYMax)
+}).optional()
+}),
+  "placedProps": zod.record(zod.string(), zod.boolean())
+})
+})
+
+export const updateCoopStateResponseSharedStateGiftsItemIdMax = 120;
+
+export const updateCoopStateResponseSharedStateGiftsItemEmojiMax = 16;
+
+export const updateCoopStateResponseSharedStateGiftsItemItemMax = 120;
+
+export const updateCoopStateResponseSharedStateGiftsItemAnimalMax = 120;
+
+export const updateCoopStateResponseSharedStateGiftsItemStoryMax = 1200;
+
+export const updateCoopStateResponseSharedStateGiftsItemReceivedAtMin = 0;
+
+export const updateCoopStateResponseSharedStateGiftsItemFedAtMin = 0;
+
+export const updateCoopStateResponseSharedStateGiftsMax = 300;
+
+export const updateCoopStateResponseSharedStateFurnitureLayoutBedXMin = 0;
+export const updateCoopStateResponseSharedStateFurnitureLayoutBedXMax = 1;
+
+export const updateCoopStateResponseSharedStateFurnitureLayoutBedYMin = 0;
+export const updateCoopStateResponseSharedStateFurnitureLayoutBedYMax = 1;
+
+export const updateCoopStateResponseSharedStateFurnitureLayoutRackXMin = 0;
+export const updateCoopStateResponseSharedStateFurnitureLayoutRackXMax = 1;
+
+export const updateCoopStateResponseSharedStateFurnitureLayoutRackYMin = 0;
+export const updateCoopStateResponseSharedStateFurnitureLayoutRackYMax = 1;
+
+export const updateCoopStateResponseSharedStateFurnitureLayoutMailboxXMin = 0;
+export const updateCoopStateResponseSharedStateFurnitureLayoutMailboxXMax = 1;
+
+export const updateCoopStateResponseSharedStateFurnitureLayoutMailboxYMin = 0;
+export const updateCoopStateResponseSharedStateFurnitureLayoutMailboxYMax = 1;
+
+export const updateCoopStateResponseSharedStateFurnitureLayoutBathStationXMin = 0;
+export const updateCoopStateResponseSharedStateFurnitureLayoutBathStationXMax = 1;
+
+export const updateCoopStateResponseSharedStateFurnitureLayoutBathStationYMin = 0;
+export const updateCoopStateResponseSharedStateFurnitureLayoutBathStationYMax = 1;
+
+export const updateCoopStateResponseUpdatedAtMin = 0;
+
+
+
+export const UpdateCoopStateResponse = zod.object({
+  "sharedState": zod.object({
+  "gifts": zod.array(zod.object({
+  "id": zod.string().max(updateCoopStateResponseSharedStateGiftsItemIdMax),
+  "emoji": zod.string().max(updateCoopStateResponseSharedStateGiftsItemEmojiMax),
+  "item": zod.string().max(updateCoopStateResponseSharedStateGiftsItemItemMax),
+  "animal": zod.string().max(updateCoopStateResponseSharedStateGiftsItemAnimalMax),
+  "story": zod.string().max(updateCoopStateResponseSharedStateGiftsItemStoryMax),
+  "receivedAt": zod.number().int().min(updateCoopStateResponseSharedStateGiftsItemReceivedAtMin),
+  "favorite": zod.boolean().optional(),
+  "fedAt": zod.number().int().min(updateCoopStateResponseSharedStateGiftsItemFedAtMin).optional()
+})).max(updateCoopStateResponseSharedStateGiftsMax),
+  "furnitureLayout": zod.object({
+  "bed": zod.object({
+  "x": zod.number().min(updateCoopStateResponseSharedStateFurnitureLayoutBedXMin).max(updateCoopStateResponseSharedStateFurnitureLayoutBedXMax),
+  "y": zod.number().min(updateCoopStateResponseSharedStateFurnitureLayoutBedYMin).max(updateCoopStateResponseSharedStateFurnitureLayoutBedYMax)
+}).optional(),
+  "rack": zod.object({
+  "x": zod.number().min(updateCoopStateResponseSharedStateFurnitureLayoutRackXMin).max(updateCoopStateResponseSharedStateFurnitureLayoutRackXMax),
+  "y": zod.number().min(updateCoopStateResponseSharedStateFurnitureLayoutRackYMin).max(updateCoopStateResponseSharedStateFurnitureLayoutRackYMax)
+}).optional(),
+  "mailbox": zod.object({
+  "x": zod.number().min(updateCoopStateResponseSharedStateFurnitureLayoutMailboxXMin).max(updateCoopStateResponseSharedStateFurnitureLayoutMailboxXMax),
+  "y": zod.number().min(updateCoopStateResponseSharedStateFurnitureLayoutMailboxYMin).max(updateCoopStateResponseSharedStateFurnitureLayoutMailboxYMax)
+}).optional(),
+  "bathStation": zod.object({
+  "x": zod.number().min(updateCoopStateResponseSharedStateFurnitureLayoutBathStationXMin).max(updateCoopStateResponseSharedStateFurnitureLayoutBathStationXMax),
+  "y": zod.number().min(updateCoopStateResponseSharedStateFurnitureLayoutBathStationYMin).max(updateCoopStateResponseSharedStateFurnitureLayoutBathStationYMax)
+}).optional()
+}),
+  "placedProps": zod.record(zod.string(), zod.boolean())
+}),
+  "updatedAt": zod.number().int().min(updateCoopStateResponseUpdatedAtMin)
+})
+
+
+/**
+ * @summary Turn a private diary note into a brief emotion-only message for the other player
+ */
+export const createCoopShareNoteBodyTextMax = 1200;
+
+
+
+export const CreateCoopShareNoteBody = zod.object({
+  "text": zod.string().min(1).max(createCoopShareNoteBodyTextMax)
+})
+
+export const createCoopShareNoteResponseTitleMax = 48;
+
+export const createCoopShareNoteResponseMessageMax = 180;
+
+export const createCoopShareNoteResponseCreatedAtMin = 0;
+
+
+
+export const CreateCoopShareNoteResponse = zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['daily', 'idea', 'worry']),
+  "title": zod.string().max(createCoopShareNoteResponseTitleMax),
+  "message": zod.string().max(createCoopShareNoteResponseMessageMax),
+  "excluded": zod.boolean(),
+  "createdAt": zod.number().int().min(createCoopShareNoteResponseCreatedAtMin),
+  "automatic": zod.boolean()
+})
+
+
+/**
+ * @summary Mark a queued note as excluded or allow it to be carried
+ */
+export const UpdateCoopShareNoteParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const UpdateCoopShareNoteBody = zod.object({
+  "excluded": zod.boolean()
+})
+
+export const updateCoopShareNoteResponseTitleMax = 48;
+
+export const updateCoopShareNoteResponseMessageMax = 180;
+
+export const updateCoopShareNoteResponseCreatedAtMin = 0;
+
+
+
+export const UpdateCoopShareNoteResponse = zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['daily', 'idea', 'worry']),
+  "title": zod.string().max(updateCoopShareNoteResponseTitleMax),
+  "message": zod.string().max(updateCoopShareNoteResponseMessageMax),
+  "excluded": zod.boolean(),
+  "createdAt": zod.number().int().min(updateCoopShareNoteResponseCreatedAtMin),
+  "automatic": zod.boolean()
+})
+
+
+/**
+ * @summary Deliver one queued note from the other player when the panda returns from an outing
+ */
+export const deliverNextCoopShareNoteResponseNoteTitleMax = 48;
+
+export const deliverNextCoopShareNoteResponseNoteMessageMax = 180;
+
+export const deliverNextCoopShareNoteResponseNoteCreatedAtMin = 0;
+
+
+
+export const DeliverNextCoopShareNoteResponse = zod.object({
+  "delivered": zod.boolean(),
+  "note": zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['daily', 'idea', 'worry']),
+  "title": zod.string().max(deliverNextCoopShareNoteResponseNoteTitleMax),
+  "message": zod.string().max(deliverNextCoopShareNoteResponseNoteMessageMax),
+  "excluded": zod.boolean(),
+  "createdAt": zod.number().int().min(deliverNextCoopShareNoteResponseNoteCreatedAtMin),
+  "automatic": zod.boolean()
+}).optional()
+})
+
+
+/**
  * @summary Contextual companion reply and local diary suggestions, never stored on server
  */
 export const companionChatBodyMessagesItemContentMax = 4000;
@@ -20,6 +704,7 @@ export const companionChatBodyUserNameMax = 60;
 export const companionChatBodyMemoriesItemTextMax = 240;
 
 export const companionChatBodyMemoriesMax = 24;
+
 
 
 export const CompanionChatBody = zod.object({
@@ -41,6 +726,7 @@ export const companionChatResponseUserNameMax = 60;
 export const companionChatResponseMemoriesItemTextMax = 240;
 
 export const companionChatResponseMemoriesMax = 3;
+
 
 
 export const CompanionChatResponse = zod.object({
@@ -69,6 +755,7 @@ export const HealthCheckResponse = zod.object({
 export const classifyJournalEntryBodyTextMax = 4000;
 
 
+
 export const ClassifyJournalEntryBody = zod.object({
   "text": zod.string().min(1).max(classifyJournalEntryBodyTextMax)
 })
@@ -76,9 +763,11 @@ export const ClassifyJournalEntryBody = zod.object({
 export const classifyJournalEntryResponseReplyMax = 1600;
 
 
+
 export const ClassifyJournalEntryResponse = zod.object({
   "category": zod.enum(['leisure', 'idea', 'worry']),
   "hasActionableGoal": zod.boolean(),
   "reply": zod.string().min(1).max(classifyJournalEntryResponseReplyMax).describe('A warm personalized response to the journal entry')
 })
+
 

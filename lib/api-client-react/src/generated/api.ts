@@ -22,6 +22,16 @@ import type {
 import type {
   CompanionInput,
   CompanionResponse,
+  CoopDeliveryResponse,
+  CoopHouseholdInput,
+  CoopHouseholdResponse,
+  CoopInvitationResponse,
+  CoopJoinInput,
+  CoopShareNote,
+  CoopShareNoteInput,
+  CoopShareNoteUpdate,
+  CoopStateInput,
+  CoopStateResponse,
   HealthStatus,
   JournalClassification,
   JournalClassificationInput
@@ -53,6 +63,672 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetCoopHouseholdUrl = () => {
+
+
+
+
+  return `/api/coop/household`
+}
+
+/**
+ * @summary Get the authenticated player's shared panda household
+ */
+export const getCoopHousehold = async ( options?: Parameters<typeof customFetch>[1]): Promise<CoopHouseholdResponse> => {
+
+  return customFetch<CoopHouseholdResponse>(getGetCoopHouseholdUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCoopHouseholdQueryKey = () => {
+    return [
+    `/api/coop/household`
+    ] as const;
+    }
+
+
+export const getGetCoopHouseholdQueryOptions = <TData = Awaited<ReturnType<typeof getCoopHousehold>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCoopHousehold>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCoopHouseholdQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCoopHousehold>>> = ({ signal }) => getCoopHousehold({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCoopHousehold>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCoopHouseholdQueryResult = NonNullable<Awaited<ReturnType<typeof getCoopHousehold>>>
+export type GetCoopHouseholdQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the authenticated player's shared panda household
+ */
+
+export function useGetCoopHousehold<TData = Awaited<ReturnType<typeof getCoopHousehold>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCoopHousehold>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCoopHouseholdQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateCoopHouseholdUrl = () => {
+
+
+
+
+  return `/api/coop/household`
+}
+
+/**
+ * @summary Start a shared panda household from a private local game snapshot
+ */
+export const createCoopHousehold = async (coopHouseholdInput: CoopHouseholdInput, options?: Parameters<typeof customFetch>[1]): Promise<CoopHouseholdResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<CoopHouseholdResponse>(getCreateCoopHouseholdUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(coopHouseholdInput)
+  }
+);}
+
+
+
+
+
+export const getCreateCoopHouseholdMutationKey = () => ['createCoopHousehold'] as const;
+
+export const getCreateCoopHouseholdMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCoopHousehold>>, TError,CreateCoopHouseholdMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCoopHousehold>>, TError,CreateCoopHouseholdMutationVariables, TContext> => {
+
+const mutationKey = getCreateCoopHouseholdMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCoopHousehold>>, CreateCoopHouseholdMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createCoopHousehold(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCoopHouseholdMutationResult = NonNullable<Awaited<ReturnType<typeof createCoopHousehold>>>
+    export type CreateCoopHouseholdMutationBody = BodyType<CoopHouseholdInput>
+    export type CreateCoopHouseholdMutationError = ErrorType<void>
+    export type CreateCoopHouseholdMutationVariables = {data: BodyType<CoopHouseholdInput>}
+
+    /**
+ * @summary Start a shared panda household from a private local game snapshot
+ */
+export const useCreateCoopHousehold = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCoopHousehold>>, TError,CreateCoopHouseholdMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCoopHousehold>>,
+        TError,
+        CreateCoopHouseholdMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateCoopHouseholdMutationOptions(options));
+    }
+
+export const getCreateCoopInvitationUrl = () => {
+
+
+
+
+  return `/api/coop/invitations`
+}
+
+/**
+ * @summary Create a one-time invite code for the second player
+ */
+export const createCoopInvitation = async ( options?: Parameters<typeof customFetch>[1]): Promise<CoopInvitationResponse> => {
+
+  return customFetch<CoopInvitationResponse>(getCreateCoopInvitationUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCreateCoopInvitationMutationKey = () => ['createCoopInvitation'] as const;
+
+export const getCreateCoopInvitationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCoopInvitation>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCoopInvitation>>, TError,void, TContext> => {
+
+const mutationKey = getCreateCoopInvitationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCoopInvitation>>, void> = () => {
+
+
+          return  createCoopInvitation(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCoopInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof createCoopInvitation>>>
+
+    export type CreateCoopInvitationMutationError = ErrorType<void>
+
+
+    /**
+ * @summary Create a one-time invite code for the second player
+ */
+export const useCreateCoopInvitation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCoopInvitation>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCoopInvitation>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getCreateCoopInvitationMutationOptions(options));
+    }
+
+export const getJoinCoopHouseholdUrl = () => {
+
+
+
+
+  return `/api/coop/join`
+}
+
+/**
+ * @summary Join a household with an invite code
+ */
+export const joinCoopHousehold = async (coopJoinInput: CoopJoinInput, options?: Parameters<typeof customFetch>[1]): Promise<CoopHouseholdResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<CoopHouseholdResponse>(getJoinCoopHouseholdUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(coopJoinInput)
+  }
+);}
+
+
+
+
+
+export const getJoinCoopHouseholdMutationKey = () => ['joinCoopHousehold'] as const;
+
+export const getJoinCoopHouseholdMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof joinCoopHousehold>>, TError,JoinCoopHouseholdMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof joinCoopHousehold>>, TError,JoinCoopHouseholdMutationVariables, TContext> => {
+
+const mutationKey = getJoinCoopHouseholdMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof joinCoopHousehold>>, JoinCoopHouseholdMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  joinCoopHousehold(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type JoinCoopHouseholdMutationResult = NonNullable<Awaited<ReturnType<typeof joinCoopHousehold>>>
+    export type JoinCoopHouseholdMutationBody = BodyType<CoopJoinInput>
+    export type JoinCoopHouseholdMutationError = ErrorType<void>
+    export type JoinCoopHouseholdMutationVariables = {data: BodyType<CoopJoinInput>}
+
+    /**
+ * @summary Join a household with an invite code
+ */
+export const useJoinCoopHousehold = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof joinCoopHousehold>>, TError,JoinCoopHouseholdMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof joinCoopHousehold>>,
+        TError,
+        JoinCoopHouseholdMutationVariables,
+        TContext
+      > => {
+      return useMutation(getJoinCoopHouseholdMutationOptions(options));
+    }
+
+export const getUpdateCoopStateUrl = () => {
+
+
+
+
+  return `/api/coop/state`
+}
+
+/**
+ * @summary Update the household's shared game and room state
+ */
+export const updateCoopState = async (coopStateInput: CoopStateInput, options?: Parameters<typeof customFetch>[1]): Promise<CoopStateResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<CoopStateResponse>(getUpdateCoopStateUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(coopStateInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateCoopStateMutationKey = () => ['updateCoopState'] as const;
+
+export const getUpdateCoopStateMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCoopState>>, TError,UpdateCoopStateMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCoopState>>, TError,UpdateCoopStateMutationVariables, TContext> => {
+
+const mutationKey = getUpdateCoopStateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCoopState>>, UpdateCoopStateMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateCoopState(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateCoopStateMutationResult = NonNullable<Awaited<ReturnType<typeof updateCoopState>>>
+    export type UpdateCoopStateMutationBody = BodyType<CoopStateInput>
+    export type UpdateCoopStateMutationError = ErrorType<void>
+    export type UpdateCoopStateMutationVariables = {data: BodyType<CoopStateInput>}
+
+    /**
+ * @summary Update the household's shared game and room state
+ */
+export const useUpdateCoopState = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCoopState>>, TError,UpdateCoopStateMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateCoopState>>,
+        TError,
+        UpdateCoopStateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateCoopStateMutationOptions(options));
+    }
+
+export const getCreateCoopShareNoteUrl = () => {
+
+
+
+
+  return `/api/coop/share-notes`
+}
+
+/**
+ * @summary Turn a private diary note into a brief emotion-only message for the other player
+ */
+export const createCoopShareNote = async (coopShareNoteInput: CoopShareNoteInput, options?: Parameters<typeof customFetch>[1]): Promise<CoopShareNote> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<CoopShareNote>(getCreateCoopShareNoteUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(coopShareNoteInput)
+  }
+);}
+
+
+
+
+
+export const getCreateCoopShareNoteMutationKey = () => ['createCoopShareNote'] as const;
+
+export const getCreateCoopShareNoteMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCoopShareNote>>, TError,CreateCoopShareNoteMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCoopShareNote>>, TError,CreateCoopShareNoteMutationVariables, TContext> => {
+
+const mutationKey = getCreateCoopShareNoteMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCoopShareNote>>, CreateCoopShareNoteMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createCoopShareNote(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCoopShareNoteMutationResult = NonNullable<Awaited<ReturnType<typeof createCoopShareNote>>>
+    export type CreateCoopShareNoteMutationBody = BodyType<CoopShareNoteInput>
+    export type CreateCoopShareNoteMutationError = ErrorType<void>
+    export type CreateCoopShareNoteMutationVariables = {data: BodyType<CoopShareNoteInput>}
+
+    /**
+ * @summary Turn a private diary note into a brief emotion-only message for the other player
+ */
+export const useCreateCoopShareNote = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCoopShareNote>>, TError,CreateCoopShareNoteMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCoopShareNote>>,
+        TError,
+        CreateCoopShareNoteMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateCoopShareNoteMutationOptions(options));
+    }
+
+export const getUpdateCoopShareNoteUrl = (id: string,) => {
+
+
+
+
+  return `/api/coop/share-notes/${id}`
+}
+
+/**
+ * @summary Mark a queued note as excluded or allow it to be carried
+ */
+export const updateCoopShareNote = async (id: string,
+    coopShareNoteUpdate: CoopShareNoteUpdate, options?: Parameters<typeof customFetch>[1]): Promise<CoopShareNote> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<CoopShareNote>(getUpdateCoopShareNoteUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(coopShareNoteUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateCoopShareNoteMutationKey = () => ['updateCoopShareNote'] as const;
+
+export const getUpdateCoopShareNoteMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCoopShareNote>>, TError,UpdateCoopShareNoteMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCoopShareNote>>, TError,UpdateCoopShareNoteMutationVariables, TContext> => {
+
+const mutationKey = getUpdateCoopShareNoteMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCoopShareNote>>, UpdateCoopShareNoteMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateCoopShareNote(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateCoopShareNoteMutationResult = NonNullable<Awaited<ReturnType<typeof updateCoopShareNote>>>
+    export type UpdateCoopShareNoteMutationBody = BodyType<CoopShareNoteUpdate>
+    export type UpdateCoopShareNoteMutationError = ErrorType<void>
+    export type UpdateCoopShareNoteMutationVariables = {id: string;data: BodyType<CoopShareNoteUpdate>}
+
+    /**
+ * @summary Mark a queued note as excluded or allow it to be carried
+ */
+export const useUpdateCoopShareNote = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCoopShareNote>>, TError,UpdateCoopShareNoteMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateCoopShareNote>>,
+        TError,
+        UpdateCoopShareNoteMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateCoopShareNoteMutationOptions(options));
+    }
+
+export const getDeliverNextCoopShareNoteUrl = () => {
+
+
+
+
+  return `/api/coop/deliver-next`
+}
+
+/**
+ * @summary Deliver one queued note from the other player when the panda returns from an outing
+ */
+export const deliverNextCoopShareNote = async ( options?: Parameters<typeof customFetch>[1]): Promise<CoopDeliveryResponse> => {
+
+  return customFetch<CoopDeliveryResponse>(getDeliverNextCoopShareNoteUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeliverNextCoopShareNoteMutationKey = () => ['deliverNextCoopShareNote'] as const;
+
+export const getDeliverNextCoopShareNoteMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deliverNextCoopShareNote>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deliverNextCoopShareNote>>, TError,void, TContext> => {
+
+const mutationKey = getDeliverNextCoopShareNoteMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deliverNextCoopShareNote>>, void> = () => {
+
+
+          return  deliverNextCoopShareNote(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeliverNextCoopShareNoteMutationResult = NonNullable<Awaited<ReturnType<typeof deliverNextCoopShareNote>>>
+
+    export type DeliverNextCoopShareNoteMutationError = ErrorType<void>
+
+
+    /**
+ * @summary Deliver one queued note from the other player when the panda returns from an outing
+ */
+export const useDeliverNextCoopShareNote = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deliverNextCoopShareNote>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deliverNextCoopShareNote>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getDeliverNextCoopShareNoteMutationOptions(options));
+    }
 
 export const getCompanionChatUrl = () => {
 

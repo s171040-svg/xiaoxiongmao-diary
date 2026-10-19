@@ -3,7 +3,7 @@ import { companionChat, type CompanionResponse } from '@workspace/api-client-rea
 import { isDesktop } from '@/lib/desktop';
 import { isQuietHours } from '@/lib/quiet-hours';
 import { replyFrame, replyRhythm } from '@/lib/reply-rhythm';
-import type { ChatMessage, CompanionState, PerformanceAction, PetEffect } from '@/lib/companion-types';
+import type { ChatMessage, CompanionState, Gift, PerformanceAction, PetEffect } from '@/lib/companion-types';
 import type { JournalEntry } from '@/lib/journal-types';
 import { assistant, contextFor, deliverSpacePoliceLetter, eatSpacePoliceLetter as eatSpacePoliceLetterInState, fileSpacePoliceLetter as fileSpacePoliceLetterInState, finishSpacePolicePoopDisposal, id, initialState, markPendingInterrupted, markSpacePoliceLetterOpened as markSpacePoliceLetterOpenedInState, moveSpacePolicePoopBag, packSpacePolicePoop, placeSpacePolicePoop, disposeSpacePolicePoopBag, paySpacePoliceFine as paySpacePoliceFineInState, readState, receiveReply, recordUserMessage, performancePlan, tickCompanion, welcome, writeState, startGiftDrop, collectGift, favoriteGift, feedGift, injectTestGift, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, COMPANION_KEY, type TestGiftInput } from '@/lib/companion-store';
 
@@ -412,6 +412,15 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
     setDraft: (draft: string) => { try { transact(s => ({ ...s, draft })); } catch (e) { report(e); } },
     removePhoto: () => { try { transact(s => ({ ...s, draftPhoto: undefined })); } catch (e) { report(e); } },
     removeDiary: (memoryId: string) => { try { transact(s => ({ ...s, diary: s.diary.filter(m => m.id !== memoryId) })); } catch (e) { report(e); } },
+    mergeSharedGifts: (gifts: Gift[]) => {
+      try {
+        transact(s => {
+          const merged = new Map(s.gifts.map(gift => [gift.id, gift]));
+          for (const gift of gifts) merged.set(gift.id, { ...merged.get(gift.id), ...gift });
+          return { ...s, gifts: [...merged.values()].slice(-300) };
+        });
+      } catch (e) { report(e); }
+    },
     favoriteGift: (giftId: string) => { try { transact(s => favoriteGift(s, giftId)); } catch (e) { report(e); } },
     feedGift: (giftId: string) => {
       try {

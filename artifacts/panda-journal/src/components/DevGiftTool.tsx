@@ -50,9 +50,9 @@ export default function DevGiftTool({ onCreate, onClose }: Props) {
       </header>
       <form className="cc-dev-gift-form" noValidate onSubmit={submit}>
         <label>
-          礼物 emoji
+          礼物图样标记
           <input value={emoji} onChange={event => setEmoji(event.target.value)} required maxLength={12}
-            placeholder="例如 🍌" data-testid="input-dev-gift-emoji" />
+            placeholder="填写一段短标记" data-testid="input-dev-gift-emoji" />
         </label>
         <label>
           物品名称
