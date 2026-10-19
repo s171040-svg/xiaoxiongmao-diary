@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
-import type { CareStatCategory, DeveloperEvent, DeveloperPose, PerformanceAction, PetEffect, SpacePoliceLetter } from '@/lib/companion-types';
+import type { CareStatCategory, DeveloperEvent, DeveloperPose, Gift, PerformanceAction, PetEffect, SpacePoliceLetter } from '@/lib/companion-types';
 import {
   blendRoomPoint,
   CAT_TREE_NEST_POINT,
@@ -70,6 +70,8 @@ const GRAB_HAND_ANCHOR_BY_FORM = {
   dirty: { x: 0.5, y: 0.12 },
 } as const;
 const SPACE_POLICE_LETTER_REMINDER_MS = 60_000;
+const SNACK_TOKEN_WIDTH = 124;
+const SNACK_TOKEN_HEIGHT = 54;
 const SPACE_POLICE_ENVELOPE_HOLD_MS = 420;
 const SPACE_POLICE_ENVELOPE_STORE_MS = 190;
 const ROOM_WASTE_HOLD_MS = 520;
@@ -107,6 +109,10 @@ const DIRTY_PLEAS = [
 ];
 const BATHING_FRAME_COUNT = 8;
 const pandaStaticUrl = (path: string) => `${import.meta.env.BASE_URL}static/panda/${path}`;
+const spriteAssetVersion = (sprite: string) => sprite === 'chew' ? 'chew-feed-4'
+  : sprite === 'tail-chase' ? 'tail-chase-ccw-3'
+    : sprite === 'climb-up' ? 'stairs-back-run-1'
+      : sprite.startsWith('eat-') ? 'snack-eating-pixellab-1' : 'tail-left-3';
 const CHEW_FRAME_COUNT = 14;
 const DIZZY_FRAME_COUNT = animationManifest.frameCountBySprite.dizzy;
 const DIZZY_DROP_MS = DIZZY_FRAME_COUNT * animationManifest.frameIntervalMs.dizzy;
@@ -182,6 +188,13 @@ const PIXELLAB_TRANSITION_FRAMES = Object.fromEntries(
 ) as Record<TransitionKey, string[]>;
 const ACTION_TRANSITION_KEY: Record<PerformanceAction, TransitionKey> = {
   bamboo: 'chew',
+  'eat-banana': 'chew',
+  'eat-carrot': 'chew',
+  'eat-fish': 'chew',
+  'eat-candy': 'chew',
+  'eat-strawberry': 'chew',
+  'eat-cookie': 'chew',
+  'eat-bamboo': 'chew',
   roll: 'idle',
   jump: 'jump',
   spin: 'idle',
@@ -253,8 +266,10 @@ type BathBallPointer = {
   offsetY: number;
 };
 
-export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = false, debugClicks = false, showInteractionBubble = false, interactionBubbleText, developerPose = null, developerEvent = null, onChatModeChange, onCareInteraction, onCapturedHomecomingInteraction, spacePoliceLetter, spacePoliceLetters, spacePoliceMailCount = 0, spacePoliceUnreadCount = 0, onOpenSpacePoliceLetter, onFileSpacePoliceLetter, onEatSpacePoliceLetter, onPlaceSpacePolicePoop, onPackSpacePolicePoop, onMoveSpacePolicePoopBag, onDisposeSpacePolicePoopBag, onFinishSpacePolicePoopDisposal, onOpenSpacePoliceMailbox }: {
+export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = false, motion = 'idle', nightMode = false, debugClicks = false, showInteractionBubble = false, interactionBubbleText, developerPose = null, developerEvent = null, onChatModeChange, onCareInteraction, onCapturedHomecomingInteraction, spacePoliceLetter, spacePoliceLetters, spacePoliceMailCount = 0, spacePoliceUnreadCount = 0, onOpenSpacePoliceLetter, onFileSpacePoliceLetter, onEatSpacePoliceLetter, onPlaceSpacePolicePoop, onPackSpacePolicePoop, onMoveSpacePolicePoopBag, onDisposeSpacePolicePoopBag, onFinishSpacePolicePoopDisposal, onOpenSpacePoliceMailbox }: {
   pet: PetEffect;
+  selectedSnack?: Pick<Gift, 'id' | 'emoji' | 'item'> | null;
+  onFeedSnack?: (giftId: string) => void;
   thinking?: boolean;
   motion?: 'idle' | 'sleep';
   nightMode?: boolean;
@@ -329,6 +344,8 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const [packingPoopDeliveredAt, setPackingPoopDeliveredAt] = useState<number | null>(null);
   const [draggingPoopDeliveredAt, setDraggingPoopDeliveredAt] = useState<number | null>(null);
   const [poopDragPosition, setPoopDragPosition] = useState<RoomWastePoint | null>(null);
+  const [snackDropPosition, setSnackDropPosition] = useState<ScreenPosition | null>(null);
+  const [snackDropDragging, setSnackDropDragging] = useState(false);
   const [capturedHomecomingArrived, setCapturedHomecomingArrived] = useState(false);
   const [spacePoliceEnvelopePosition, setSpacePoliceEnvelopePosition] = useState<{ x: number; y: number } | null>(null);
   const [spacePoliceEnvelopeDragging, setSpacePoliceEnvelopeDragging] = useState(false);
@@ -429,6 +446,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const spaceBlackHoleRef = useRef<HTMLDivElement>(null);
   const bathBallButtonRef = useRef<HTMLButtonElement>(null);
   const pandaButtonRef = useRef<HTMLButtonElement>(null);
+  const snackDropPointerRef = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null);
   const firstActivationAtRef = useRef<number | null>(null);
   const clickExpiryTimerRef = useRef(0);
   const reactionTimerRef = useRef(0);
@@ -465,6 +483,102 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const bubbleAnchorRef = useRef<HTMLDivElement>(null);
   const positionRef = useRef<RoomPoint>({ u: 0.5, v: 0.58 });
   const mousePositionRef = useRef<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    if (!selectedSnack) {
+      setSnackDropPosition(null);
+      setSnackDropDragging(false);
+      snackDropPointerRef.current = null;
+      return;
+    }
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const maxX = Math.max(8, width - SNACK_TOKEN_WIDTH - 8);
+    const top = Math.min(112, Math.max(20, height * 0.18));
+    const bottom = Math.max(top, height - SNACK_TOKEN_HEIGHT - Math.min(150, height * 0.16));
+    const pandaRect = pandaButtonRef.current?.getBoundingClientRect();
+    const isClearOfPanda = (x: number, y: number) => !pandaRect
+      || x + SNACK_TOKEN_WIDTH < pandaRect.left - 22
+      || x > pandaRect.right + 22
+      || y + SNACK_TOKEN_HEIGHT < pandaRect.top - 22
+      || y > pandaRect.bottom + 22;
+
+    let spawn: ScreenPosition | null = null;
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      const candidate = {
+        x: Math.round(8 + Math.random() * (maxX - 8)),
+        y: Math.round(top + Math.random() * (bottom - top)),
+      };
+      if (isClearOfPanda(candidate.x, candidate.y)) {
+        spawn = candidate;
+        break;
+      }
+    }
+    if (!spawn) {
+      const corners = [
+        { x: 8, y: top },
+        { x: maxX, y: top },
+        { x: 8, y: bottom },
+        { x: maxX, y: bottom },
+      ].filter(point => isClearOfPanda(point.x, point.y));
+      spawn = corners.length
+        ? corners[Math.floor(Math.random() * corners.length)]
+        : { x: maxX, y: bottom };
+    }
+    setSnackDropPosition(spawn);
+    setSnackDropDragging(false);
+    snackDropPointerRef.current = null;
+  }, [selectedSnack?.id]);
+
+  const handleSnackPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (!selectedSnack || !snackDropPosition) return;
+    event.preventDefault();
+    event.stopPropagation();
+    snackDropPointerRef.current = {
+      pointerId: event.pointerId,
+      offsetX: event.clientX - snackDropPosition.x,
+      offsetY: event.clientY - snackDropPosition.y,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setSnackDropDragging(true);
+  };
+
+  const handleSnackPointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const drag = snackDropPointerRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    setSnackDropPosition({
+      x: Math.max(0, Math.min(window.innerWidth - SNACK_TOKEN_WIDTH, event.clientX - drag.offsetX)),
+      y: Math.max(0, Math.min(window.innerHeight - SNACK_TOKEN_HEIGHT, event.clientY - drag.offsetY)),
+    });
+  };
+
+  const handleSnackPointerUp = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const drag = snackDropPointerRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    snackDropPointerRef.current = null;
+    setSnackDropDragging(false);
+    const panda = pandaButtonRef.current?.getBoundingClientRect();
+    const droppedOnPanda = pet.stage === 'present' && panda
+      && event.clientX >= panda.left - 22 && event.clientX <= panda.right + 22
+      && event.clientY >= panda.top - 22 && event.clientY <= panda.bottom + 22;
+    if (selectedSnack && droppedOnPanda) {
+      onFeedSnack?.(selectedSnack.id);
+      setSnackDropPosition(null);
+      return;
+    }
+    setSnackDropPosition({
+      x: Math.max(0, Math.min(window.innerWidth - SNACK_TOKEN_WIDTH, event.clientX - drag.offsetX)),
+      y: Math.max(0, Math.min(window.innerHeight - SNACK_TOKEN_HEIGHT, event.clientY - drag.offsetY)),
+    });
+  };
+
+  const handleSnackPointerCancel = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (snackDropPointerRef.current?.pointerId !== event.pointerId) return;
+    snackDropPointerRef.current = null;
+    setSnackDropDragging(false);
+  };
 
   const updateRoomFurniturePoint = useCallback((id: RoomFurnitureId, point: RoomFurniturePoint) => {
     const next = { ...roomFurnitureLayoutRef.current, [id]: point };
@@ -2804,8 +2918,8 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
             ? pandaStaticUrl('captured-hug.png?v=captured-homecoming-pixen-1')
             : pandaStaticUrl(`frames/captured-homecoming-${frame}.png?v=captured-homecoming-pixen-1`)
     : frame === 0
-      ? pandaStaticUrl(`${sprite}.png?v=${sprite === 'chew' ? 'chew-feed-4' : sprite === 'tail-chase' ? 'tail-chase-ccw-3' : sprite === 'climb-up' ? 'stairs-back-run-1' : 'tail-left-3'}`)
-      : pandaStaticUrl(`frames/${sprite}-${frame}.png?v=${sprite === 'chew' ? 'chew-feed-4' : sprite === 'tail-chase' ? 'tail-chase-ccw-3' : sprite === 'climb-up' ? 'stairs-back-run-1' : 'tail-left-3'}`);
+      ? pandaStaticUrl(`${sprite}.png?v=${spriteAssetVersion(sprite)}`)
+      : pandaStaticUrl(`frames/${sprite}-${frame}.png?v=${spriteAssetVersion(sprite)}`);
   currentImageRef.current = image;
 
   useLayoutEffect(() => {
@@ -3096,6 +3210,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
                    aria-label={capturedHomecoming ? '小熊猫从时空旋涡被送回，旁边有空间警察来信' : hangingOnRack ? '小熊猫挂在晾衣架上；长按可以把它抱下来' : isFlyChasing ? '脏兮兮的小熊猫被苍蝇追着跑' : bathPhase === 'falling' ? '小熊猫掉进浴缸了' : bathPhase === 'bathing' ? '小熊猫正在洗澡；长按可以提起' : worldFallPhase === 'falling' ? '小熊猫掉出房间了' : dirtyReturn ? '小熊猫灰头土脸地哭着回来了' : dizzyPhase === 'falling' ? '小熊猫松手后掉到地上' : dizzyPhase === 'dazed' ? '小熊猫坐在地上眩晕了一会儿' : isDragging ? '正在拎起小熊猫；拖动到目标位置后松手' : isPressPending ? '按住小熊猫即可拎起' : startled ? '小熊猫被吓了一跳' : isSleeping ? '小熊猫正在睡觉；点击叫醒' : interactionState === 'chat' ? '小熊猫正在聊天；点击房间空白处退出' : '点击小熊猫和它互动'}
                   data-testid="button-panda" data-cuddling={isCuddling ? 'true' : undefined} data-sprite={sprite} data-hanging-on-rack={hangingOnRack ? 'true' : undefined} data-bath-state={showInteractionBubble ? bathPhase : undefined} data-bath-transition={showInteractionBubble ? bathTransition ?? (bathPhase === 'falling' ? 'entering' : undefined) : undefined} data-bath-ball-on-panda={bathBallPlaced ? 'true' : undefined} data-bath-rubbing={showInteractionBubble && bathPhase === 'bathing' ? (bathRubbing ? 'true' : 'false') : undefined} data-sleeping-on-bed={sleepingOnBed ? 'true' : 'false'} data-sleeping-in-nest={sleepingInNest ? 'true' : 'false'} data-reacting={reacting ? 'true' : undefined} data-startled={startled ? 'true' : undefined} data-dizzy-state={showInteractionBubble ? dizzyPhase : undefined} data-facing={facing}
                  data-bamboo-phase={action === 'bamboo' ? bambooPhase : undefined}
+                data-snack-feeding={snackDropDragging ? 'true' : undefined}
                 data-activity-state={showInteractionBubble ? developerPose ?? activityState : undefined}
                 data-dev-pose={developerPose ?? undefined}
                 data-activity-transition={showInteractionBubble ? activityTransition ?? 'none' : undefined}
@@ -3209,6 +3324,27 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
           </aside>
         )}
       </div>
+      {selectedSnack && snackDropPosition && (
+        <button type="button" className="ps-snack-feed-token"
+          style={{ left: snackDropPosition.x, top: snackDropPosition.y }}
+          data-dragging={snackDropDragging ? 'true' : undefined}
+          data-testid="snack-feed-token"
+          aria-label={`正在拿着${selectedSnack.item}；拖到小熊猫身上喂它`}
+          onPointerDown={handleSnackPointerDown}
+          onPointerMove={handleSnackPointerMove}
+          onPointerUp={handleSnackPointerUp}
+          onPointerCancel={handleSnackPointerCancel}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              onFeedSnack?.(selectedSnack.id);
+              setSnackDropPosition(null);
+            }
+          }}>
+          <span className="ps-snack-feed-emoji" aria-hidden="true">{selectedSnack.emoji}</span>
+          <span className="ps-snack-feed-label">{selectedSnack.item}<small>拖到小熊猫</small></span>
+        </button>
+      )}
       {showInteractionBubble && interactionState !== 'chat' && (
         <RoomPropDock
           equippedToy={equippedToy}

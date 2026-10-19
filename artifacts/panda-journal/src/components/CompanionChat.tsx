@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { ImagePlus, Pause, Play, RotateCw, SendHorizontal, Trash2, X } from 'lucide-react';
 import type { CompanionController } from '@/hooks/use-companion';
-import type { ChatMessage, DeveloperEvent, DeveloperPose, MemoryKind, PerformanceAction, SpacePoliceLetter } from '@/lib/companion-types';
+import type { ChatMessage, DeveloperEvent, DeveloperPose, Gift, MemoryKind, PerformanceAction, SpacePoliceLetter } from '@/lib/companion-types';
 import type { JournalEntry } from '@/lib/journal-types';
 import { canFeedGift } from '@/lib/companion-store';
 import { splitReply } from '@/lib/reply-rhythm';
@@ -23,6 +23,13 @@ const devActionOptions: { action: PerformanceAction; label: string }[] = [
   { action: 'cuddle', label: '蹭蹭撒娇' },
   { action: 'captured-homecoming', label: '时空旋涡送回和空间警察来信' },
   { action: 'climb-up', label: '背向跑上楼梯' },
+  { action: 'eat-banana', label: '吃香蕉' },
+  { action: 'eat-carrot', label: '吃胡萝卜' },
+  { action: 'eat-fish', label: '吃小鱼' },
+  { action: 'eat-candy', label: '吃糖果' },
+  { action: 'eat-strawberry', label: '吃野莓串' },
+  { action: 'eat-cookie', label: '吃竹叶饼干' },
+  { action: 'eat-bamboo', label: '吃嫩竹笋' },
 ];
 const devPoseOptions: { pose: DeveloperPose; label: string }[] = [
   { pose: 'idle', label: '发呆' },
@@ -122,22 +129,45 @@ function Diary({ c, onClose }: {
   );
 }
 
-function Gifts({ c, onClose }: { c: CompanionController; onClose: () => void }) {
+function Gifts({ c, onClose, onChooseSnack }: {
+  c: CompanionController;
+  onClose: () => void;
+  onChooseSnack: (giftId: string) => void;
+}) {
   const gifts = [...c.state.gifts].sort((a, b) => b.receivedAt - a.receivedAt);
+  const snacks = gifts.filter(canFeedGift);
+  const keepsakes = gifts.filter(gift => !canFeedGift(gift));
+  const [tab, setTab] = useState<'snacks' | 'keepsakes'>('snacks');
+  const visibleGifts = tab === 'snacks' ? snacks : keepsakes;
   return (
-    <Modal title="小礼物" sub="小熊猫出门遇见的朋友，和带回来的东西。" onClose={onClose} testid="dialog-gifts">
-      {gifts.length ? gifts.map((g) => (
+    <Modal title="零食箱" sub="带回来的零食会自动放进这里。取出一份，再拖到小熊猫身上喂它。" onClose={onClose} testid="dialog-gifts">
+      <div className="cc-gift-tabs" role="tablist" aria-label="零食箱分类">
+        <button type="button" role="tab" aria-selected={tab === 'snacks'} aria-pressed={tab === 'snacks'}
+          data-testid="snack-box-tab-food" onClick={() => setTab('snacks')}>
+          零食 · {snacks.length}
+        </button>
+        <button type="button" role="tab" aria-selected={tab === 'keepsakes'} aria-pressed={tab === 'keepsakes'}
+          data-testid="snack-box-tab-keepsakes" onClick={() => setTab('keepsakes')}>
+          纪念品 · {keepsakes.length}
+        </button>
+      </div>
+      {visibleGifts.length ? visibleGifts.map((g) => (
         <article className="cc-card cc-gift" key={g.id}>
-          <span className="cc-gemoji" aria-hidden="true">礼</span>
+          <span className="cc-gemoji" aria-hidden="true">{g.emoji}</span>
           <div><strong>{g.item}</strong><small>来自 {g.animal} · {fmt.format(g.receivedAt)}</small>
             <details><summary>看看带回来的故事</summary><p>{g.story}</p></details>
             <div className="cc-gift-actions">
               <button type="button" onClick={() => c.favoriteGift(g.id)} aria-pressed={Boolean(g.favorite)}>{g.favorite ? '已收藏 · 取消' : '收藏'}</button>
-              {canFeedGift(g) && <button type="button" disabled={Boolean(g.fedAt)} onClick={() => c.feedGift(g.id)}>{g.fedAt ? '已喂给小熊猫' : '喂小熊猫'}</button>}
-              {!canFeedGift(g) && <small>纪念小物，留着收藏</small>}
+              {tab === 'snacks' && <button type="button" disabled={Boolean(g.fedAt)}
+                data-testid={`snack-pick-${g.id}`} onClick={() => onChooseSnack(g.id)}>
+                {g.fedAt ? '已经吃掉' : '取出喂食'}
+              </button>}
+              {tab === 'keepsakes' && <small>纪念小物，留着收藏</small>}
             </div>
           </div>
-        </article>)) : <p className="cc-empty">还没有礼物。小熊猫偶尔会出门，回来时带点什么。</p>}
+        </article>)) : <p className="cc-empty">{tab === 'snacks'
+          ? '零食箱还是空的。小熊猫出门带回来的零食会自动收在这里。'
+          : '还没有纪念品。小熊猫偶尔会带回一些森林里的小发现。'}</p>}
     </Modal>
   );
 }
@@ -171,6 +201,10 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
   roomOnly?: boolean;
 }) {
   const [panel, setPanel] = useState<'diary' | 'gifts' | null>(null);
+  const [selectedSnackId, setSelectedSnackId] = useState<string | null>(null);
+  const selectedSnack = selectedSnackId
+    ? c.state.gifts.find(gift => gift.id === selectedSnackId && !gift.fedAt && canFeedGift(gift))
+    : undefined;
   const [devGiftOpen, setDevGiftOpen] = useState(false);
   const [devActionOpen, setDevActionOpen] = useState(false);
   const [scheduledDevTest, setScheduledDevTest] = useState<ScheduledDevTest | null>(null);
@@ -372,7 +406,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
           {import.meta.env.DEV && c.performTestAction && (
             <button type="button" onClick={() => setDevActionOpen(true)} data-testid="button-dev-action" aria-label="动画检视" title="动画检视"><TopPixelIcon name="inspect" /></button>
           )}
-          <button type="button" onClick={() => setPanel('gifts')} data-testid="button-gifts" aria-label="小礼物" title="小礼物"><TopPixelIcon name="gift" /></button>
+          <button type="button" onClick={() => setPanel('gifts')} data-testid="button-gifts" aria-label="零食箱" title="零食箱"><TopPixelIcon name="gift" /></button>
           {import.meta.env.DEV && DevGiftTool && c.addTestGift && (
             <button type="button" onClick={() => setDevGiftOpen(true)} data-testid="button-dev-gift" aria-label="测试礼物" title="测试礼物"><TopPixelIcon name="tool" /></button>
           )}
@@ -380,6 +414,8 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
         </div>
       </header>}
        <PetStage pet={c.pet} thinking={c.busy && !c.replyDisplay} motion={c.nightMode ? 'sleep' : 'idle'} nightMode={c.nightMode}
+        selectedSnack={selectedSnack ? { id: selectedSnack.id, emoji: selectedSnack.emoji, item: selectedSnack.item } : null}
+        onFeedSnack={(giftId) => { c.feedGift(giftId); setSelectedSnackId(null); }}
         developerPose={import.meta.env.DEV ? developerPose : null}
         developerEvent={import.meta.env.DEV && roomOnly ? developerEvent : null}
         debugClicks={false} showInteractionBubble={roomOnly}
@@ -418,7 +454,8 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
         </>
       )}
       {panel === 'diary' && <Diary c={c} onClose={() => setPanel(null)} />}
-      {panel === 'gifts' && <Gifts c={c} onClose={() => setPanel(null)} />}
+      {panel === 'gifts' && <Gifts c={c} onClose={() => setPanel(null)}
+        onChooseSnack={(giftId) => { setSelectedSnackId(giftId); setPanel(null); }} />}
       {roomOnly && spacePoliceMailboxOpen && (
         <Modal title="时空警察来信箱" sub="小熊猫收到的时空巡逻队来信，都收在这里。"
           onClose={() => setSpacePoliceMailboxOpen(false)} testid="dialog-space-police-mailbox">

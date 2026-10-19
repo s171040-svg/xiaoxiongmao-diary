@@ -2,6 +2,9 @@
 .cc-gift-actions button{border:1px solid #b3c6b8;background:#edf3e8;color:#355742;padding:6px 12px;border-radius:16px;cursor:pointer;font:inherit;font-size:13px}
 .cc-gift-actions button[aria-pressed=true]{background:#dceabd}.cc-gift-actions button:disabled{opacity:.6;cursor:default}
 .cc-gift details summary{cursor:pointer;margin-top:8px;color:#4f735b;font-size:14px}
+.cc-gift-tabs{display:flex;gap:8px;margin:0 0 12px}
+.cc-gift-tabs button{border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);padding:7px 13px;font:inherit;font-size:13px;cursor:pointer}
+.cc-gift-tabs button[aria-selected=true]{border-color:var(--sage);background:var(--bub);color:var(--sageD);font-weight:700}
 .cc-app.desktop .cc-top{-webkit-app-region:drag}
 .cc-app.desktop .cc-top button{-webkit-app-region:no-drag}
 .cc-app{--bg:#f0ecdd;--panel:#faf7ec;--ink:#2c4438;--soft:#6e826f;--sage:#5b8a6e;--sageD:#40694f;--bub:#e3ecd9;--me:#5b8a6e;--meInk:#fbf8ee;--line:#d7d6c3;--warn:#a65d53;

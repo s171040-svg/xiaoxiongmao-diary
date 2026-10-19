@@ -2,3 +2,4 @@
 - [Electron 开发验证](electron-development.md) — VNC 字体、窗口状态、Windows CI 原生依赖及网页/桌面渲染需分别验证。
 - [DeepSeek 连续聊天](deepseek-context.md) — JSON 模式须保持历史回复结构一致，HTTP 200 也可能只有空白内容。
 - [合并后 pnpm 锁文件同步](pnpm-postmerge-lockfile.md) — 任务合并可能造成 workspace 配置与 lockfile 短暂不一致；合并后安装应能自我同步。
+- [PixelLab 动画计费与尺寸](pixellab-animation-sizing.md) — 动画可能先放大输入画布再计费；按完成任务返回的尺寸和实际额度估算。

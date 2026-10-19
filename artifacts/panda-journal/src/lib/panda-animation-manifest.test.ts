@@ -25,6 +25,13 @@ test('every animation inspector action has its own visible animation assets', ()
     'cuddle',
     'captured-homecoming',
     'climb-up',
+    'eat-banana',
+    'eat-carrot',
+    'eat-fish',
+    'eat-candy',
+    'eat-strawberry',
+    'eat-cookie',
+    'eat-bamboo',
   ];
 
   for (const action of previewActions) {
@@ -50,6 +57,29 @@ test('every animation inspector action has its own visible animation assets', ()
   const stageCss = readFileSync(resolve(assetRoot, '../../../src/components/PetStage.css'), 'utf8');
   assert.match(stageCss, /\.ps-panda\.ps-spin \.ps-body\{[^}]*ps-spin-in-place/);
   assert.match(stageCss, /\.ps-panda\.ps-somersault \.ps-body\{[^}]*ps-somersault-hop/);
+});
+
+test('every snack has a distinct complete 96px eating animation', () => {
+  assert.ok(manifestPath, 'could not locate the panda animation manifest');
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+    frameCountBySprite: Record<string, number>;
+    actionSprites: Record<string, string>;
+  };
+  const assetRoot = resolve(dirname(manifestPath), '../../public/static/panda');
+  const snackActions = ['eat-banana', 'eat-carrot', 'eat-fish', 'eat-candy', 'eat-strawberry', 'eat-cookie', 'eat-bamboo'];
+  const sprites = snackActions.map(action => manifest.actionSprites[action]);
+  assert.equal(new Set(sprites).size, snackActions.length, 'each snack must use a different animation');
+
+  for (const sprite of sprites) {
+    assert.equal(manifest.frameCountBySprite[sprite], 7, `${sprite} should have eight generated poses`);
+    for (const path of [`${sprite}.png`, ...Array.from({ length: 7 }, (_, i) => `frames/${sprite}-${i + 1}.png`)]) {
+      const image = readFileSync(resolve(assetRoot, path));
+      assert.equal(image.subarray(0, 8).toString('hex'), '89504e470d0a1a0a', `${path} is a PNG`);
+      assert.equal(image.readUInt32BE(16), 96, `${path} keeps the 96px width`);
+      assert.equal(image.readUInt32BE(20), 96, `${path} keeps the 96px height`);
+      assert.ok(image.length > 1000, `${path} contains real sprite artwork`);
+    }
+  }
 });
 
 test('both new toy interactions have complete transparent 96px frame sequences', () => {

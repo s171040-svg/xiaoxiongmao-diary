@@ -5,7 +5,7 @@ import { isQuietHours } from '@/lib/quiet-hours';
 import { replyFrame, replyRhythm } from '@/lib/reply-rhythm';
 import type { CareStatCategory, CareStats, ChatMessage, CompanionState, Gift, PerformanceAction, PetEffect } from '@/lib/companion-types';
 import type { JournalEntry } from '@/lib/journal-types';
-import { acknowledgeCareStatInteraction as acknowledgeCareStatInteractionInState, assistant, clearPendingCareStatInteractions, contextFor, deliverSpacePoliceLetter, eatSpacePoliceLetter as eatSpacePoliceLetterInState, fileSpacePoliceLetter as fileSpacePoliceLetterInState, finishSpacePolicePoopDisposal, id, initialState, markPendingInterrupted, markSpacePoliceLetterOpened as markSpacePoliceLetterOpenedInState, mergeSharedCareStats, moveSpacePolicePoopBag, packSpacePolicePoop, placeSpacePolicePoop, disposeSpacePolicePoopBag, paySpacePoliceFine as paySpacePoliceFineInState, readState, receiveReply, recordCareStatInteraction as recordCareStatInteractionInState, recordUserMessage, performancePlan, tickCompanion, welcome, writeState, startGiftDrop, collectGift, favoriteGift, feedGift, injectTestGift, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, COMPANION_KEY, type TestGiftInput } from '@/lib/companion-store';
+import { acknowledgeCareStatInteraction as acknowledgeCareStatInteractionInState, assistant, canFeedGift, clearPendingCareStatInteractions, contextFor, deliverSpacePoliceLetter, eatSpacePoliceLetter as eatSpacePoliceLetterInState, fileSpacePoliceLetter as fileSpacePoliceLetterInState, feedActionForGift, finishSpacePolicePoopDisposal, id, initialState, markPendingInterrupted, markSpacePoliceLetterOpened as markSpacePoliceLetterOpenedInState, mergeSharedCareStats, moveSpacePolicePoopBag, packSpacePolicePoop, placeSpacePolicePoop, disposeSpacePolicePoopBag, paySpacePoliceFine as paySpacePoliceFineInState, readState, receiveReply, recordCareStatInteraction as recordCareStatInteractionInState, recordUserMessage, performancePlan, tickCompanion, welcome, writeState, startGiftDrop, collectGift, favoriteGift, feedGift, injectTestGift, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, COMPANION_KEY, type TestGiftInput } from '@/lib/companion-store';
 
 function initial() {
   try {
@@ -106,18 +106,23 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
   useEffect(() => {
     const gift = state.pendingGift;
     if (pet.stage !== 'returning') window.pandaDesktop?.showGift(gift, state.giftDropStartedAt);
-    if (!gift || !state.giftDropStartedAt) return;
+    if (!gift) return;
+    if (canFeedGift(gift) && !state.giftDropStartedAt) {
+      collectPresent(gift.id);
+      return;
+    }
+    if (!state.giftDropStartedAt) return;
     const timer = window.setTimeout(() => {
       try {
         const next = transact(s => collectGift(s, gift.id));
         if (!next.pendingGift) {
-          setStatus('小礼物收好啦，可以去小礼物里看看。');
+          setStatus(canFeedGift(gift) ? '带回来的零食已放进零食箱，可以挑一份喂小熊猫。' : '小礼物收好啦，可以去小礼物里看看。');
           motion({ ...petRef.current, carrying: undefined });
         }
       } catch (e) { report(e); }
     }, Math.max(0, state.giftDropStartedAt + GIFT_DROP_MS - Date.now()));
     return () => clearTimeout(timer);
-  }, [state.pendingGift, state.giftDropStartedAt, motion, pet.stage, report, transact]);
+  }, [state.pendingGift, state.giftDropStartedAt, collectPresent, motion, pet.stage, report, transact]);
   useEffect(() => window.pandaDesktop?.onGiftClick(collectPresent), [collectPresent]);
   const perform = useCallback(() => {
     if (petRef.current.stage !== 'present') { queuedPerformance.current = true; return; }
@@ -442,14 +447,16 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
     feedGift: (giftId: string) => {
       try {
         const before = current.current;
+        const gift = before.gifts.find(item => item.id === giftId);
+        const action = gift ? feedActionForGift(gift) : undefined;
         const next = transact(s => {
           const fed = feedGift(s, giftId);
           return fed === s ? fed : recordCareStatInteractionInState(fed, 'health');
         });
         if (next.messages.length !== before.messages.length) {
           notify(next.messages.at(-1)!.text);
-          if (petRef.current.stage === 'present') {
-            const effect: PetEffect = { ...petRef.current, action: 'bamboo', stage: 'performing', duration: 7000, token: Date.now() };
+          if (action && petRef.current.stage === 'present') {
+            const effect: PetEffect = { ...petRef.current, action, stage: 'performing', duration: 7000, token: Date.now() };
             motion(effect);
             later(() => { motion({ ...effect, action: 'idle', stage: 'present', duration: 3000 }); settle.current(); }, effect.duration);
           }

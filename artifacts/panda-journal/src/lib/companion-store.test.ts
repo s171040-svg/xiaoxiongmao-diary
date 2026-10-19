@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ACTIONS, initialState, idleDelay, localDay, performancePlan, contextFor, receiveReply, recordUserMessage, waitingForAnswer, tickCompanion, welcome, beginTrip, startGiftDrop, collectGift, feedGift, canFeedGift, favoriteGift, injectTestGift, markPendingInterrupted, deliverSpacePoliceLetter, eatSpacePoliceLetter, fileSpacePoliceLetter, markSpacePoliceLetterOpened, paySpacePoliceFine, placeSpacePolicePoop, packSpacePolicePoop, moveSpacePolicePoopBag, disposeSpacePolicePoopBag, finishSpacePolicePoopDisposal, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, CAPTURED_TRIP_EXTRA_MS, SPACE_POLICE_LETTER_EAT_DELAY_MS, DAY, MINUTE, COMPANION_KEY, readState, writeState } from './companion-store';
+import { ACTIONS, initialState, idleDelay, localDay, performancePlan, contextFor, receiveReply, recordUserMessage, waitingForAnswer, tickCompanion, welcome, beginTrip, startGiftDrop, collectGift, feedGift, canFeedGift, feedActionForGift, favoriteGift, injectTestGift, markPendingInterrupted, deliverSpacePoliceLetter, eatSpacePoliceLetter, fileSpacePoliceLetter, markSpacePoliceLetterOpened, paySpacePoliceFine, placeSpacePolicePoop, packSpacePolicePoop, moveSpacePolicePoopBag, disposeSpacePolicePoopBag, finishSpacePolicePoopDisposal, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, CAPTURED_TRIP_EXTRA_MS, SPACE_POLICE_LETTER_EAT_DELAY_MS, DAY, MINUTE, COMPANION_KEY, readState, writeState } from './companion-store';
 import type { CompanionState } from './companion-types';
 import {
   CARE_STAT_DECAY_INTERVAL_MS,
@@ -15,6 +15,27 @@ function sample(): CompanionState {
   return { ...initialState(now), userName: '小乐', nextIdleAt: now + 5 * MINUTE, nextTripAt: now + 40 * MINUTE,
     messages: [{ id: 'user1', role: 'user', text: '我叫小乐，唱歌唱了很久，有点累，明天还要排练。', createdAt: now, status: 'pending' }] };
 }
+
+test('each returned snack maps to its own food animation and stays out of random actions', () => {
+  const snacks = [
+    ['🍌', 'eat-banana'],
+    ['🥕', 'eat-carrot'],
+    ['🐟', 'eat-fish'],
+    ['🍬', 'eat-candy'],
+    ['🍓', 'eat-strawberry'],
+    ['🍪', 'eat-cookie'],
+    ['🎋', 'eat-bamboo'],
+  ] as const;
+  for (const [emoji, action] of snacks) {
+    const gift = { id: action, emoji, item: action, animal: '朋友', story: '礼物', receivedAt: now };
+    assert.equal(canFeedGift(gift), true);
+    assert.equal(feedActionForGift(gift), action);
+    assert.equal(ACTIONS.includes(action), false);
+  }
+  assert.equal(feedActionForGift({
+    id: 'keepsake', emoji: '🌰', item: '松果', animal: '松鼠', story: '纪念品', receivedAt: now,
+  }), undefined);
+});
 
 test('care interactions increase growth and only their related stat', () => {
   const start = initialState(now);

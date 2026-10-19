@@ -13,6 +13,12 @@
 .ps-room-surface[data-room-only=true] .ps-room-floor::before{display:none}
 .ps-room-surface[data-room-only=true][data-night=true] .ps-room-backdrop,.ps-room-surface[data-room-only=true][data-night=true] .ps-room-floor{filter:brightness(.58) saturate(.82)}
 .ps-stage{position:fixed;z-index:2;inset:0;width:100vw;height:100vh;height:100dvh;overflow:hidden;pointer-events:none;--room-walk-range:clamp(0px,35vw,42vw);--room-roll-range:clamp(0px,4.5vw,54px)}
+.ps-snack-feed-token{position:fixed;z-index:50;display:flex;align-items:center;gap:7px;box-sizing:border-box;width:124px;height:54px;padding:5px 8px;border:2px solid #80613e;border-radius:10px;background:#fff7df;color:#49341f;box-shadow:2px 3px 0 #4f3925a6,0 4px 14px #281d164a;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;font-family:"Noto Sans CJK SC",sans-serif}
+.ps-snack-feed-token[data-dragging=true]{z-index:55;cursor:grabbing;transform:scale(1.06);box-shadow:3px 5px 0 #4f3925a6,0 8px 18px #281d1666}
+.ps-snack-feed-emoji{display:grid;flex:none;width:34px;height:34px;place-items:center;border:1px solid #b68e5b;border-radius:8px;background:#f8e7b5;font-size:24px;line-height:1}
+.ps-snack-feed-label{display:flex;min-width:0;flex-direction:column;align-items:flex-start;overflow:hidden;text-align:left;font-size:12px;font-weight:700;line-height:1.2;white-space:nowrap}
+.ps-snack-feed-label small{margin-top:3px;color:#775e3d;font-size:10px;font-weight:500}
+.ps-panda[data-snack-feeding=true]{filter:drop-shadow(0 0 7px #ffd76d)}
 .ps-debug-panel{position:fixed;z-index:20;bottom:12px;left:12px;box-sizing:border-box;width:min(440px,calc(100vw - 24px));max-height:min(260px,42vh);overflow:hidden;padding:10px 12px;border:1px solid #ffffff42;border-radius:10px;background:#18201eeF;color:#f3f1e7;box-shadow:0 5px 24px #0004;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;pointer-events:none}
 .ps-debug-panel strong,.ps-debug-panel>span{display:block}
 .ps-debug-panel strong{margin-bottom:3px;color:#d8e9c9;font:600 12px/1.4 "Noto Sans CJK SC",sans-serif}
@@ -209,10 +215,10 @@
 .ps-stage[data-room-only="true"] .ps-body[data-sprite="idle"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="walk"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="grab"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="dizzy"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="chew"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="dirty-grab"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="dirty-grab-lift"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="bathing"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="bathing-soap"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="dirty-bathing"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="dirty-bathing-soap"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="startled"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="captured-homecoming"]{width:calc(88px * var(--room-scale,.89));height:calc(88px * var(--room-scale,.89))}
 .ps-stage[data-room-only="true"] .ps-panda.ps-lying .ps-body,.ps-stage[data-room-only="true"] .ps-panda.ps-sleeping .ps-body{width:calc(90px * var(--room-scale,.89));height:calc(90px * var(--room-scale,.89))}
 .ps-stage[data-room-only="true"] .ps-panda.ps-peeking .ps-body{width:calc(110px * var(--room-scale,.89));height:calc(110px * var(--room-scale,.89))}
-.ps-sleep-zzz{position:absolute;z-index:2;top:-4%;left:4%;display:flex;align-items:flex-start;color:#526f91;font-family:"Noto Sans CJK SC",sans-serif;font-weight:800;line-height:1;text-shadow:0 1px 2px #fff9;pointer-events:none;animation:ps-zzz-float 1.9s ease-in-out infinite}
-.ps-sleep-zzz i{display:block;font-size:10px;font-style:normal}
-.ps-sleep-zzz i:nth-child(2){margin-top:-4px;font-size:13px;animation:ps-zzz-twitch 1.9s ease-in-out .18s infinite}
-.ps-sleep-zzz i:nth-child(3){margin-top:-9px;font-size:17px;animation:ps-zzz-twitch 1.9s ease-in-out .36s infinite}
+.ps-sleep-zzz{position:absolute;z-index:2;top:-5%;left:4%;display:block;width:22px;height:28px;color:#526f91;font-family:"Noto Sans CJK SC",sans-serif;font-weight:800;line-height:1;text-shadow:0 1px 2px #fff9;pointer-events:none}
+.ps-sleep-zzz i{position:absolute;bottom:0;left:1px;display:block;font-size:10px;font-style:normal;opacity:0;filter:blur(1px);animation:ps-zzz-smoke 2.7s cubic-bezier(.2,.65,.35,1) infinite}
+.ps-sleep-zzz i:nth-child(2){left:2px;font-size:13px;--zzz-drift:3px;animation-delay:.85s}
+.ps-sleep-zzz i:nth-child(3){left:0;font-size:17px;--zzz-drift:-2px;animation-delay:1.7s}
 .ps-panda[data-facing="left"].ps-sleeping .ps-sleep-zzz{right:4%;left:auto}
 .ps-scared-mark{position:absolute;z-index:3;top:-9%;right:8%;display:flex;align-items:flex-start;color:#d87947;font:800 20px/1 "Noto Sans CJK SC",sans-serif;text-shadow:0 1px 2px #fff9;pointer-events:none;animation:ps-scared-mark 620ms cubic-bezier(.2,.8,.2,1) both}
 .ps-scared-mark i{display:block;width:6px;height:9px;margin:11px 0 0 -2px;border-radius:70% 20% 70% 70%;background:#83b9ce;rotate:35deg}
@@ -311,8 +317,7 @@
 @keyframes ps-pose-fade-in{0%{opacity:0}46%{opacity:1}100%{opacity:1}}
 @keyframes ps-zzz-wake{0%{translate:0 0;opacity:.8}100%{translate:0 -8px;opacity:0}}
 @keyframes ps-dots-wake{0%{translate:0 0;opacity:.8}100%{translate:0 -4px;opacity:0}}
-@keyframes ps-zzz-float{0%,100%{translate:0 0;opacity:.65}50%{translate:2px -7px;opacity:1}}
-@keyframes ps-zzz-twitch{0%,100%{translate:0 0}50%{translate:0 -2px}}
+@keyframes ps-zzz-smoke{0%{translate:0 7px;scale:.55;opacity:0;filter:blur(1.5px)}14%{opacity:.8;filter:blur(.2px)}60%{translate:var(--zzz-drift,0) -14px;scale:.92;opacity:.45}100%{translate:var(--zzz-drift,0) -27px;scale:1.12;opacity:0;filter:blur(1.8px)}}
 @keyframes ps-daydream{0%,100%{translate:0 1px;opacity:.45}50%{translate:2px -4px;opacity:1}}
 @keyframes ps-crawl{from{transform:translate(calc(-50% - 80px),-100%);opacity:.6}to{transform:translate(-50%,-100%);opacity:1}}
 @keyframes ps-world-fall{
@@ -347,7 +352,8 @@
 @keyframes ps-bath-exit-splash{0%{translate:0 0;scale:.6;opacity:.86}48%{translate:1px 5px;scale:1;opacity:.72}100%{translate:2px 10px;scale:.78;opacity:0}}
 @keyframes ps-bath-lift-out{0%{translate:0 2px;rotate:0deg;scale:1}18%{translate:-1px -1px;rotate:-3deg;scale:.99}38%{translate:1px -4px;rotate:4deg;scale:.98}58%{translate:-1px -8px;rotate:-3deg;scale:.97}78%{translate:1px -12px;rotate:2deg;scale:.96}100%{translate:0 -16px;rotate:0deg;scale:.95}}
 @keyframes ps-bath-ball-drop{0%{transform:translateY(-20px) scale(.68) rotate(-18deg);opacity:0}18%{opacity:1}62%{transform:translateY(5px) scale(1.08) rotate(8deg)}78%{transform:translateY(-5px) scale(.97) rotate(-5deg)}100%{transform:translateY(0) scale(1) rotate(0);opacity:1}}
-@media (prefers-reduced-motion:reduce){.ps-panda,.ps-body,.ps-snack-drop,.ps-gift,.ps-sleep-zzz,.ps-daydream-dots,.ps-captured-time-vortex,.ps-captured-time-vortex img,.ps-space-police-envelope-flying{animation-duration:.01ms!important}.ps-space-letter-arrow{animation:none;translate:-50% -2px}.ps-panda.ps-dragging,.ps-panda.ps-dragging .ps-body{animation:none}.ps-grab-daze{animation:none;opacity:1;translate:0}.ps-scared-mark{animation:none;opacity:1;translate:0 0}.ps-track.ps-returning,.ps-track.ps-captured-homecoming{animation:none!important;translate:0 0;rotate:0deg;scale:1;opacity:1}.ps-captured-impact-dust{display:none}.ps-captured-hug-bubble{animation:none;opacity:1;translate:-50% -100%;scale:1}}
+@media (prefers-reduced-motion:reduce){.ps-panda,.ps-body,.ps-snack-drop,.ps-gift,.ps-sleep-zzz,.ps-daydream-dots,.ps-captured-time-vortex,.ps-captured-time-vortex img,.ps-space-police-envelope-flying{animation-duration:.01ms!important}.ps-sleep-zzz i{animation:none!important;translate:0 0;scale:1;opacity:.72;filter:none}.ps-space-letter-arrow{animation:none;translate:-50% -2px}.ps-panda.ps-dragging,.ps-panda.ps-dragging .ps-body{animation:none}.ps-grab-daze{animation:none;opacity:1;translate:0}.ps-scared-mark{animation:none;opacity:1;translate:0 0}.ps-track.ps-returning,.ps-track.ps-captured-homecoming{animation:none!important;translate:0 0;rotate:0deg;scale:1;opacity:1}.ps-captured-impact-dust{display:none}.ps-captured-hug-bubble{animation:none;opacity:1;translate:-50% -100%;scale:1}}
+@media (prefers-reduced-motion:reduce){.ps-sleep-zzz i:nth-child(2){translate:2px -8px}.ps-sleep-zzz i:nth-child(3){translate:-1px -17px}}
 @media (prefers-reduced-motion:reduce){.ps-track.ps-bath-dropping,.ps-panda.ps-bath-dropping,.ps-panda.ps-bath-exiting,.ps-panda.ps-bath-exiting .ps-body{animation:none!important}.ps-bath-water-bubbles i,.ps-bath-foam i,.ps-bath-splash i{animation:none!important;opacity:.75}}
 .ps-track.ps-hanging-on-rack{z-index:7}
 .ps-panda.ps-hanging{z-index:6;cursor:grab;transform-origin:50% 5%;translate:0;scale:1;filter:drop-shadow(0 8px 5px #29221644)}

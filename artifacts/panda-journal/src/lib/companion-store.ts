@@ -12,6 +12,17 @@ export const CAPTURED_HOMECOMING_DURATION_MS = 8000;
 export const SPACE_POLICE_LETTER_EAT_DELAY_MS = 5 * MINUTE;
 export const CARE_STAT_DECAY_INTERVAL_MS = 6 * 60 * MINUTE;
 export const canFeedGift = (gift: Gift) => ['🍌', '🥕', '🐟', '🍬', '🍓', '🍪', '🎋'].includes(gift.emoji);
+const FEED_ACTION_BY_EMOJI: Record<string, PerformanceAction> = {
+  '🍌': 'eat-banana',
+  '🥕': 'eat-carrot',
+  '🐟': 'eat-fish',
+  '🍬': 'eat-candy',
+  '🍓': 'eat-strawberry',
+  '🍪': 'eat-cookie',
+  '🎋': 'eat-bamboo',
+};
+export const feedActionForGift = (gift: Gift): PerformanceAction | undefined =>
+  canFeedGift(gift) ? FEED_ACTION_BY_EMOJI[gift.emoji] : undefined;
 const CARE_STAT_CATEGORIES: CareStatCategory[] = ['health', 'bond', 'growth'];
 
 export function initialCareStats(now = Date.now()): CareStats {

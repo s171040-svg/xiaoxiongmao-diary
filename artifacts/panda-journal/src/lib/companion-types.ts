@@ -15,7 +15,10 @@ export type PendingCareStatInteraction = {
   category: CareStatCategory;
   occurredAt: number;
 };
-export type PerformanceAction = 'bamboo' | 'roll' | 'jump' | 'spin' | 'somersault' | 'tail' | 'tumble' | 'cuddle' | 'captured-homecoming' | 'climb-up';
+export type PerformanceAction =
+  | 'bamboo' | 'roll' | 'jump' | 'spin' | 'somersault' | 'tail' | 'tumble' | 'cuddle'
+  | 'captured-homecoming' | 'climb-up'
+  | 'eat-banana' | 'eat-carrot' | 'eat-fish' | 'eat-candy' | 'eat-strawberry' | 'eat-cookie' | 'eat-bamboo';
 export type DeveloperPose = 'idle' | 'lying' | 'sleeping' | 'peeking';
 export type DeveloperEvent = 'startle' | 'grab' | 'dirty-grab' | 'dizzy-drop' | 'world-fall' | 'bath-drop' | 'bath-rub' | 'dirty-bath' | 'dirty-bath-rub' | 'dirty-fly-chase' | 'toy-teaser' | 'toy-laser';
 export type ChatMessage = {
