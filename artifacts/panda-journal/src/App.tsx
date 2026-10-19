@@ -15,6 +15,7 @@ import {
 } from '@workspace/api-client-react';
 import { CompanionChat } from '@/components/CompanionChat';
 import { CoopHub } from '@/components/CoopHub';
+import { StatsTemplate } from '@/components/StatsTemplate';
 import { useCompanion } from '@/hooks/use-companion';
 import { isDesktop } from '@/lib/desktop';
 import { queryClient } from '@/lib/query-client';
@@ -115,7 +116,7 @@ function Landing() {
     <main className="landing-page">
       <header className="landing-nav">
         <Link href="/" className="landing-brand"><span className="landing-mark">熊</span><span>小熊猫日记<small>A SMALL ROOM FOR BIG FEELINGS</small></span></Link>
-        <nav><a href="#how-it-works">怎么陪伴</a><a href="#privacy">关于隐私</a></nav>
+        <nav><a href="#how-it-works">怎么陪伴</a><a href="#privacy">关于隐私</a><Link href="/stats-template">成长档案示例</Link></nav>
         <div className="landing-auth">
           <Link href="/sign-in" className="landing-login">登录</Link>
           <Link href="/sign-up" className="landing-signup">开始照看 <ArrowRight size={15} /></Link>
@@ -131,6 +132,7 @@ function Landing() {
             <Link href="/sign-up" className="landing-text-link">创建账号，邀请另一位玩家 <ArrowDownRight size={15} /></Link>
           </div>
           <div className="landing-trust"><LockKeyhole size={14} /><span>聊天与日记保存在你的设备上</span><i /></div>
+          <Link href="/stats-template" className="landing-text-link stats-template-entry">先看看成长档案示例 <ArrowRight size={14} /></Link>
         </div>
         <div className="landing-scene" aria-label="有窗户、家具和小熊猫的像素房间插画">
           <div className="scene-label label-window">午后的光</div>
@@ -375,6 +377,7 @@ function ClerkProviderWithRoutes() {
           <Route path="/" component={HomeRedirect} />
           <Route path="/sign-in/*?" component={SignInPage} />
           <Route path="/sign-up/*?" component={SignUpPage} />
+          <Route path="/stats-template" component={StatsTemplate} />
           <Route path="/room" component={Room} />
           <Route><Redirect to="/" /></Route>
         </Switch>
