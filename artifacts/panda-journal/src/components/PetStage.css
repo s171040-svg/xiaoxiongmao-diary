@@ -227,10 +227,10 @@
 .ps-sleep-zzz i:nth-child(2){left:2px;font-size:13px;--zzz-drift:3px;animation-delay:.85s}
 .ps-sleep-zzz i:nth-child(3){left:0;font-size:17px;--zzz-drift:-2px;animation-delay:1.7s}
 .ps-panda[data-facing="left"].ps-sleeping .ps-sleep-zzz{right:4%;left:auto}
-.ps-dream-cloud{position:absolute;z-index:12;top:-18%;display:grid;width:34px;height:32px;place-items:center;padding:0;border:1px solid #c7dbe2;border-radius:50%;background:linear-gradient(145deg,#fff 5%,#eaf7fb 100%);box-shadow:0 2px 7px #344c5530;color:#6f99aa;font:24px/1 "Apple Color Emoji","Segoe UI Emoji",sans-serif;cursor:pointer;pointer-events:auto;animation:ps-dream-float 2.8s ease-in-out infinite;transition:scale 140ms ease}
+.ps-dream-cloud{position:absolute;z-index:12;top:-18%;display:grid;width:34px;height:32px;place-items:center;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;color:#6f99aa;font:27px/1 "Apple Color Emoji","Segoe UI Emoji",sans-serif;cursor:pointer;pointer-events:auto;animation:ps-dream-float 2.8s ease-in-out infinite;transition:scale 140ms ease,filter 140ms ease}
 .ps-dream-cloud-right{left:calc(50% + 15px)}
 .ps-dream-cloud-left{right:calc(50% + 15px)}
-.ps-dream-cloud:hover,.ps-dream-cloud-open{scale:1.08;box-shadow:0 3px 9px #344c5540}
+.ps-dream-cloud:hover,.ps-dream-cloud-open{scale:1.08;filter:drop-shadow(0 2px 2px #344c5540)}
 .ps-dream-popover{position:absolute;z-index:13;top:-18%;box-sizing:border-box;width:min(220px,calc(100vw - 24px));padding:11px 28px 10px 13px;border:1px solid #bfd4d8;border-radius:14px 14px 14px 5px;background:#fffdf1f2;box-shadow:0 4px 14px #243c3830;color:#43594f;pointer-events:auto;animation:ps-dream-pop 180ms ease-out both}
 .ps-dream-popover-right{left:calc(50% + 20px);transform:translateY(-100%)}
 .ps-dream-popover-left{right:calc(50% + 20px);transform:translateY(-100%)}
