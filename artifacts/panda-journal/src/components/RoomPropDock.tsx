@@ -3,26 +3,14 @@ import './RoomPropDock.css';
 export type RoomToy = 'teaser' | 'laser';
 export type RoomProp = 'bed' | 'rack' | 'tub';
 
+export const PANDA_TEASER_WAND_URL = `${import.meta.env.BASE_URL}static/room/panda-cat-teaser-wand.png?v=teaser-wand-1`;
+
 const PALETTE: Record<string, string> = {
   k: '#2b1d12', w: '#f4ead2', b: '#8a5a32', B: '#c08a50', g: '#5f8f4a', G: '#a8cf72',
   r: '#d9483b', R: '#ff8f7a', c: '#7fd0d6', C: '#d7f5f2', y: '#f2c744', s: '#9aa59a',
 };
 
 const ICONS = {
-  teaser: [
-    '..........rr....',
-    '.........rRRr...',
-    '........rRyyRr..',
-    '.......k.rRRr...',
-    '......k..y......',
-    '.....k..........',
-    '....k...........',
-    '...k............',
-    '..bk............',
-    '.bBk............',
-    '.bb.............',
-    '................',
-  ],
   laser: [
     '................',
     '.....R..R.......',
@@ -120,7 +108,9 @@ export function RoomPropDock({ equippedToy, onSelectToy, placed, onTogglePlaced,
         {TOYS.map((toy) => (
           <button key={toy.id} type="button" className="rp-slot" aria-pressed={equippedToy === toy.id}
             aria-label={toy.label} onClick={() => onSelectToy(toy.id)} data-testid={`prop-toy-${toy.id}`}>
-            <PixelIcon name={toy.id} />
+            {toy.id === 'teaser'
+              ? <img className="rp-icon rp-teaser-icon" src={PANDA_TEASER_WAND_URL} alt="" />
+              : <PixelIcon name={toy.id} />}
             <span>{toy.label}</span>
           </button>
         ))}

@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import {
   blendRoomPoint,
+  CAT_TREE_NEST_POINT,
+  CAT_TREE_WALK_PATH,
   gaitProgress,
+  isCatTreeNestScreenPoint,
   isWalkableRoomPoint,
   isWalkableRoomSegment,
   nearestWalkableRoomPoint,
@@ -20,9 +23,11 @@ import {
   roomFurnitureZIndex,
   roomDepthZIndex,
   roomFloorBoundsPercent,
+  roomPointAtImagePosition,
   ROOM_IMAGE_HEIGHT,
   ROOM_IMAGE_WIDTH,
   unprojectRoomPoint,
+  unprojectRoomWalkableSurfacePoint,
   unprojectScreenPoint,
 } from './room-plane';
 
@@ -146,6 +151,43 @@ for (let index = 0; index <= 300; index += 1) {
   assert.ok(isWalkableRoomPoint(pointAlongRoomWalkPath(obstacleRoute, index / 300)),
     'every interpolated walking point remains outside furniture footprints');
 }
+
+assert.ok(CAT_TREE_WALK_PATH.every(isWalkableRoomPoint), 'the cat-tree landing and stairs are part of the walkable room');
+for (let index = 1; index < CAT_TREE_WALK_PATH.length; index += 1) {
+  assert.ok(isWalkableRoomSegment(CAT_TREE_WALK_PATH[index - 1], CAT_TREE_WALK_PATH[index]),
+    `cat-tree stair segment ${index - 1} remains walkable`);
+}
+assert.ok(CAT_TREE_NEST_POINT.elevation && CAT_TREE_NEST_POINT.elevation > 0.3,
+  'the pillow target is raised above the room floor');
+const nestRoute = planRoomWalkPath({ u: 0.5, v: 0.58 }, CAT_TREE_NEST_POINT);
+assert.ok(nestRoute.length > 2 && nestRoute.at(-1)?.elevation === CAT_TREE_NEST_POINT.elevation,
+  'a floor route connects to the pillow through the ladder');
+assert.ok(nestRoute.some(point => (point.elevation ?? 0) > 0.1),
+  'the route visibly climbs the ladder rather than teleporting to the den');
+for (let index = 0; index <= 300; index += 1) {
+  assert.ok(isWalkableRoomPoint(pointAlongRoomWalkPath(nestRoute, index / 300)),
+    'every interpolated point while climbing stays on the stairs or inside the den');
+}
+const nestExitRoute = planRoomWalkPath(CAT_TREE_NEST_POINT, { u: 0.7, v: 0.72 });
+assert.ok(nestExitRoute.some(point => (point.elevation ?? 0) > 0.1)
+  && nestExitRoute.at(-1)?.elevation === undefined,
+  'a panda waking in the den can route back down to the floor');
+for (const [index, point] of nestExitRoute.entries()) {
+  assert.ok(isWalkableRoomPoint(point), `den exit waypoint ${index} stays walkable`);
+  if (index > 0) assert.ok(isWalkableRoomSegment(nestExitRoute[index - 1], point));
+}
+const draggedNestPoint = unprojectRoomWalkableSurfacePoint((400 / ROOM_IMAGE_WIDTH) * 100, (140 / ROOM_IMAGE_HEIGHT) * 100);
+assert.ok(isWalkableRoomPoint(draggedNestPoint) && (draggedNestPoint.elevation ?? 0) > 0.3,
+  'dragging into the visible den keeps the panda on its raised surface');
+const draggedLadderPoint = unprojectRoomWalkableSurfacePoint((470 / ROOM_IMAGE_WIDTH) * 100, (230 / ROOM_IMAGE_HEIGHT) * 100);
+assert.ok(isWalkableRoomPoint(draggedLadderPoint) && (draggedLadderPoint.elevation ?? 0) > 0.1,
+  'dropping the panda midway up the ladder does not snap it to the floor');
+assert.equal(isCatTreeNestScreenPoint(400, 140), true);
+assert.equal(isCatTreeNestScreenPoint(560, 321), false);
+const mobileNest = projectRoomPoint(CAT_TREE_NEST_POINT, 400, 874);
+assert.equal(isCatTreeNestScreenPoint(mobileNest.x * 4, mobileNest.y * 8.74, 400, 874), true,
+  'the den drop target follows the room image on a tall viewport');
+assert.ok(isWalkableRoomPoint(roomPointAtImagePosition(400, 140)));
 
 const wideFurnitureClip = roomImageRegionClipPath({ left: 48, top: 68, right: 166, bottom: 142 }, 1200, 800);
 const tallFurnitureClip = roomImageRegionClipPath({ left: 48, top: 68, right: 166, bottom: 142 }, 400, 874);

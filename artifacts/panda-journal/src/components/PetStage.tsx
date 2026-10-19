@@ -3,7 +3,9 @@ import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent }
 import type { DeveloperEvent, DeveloperPose, PerformanceAction, PetEffect, SpacePoliceLetter } from '@/lib/companion-types';
 import {
   blendRoomPoint,
+  CAT_TREE_NEST_POINT,
   gaitProgress,
+  isCatTreeNestScreenPoint,
   projectDesktopPoint,
   projectRoomPoint,
   isWalkableRoomPoint,
@@ -21,6 +23,7 @@ import {
   roomFloorBoundsPercent,
   roomFurnitureZIndex,
   unprojectRoomPoint,
+  unprojectRoomWalkableSurfacePoint,
   type RoomPoint,
 } from '@/lib/room-plane';
 import {
@@ -52,7 +55,7 @@ import {
 } from '@/lib/room-furniture-layout';
 import { SPACE_POLICE_LETTER_EAT_DELAY_MS } from '@/lib/companion-store';
 import animationManifest from '@/lib/panda-animation-manifest.json';
-import { RoomPropDock, type RoomProp, type RoomToy } from './RoomPropDock';
+import { PANDA_TEASER_WAND_URL, RoomPropDock, type RoomProp, type RoomToy } from './RoomPropDock';
 import './PetStage.css';
 
 const ROOM_PROPS_KEY = 'little-panda-room-props-v1';
@@ -76,6 +79,9 @@ const WAKE_CLICK_COOLDOWN_MS = 500;
 const STARTLE_DURATION_MS = 720;
 const ACTIVITY_SETTLE_MS = 320;
 const ACTIVITY_POSE_MS = 360;
+const CAT_TREE_SLEEP_MS = 5 * 60 * 1000;
+const CAT_TREE_AUTO_NAP_COOLDOWN_MS = 90 * 1000;
+const CAT_TREE_AUTO_NAP_CHANCE = 0.08;
 const WORLD_FALL_ANIMATION_MS = 1100;
 const WORLD_FALL_MESSAGE_MS = 1800;
 const WORLD_AWAY_MS = 5000;
@@ -284,6 +290,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const [roomWalking, setRoomWalking] = useState(false);
   const [activityState, setActivityState] = useState<RoomActivityState>('roaming');
   const [sleepingOnBed, setSleepingOnBed] = useState(false);
+  const [sleepingInNest, setSleepingInNest] = useState(false);
   const [hangingOnRack, setHangingOnRack] = useState(false);
   const [dirtyGrabLiftComplete, setDirtyGrabLiftComplete] = useState(false);
   const [activityTransition, setActivityTransition] = useState<'settling' | 'entering' | 'waking' | 'frames-entering' | 'frames-waking' | null>(null);
@@ -383,6 +390,8 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const interactionStateRef = useRef<'roaming' | 'chat'>('roaming');
   const activityStateRef = useRef(activityState);
   activityStateRef.current = activityState;
+  const sleepingInNestRef = useRef(sleepingInNest);
+  sleepingInNestRef.current = sleepingInNest;
   const hangingOnRackRef = useRef(hangingOnRack);
   hangingOnRackRef.current = hangingOnRack;
   const developerPoseRef = useRef(developerPose);
@@ -435,6 +444,8 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   const activityTransitionTimerRef = useRef(0);
   const activityTransitionCancelRef = useRef<(() => void) | null>(null);
   const activityTransitionFinishRef = useRef<(() => void) | null>(null);
+  const catTreeSleepTimerRef = useRef(0);
+  const lastCatTreeNapAtRef = useRef(Number.NEGATIVE_INFINITY);
   const bambooDropTimerRef = useRef(0);
   const hoverCuddleTimerRef = useRef(0);
   const lastHoverCuddleAtRef = useRef(Number.NEGATIVE_INFINITY);
@@ -864,8 +875,11 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       return;
     }
     if (activityState === 'sleeping') {
+      window.clearTimeout(catTreeSleepTimerRef.current);
+      catTreeSleepTimerRef.current = 0;
       playPixelTransition('sleep', 'waking', () => {
         setSleepingOnBed(false);
+        setSleepingInNest(false);
         setActivityState('roaming');
         setRoomWalking(false);
       });
@@ -900,6 +914,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
 
   useEffect(() => () => {
     window.clearTimeout(activityTransitionTimerRef.current);
+    window.clearTimeout(catTreeSleepTimerRef.current);
     activityTransitionCancelRef.current?.();
   }, []);
 
@@ -955,6 +970,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     track.style.zIndex = showInteractionBubble ? '240' : String(projected.zIndex);
     track.dataset.roomU = point.u.toFixed(3);
     track.dataset.roomV = point.v.toFixed(3);
+    track.dataset.roomElevation = (point.elevation ?? 0).toFixed(3);
     track.dataset.roomScale = projected.scale.toFixed(3);
     if (showInteractionBubble) {
       track.dataset.roomWalkable = String(isWalkableRoomPoint(point));
@@ -1556,6 +1572,41 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     return true;
   }, [clearActivityTransition, dampAfterBath, playPixelTransition, showInteractionBubble]);
 
+  const wakeFromCatTreeNest = useCallback(() => {
+    window.clearTimeout(catTreeSleepTimerRef.current);
+    catTreeSleepTimerRef.current = 0;
+    clearActivityTransition();
+    playPixelTransition('sleep', 'waking', () => {
+      sleepingInNestRef.current = false;
+      setSleepingInNest(false);
+      setSleepingOnBed(false);
+      setActivityState('roaming');
+      setRoomWalking(false);
+    });
+  }, [clearActivityTransition, playPixelTransition]);
+
+  const enterCatTreeSleep = useCallback(() => {
+    if (!showInteractionBubble) return;
+    window.clearTimeout(catTreeSleepTimerRef.current);
+    catTreeSleepTimerRef.current = 0;
+    clearActivityTransition();
+    sleepingInNestRef.current = true;
+    setSleepingInNest(true);
+    setSleepingOnBed(false);
+    applyRoomPoint(CAT_TREE_NEST_POINT);
+    setActivityState('sleeping');
+    setRoomWalking(false);
+    playPixelTransition('sleep', 'entering', () => {
+      if (!sleepingInNestRef.current) return;
+      catTreeSleepTimerRef.current = window.setTimeout(() => {
+        catTreeSleepTimerRef.current = 0;
+        if (!sleepingInNestRef.current) return;
+        lastCatTreeNapAtRef.current = performance.now();
+        wakeFromCatTreeNest();
+      }, CAT_TREE_SLEEP_MS);
+    });
+  }, [applyRoomPoint, clearActivityTransition, playPixelTransition, showInteractionBubble, wakeFromCatTreeNest]);
+
   useEffect(() => {
     if (pet.stage === 'returning' && interactionState !== 'chat') updateFacing(1);
   }, [interactionState, pet.stage, updateFacing]);
@@ -1699,9 +1750,9 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
 
   useEffect(() => {
     if (!showInteractionBubble || developerPose || activityState === 'roaming'
-      || interactionState === 'chat' || sleepingOnBed) return;
+      || interactionState === 'chat' || sleepingOnBed || sleepingInNest) return;
     return scheduleActivityReset(activityState, finishActivity);
-  }, [activityState, developerPose, finishActivity, interactionState, showInteractionBubble, sleepingOnBed]);
+  }, [activityState, developerPose, finishActivity, interactionState, showInteractionBubble, sleepingInNest, sleepingOnBed]);
 
   const exitChat = () => {
     if (interactionStateRef.current !== 'chat') return;
@@ -1756,6 +1807,10 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     if (isSleeping) {
       window.clearTimeout(clickExpiryTimerRef.current);
       window.clearTimeout(reactionTimerRef.current);
+      window.clearTimeout(catTreeSleepTimerRef.current);
+      catTreeSleepTimerRef.current = 0;
+      if (sleepingInNestRef.current) lastCatTreeNapAtRef.current = now;
+      sleepingInNestRef.current = false;
       clickExpiryTimerRef.current = 0;
       reactionTimerRef.current = 0;
       firstActivationAtRef.current = null;
@@ -1764,6 +1819,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       clearActivityTransition();
       setRoomWalking(false);
       setSleepingOnBed(false);
+      setSleepingInNest(false);
       setActivityState('roaming');
       if (motion === 'sleep') setNightWakeOverride(true);
       recordDebug('睡觉中被点击：触发受惊动作，不进入聊天');
@@ -1930,6 +1986,10 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       clearActivityTransition();
     }
     if (capturedHomecoming) onCapturedHomecomingInteraction?.();
+    if (sleepingInNestRef.current) {
+      window.clearTimeout(catTreeSleepTimerRef.current);
+      catTreeSleepTimerRef.current = 0;
+    }
     const track = trackRef.current;
     if (!track) return;
     const rect = track.getBoundingClientRect();
@@ -1987,6 +2047,11 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       clearActivityTransition();
       setActivityState('roaming');
       setSleepingOnBed(false);
+      window.clearTimeout(catTreeSleepTimerRef.current);
+      catTreeSleepTimerRef.current = 0;
+      if (sleepingInNestRef.current) lastCatTreeNapAtRef.current = performance.now();
+      sleepingInNestRef.current = false;
+      setSleepingInNest(false);
       if (bathPhaseRef.current === 'bathing') {
         activeDrag.liftedFromBath = true;
          const exitImage = dirtyReturn
@@ -2009,7 +2074,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       const height = Math.max(1, window.innerHeight);
       const x = ((activeDrag.currentX + activeDrag.offsetX) / width) * 100;
       const y = ((activeDrag.currentY + activeDrag.offsetY) / height) * 100;
-      applyRoomPoint(unprojectRoomPoint(x, y, width, height));
+      applyRoomPoint(unprojectRoomWalkableSurfacePoint(x, y, width, height));
     }, GRAB_HOLD_MS);
     event.currentTarget.setPointerCapture(event.pointerId);
   };
@@ -2041,7 +2106,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     const height = Math.max(1, window.innerHeight);
     const x = ((event.clientX + drag.offsetX) / width) * 100;
     const y = ((event.clientY + drag.offsetY) / height) * 100;
-    const point = unprojectRoomPoint(x, y, width, height);
+    const point = unprojectRoomWalkableSurfacePoint(x, y, width, height);
     updateFacing(point.u - positionRef.current.u);
     applyRoomPoint(point);
   };
@@ -2060,6 +2125,9 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       && bedRect !== undefined && pandaRect !== undefined
       && pandaCenterX >= bedRect.left && pandaCenterX <= bedRect.right
       && pandaCenterY >= bedRect.top && pandaCenterY <= bedRect.bottom;
+    const droppedIntoNest = drag.grabbed && !cancelled && showInteractionBubble
+      && pandaRect !== undefined
+      && isCatTreeNestScreenPoint(pandaCenterX, pandaCenterY, window.innerWidth, window.innerHeight);
     const droppedIntoTub = drag.grabbed && !cancelled && showInteractionBubble
       && !drag.liftedFromBath && bathPhaseRef.current === 'none' && tubRect !== undefined
       && event.clientX >= tubRect.left && event.clientX <= tubRect.right
@@ -2084,8 +2152,11 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       clearActivityTransition();
       setActivityState('roaming');
       setSleepingOnBed(false);
+      setSleepingInNest(false);
       setRoomWalking(false);
-      if (droppedOntoBed && bedRect && pandaRect) {
+      if (droppedIntoNest) {
+        enterCatTreeSleep();
+      } else if (droppedOntoBed && bedRect && pandaRect) {
         const width = Math.max(1, window.innerWidth);
         const height = Math.max(1, window.innerHeight);
         const target = unprojectRoomPoint(
@@ -2122,7 +2193,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
         setFrame(0);
         setDizzyPhase('falling');
       }
-      if (showInteractionBubble && !cancelled && !droppedOntoBed && !droppedOntoRack && !droppedIntoTub
+      if (showInteractionBubble && !cancelled && !droppedIntoNest && !droppedOntoBed && !droppedOntoRack && !droppedIntoTub
         && !isWalkableRoomPoint(positionRef.current)) {
         applyRoomPoint(nearestWalkableRoomPoint(positionRef.current));
       }
@@ -2275,7 +2346,8 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       const dx = goal.u - from.u;
       const dy = goal.v - from.v;
       const distance = Math.hypot(dx, dy);
-      if (distance > 0.06) {
+      const teaserNearDistance = equippedToyRef.current === 'teaser' ? 0.075 : 0.06;
+      if (distance > teaserNearDistance) {
         nearSince = 0;
         setPose(null);
         const step = Math.min(distance, (equippedToyRef.current === 'laser' ? 0.55 : 0.34) * dt);
@@ -2294,10 +2366,13 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       }
       setWalk(false);
       updateFacing(dx);
-      if (!nearSince) nearSince = now;
-      const phase = (now - nearSince) % 4200;
-      if (equippedToyRef.current === 'teaser') setPose(phase < 2000 ? 'swat' : null);
-      else setPose(phase < 2000 ? 'pounce' : null);
+      if (equippedToyRef.current === 'teaser') {
+        setPose('swat');
+      } else {
+        if (!nearSince) nearSince = now;
+        const phase = (now - nearSince) % 4200;
+        setPose(phase < 2000 ? 'pounce' : null);
+      }
     };
     raf = window.requestAnimationFrame(tick);
     return () => {
@@ -2455,6 +2530,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     let from = positionRef.current;
     let to = from;
     let route: RoomPoint[] = [from, to];
+    let routeEndsInNest = false;
     let startedAt = 0;
     let duration = 0;
     let stepCount = 1;
@@ -2465,7 +2541,8 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     const canRoam = () => interactionState === 'roaming' && !equippedToyRef.current && dizzyPhase === 'none' && !reacting && !startled && !developerGrab && !hangingOnRackRef.current && !dampAfterBath && !startledRef.current && !hidden
       && (worldFallPhase === 'none' || worldFallPhase === 'dirty') && bathPhase === 'none'
       && pet.stage !== 'performing' && pet.stage !== 'returning' && !hoverCuddleActive
-      && !developerPose && !pixelTransitionDirection && activityState === 'roaming' && !isDragging && !isPressPending && !draggingRef.current
+      && !developerPose && !pixelTransitionDirection && activityState === 'roaming' && !sleepingInNest
+      && !isDragging && !isPressPending && !draggingRef.current
       && (motion !== 'sleep' || nightWakeOverride) && !preference.matches && document.visibilityState !== 'hidden';
     const schedule = () => {
       if (!alive || !canRoam() || timeout || raf) return;
@@ -2475,7 +2552,12 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
         if (!canRoam()) return;
         from = showInteractionBubble ? nearestWalkableRoomPoint(positionRef.current) : positionRef.current;
         if (showInteractionBubble && !isWalkableRoomPoint(positionRef.current)) applyRoomPoint(from);
-        to = showInteractionBubble ? randomWalkableRoomPoint() : randomRoomPoint();
+        routeEndsInNest = showInteractionBubble && !flyChaseActive
+          && performance.now() - lastCatTreeNapAtRef.current >= CAT_TREE_AUTO_NAP_COOLDOWN_MS
+          && Math.random() < CAT_TREE_AUTO_NAP_CHANCE;
+        to = showInteractionBubble
+          ? routeEndsInNest ? CAT_TREE_NEST_POINT : randomWalkableRoomPoint()
+          : randomRoomPoint();
           if (showInteractionBubble && flyChaseActive) {
             const escapeDirection = flyChaseSide === 'left' ? 1 : -1;
             const fleeDistance = 0.28 + Math.random() * 0.16;
@@ -2487,7 +2569,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
             to = nearestWalkableRoomPoint(fleeTarget);
             if (Math.hypot(to.u - from.u, to.v - from.v) < 0.12) to = randomWalkableRoomPoint();
           }
-        if (showInteractionBubble && Math.hypot(to.u - from.u, to.v - from.v) < 0.22) {
+        if (showInteractionBubble && !routeEndsInNest && Math.hypot(to.u - from.u, to.v - from.v) < 0.22) {
           for (let attempt = 0; attempt < 8 && Math.hypot(to.u - from.u, to.v - from.v) < 0.22; attempt += 1) {
             to = randomWalkableRoomPoint();
           }
@@ -2535,7 +2617,10 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       if (progress < 1) raf = window.requestAnimationFrame(step);
       else {
         setWalking(false);
-        if (flyChaseActive || !maybeEnterRest(positionRef.current)) schedule();
+        if (routeEndsInNest) {
+          routeEndsInNest = false;
+          enterCatTreeSleep();
+        } else if (flyChaseActive || !maybeEnterRest(positionRef.current)) schedule();
       }
     };
     const pause = () => {
@@ -2587,6 +2672,8 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     startled,
     updateFacing,
     worldFallPhase,
+    enterCatTreeSleep,
+    sleepingInNest,
   ]);
 
   const image = bathTransition === 'exiting' && bathExitImage
@@ -2898,10 +2985,10 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
         })}
         {!showInteractionBubble && thinking && <span className="ps-thinking" role="status">唔……</span>}
         {!hidden && (!worldAway || worldFallMessageVisible) && (
-          <div ref={trackRef} className={`ps-track${pet.stage === 'returning' ? ' ps-returning' : ''}${worldFallPhase === 'returning' ? ' ps-world-returning' : ''}${worldAway ? ' ps-world-away' : ''}${bathPhase === 'falling' ? ' ps-bath-dropping' : ''}${sleepingOnBed ? ' ps-bed-sleeping' : ''}${hangingOnRack ? ' ps-hanging-on-rack' : ''}${dampAfterBath ? ' ps-damp-after-bath' : ''}${capturedHomecoming && !capturedHomecomingArrived ? ' ps-captured-homecoming' : ''}${capturedHomecoming && capturedHomecomingArrived ? ' ps-captured-hugging' : ''}`}
+          <div ref={trackRef} className={`ps-track${pet.stage === 'returning' ? ' ps-returning' : ''}${worldFallPhase === 'returning' ? ' ps-world-returning' : ''}${worldAway ? ' ps-world-away' : ''}${bathPhase === 'falling' ? ' ps-bath-dropping' : ''}${sleepingOnBed ? ' ps-bed-sleeping' : ''}${sleepingInNest ? ' ps-nest-sleeping' : ''}${hangingOnRack ? ' ps-hanging-on-rack' : ''}${dampAfterBath ? ' ps-damp-after-bath' : ''}${capturedHomecoming && !capturedHomecomingArrived ? ' ps-captured-homecoming' : ''}${capturedHomecoming && capturedHomecomingArrived ? ' ps-captured-hugging' : ''}`}
             onAnimationEnd={(event) => { if (event.animationName === 'ps-captured-homecoming-path') finishCapturedHomecomingPath(); }}
             data-captured-return-phase={!capturedHomecoming ? undefined : capturedHomecomingArrived ? 'hugging' : frame < 2 ? 'thrown' : frame <= 4 ? 'impact' : 'crawling'}
-            data-room-u="0.500" data-room-v="0.580" data-testid="panda-room-position" key={`${pet.token}-${pet.stage}`}>
+            data-room-u="0.500" data-room-v="0.580" data-sleeping-in-nest={sleepingInNest ? 'true' : 'false'} data-testid="panda-room-position" key={`${pet.token}-${pet.stage}`}>
             {showInteractionBubble && capturedHomecoming && !capturedHomecomingArrived && (
               <span className="ps-captured-time-vortex" aria-hidden="true">
                 <img src={CAPTURED_TIME_VORTEX_SPRITE} alt="" draggable={false} />
@@ -2924,7 +3011,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
               onPointerUp={handlePandaPointerUp}
               onPointerCancel={handlePandaPointerCancel}
                    aria-label={capturedHomecoming ? '小熊猫从时空旋涡被送回，旁边有空间警察来信' : hangingOnRack ? '小熊猫挂在晾衣架上；长按可以把它抱下来' : isFlyChasing ? '脏兮兮的小熊猫被苍蝇追着跑' : bathPhase === 'falling' ? '小熊猫掉进浴缸了' : bathPhase === 'bathing' ? '小熊猫正在洗澡；长按可以提起' : worldFallPhase === 'falling' ? '小熊猫掉出房间了' : dirtyReturn ? '小熊猫灰头土脸地哭着回来了' : dizzyPhase === 'falling' ? '小熊猫松手后掉到地上' : dizzyPhase === 'dazed' ? '小熊猫坐在地上眩晕了一会儿' : isDragging ? '正在拎起小熊猫；拖动到目标位置后松手' : isPressPending ? '按住小熊猫即可拎起' : startled ? '小熊猫被吓了一跳' : isSleeping ? '小熊猫正在睡觉；点击叫醒' : interactionState === 'chat' ? '小熊猫正在聊天；点击房间空白处退出' : '点击小熊猫和它互动'}
-                  data-testid="button-panda" data-cuddling={isCuddling ? 'true' : undefined} data-sprite={sprite} data-hanging-on-rack={hangingOnRack ? 'true' : undefined} data-bath-state={showInteractionBubble ? bathPhase : undefined} data-bath-transition={showInteractionBubble ? bathTransition ?? (bathPhase === 'falling' ? 'entering' : undefined) : undefined} data-bath-ball-on-panda={bathBallPlaced ? 'true' : undefined} data-bath-rubbing={showInteractionBubble && bathPhase === 'bathing' ? (bathRubbing ? 'true' : 'false') : undefined} data-sleeping-on-bed={sleepingOnBed ? 'true' : 'false'} data-reacting={reacting ? 'true' : undefined} data-startled={startled ? 'true' : undefined} data-dizzy-state={showInteractionBubble ? dizzyPhase : undefined} data-facing={facing}
+                  data-testid="button-panda" data-cuddling={isCuddling ? 'true' : undefined} data-sprite={sprite} data-hanging-on-rack={hangingOnRack ? 'true' : undefined} data-bath-state={showInteractionBubble ? bathPhase : undefined} data-bath-transition={showInteractionBubble ? bathTransition ?? (bathPhase === 'falling' ? 'entering' : undefined) : undefined} data-bath-ball-on-panda={bathBallPlaced ? 'true' : undefined} data-bath-rubbing={showInteractionBubble && bathPhase === 'bathing' ? (bathRubbing ? 'true' : 'false') : undefined} data-sleeping-on-bed={sleepingOnBed ? 'true' : 'false'} data-sleeping-in-nest={sleepingInNest ? 'true' : 'false'} data-reacting={reacting ? 'true' : undefined} data-startled={startled ? 'true' : undefined} data-dizzy-state={showInteractionBubble ? dizzyPhase : undefined} data-facing={facing}
                  data-bamboo-phase={action === 'bamboo' ? bambooPhase : undefined}
                 data-activity-state={showInteractionBubble ? developerPose ?? activityState : undefined}
                 data-dev-pose={developerPose ?? undefined}
@@ -3049,8 +3136,13 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       )}
       {showInteractionBubble && interactionState !== 'chat' && equippedToy && toyPointer && (
         <span className={`ps-toy ps-toy-${equippedToy}`} aria-hidden="true" data-testid={`room-toy-${equippedToy}`}
-          style={{ left: toyPointer.x, top: toyPointer.y }}>
-          <i /><b />
+            style={{
+              left: equippedToy === 'teaser' ? toyPointer.x - 24 : toyPointer.x,
+              top: equippedToy === 'teaser' ? toyPointer.y - 46 : toyPointer.y,
+            }}>
+          {equippedToy === 'teaser'
+            ? <img src={PANDA_TEASER_WAND_URL} alt="" draggable={false} />
+            : <><i /><b /></>}
         </span>
       )}
       {showInteractionBubble && (

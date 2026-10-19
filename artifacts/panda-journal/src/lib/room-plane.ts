@@ -1,4 +1,4 @@
-export type RoomPoint = { u: number; v: number };
+export type RoomPoint = { u: number; v: number; elevation?: number };
 
 export type RoomProjection = {
   x: number;
@@ -26,6 +26,118 @@ const FLOOR_NEAR_HALF_WIDTH = 48;
 const WALKER_CLEARANCE = 0.018;
 const clampRoom = (value: number) => Math.min(ROOM_MAX, Math.max(ROOM_MIN, value));
 const lerp = (from: number, to: number, amount: number) => from + (to - from) * amount;
+const ROOM_WALK_DEPTH = ROOM_MIN;
+const ROOM_WALK_BASE_IMAGE_Y = ROOM_IMAGE_FLOOR_FAR_Y
+  + ROOM_WALK_DEPTH * (ROOM_IMAGE_FLOOR_NEAR_Y - ROOM_IMAGE_FLOOR_FAR_Y);
+const CAT_TREE_NEST_ELLIPSE = { x: 400, y: 118, radiusX: 35, radiusY: 27 };
+
+const CAT_TREE_WALK_IMAGE_PATH = [
+  { x: 560, y: 321 },
+  { x: 538, y: 315 },
+  { x: 516, y: 295 },
+  { x: 501, y: 274 },
+  { x: 486, y: 251 },
+  { x: 471, y: 228 },
+  { x: 456, y: 205 },
+  { x: 441, y: 182 },
+  { x: 426, y: 160 },
+  { x: 410, y: 145 },
+] as const;
+
+/** Points along the visible cat-tree landing, ladder, and den opening. */
+export const CAT_TREE_WALK_PATH: RoomPoint[] = CAT_TREE_WALK_IMAGE_PATH.map(({ x, y }) =>
+  roomPointAtImagePosition(x, y));
+export const CAT_TREE_NEST_POINT = roomPointAtImagePosition(400, 140);
+
+export function roomPointAtImagePosition(imageX: number, imageY: number): RoomPoint {
+  const halfWidth = lerp(FLOOR_FAR_HALF_WIDTH, FLOOR_NEAR_HALF_WIDTH, ROOM_WALK_DEPTH);
+  const xPercent = (imageX / ROOM_IMAGE_WIDTH) * 100;
+  return {
+    u: clampRoom(0.5 + (xPercent - 50) / (2 * halfWidth)),
+    v: ROOM_WALK_DEPTH,
+    elevation: Math.max(0, (ROOM_WALK_BASE_IMAGE_Y - imageY) / ROOM_IMAGE_HEIGHT),
+  };
+}
+
+function roomPointImagePosition(point: RoomPoint): { x: number; y: number } {
+  const depth = clamp(point.v);
+  const halfWidth = lerp(FLOOR_FAR_HALF_WIDTH, FLOOR_NEAR_HALF_WIDTH, depth);
+  return {
+    x: ((50 + (point.u - 0.5) * 2 * halfWidth) / 100) * ROOM_IMAGE_WIDTH,
+    y: ROOM_IMAGE_FLOOR_FAR_Y
+      + depth * (ROOM_IMAGE_FLOOR_NEAR_Y - ROOM_IMAGE_FLOOR_FAR_Y)
+      - (point.elevation ?? 0) * ROOM_IMAGE_HEIGHT,
+  };
+}
+
+function isInsideCatTreeNest(imagePoint: { x: number; y: number }): boolean {
+  const dx = (imagePoint.x - CAT_TREE_NEST_ELLIPSE.x) / CAT_TREE_NEST_ELLIPSE.radiusX;
+  const dy = (imagePoint.y - CAT_TREE_NEST_ELLIPSE.y) / CAT_TREE_NEST_ELLIPSE.radiusY;
+  return dx * dx + dy * dy <= 1;
+}
+
+function distanceToSegment(
+  point: { x: number; y: number },
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+): number {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const lengthSquared = dx * dx + dy * dy;
+  const progress = lengthSquared === 0
+    ? 0
+    : Math.max(0, Math.min(1, ((point.x - from.x) * dx + (point.y - from.y) * dy) / lengthSquared));
+  return Math.hypot(point.x - (from.x + dx * progress), point.y - (from.y + dy * progress));
+}
+
+function isCatTreeWalkImagePoint(imagePoint: { x: number; y: number }): boolean {
+  if (isInsideCatTreeNest(imagePoint)) return true;
+  for (let index = 1; index < CAT_TREE_WALK_IMAGE_PATH.length; index += 1) {
+    if (distanceToSegment(imagePoint, CAT_TREE_WALK_IMAGE_PATH[index - 1], CAT_TREE_WALK_IMAGE_PATH[index]) <= 15) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function screenPixelToRoomImagePoint(
+  x: number,
+  y: number,
+  viewportWidth: number,
+  viewportHeight: number,
+): { x: number; y: number } {
+  const scale = Math.min(viewportWidth / ROOM_IMAGE_WIDTH, viewportHeight / ROOM_IMAGE_HEIGHT);
+  const imageLeft = (viewportWidth - ROOM_IMAGE_WIDTH * scale) / 2;
+  const imageTop = (viewportHeight - ROOM_IMAGE_HEIGHT * scale) / 2;
+  return { x: (x - imageLeft) / scale, y: (y - imageTop) / scale };
+}
+
+/** Converts pointer coordinates on the ladder or inside the den to its raised walking surface. */
+export function unprojectRoomWalkableSurfacePoint(
+  xPercent: number,
+  yPercent: number,
+  viewportWidth = ROOM_IMAGE_WIDTH,
+  viewportHeight = ROOM_IMAGE_HEIGHT,
+): RoomPoint {
+  const imagePoint = screenPixelToRoomImagePoint(
+    (xPercent / 100) * viewportWidth,
+    (yPercent / 100) * viewportHeight,
+    viewportWidth,
+    viewportHeight,
+  );
+  return isCatTreeWalkImagePoint(imagePoint)
+    ? roomPointAtImagePosition(imagePoint.x, imagePoint.y)
+    : unprojectRoomPoint(xPercent, yPercent, viewportWidth, viewportHeight);
+}
+
+export function isCatTreeNestScreenPoint(
+  x: number,
+  y: number,
+  viewportWidth = ROOM_IMAGE_WIDTH,
+  viewportHeight = ROOM_IMAGE_HEIGHT,
+): boolean {
+  return isInsideCatTreeNest(screenPixelToRoomImagePoint(x, y, viewportWidth, viewportHeight));
+}
 
 export function roomFloorBoundsPercent(width: number, height: number): { far: number; near: number } {
   const viewportWidth = Math.max(1, width);
@@ -103,9 +215,11 @@ export function projectRoomPoint(point: RoomPoint, viewportWidth = ROOM_IMAGE_WI
   const windowLight = lightFalloff(u, depth, 0.24, 0.24, 0.38, 0.28) * 0.028;
   const lampLight = lightFalloff(u, depth, 0.74, 0.46, 0.24, 0.2) * 0.02;
   const ambientBrightness = Math.min(1, 0.88 + depth * 0.1 + windowLight + lampLight);
+  const viewportScale = Math.min(viewportWidth / ROOM_IMAGE_WIDTH, viewportHeight / ROOM_IMAGE_HEIGHT);
+  const elevationPercent = ((point.elevation ?? 0) * ROOM_IMAGE_HEIGHT * viewportScale / viewportHeight) * 100;
   return {
     x: 50 + (u - 0.5) * 2 * halfWidth,
-    y: lerp(floor.far, floor.near, depth),
+    y: lerp(floor.far, floor.near, depth) - elevationPercent,
     scale: PANDA_MIN_SCALE,
     zIndex: roomDepthZIndex(depth),
     depth,
@@ -176,6 +290,9 @@ export function blendRoomPoint(from: RoomPoint, to: RoomPoint, progress: number)
   return {
     u: from.u + (to.u - from.u) * eased,
     v: from.v + (to.v - from.v) * eased,
+    ...((from.elevation !== undefined || to.elevation !== undefined)
+      ? { elevation: (from.elevation ?? 0) + ((to.elevation ?? 0) - (from.elevation ?? 0)) * eased }
+      : {}),
   };
 }
 
@@ -237,11 +354,18 @@ export function randomWalkableRoomPoint(random = Math.random): RoomPoint {
 
 export function roomWalkPathLength(path: RoomPoint[]): number {
   return path.slice(1).reduce((length, point, index) =>
-    length + Math.hypot(point.u - path[index].u, point.v - path[index].v), 0);
+    length + Math.hypot(
+      point.u - path[index].u,
+      point.v - path[index].v,
+      (point.elevation ?? 0) - (path[index].elevation ?? 0),
+    ), 0);
 }
 
 export function isWalkableRoomPoint(point: RoomPoint): boolean {
   if (point.u < ROOM_MIN || point.u > ROOM_MAX || point.v < ROOM_MIN || point.v > ROOM_MAX) return false;
+  const imagePoint = roomPointImagePosition(point);
+  if (isCatTreeWalkImagePoint(imagePoint)) return true;
+  if ((point.elevation ?? 0) > 0.001) return false;
   return !ROOM_OBSTACLES.some(obstacle => pointInObstacle(point, obstacle));
 }
 
@@ -280,7 +404,7 @@ export function planRoomWalkPath(fromPoint: RoomPoint, toPoint: RoomPoint): Room
   if (roomSegmentIsWalkable(from, to)) return [from, to];
 
   const cornerPadding = WALKER_CLEARANCE + 0.006;
-  const nodes = [from, to];
+  const nodes = [from, to, ...CAT_TREE_WALK_PATH.map(point => ({ ...point }))];
   for (const obstacle of ROOM_OBSTACLES) {
     for (const corner of [
       { u: obstacle.minU - cornerPadding, v: obstacle.minV - cornerPadding },
@@ -328,10 +452,14 @@ function roomSegmentIsWalkable(from: RoomPoint, to: RoomPoint): boolean {
   const steps = Math.max(1, Math.ceil(distance / 0.01));
   for (let index = 0; index <= steps; index += 1) {
     const progress = index / steps;
-    if (!isWalkableRoomPoint({
+    const point: RoomPoint = {
       u: from.u + (to.u - from.u) * progress,
       v: from.v + (to.v - from.v) * progress,
-    })) return false;
+      ...((from.elevation !== undefined || to.elevation !== undefined)
+        ? { elevation: (from.elevation ?? 0) + ((to.elevation ?? 0) - (from.elevation ?? 0)) * progress }
+        : {}),
+    };
+    if (!isWalkableRoomPoint(point)) return false;
   }
   return true;
 }
@@ -349,6 +477,9 @@ export function pointAlongRoomWalkPath(path: RoomPoint[], progress: number): Roo
       return {
         u: from.u + (to.u - from.u) * segmentProgress,
         v: from.v + (to.v - from.v) * segmentProgress,
+        ...((from.elevation !== undefined || to.elevation !== undefined)
+          ? { elevation: (from.elevation ?? 0) + ((to.elevation ?? 0) - (from.elevation ?? 0)) * segmentProgress }
+          : {}),
       };
     }
     remaining -= segmentLength;
@@ -361,8 +492,10 @@ export function nearestWalkableRoomPoint(point: RoomPoint): RoomPoint {
   const bounded = {
     u: Math.min(ROOM_MAX, Math.max(ROOM_MIN, point.u)),
     v: Math.min(ROOM_MAX, Math.max(ROOM_MIN, point.v)),
+    ...(point.elevation !== undefined ? { elevation: Math.max(0, point.elevation) } : {}),
   };
   if (isWalkableRoomPoint(bounded)) return bounded;
+  const floorPoint = { u: bounded.u, v: bounded.v };
 
   const candidates: RoomPoint[] = [];
   for (const obstacle of ROOM_OBSTACLES) {
@@ -370,25 +503,25 @@ export function nearestWalkableRoomPoint(point: RoomPoint): RoomPoint {
     const maxU = obstacle.maxU + WALKER_CLEARANCE;
     const minV = obstacle.minV - WALKER_CLEARANCE;
     const maxV = obstacle.maxV + WALKER_CLEARANCE;
-    if (bounded.u < minU || bounded.u > maxU || bounded.v < minV || bounded.v > maxV) continue;
+    if (floorPoint.u < minU || floorPoint.u > maxU || floorPoint.v < minV || floorPoint.v > maxV) continue;
     const margin = 0.002;
     candidates.push(
-      { u: minU - margin, v: Math.min(maxV, Math.max(minV, bounded.v)) },
-      { u: maxU + margin, v: Math.min(maxV, Math.max(minV, bounded.v)) },
-      { u: Math.min(maxU, Math.max(minU, bounded.u)), v: minV - margin },
-      { u: Math.min(maxU, Math.max(minU, bounded.u)), v: maxV + margin },
+      { u: minU - margin, v: Math.min(maxV, Math.max(minV, floorPoint.v)) },
+      { u: maxU + margin, v: Math.min(maxV, Math.max(minV, floorPoint.v)) },
+      { u: Math.min(maxU, Math.max(minU, floorPoint.u)), v: minV - margin },
+      { u: Math.min(maxU, Math.max(minU, floorPoint.u)), v: maxV + margin },
     );
   }
   const safeCandidates = candidates.filter(isWalkableRoomPoint);
   if (safeCandidates.length) {
     return safeCandidates.reduce((nearest, candidate) =>
-      Math.hypot(candidate.u - bounded.u, candidate.v - bounded.v)
-        < Math.hypot(nearest.u - bounded.u, nearest.v - bounded.v) ? candidate : nearest);
+      Math.hypot(candidate.u - floorPoint.u, candidate.v - floorPoint.v)
+        < Math.hypot(nearest.u - floorPoint.u, nearest.v - floorPoint.v) ? candidate : nearest);
   }
 
   return getWalkableRoomSamples().reduce((nearest, candidate) =>
-    Math.hypot(candidate.u - bounded.u, candidate.v - bounded.v)
-      < Math.hypot(nearest.u - bounded.u, nearest.v - bounded.v) ? candidate : nearest);
+    Math.hypot(candidate.u - floorPoint.u, candidate.v - floorPoint.v)
+      < Math.hypot(nearest.u - floorPoint.u, nearest.v - floorPoint.v) ? candidate : nearest);
 }
 
 export function isWalkableRoomSegment(from: RoomPoint, to: RoomPoint): boolean {
