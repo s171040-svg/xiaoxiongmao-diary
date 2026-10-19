@@ -4,13 +4,15 @@ import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
 import { QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { Link, Redirect, Route, Router as WouterRouter, Switch, useLocation } from 'wouter';
-import { ArrowDownRight, ArrowRight, LockKeyhole, Sparkles } from 'lucide-react';
+import { ArrowDownRight, ArrowRight, HeartPulse, LockKeyhole, Sparkles } from 'lucide-react';
 import {
   getGetCoopHouseholdQueryKey,
   useCreateCoopShareNote,
   useDeliverNextCoopShareNote,
   useGetCoopHousehold,
+  useRecordCoopCareStatInteraction,
   useUpdateCoopState,
+  type CoopCareStats,
   type CoopSharedState,
 } from '@workspace/api-client-react';
 import { CompanionChat } from '@/components/CompanionChat';
@@ -180,7 +182,10 @@ function Landing() {
   );
 }
 
-function localRoomSnapshot(gifts: ReturnType<typeof useCompanion>['state']['gifts']): CoopSharedState {
+function localRoomSnapshot(
+  gifts: ReturnType<typeof useCompanion>['state']['gifts'],
+  careStats: ReturnType<typeof useCompanion>['state']['careStats'],
+): CoopSharedState {
   let placedProps: Record<string, boolean> = { bed: true, rack: true, tub: true };
   let furnitureLayout: CoopSharedState['furnitureLayout'] = {};
   try {
@@ -192,6 +197,7 @@ function localRoomSnapshot(gifts: ReturnType<typeof useCompanion>['state']['gift
     gifts: gifts.map(gift => ({ ...gift })),
     furnitureLayout,
     placedProps,
+    careStats,
   };
 }
 
@@ -210,6 +216,7 @@ function Room() {
   } });
   const createShareNote = useCreateCoopShareNote();
   const updateCoopState = useUpdateCoopState();
+  const recordSharedCareInteraction = useRecordCoopCareStatInteraction();
   const deliverNote = useDeliverNextCoopShareNote();
   const [hubOpen, setHubOpen] = useState(false);
   const [shareStatus, setShareStatus] = useState<'idle' | 'preparing' | 'error'>('idle');
@@ -218,13 +225,22 @@ function Room() {
   const lastSubmittedSharedState = useRef('');
   const seenDiaryIds = useRef<Set<string> | null>(null);
   const mergeSharedGiftsRef = useRef(companion.mergeSharedGifts);
+  const mergeSharedCareStatsRef = useRef(companion.mergeSharedCareStats);
+  const acknowledgeCareStatInteractionRef = useRef(companion.acknowledgeCareStatInteraction);
+  const companionRef = useRef(companion);
+  const processingCareInteractions = useRef(new Set<string>());
   const updateSharedStateRef = useRef(updateCoopState.mutateAsync);
+  const recordSharedCareInteractionRef = useRef(recordSharedCareInteraction.mutateAsync);
   const deliverNextRef = useRef(deliverNote.mutateAsync);
   const createShareNoteRef = useRef(createShareNote.mutateAsync);
   const previousStage = useRef(companion.pet.stage);
   householdRef.current = household.data;
+  companionRef.current = companion;
   mergeSharedGiftsRef.current = companion.mergeSharedGifts;
+  mergeSharedCareStatsRef.current = companion.mergeSharedCareStats;
+  acknowledgeCareStatInteractionRef.current = companion.acknowledgeCareStatInteraction;
   updateSharedStateRef.current = updateCoopState.mutateAsync;
+  recordSharedCareInteractionRef.current = recordSharedCareInteraction.mutateAsync;
   deliverNextRef.current = deliverNote.mutateAsync;
   createShareNoteRef.current = createShareNote.mutateAsync;
 
@@ -233,9 +249,68 @@ function Room() {
     if (!household.data || !sharedStateFingerprint || sharedStateFingerprint === lastAppliedSharedState.current) return;
     lastAppliedSharedState.current = sharedStateFingerprint;
     mergeSharedGiftsRef.current(household.data.sharedState.gifts);
+    if (household.data.sharedState.careStats) {
+      mergeSharedCareStatsRef.current(household.data.sharedState.careStats as CoopCareStats);
+    }
     const { furnitureLayout, placedProps } = household.data.sharedState;
     window.dispatchEvent(new CustomEvent('panda-coop-shared-state', { detail: { furnitureLayout, placedProps } }));
   }, [household.data, sharedStateFingerprint]);
+
+  const pendingCareInteractionsFingerprint = JSON.stringify(companion.state.pendingCareStatInteractions);
+  useEffect(() => {
+    const activeHousehold = householdRef.current;
+    if (!activeHousehold || !companion.state.pendingCareStatInteractions.length) return undefined;
+    let cancelled = false;
+    const flushPendingCareInteractions = async () => {
+      for (const interaction of companionRef.current.state.pendingCareStatInteractions) {
+        if (cancelled) return;
+        if (processingCareInteractions.current.has(interaction.interactionId)) continue;
+        processingCareInteractions.current.add(interaction.interactionId);
+        try {
+          const response = await recordSharedCareInteractionRef.current({
+            data: {
+              interactionId: interaction.interactionId,
+              category: interaction.category,
+              occurredAt: interaction.occurredAt,
+            },
+          });
+          acknowledgeCareStatInteractionRef.current(interaction.interactionId, response.careStats as CoopCareStats);
+          client.setQueryData(getGetCoopHouseholdQueryKey(), (old: typeof activeHousehold | undefined) => old
+            ? { ...old, sharedState: { ...old.sharedState, careStats: response.careStats } }
+            : old);
+        } catch {
+          return;
+        } finally {
+          processingCareInteractions.current.delete(interaction.interactionId);
+        }
+      }
+    };
+    void flushPendingCareInteractions();
+    const retryTimer = window.setInterval(() => { void flushPendingCareInteractions(); }, 30_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(retryTimer);
+    };
+  }, [pendingCareInteractionsFingerprint, household.data?.householdId, client]);
+
+  const localCareStatsFingerprint = JSON.stringify(companion.state.careStats);
+  const sharedCareStatsFingerprint = JSON.stringify(household.data?.sharedState.careStats ?? null);
+  useEffect(() => {
+    const activeHousehold = householdRef.current;
+    if (!activeHousehold || companionRef.current.state.pendingCareStatInteractions.length) return;
+    const careStats = companionRef.current.state.careStats;
+    if (JSON.stringify(activeHousehold.sharedState.careStats ?? null) === JSON.stringify(careStats)) return;
+    const sharedState: CoopSharedState = { ...activeHousehold.sharedState, careStats };
+    const fingerprint = JSON.stringify(sharedState);
+    if (fingerprint === lastSubmittedSharedState.current) return;
+    lastSubmittedSharedState.current = fingerprint;
+    void updateSharedStateRef.current({ data: { sharedState } })
+      .then(updated => {
+        client.setQueryData(getGetCoopHouseholdQueryKey(), old =>
+          old ? { ...old, sharedState: updated.sharedState } : old);
+      })
+      .catch(() => { lastSubmittedSharedState.current = ''; });
+  }, [localCareStatsFingerprint, sharedCareStatsFingerprint, pendingCareInteractionsFingerprint, client]);
 
   const localGiftFingerprint = JSON.stringify(companion.state.gifts);
   const sharedGiftFingerprint = JSON.stringify(household.data?.sharedState.gifts ?? []);
@@ -332,6 +407,7 @@ function Room() {
     <div className="room-page">
       <CompanionChat companion={companion} roomOnly={!isDesktop()} />
       <header className="room-account-bar">
+        <Link href="/stats-template" className="room-coop-open"><HeartPulse size={15} />成长档案</Link>
         <button type="button" className="room-coop-open" onClick={() => {
           if (!isSignedIn) {
             setLocation('/sign-up');
@@ -346,7 +422,11 @@ function Room() {
           ? <button type="button" className="room-signout" onClick={() => void signOut({ redirectUrl: basePath || '/' })} aria-label="退出账号">退出</button>
           : <button type="button" className="room-signout" onClick={() => setLocation('/sign-in')}>登录</button>}
       </header>
-      {hubOpen && <CoopHub onClose={() => setHubOpen(false)} sharedSnapshot={localRoomSnapshot(companion.state.gifts)} />}
+      {hubOpen && <CoopHub
+        onClose={() => setHubOpen(false)}
+        onHouseholdCreated={companion.clearPendingCareStatInteractions}
+        sharedSnapshot={localRoomSnapshot(companion.state.gifts, companion.state.careStats)}
+      />}
     </div>
   );
 }

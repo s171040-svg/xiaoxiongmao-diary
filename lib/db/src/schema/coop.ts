@@ -25,12 +25,26 @@ export type CoopGift = {
 
 export type CoopRoomPoint = { x: number; y: number };
 
+export type CoopCareStatCategory = "health" | "bond" | "growth";
+
+export type CoopCareStats = {
+  growth: number;
+  health: number;
+  bond: number;
+  lastInteractionAt: number;
+  lastDecayAt: number;
+  revision: number;
+  lastInteractionCategory: CoopCareStatCategory;
+  recentInteractionIds: string[];
+};
+
 export type CoopSharedState = {
   gifts: CoopGift[];
   furnitureLayout: Partial<
     Record<"bed" | "rack" | "mailbox" | "bathStation", CoopRoomPoint>
   >;
   placedProps: Record<string, boolean>;
+  careStats?: CoopCareStats;
 };
 
 export const coopNoteStatus = pgEnum("panda_coop_note_status", [

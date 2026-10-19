@@ -112,6 +112,30 @@ paths:
           description: Authentication required
         "404":
           description: No household
+  /coop/stats/interactions:
+    post:
+      operationId: recordCoopCareStatInteraction
+      tags: [co-op]
+      summary: Apply a care interaction to shared panda stats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CoopCareStatInteractionInput"
+      responses:
+        "200":
+          description: Updated shared care stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoopCareStatInteractionResponse"
+        "400":
+          description: Invalid interaction
+        "401":
+          description: Authentication required
+        "404":
+          description: No household
   /coop/share-notes:
     post:
       operationId: createCoopShareNote
@@ -308,6 +332,64 @@ components:
           type: object
           additionalProperties:
             type: boolean
+        careStats:
+          $ref: "#/components/schemas/CoopCareStats"
+    CoopCareStatCategory:
+      type: string
+      enum: [health, bond, growth]
+    CoopCareStats:
+      type: object
+      required: [growth, health, bond, lastInteractionAt, lastDecayAt, revision, lastInteractionCategory, recentInteractionIds]
+      properties:
+        growth:
+          type: integer
+          minimum: 0
+          maximum: 100
+        health:
+          type: integer
+          minimum: 0
+          maximum: 100
+        bond:
+          type: integer
+          minimum: 0
+          maximum: 100
+        lastInteractionAt:
+          type: integer
+          minimum: 0
+        lastDecayAt:
+          type: integer
+          minimum: 0
+        revision:
+          type: integer
+          minimum: 0
+        lastInteractionCategory:
+          $ref: "#/components/schemas/CoopCareStatCategory"
+        recentInteractionIds:
+          type: array
+          maxItems: 128
+          items:
+            type: string
+            minLength: 1
+            maxLength: 80
+    CoopCareStatInteractionInput:
+      type: object
+      required: [interactionId, category, occurredAt]
+      properties:
+        interactionId:
+          type: string
+          minLength: 1
+          maxLength: 80
+        category:
+          $ref: "#/components/schemas/CoopCareStatCategory"
+        occurredAt:
+          type: integer
+          minimum: 0
+    CoopCareStatInteractionResponse:
+      type: object
+      required: [careStats]
+      properties:
+        careStats:
+          $ref: "#/components/schemas/CoopCareStats"
     CoopShareNote:
       type: object
       required: [id, category, title, message, excluded, createdAt, automatic]

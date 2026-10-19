@@ -1,4 +1,20 @@
 export type MemoryKind = 'worry' | 'idea' | 'action';
+export type CareStatCategory = 'health' | 'bond' | 'growth';
+export type CareStats = {
+  growth: number;
+  health: number;
+  bond: number;
+  lastInteractionAt: number;
+  lastDecayAt: number;
+  revision: number;
+  lastInteractionCategory: CareStatCategory;
+  recentInteractionIds: string[];
+};
+export type PendingCareStatInteraction = {
+  interactionId: string;
+  category: CareStatCategory;
+  occurredAt: number;
+};
 export type PerformanceAction = 'bamboo' | 'roll' | 'jump' | 'spin' | 'somersault' | 'tail' | 'tumble' | 'cuddle' | 'captured-homecoming' | 'climb-up';
 export type DeveloperPose = 'idle' | 'lying' | 'sleeping' | 'peeking';
 export type DeveloperEvent = 'startle' | 'grab' | 'dirty-grab' | 'dizzy-drop' | 'world-fall' | 'bath-drop' | 'bath-rub' | 'dirty-bath' | 'dirty-bath-rub' | 'dirty-fly-chase' | 'toy-teaser' | 'toy-laser';
@@ -31,6 +47,7 @@ export type PetEffect = {
 };
 export type CompanionState = {
   version: 1; messages: ChatMessage[]; diary: DiaryMemory[]; gifts: Gift[];
+  careStats: CareStats; pendingCareStatInteractions: PendingCareStatInteraction[];
   userName: string; draft: string; draftPhoto?: string; lastUserAt: number;
   nextIdleAt: number; proactiveDay: string; proactiveCount: number;
   nextTripAt: number;

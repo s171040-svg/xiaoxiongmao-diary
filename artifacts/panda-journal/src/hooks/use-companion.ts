@@ -3,9 +3,9 @@ import { companionChat, type CompanionResponse } from '@workspace/api-client-rea
 import { isDesktop } from '@/lib/desktop';
 import { isQuietHours } from '@/lib/quiet-hours';
 import { replyFrame, replyRhythm } from '@/lib/reply-rhythm';
-import type { ChatMessage, CompanionState, Gift, PerformanceAction, PetEffect } from '@/lib/companion-types';
+import type { CareStatCategory, CareStats, ChatMessage, CompanionState, Gift, PerformanceAction, PetEffect } from '@/lib/companion-types';
 import type { JournalEntry } from '@/lib/journal-types';
-import { assistant, contextFor, deliverSpacePoliceLetter, eatSpacePoliceLetter as eatSpacePoliceLetterInState, fileSpacePoliceLetter as fileSpacePoliceLetterInState, finishSpacePolicePoopDisposal, id, initialState, markPendingInterrupted, markSpacePoliceLetterOpened as markSpacePoliceLetterOpenedInState, moveSpacePolicePoopBag, packSpacePolicePoop, placeSpacePolicePoop, disposeSpacePolicePoopBag, paySpacePoliceFine as paySpacePoliceFineInState, readState, receiveReply, recordUserMessage, performancePlan, tickCompanion, welcome, writeState, startGiftDrop, collectGift, favoriteGift, feedGift, injectTestGift, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, COMPANION_KEY, type TestGiftInput } from '@/lib/companion-store';
+import { acknowledgeCareStatInteraction as acknowledgeCareStatInteractionInState, assistant, clearPendingCareStatInteractions, contextFor, deliverSpacePoliceLetter, eatSpacePoliceLetter as eatSpacePoliceLetterInState, fileSpacePoliceLetter as fileSpacePoliceLetterInState, finishSpacePolicePoopDisposal, id, initialState, markPendingInterrupted, markSpacePoliceLetterOpened as markSpacePoliceLetterOpenedInState, mergeSharedCareStats, moveSpacePolicePoopBag, packSpacePolicePoop, placeSpacePolicePoop, disposeSpacePolicePoopBag, paySpacePoliceFine as paySpacePoliceFineInState, readState, receiveReply, recordCareStatInteraction as recordCareStatInteractionInState, recordUserMessage, performancePlan, tickCompanion, welcome, writeState, startGiftDrop, collectGift, favoriteGift, feedGift, injectTestGift, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, COMPANION_KEY, type TestGiftInput } from '@/lib/companion-store';
 
 function initial() {
   try {
@@ -70,6 +70,10 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
     const next = change(readState(localStorage));
     writeState(localStorage, next); current.current = next; setState(next); return next;
   }, []);
+  const recordCareStatInteraction = useCallback((category: CareStatCategory) => {
+    try { transact(s => recordCareStatInteractionInState(s, category)); }
+    catch (e) { report(e); }
+  }, [report, transact]);
   const motion = useCallback((next: PetEffect) => {
     petRef.current = next;
     setPet(next);
@@ -380,7 +384,7 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
     acknowledgeCapturedHomecoming();
     const message: ChatMessage = { id: id(), role: 'user', text, photo: current.current.draftPhoto, createdAt: Date.now(), status: 'pending', kind: 'chat' };
     try {
-      transact(s => recordUserMessage(s, message));
+      transact(s => recordCareStatInteractionInState(recordUserMessage(s, message), 'bond', message.createdAt));
     } catch (e) { report(e); return; }
     await requestReply(message.id);
   }
@@ -412,6 +416,19 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
     setDraft: (draft: string) => { try { transact(s => ({ ...s, draft })); } catch (e) { report(e); } },
     removePhoto: () => { try { transact(s => ({ ...s, draftPhoto: undefined })); } catch (e) { report(e); } },
     removeDiary: (memoryId: string) => { try { transact(s => ({ ...s, diary: s.diary.filter(m => m.id !== memoryId) })); } catch (e) { report(e); } },
+    recordCareStatInteraction,
+    mergeSharedCareStats: (careStats: CareStats) => {
+      try { transact(s => mergeSharedCareStats(s, careStats)); }
+      catch (e) { report(e); }
+    },
+    acknowledgeCareStatInteraction: (interactionId: string, careStats: CareStats) => {
+      try { transact(s => acknowledgeCareStatInteractionInState(s, interactionId, careStats)); }
+      catch (e) { report(e); }
+    },
+    clearPendingCareStatInteractions: () => {
+      try { transact(clearPendingCareStatInteractions); }
+      catch (e) { report(e); }
+    },
     mergeSharedGifts: (gifts: Gift[]) => {
       try {
         transact(s => {
@@ -425,7 +442,10 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
     feedGift: (giftId: string) => {
       try {
         const before = current.current;
-        const next = transact(s => feedGift(s, giftId));
+        const next = transact(s => {
+          const fed = feedGift(s, giftId);
+          return fed === s ? fed : recordCareStatInteractionInState(fed, 'health');
+        });
         if (next.messages.length !== before.messages.length) {
           notify(next.messages.at(-1)!.text);
           if (petRef.current.stage === 'present') {

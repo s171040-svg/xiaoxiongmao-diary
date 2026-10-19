@@ -15,6 +15,7 @@ import './CoopHub.css';
 type Props = {
   onClose: () => void;
   sharedSnapshot: CoopSharedState;
+  onHouseholdCreated?: () => void;
 };
 
 const dateLabel = (value: number) => new Intl.DateTimeFormat('zh-CN', {
@@ -26,7 +27,7 @@ function errorText(error: unknown) {
   return '刚才没有连上共同房间，请稍后再试。';
 }
 
-export function CoopHub({ onClose, sharedSnapshot }: Props) {
+export function CoopHub({ onClose, sharedSnapshot, onHouseholdCreated }: Props) {
   const queryClient = useQueryClient();
   const household = useGetCoopHousehold({
     query: { queryKey: getGetCoopHouseholdQueryKey(), refetchOnWindowFocus: true, refetchInterval: 30_000, staleTime: 0 },
@@ -47,6 +48,7 @@ export function CoopHub({ onClose, sharedSnapshot }: Props) {
     setFormError('');
     try {
       await createHousehold.mutateAsync({ data: { sharedState: sharedSnapshot } });
+      onHouseholdCreated?.();
       setInvitation(null);
       await invalidate();
     } catch (error) { setFormError(errorText(error)); }

@@ -51,7 +51,7 @@ async function main() {
       FONTCONFIG_FILE: process.env.FONTCONFIG_FILE, FONTCONFIG_PATH: process.env.FONTCONFIG_PATH,
       XDG_DATA_DIRS: process.env.XDG_DATA_DIRS, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
       TZ: "Asia/Hong_Kong",
-      PANDA_PROFILE_DIR: profile, PANDA_JOURNAL_URL: "http://127.0.0.1:21836/",
+      PANDA_PROFILE_DIR: profile, PANDA_JOURNAL_URL: "http://127.0.0.1:21836/room",
       DEEPSEEK_API_KEY: "synthetic-test-key" },
   });
   await until(() => application.windows().length === 2, "hidden local chat created");
@@ -317,7 +317,7 @@ async function main() {
       width: 1280, height: 800, show: true,
       webPreferences: { partition: "panda-web-room-smoke", contextIsolation: true, nodeIntegration: false },
     });
-    roomWindow.loadURL("http://127.0.0.1:21836/");
+    roomWindow.loadURL("http://127.0.0.1:21836/room");
   });
   let webRoom;
   await until(async () => {
@@ -441,7 +441,7 @@ async function main() {
     assert.ok(journalWalkBounds.xSpan > 0.01 && journalWalkBounds.ySpan > 0.01, "journal pet moves in both room-plane axes");
     assert.equal(journalWalkBounds.allPointsWalkable, true, "every sampled roaming position avoids furniture and stays on floor");
     assert.ok(journalWalkBounds.maxViewportOverflow < 0.05, "room positions project inside the browser viewport");
-    assert.ok(journalWalkBounds.scaleSpan < 0.001, "room pet keeps the same minimum size at every depth");
+    assert.ok(journalWalkBounds.scaleSpan > 0.001, "room pet scales with depth on the room plane");
     assert.ok(journalWalkBounds.sawWalking && journalWalkBounds.sawResting, "room pet alternates between walking and resting");
   }
 
@@ -502,8 +502,9 @@ async function main() {
   const pandaBodyInBath = await webRoom.locator(".ps-body").boundingBox();
   const bathtubWidthInBath = await webBathtub.evaluate(el => el.getBoundingClientRect().width);
   assert.ok(pandaBodyBeforeBath && pandaBodyInBath, "the panda remains visible in the bathing pose");
-  assert.ok(Math.abs(pandaBodyInBath.width - pandaBodyBeforeBath.width) < 0.1,
-    "the panda keeps the same displayed size while bathing");
+  const bathRoomScale = Number(await webRoom.locator(".ps-track").getAttribute("data-room-scale"));
+  assert.ok(Math.abs(pandaBodyInBath.width - 88 * bathRoomScale) < 1,
+    "the bathing sprite keeps its perspective-scaled size");
   assert.ok(Math.abs(bathtubWidthInBath - bathtubWidthBeforeBath) < 0.1,
     "the bathtub keeps its original displayed size while bathing");
   assert.equal(await webRoom.getByTestId("bath-ball-box").count(), 0, "the separate bath-ball box is gone");

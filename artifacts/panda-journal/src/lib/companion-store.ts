@@ -1,5 +1,5 @@
 import type { CompanionInput, CompanionResponse } from '@workspace/api-client-react';
-import type { ChatMessage, CompanionState, DiaryMemory, Gift, PerformanceAction, SpacePoliceLetter, SpacePoop } from './companion-types';
+import type { CareStatCategory, CareStats, ChatMessage, CompanionState, DiaryMemory, Gift, PendingCareStatInteraction, PerformanceAction, SpacePoliceLetter, SpacePoop } from './companion-types';
 
 export const COMPANION_KEY = 'little-panda-companion-v1';
 export const MINUTE = 60_000;
@@ -10,7 +10,130 @@ export const CAPTURED_TRIP_CHANCE = 0.1;
 export const CAPTURED_TRIP_EXTRA_MS = 2 * MINUTE;
 export const CAPTURED_HOMECOMING_DURATION_MS = 8000;
 export const SPACE_POLICE_LETTER_EAT_DELAY_MS = 5 * MINUTE;
+export const CARE_STAT_DECAY_INTERVAL_MS = 6 * 60 * MINUTE;
 export const canFeedGift = (gift: Gift) => ['🍌', '🥕', '🐟', '🍬', '🍓', '🍪', '🎋'].includes(gift.emoji);
+const CARE_STAT_CATEGORIES: CareStatCategory[] = ['health', 'bond', 'growth'];
+
+export function initialCareStats(now = Date.now()): CareStats {
+  return {
+    growth: 50,
+    health: 50,
+    bond: 50,
+    lastInteractionAt: now,
+    lastDecayAt: now,
+    revision: 0,
+    lastInteractionCategory: 'growth',
+    recentInteractionIds: [],
+  };
+}
+
+function validCareStats(value: unknown): value is CareStats {
+  if (!value || typeof value !== 'object') return false;
+  const stats = value as CareStats;
+  return [stats.growth, stats.health, stats.bond].every(item => Number.isInteger(item) && item >= 0 && item <= 100)
+    && [stats.lastInteractionAt, stats.lastDecayAt, stats.revision].every(item => Number.isSafeInteger(item) && item >= 0)
+    && CARE_STAT_CATEGORIES.includes(stats.lastInteractionCategory)
+    && Array.isArray(stats.recentInteractionIds)
+    && stats.recentInteractionIds.length <= 128
+    && stats.recentInteractionIds.every(item => typeof item === 'string' && item.length > 0 && item.length <= 80);
+}
+
+export function decayCareStats(stats: CareStats, now = Date.now()): CareStats {
+  const lastInteractionAt = Math.min(stats.lastInteractionAt, now);
+  const lastDecayAt = Math.min(stats.lastDecayAt, now);
+  const elapsedSteps = Math.floor(Math.max(0, now - lastInteractionAt) / CARE_STAT_DECAY_INTERVAL_MS);
+  const appliedSteps = Math.floor(Math.max(0, lastDecayAt - lastInteractionAt) / CARE_STAT_DECAY_INTERVAL_MS);
+  const steps = Math.max(0, elapsedSteps - appliedSteps);
+  if (!steps && lastInteractionAt === stats.lastInteractionAt && lastDecayAt === stats.lastDecayAt) return stats;
+  return {
+    ...stats,
+    growth: Math.max(0, stats.growth - steps),
+    health: Math.max(0, stats.health - steps),
+    bond: Math.max(0, stats.bond - steps),
+    lastInteractionAt,
+    lastDecayAt: Math.min(now, lastDecayAt + steps * CARE_STAT_DECAY_INTERVAL_MS),
+  };
+}
+
+function applyCareStatGain(
+  stats: CareStats,
+  category: CareStatCategory,
+  interactionId: string,
+  occurredAt: number,
+): CareStats {
+  if (stats.recentInteractionIds.includes(interactionId)) return stats;
+  const at = Math.max(stats.lastInteractionAt, occurredAt);
+  const decayed = decayCareStats(stats, at);
+  return {
+    ...decayed,
+    growth: Math.min(100, decayed.growth + 1),
+    health: category === 'health' ? Math.min(100, decayed.health + 1) : decayed.health,
+    bond: category === 'bond' ? Math.min(100, decayed.bond + 1) : decayed.bond,
+    lastInteractionAt: at,
+    lastDecayAt: at,
+    lastInteractionCategory: category,
+    recentInteractionIds: [...decayed.recentInteractionIds, interactionId].slice(-128),
+  };
+}
+
+function replayPendingCareInteractions(stats: CareStats, pending: PendingCareStatInteraction[]): CareStats {
+  return pending.reduce(
+    (current, interaction) => applyCareStatGain(current, interaction.category, interaction.interactionId, interaction.occurredAt),
+    stats,
+  );
+}
+
+export function recordCareStatInteraction(
+  state: CompanionState,
+  category: CareStatCategory,
+  now = Date.now(),
+  interactionId = id(),
+): CompanionState {
+  if (state.careStats.recentInteractionIds.includes(interactionId)
+    || state.pendingCareStatInteractions.some(item => item.interactionId === interactionId)) return state;
+  const pending: PendingCareStatInteraction = { interactionId, category, occurredAt: now };
+  return {
+    ...state,
+    careStats: applyCareStatGain(state.careStats, category, interactionId, now),
+    pendingCareStatInteractions: [...state.pendingCareStatInteractions, pending],
+  };
+}
+
+export function mergeSharedCareStats(state: CompanionState, sharedStats: CareStats): CompanionState {
+  const current = state.careStats;
+  const useLocal = current.revision > sharedStats.revision
+    || (current.revision === sharedStats.revision && (
+      current.lastInteractionAt > sharedStats.lastInteractionAt
+      || (current.lastInteractionAt === sharedStats.lastInteractionAt && current.lastDecayAt > sharedStats.lastDecayAt)
+    ));
+  const base = useLocal ? current : sharedStats;
+  return { ...state, careStats: replayPendingCareInteractions(base, state.pendingCareStatInteractions) };
+}
+
+export function acknowledgeCareStatInteraction(
+  state: CompanionState,
+  interactionId: string,
+  sharedStats: CareStats,
+): CompanionState {
+  const pending = state.pendingCareStatInteractions.filter(item => item.interactionId !== interactionId);
+  return {
+    ...state,
+    pendingCareStatInteractions: pending,
+    careStats: replayPendingCareInteractions(sharedStats, pending),
+  };
+}
+
+export function clearPendingCareStatInteractions(state: CompanionState): CompanionState {
+  return state.pendingCareStatInteractions.length
+    ? { ...state, pendingCareStatInteractions: [] }
+    : state;
+}
+
+export function decayCareStatState(state: CompanionState, now = Date.now()): CompanionState {
+  const careStats = decayCareStats(state.careStats, now);
+  return careStats === state.careStats ? state : { ...state, careStats };
+}
+
 export function startGiftDrop(state: CompanionState, giftId: string, now = Date.now()): CompanionState {
   return state.pendingGift?.id === giftId && !state.giftDropStartedAt
     ? { ...state, giftDropStartedAt: now } : state;
@@ -39,7 +162,8 @@ export const tripDelay = (random = Math.random) => (20 + random() * 20) * MINUTE
 export function initialState(now = Date.now()): CompanionState {
   return { version: 1, messages: [], diary: [], gifts: [], userName: '', draft: '',
     spacePoliceLetters: [], lastUserAt: now, nextIdleAt: now + idleDelay(), proactiveDay: localDay(now),
-    proactiveCount: 0, nextTripAt: now + tripDelay() };
+    proactiveCount: 0, nextTripAt: now + tripDelay(),
+    careStats: initialCareStats(now), pendingCareStatInteractions: [] };
 }
 export function readState(storage: Pick<Storage, 'getItem'>, now = Date.now()): CompanionState {
   const raw = storage.getItem(COMPANION_KEY);
@@ -80,6 +204,11 @@ export function readState(storage: Pick<Storage, 'getItem'>, now = Date.now()): 
       || value.spacePoliceLetters.some(invalidSpacePoliceLetter)))
     || (value.recentGiftStories !== undefined && (!Array.isArray(value.recentGiftStories)
       || value.recentGiftStories.some(story => typeof story !== 'string')))
+    || (value.careStats !== undefined && !validCareStats(value.careStats))
+    || (value.pendingCareStatInteractions !== undefined && (!Array.isArray(value.pendingCareStatInteractions)
+      || value.pendingCareStatInteractions.some(item => !item || typeof item.interactionId !== 'string'
+        || !item.interactionId || item.interactionId.length > 80 || !CARE_STAT_CATEGORIES.includes(item.category)
+        || !Number.isSafeInteger(item.occurredAt) || item.occurredAt < 0)))
     || ![value.lastUserAt, value.nextIdleAt, value.proactiveCount, value.nextTripAt].every(Number.isFinite)
     || value.messages.some(m => !m || typeof m.id !== 'string' || !['user', 'assistant'].includes(m.role)
       || typeof m.text !== 'string' || !Number.isFinite(m.createdAt))
@@ -108,6 +237,8 @@ export function readState(storage: Pick<Storage, 'getItem'>, now = Date.now()): 
   }
   let restored: CompanionState = {
     ...value,
+    careStats: value.careStats ?? initialCareStats(now),
+    pendingCareStatInteractions: value.pendingCareStatInteractions ?? [],
     ...(activeSpacePoliceLetter ? { spacePoliceLetter: activeSpacePoliceLetter } : {}),
     spacePoliceLetters: letters,
   };
@@ -271,6 +402,7 @@ export function paySpacePoliceFine(
 }
 export function writeState(storage: Pick<Storage, 'setItem'>, state: CompanionState) {
   storage.setItem(COMPANION_KEY, JSON.stringify(state));
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('panda-care-stats-updated'));
 }
 export type TestGiftInput = Pick<Gift, 'emoji' | 'item' | 'animal' | 'story'>;
 export function injectTestGift(
@@ -453,7 +585,8 @@ export function beginTrip(state: CompanionState, now = Date.now(), random = Math
 export function tickCompanion(state: CompanionState, now: number, random = Math.random): {
   state: CompanionState; event?: 'proactive' | 'departure' | 'gift'; text?: string; capturedReturn?: boolean;
 } {
-  let next = state.proactiveDay === localDay(now) ? state : { ...state, proactiveDay: localDay(now), proactiveCount: 0 };
+  let next = decayCareStatState(state, now);
+  next = next.proactiveDay === localDay(now) ? next : { ...next, proactiveDay: localDay(now), proactiveCount: 0 };
   if (next.returnEvent && !next.returnEvent.awaitingInteraction && now >= next.returnEvent.until) {
     const { returnEvent: _expiredReturnEvent, ...stateWithoutReturnEvent } = next;
     next = stateWithoutReturnEvent;

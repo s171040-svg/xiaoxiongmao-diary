@@ -51,6 +51,25 @@ export const getCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMax =
 export const getCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMin = 0;
 export const getCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMax = 1;
 
+export const getCoopHouseholdResponseSharedStateCareStatsGrowthMin = 0;
+export const getCoopHouseholdResponseSharedStateCareStatsGrowthMax = 100;
+
+export const getCoopHouseholdResponseSharedStateCareStatsHealthMin = 0;
+export const getCoopHouseholdResponseSharedStateCareStatsHealthMax = 100;
+
+export const getCoopHouseholdResponseSharedStateCareStatsBondMin = 0;
+export const getCoopHouseholdResponseSharedStateCareStatsBondMax = 100;
+
+export const getCoopHouseholdResponseSharedStateCareStatsLastInteractionAtMin = 0;
+
+export const getCoopHouseholdResponseSharedStateCareStatsLastDecayAtMin = 0;
+
+export const getCoopHouseholdResponseSharedStateCareStatsRevisionMin = 0;
+
+export const getCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsItemMax = 80;
+
+export const getCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsMax = 128;
+
 export const getCoopHouseholdResponseQueuedNotesItemTitleMax = 48;
 
 export const getCoopHouseholdResponseQueuedNotesItemMessageMax = 180;
@@ -98,7 +117,17 @@ export const GetCoopHouseholdResponse = zod.object({
   "y": zod.number().min(getCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMin).max(getCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMax)
 }).optional()
 }),
-  "placedProps": zod.record(zod.string(), zod.boolean())
+  "placedProps": zod.record(zod.string(), zod.boolean()),
+  "careStats": zod.object({
+  "growth": zod.number().int().min(getCoopHouseholdResponseSharedStateCareStatsGrowthMin).max(getCoopHouseholdResponseSharedStateCareStatsGrowthMax),
+  "health": zod.number().int().min(getCoopHouseholdResponseSharedStateCareStatsHealthMin).max(getCoopHouseholdResponseSharedStateCareStatsHealthMax),
+  "bond": zod.number().int().min(getCoopHouseholdResponseSharedStateCareStatsBondMin).max(getCoopHouseholdResponseSharedStateCareStatsBondMax),
+  "lastInteractionAt": zod.number().int().min(getCoopHouseholdResponseSharedStateCareStatsLastInteractionAtMin),
+  "lastDecayAt": zod.number().int().min(getCoopHouseholdResponseSharedStateCareStatsLastDecayAtMin),
+  "revision": zod.number().int().min(getCoopHouseholdResponseSharedStateCareStatsRevisionMin),
+  "lastInteractionCategory": zod.enum(['health', 'bond', 'growth']),
+  "recentInteractionIds": zod.array(zod.string().min(1).max(getCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsItemMax)).max(getCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsMax)
+}).optional()
 }),
   "queuedNotes": zod.array(zod.object({
   "id": zod.string().uuid(),
@@ -164,6 +193,25 @@ export const createCoopHouseholdBodySharedStateFurnitureLayoutBathStationXMax = 
 export const createCoopHouseholdBodySharedStateFurnitureLayoutBathStationYMin = 0;
 export const createCoopHouseholdBodySharedStateFurnitureLayoutBathStationYMax = 1;
 
+export const createCoopHouseholdBodySharedStateCareStatsGrowthMin = 0;
+export const createCoopHouseholdBodySharedStateCareStatsGrowthMax = 100;
+
+export const createCoopHouseholdBodySharedStateCareStatsHealthMin = 0;
+export const createCoopHouseholdBodySharedStateCareStatsHealthMax = 100;
+
+export const createCoopHouseholdBodySharedStateCareStatsBondMin = 0;
+export const createCoopHouseholdBodySharedStateCareStatsBondMax = 100;
+
+export const createCoopHouseholdBodySharedStateCareStatsLastInteractionAtMin = 0;
+
+export const createCoopHouseholdBodySharedStateCareStatsLastDecayAtMin = 0;
+
+export const createCoopHouseholdBodySharedStateCareStatsRevisionMin = 0;
+
+export const createCoopHouseholdBodySharedStateCareStatsRecentInteractionIdsItemMax = 80;
+
+export const createCoopHouseholdBodySharedStateCareStatsRecentInteractionIdsMax = 128;
+
 
 
 export const CreateCoopHouseholdBody = zod.object({
@@ -196,7 +244,17 @@ export const CreateCoopHouseholdBody = zod.object({
   "y": zod.number().min(createCoopHouseholdBodySharedStateFurnitureLayoutBathStationYMin).max(createCoopHouseholdBodySharedStateFurnitureLayoutBathStationYMax)
 }).optional()
 }),
-  "placedProps": zod.record(zod.string(), zod.boolean())
+  "placedProps": zod.record(zod.string(), zod.boolean()),
+  "careStats": zod.object({
+  "growth": zod.number().int().min(createCoopHouseholdBodySharedStateCareStatsGrowthMin).max(createCoopHouseholdBodySharedStateCareStatsGrowthMax),
+  "health": zod.number().int().min(createCoopHouseholdBodySharedStateCareStatsHealthMin).max(createCoopHouseholdBodySharedStateCareStatsHealthMax),
+  "bond": zod.number().int().min(createCoopHouseholdBodySharedStateCareStatsBondMin).max(createCoopHouseholdBodySharedStateCareStatsBondMax),
+  "lastInteractionAt": zod.number().int().min(createCoopHouseholdBodySharedStateCareStatsLastInteractionAtMin),
+  "lastDecayAt": zod.number().int().min(createCoopHouseholdBodySharedStateCareStatsLastDecayAtMin),
+  "revision": zod.number().int().min(createCoopHouseholdBodySharedStateCareStatsRevisionMin),
+  "lastInteractionCategory": zod.enum(['health', 'bond', 'growth']),
+  "recentInteractionIds": zod.array(zod.string().min(1).max(createCoopHouseholdBodySharedStateCareStatsRecentInteractionIdsItemMax)).max(createCoopHouseholdBodySharedStateCareStatsRecentInteractionIdsMax)
+}).optional()
 })
 })
 
@@ -239,6 +297,25 @@ export const createCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMa
 
 export const createCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMin = 0;
 export const createCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMax = 1;
+
+export const createCoopHouseholdResponseSharedStateCareStatsGrowthMin = 0;
+export const createCoopHouseholdResponseSharedStateCareStatsGrowthMax = 100;
+
+export const createCoopHouseholdResponseSharedStateCareStatsHealthMin = 0;
+export const createCoopHouseholdResponseSharedStateCareStatsHealthMax = 100;
+
+export const createCoopHouseholdResponseSharedStateCareStatsBondMin = 0;
+export const createCoopHouseholdResponseSharedStateCareStatsBondMax = 100;
+
+export const createCoopHouseholdResponseSharedStateCareStatsLastInteractionAtMin = 0;
+
+export const createCoopHouseholdResponseSharedStateCareStatsLastDecayAtMin = 0;
+
+export const createCoopHouseholdResponseSharedStateCareStatsRevisionMin = 0;
+
+export const createCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsItemMax = 80;
+
+export const createCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsMax = 128;
 
 export const createCoopHouseholdResponseQueuedNotesItemTitleMax = 48;
 
@@ -287,7 +364,17 @@ export const CreateCoopHouseholdResponse = zod.object({
   "y": zod.number().min(createCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMin).max(createCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMax)
 }).optional()
 }),
-  "placedProps": zod.record(zod.string(), zod.boolean())
+  "placedProps": zod.record(zod.string(), zod.boolean()),
+  "careStats": zod.object({
+  "growth": zod.number().int().min(createCoopHouseholdResponseSharedStateCareStatsGrowthMin).max(createCoopHouseholdResponseSharedStateCareStatsGrowthMax),
+  "health": zod.number().int().min(createCoopHouseholdResponseSharedStateCareStatsHealthMin).max(createCoopHouseholdResponseSharedStateCareStatsHealthMax),
+  "bond": zod.number().int().min(createCoopHouseholdResponseSharedStateCareStatsBondMin).max(createCoopHouseholdResponseSharedStateCareStatsBondMax),
+  "lastInteractionAt": zod.number().int().min(createCoopHouseholdResponseSharedStateCareStatsLastInteractionAtMin),
+  "lastDecayAt": zod.number().int().min(createCoopHouseholdResponseSharedStateCareStatsLastDecayAtMin),
+  "revision": zod.number().int().min(createCoopHouseholdResponseSharedStateCareStatsRevisionMin),
+  "lastInteractionCategory": zod.enum(['health', 'bond', 'growth']),
+  "recentInteractionIds": zod.array(zod.string().min(1).max(createCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsItemMax)).max(createCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsMax)
+}).optional()
 }),
   "queuedNotes": zod.array(zod.object({
   "id": zod.string().uuid(),
@@ -378,6 +465,25 @@ export const joinCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMax 
 export const joinCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMin = 0;
 export const joinCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMax = 1;
 
+export const joinCoopHouseholdResponseSharedStateCareStatsGrowthMin = 0;
+export const joinCoopHouseholdResponseSharedStateCareStatsGrowthMax = 100;
+
+export const joinCoopHouseholdResponseSharedStateCareStatsHealthMin = 0;
+export const joinCoopHouseholdResponseSharedStateCareStatsHealthMax = 100;
+
+export const joinCoopHouseholdResponseSharedStateCareStatsBondMin = 0;
+export const joinCoopHouseholdResponseSharedStateCareStatsBondMax = 100;
+
+export const joinCoopHouseholdResponseSharedStateCareStatsLastInteractionAtMin = 0;
+
+export const joinCoopHouseholdResponseSharedStateCareStatsLastDecayAtMin = 0;
+
+export const joinCoopHouseholdResponseSharedStateCareStatsRevisionMin = 0;
+
+export const joinCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsItemMax = 80;
+
+export const joinCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsMax = 128;
+
 export const joinCoopHouseholdResponseQueuedNotesItemTitleMax = 48;
 
 export const joinCoopHouseholdResponseQueuedNotesItemMessageMax = 180;
@@ -425,7 +531,17 @@ export const JoinCoopHouseholdResponse = zod.object({
   "y": zod.number().min(joinCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMin).max(joinCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMax)
 }).optional()
 }),
-  "placedProps": zod.record(zod.string(), zod.boolean())
+  "placedProps": zod.record(zod.string(), zod.boolean()),
+  "careStats": zod.object({
+  "growth": zod.number().int().min(joinCoopHouseholdResponseSharedStateCareStatsGrowthMin).max(joinCoopHouseholdResponseSharedStateCareStatsGrowthMax),
+  "health": zod.number().int().min(joinCoopHouseholdResponseSharedStateCareStatsHealthMin).max(joinCoopHouseholdResponseSharedStateCareStatsHealthMax),
+  "bond": zod.number().int().min(joinCoopHouseholdResponseSharedStateCareStatsBondMin).max(joinCoopHouseholdResponseSharedStateCareStatsBondMax),
+  "lastInteractionAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateCareStatsLastInteractionAtMin),
+  "lastDecayAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateCareStatsLastDecayAtMin),
+  "revision": zod.number().int().min(joinCoopHouseholdResponseSharedStateCareStatsRevisionMin),
+  "lastInteractionCategory": zod.enum(['health', 'bond', 'growth']),
+  "recentInteractionIds": zod.array(zod.string().min(1).max(joinCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsItemMax)).max(joinCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsMax)
+}).optional()
 }),
   "queuedNotes": zod.array(zod.object({
   "id": zod.string().uuid(),
@@ -491,6 +607,25 @@ export const updateCoopStateBodySharedStateFurnitureLayoutBathStationXMax = 1;
 export const updateCoopStateBodySharedStateFurnitureLayoutBathStationYMin = 0;
 export const updateCoopStateBodySharedStateFurnitureLayoutBathStationYMax = 1;
 
+export const updateCoopStateBodySharedStateCareStatsGrowthMin = 0;
+export const updateCoopStateBodySharedStateCareStatsGrowthMax = 100;
+
+export const updateCoopStateBodySharedStateCareStatsHealthMin = 0;
+export const updateCoopStateBodySharedStateCareStatsHealthMax = 100;
+
+export const updateCoopStateBodySharedStateCareStatsBondMin = 0;
+export const updateCoopStateBodySharedStateCareStatsBondMax = 100;
+
+export const updateCoopStateBodySharedStateCareStatsLastInteractionAtMin = 0;
+
+export const updateCoopStateBodySharedStateCareStatsLastDecayAtMin = 0;
+
+export const updateCoopStateBodySharedStateCareStatsRevisionMin = 0;
+
+export const updateCoopStateBodySharedStateCareStatsRecentInteractionIdsItemMax = 80;
+
+export const updateCoopStateBodySharedStateCareStatsRecentInteractionIdsMax = 128;
+
 
 
 export const UpdateCoopStateBody = zod.object({
@@ -523,7 +658,17 @@ export const UpdateCoopStateBody = zod.object({
   "y": zod.number().min(updateCoopStateBodySharedStateFurnitureLayoutBathStationYMin).max(updateCoopStateBodySharedStateFurnitureLayoutBathStationYMax)
 }).optional()
 }),
-  "placedProps": zod.record(zod.string(), zod.boolean())
+  "placedProps": zod.record(zod.string(), zod.boolean()),
+  "careStats": zod.object({
+  "growth": zod.number().int().min(updateCoopStateBodySharedStateCareStatsGrowthMin).max(updateCoopStateBodySharedStateCareStatsGrowthMax),
+  "health": zod.number().int().min(updateCoopStateBodySharedStateCareStatsHealthMin).max(updateCoopStateBodySharedStateCareStatsHealthMax),
+  "bond": zod.number().int().min(updateCoopStateBodySharedStateCareStatsBondMin).max(updateCoopStateBodySharedStateCareStatsBondMax),
+  "lastInteractionAt": zod.number().int().min(updateCoopStateBodySharedStateCareStatsLastInteractionAtMin),
+  "lastDecayAt": zod.number().int().min(updateCoopStateBodySharedStateCareStatsLastDecayAtMin),
+  "revision": zod.number().int().min(updateCoopStateBodySharedStateCareStatsRevisionMin),
+  "lastInteractionCategory": zod.enum(['health', 'bond', 'growth']),
+  "recentInteractionIds": zod.array(zod.string().min(1).max(updateCoopStateBodySharedStateCareStatsRecentInteractionIdsItemMax)).max(updateCoopStateBodySharedStateCareStatsRecentInteractionIdsMax)
+}).optional()
 })
 })
 
@@ -567,6 +712,25 @@ export const updateCoopStateResponseSharedStateFurnitureLayoutBathStationXMax = 
 export const updateCoopStateResponseSharedStateFurnitureLayoutBathStationYMin = 0;
 export const updateCoopStateResponseSharedStateFurnitureLayoutBathStationYMax = 1;
 
+export const updateCoopStateResponseSharedStateCareStatsGrowthMin = 0;
+export const updateCoopStateResponseSharedStateCareStatsGrowthMax = 100;
+
+export const updateCoopStateResponseSharedStateCareStatsHealthMin = 0;
+export const updateCoopStateResponseSharedStateCareStatsHealthMax = 100;
+
+export const updateCoopStateResponseSharedStateCareStatsBondMin = 0;
+export const updateCoopStateResponseSharedStateCareStatsBondMax = 100;
+
+export const updateCoopStateResponseSharedStateCareStatsLastInteractionAtMin = 0;
+
+export const updateCoopStateResponseSharedStateCareStatsLastDecayAtMin = 0;
+
+export const updateCoopStateResponseSharedStateCareStatsRevisionMin = 0;
+
+export const updateCoopStateResponseSharedStateCareStatsRecentInteractionIdsItemMax = 80;
+
+export const updateCoopStateResponseSharedStateCareStatsRecentInteractionIdsMax = 128;
+
 export const updateCoopStateResponseUpdatedAtMin = 0;
 
 
@@ -601,9 +765,69 @@ export const UpdateCoopStateResponse = zod.object({
   "y": zod.number().min(updateCoopStateResponseSharedStateFurnitureLayoutBathStationYMin).max(updateCoopStateResponseSharedStateFurnitureLayoutBathStationYMax)
 }).optional()
 }),
-  "placedProps": zod.record(zod.string(), zod.boolean())
+  "placedProps": zod.record(zod.string(), zod.boolean()),
+  "careStats": zod.object({
+  "growth": zod.number().int().min(updateCoopStateResponseSharedStateCareStatsGrowthMin).max(updateCoopStateResponseSharedStateCareStatsGrowthMax),
+  "health": zod.number().int().min(updateCoopStateResponseSharedStateCareStatsHealthMin).max(updateCoopStateResponseSharedStateCareStatsHealthMax),
+  "bond": zod.number().int().min(updateCoopStateResponseSharedStateCareStatsBondMin).max(updateCoopStateResponseSharedStateCareStatsBondMax),
+  "lastInteractionAt": zod.number().int().min(updateCoopStateResponseSharedStateCareStatsLastInteractionAtMin),
+  "lastDecayAt": zod.number().int().min(updateCoopStateResponseSharedStateCareStatsLastDecayAtMin),
+  "revision": zod.number().int().min(updateCoopStateResponseSharedStateCareStatsRevisionMin),
+  "lastInteractionCategory": zod.enum(['health', 'bond', 'growth']),
+  "recentInteractionIds": zod.array(zod.string().min(1).max(updateCoopStateResponseSharedStateCareStatsRecentInteractionIdsItemMax)).max(updateCoopStateResponseSharedStateCareStatsRecentInteractionIdsMax)
+}).optional()
 }),
   "updatedAt": zod.number().int().min(updateCoopStateResponseUpdatedAtMin)
+})
+
+
+/**
+ * @summary Apply a care interaction to shared panda stats
+ */
+export const recordCoopCareStatInteractionBodyInteractionIdMax = 80;
+
+export const recordCoopCareStatInteractionBodyOccurredAtMin = 0;
+
+
+
+export const RecordCoopCareStatInteractionBody = zod.object({
+  "interactionId": zod.string().min(1).max(recordCoopCareStatInteractionBodyInteractionIdMax),
+  "category": zod.enum(['health', 'bond', 'growth']),
+  "occurredAt": zod.number().int().min(recordCoopCareStatInteractionBodyOccurredAtMin)
+})
+
+export const recordCoopCareStatInteractionResponseCareStatsGrowthMin = 0;
+export const recordCoopCareStatInteractionResponseCareStatsGrowthMax = 100;
+
+export const recordCoopCareStatInteractionResponseCareStatsHealthMin = 0;
+export const recordCoopCareStatInteractionResponseCareStatsHealthMax = 100;
+
+export const recordCoopCareStatInteractionResponseCareStatsBondMin = 0;
+export const recordCoopCareStatInteractionResponseCareStatsBondMax = 100;
+
+export const recordCoopCareStatInteractionResponseCareStatsLastInteractionAtMin = 0;
+
+export const recordCoopCareStatInteractionResponseCareStatsLastDecayAtMin = 0;
+
+export const recordCoopCareStatInteractionResponseCareStatsRevisionMin = 0;
+
+export const recordCoopCareStatInteractionResponseCareStatsRecentInteractionIdsItemMax = 80;
+
+export const recordCoopCareStatInteractionResponseCareStatsRecentInteractionIdsMax = 128;
+
+
+
+export const RecordCoopCareStatInteractionResponse = zod.object({
+  "careStats": zod.object({
+  "growth": zod.number().int().min(recordCoopCareStatInteractionResponseCareStatsGrowthMin).max(recordCoopCareStatInteractionResponseCareStatsGrowthMax),
+  "health": zod.number().int().min(recordCoopCareStatInteractionResponseCareStatsHealthMin).max(recordCoopCareStatInteractionResponseCareStatsHealthMax),
+  "bond": zod.number().int().min(recordCoopCareStatInteractionResponseCareStatsBondMin).max(recordCoopCareStatInteractionResponseCareStatsBondMax),
+  "lastInteractionAt": zod.number().int().min(recordCoopCareStatInteractionResponseCareStatsLastInteractionAtMin),
+  "lastDecayAt": zod.number().int().min(recordCoopCareStatInteractionResponseCareStatsLastDecayAtMin),
+  "revision": zod.number().int().min(recordCoopCareStatInteractionResponseCareStatsRevisionMin),
+  "lastInteractionCategory": zod.enum(['health', 'bond', 'growth']),
+  "recentInteractionIds": zod.array(zod.string().min(1).max(recordCoopCareStatInteractionResponseCareStatsRecentInteractionIdsItemMax)).max(recordCoopCareStatInteractionResponseCareStatsRecentInteractionIdsMax)
+})
 })
 
 

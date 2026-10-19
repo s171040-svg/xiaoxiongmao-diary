@@ -45,11 +45,67 @@ export type CoopSharedStateFurnitureLayout = {
 
 export type CoopSharedStatePlacedProps = {[key: string]: boolean};
 
+export type CoopCareStatCategory = typeof CoopCareStatCategory[keyof typeof CoopCareStatCategory];
+
+
+export const CoopCareStatCategory = {
+  health: 'health',
+  bond: 'bond',
+  growth: 'growth',
+} as const;
+
+export interface CoopCareStats {
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  growth: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  health: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  bond: number;
+  /** @minimum 0 */
+  lastInteractionAt: number;
+  /** @minimum 0 */
+  lastDecayAt: number;
+  /** @minimum 0 */
+  revision: number;
+  lastInteractionCategory: CoopCareStatCategory;
+  /**
+     * @maxItems 128
+     * @items.minLength 1
+     * @items.maxLength 80
+     */
+  recentInteractionIds: string[];
+}
+
 export interface CoopSharedState {
   /** @maxItems 300 */
   gifts: CoopGift[];
   furnitureLayout: CoopSharedStateFurnitureLayout;
   placedProps: CoopSharedStatePlacedProps;
+  careStats?: CoopCareStats;
+}
+
+export interface CoopCareStatInteractionInput {
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  interactionId: string;
+  category: CoopCareStatCategory;
+  /** @minimum 0 */
+  occurredAt: number;
+}
+
+export interface CoopCareStatInteractionResponse {
+  careStats: CoopCareStats;
 }
 
 export type CoopShareNoteCategory = typeof CoopShareNoteCategory[keyof typeof CoopShareNoteCategory];

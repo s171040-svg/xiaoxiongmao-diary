@@ -385,6 +385,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
         debugClicks={false} showInteractionBubble={roomOnly}
         interactionBubbleText={roomOnly && roomDialogue ? removeActionAsides(roomDialogue) : undefined}
         onChatModeChange={roomOnly ? onRoomChatModeChange : undefined}
+        onCareInteraction={c.recordCareStatInteraction}
          onCapturedHomecomingInteraction={roomOnly ? c.acknowledgeCapturedHomecoming : undefined}
          spacePoliceLetter={roomOnly ? c.state.spacePoliceLetter : undefined}
           spacePoliceLetters={roomOnly ? c.state.spacePoliceLetters : undefined}

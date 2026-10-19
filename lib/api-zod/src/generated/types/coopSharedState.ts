@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CoopCareStats } from './coopCareStats';
 import type { CoopGift } from './coopGift';
 import type { CoopSharedStateFurnitureLayout } from './coopSharedStateFurnitureLayout';
 import type { CoopSharedStatePlacedProps } from './coopSharedStatePlacedProps';
@@ -14,4 +15,5 @@ export interface CoopSharedState {
   gifts: CoopGift[];
   furnitureLayout: CoopSharedStateFurnitureLayout;
   placedProps: CoopSharedStatePlacedProps;
+  careStats?: CoopCareStats;
 }

@@ -2,12 +2,101 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ACTIONS, initialState, idleDelay, localDay, performancePlan, contextFor, receiveReply, recordUserMessage, waitingForAnswer, tickCompanion, welcome, beginTrip, startGiftDrop, collectGift, feedGift, canFeedGift, favoriteGift, injectTestGift, markPendingInterrupted, deliverSpacePoliceLetter, eatSpacePoliceLetter, fileSpacePoliceLetter, markSpacePoliceLetterOpened, paySpacePoliceFine, placeSpacePolicePoop, packSpacePolicePoop, moveSpacePolicePoopBag, disposeSpacePolicePoopBag, finishSpacePolicePoopDisposal, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, CAPTURED_TRIP_EXTRA_MS, SPACE_POLICE_LETTER_EAT_DELAY_MS, DAY, MINUTE, COMPANION_KEY, readState, writeState } from './companion-store';
 import type { CompanionState } from './companion-types';
+import {
+  CARE_STAT_DECAY_INTERVAL_MS,
+  acknowledgeCareStatInteraction,
+  decayCareStatState,
+  mergeSharedCareStats,
+  recordCareStatInteraction,
+} from './companion-store';
 
 const now = new Date(2026, 9, 8, 12).getTime();
 function sample(): CompanionState {
   return { ...initialState(now), userName: '小乐', nextIdleAt: now + 5 * MINUTE, nextTripAt: now + 40 * MINUTE,
     messages: [{ id: 'user1', role: 'user', text: '我叫小乐，唱歌唱了很久，有点累，明天还要排练。', createdAt: now, status: 'pending' }] };
 }
+
+test('care interactions increase growth and only their related stat', () => {
+  const start = initialState(now);
+  const health = recordCareStatInteraction(start, 'health', now + 1, 'health-1');
+  assert.deepEqual(
+    [health.careStats.growth, health.careStats.health, health.careStats.bond],
+    [51, 51, 50],
+  );
+  const bond = recordCareStatInteraction(health, 'bond', now + 2, 'bond-1');
+  assert.deepEqual(
+    [bond.careStats.growth, bond.careStats.health, bond.careStats.bond],
+    [52, 51, 51],
+  );
+  assert.equal(recordCareStatInteraction(bond, 'bond', now + 3, 'bond-1'), bond);
+});
+
+test('all numeric care stats decay by one at each six-hour idle boundary, never below zero', () => {
+  const start = initialState(now);
+  const low = {
+    ...start,
+    careStats: { ...start.careStats, growth: 2, health: 1, bond: 0 },
+  };
+  assert.equal(decayCareStatState(low, now + CARE_STAT_DECAY_INTERVAL_MS - 1), low);
+  const firstStep = decayCareStatState(low, now + CARE_STAT_DECAY_INTERVAL_MS);
+  assert.deepEqual(
+    [firstStep.careStats.growth, firstStep.careStats.health, firstStep.careStats.bond],
+    [1, 0, 0],
+  );
+  const secondStep = decayCareStatState(firstStep, now + 2 * CARE_STAT_DECAY_INTERVAL_MS);
+  assert.deepEqual(
+    [secondStep.careStats.growth, secondStep.careStats.health, secondStep.careStats.bond],
+    [0, 0, 0],
+  );
+});
+
+test('shared stats merge pending local care once and acknowledge server confirmation', () => {
+  const start = initialState(now);
+  const local = recordCareStatInteraction(start, 'bond', now + 100, 'pending-1');
+  const server = {
+    ...start.careStats,
+    growth: 60,
+    health: 55,
+    bond: 58,
+    lastInteractionAt: now + 50,
+    lastDecayAt: now + 50,
+    revision: 3,
+    lastInteractionCategory: 'health' as const,
+  };
+  const merged = mergeSharedCareStats(local, server);
+  assert.deepEqual(
+    [merged.careStats.growth, merged.careStats.health, merged.careStats.bond],
+    [61, 55, 59],
+  );
+  const confirmed = acknowledgeCareStatInteraction(merged, 'pending-1', {
+    ...server,
+    growth: 61,
+    bond: 59,
+    lastInteractionAt: now + 100,
+    lastDecayAt: now + 100,
+    revision: 4,
+    lastInteractionCategory: 'bond',
+    recentInteractionIds: ['pending-1'],
+  });
+  assert.equal(confirmed.pendingCareStatInteractions.length, 0);
+  assert.deepEqual(
+    [confirmed.careStats.growth, confirmed.careStats.health, confirmed.careStats.bond],
+    [61, 55, 59],
+  );
+});
+
+test('legacy companion records receive a neutral stats baseline without losing history', () => {
+  const legacy = { ...initialState(now), messages: [{ id: 'old', role: 'user', text: 'still here', createdAt: now }] } as unknown as Record<string, unknown>;
+  delete legacy.careStats;
+  delete legacy.pendingCareStatInteractions;
+  const migrated = readState({ getItem: () => JSON.stringify(legacy) }, now + 1000);
+  assert.equal(migrated.messages[0].text, 'still here');
+  assert.deepEqual(
+    [migrated.careStats.growth, migrated.careStats.health, migrated.careStats.bond],
+    [50, 50, 50],
+  );
+  assert.equal(migrated.careStats.lastInteractionAt, now + 1000);
+});
 test('pending messages recovered after restart are distinguished from AI request failures', () => {
   const state = sample();
   const recovered = markPendingInterrupted(state);

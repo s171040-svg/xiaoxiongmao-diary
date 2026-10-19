@@ -10,6 +10,8 @@ import {
   GetCoopHouseholdResponse,
   JoinCoopHouseholdBody,
   JoinCoopHouseholdResponse,
+  RecordCoopCareStatInteractionBody,
+  RecordCoopCareStatInteractionResponse,
   UpdateCoopShareNoteBody,
   UpdateCoopShareNoteParams,
   UpdateCoopShareNoteResponse,
@@ -22,6 +24,8 @@ import {
   coopMembersTable,
   coopShareNotesTable,
   db,
+  type CoopCareStatCategory,
+  type CoopCareStats,
   type CoopSharedState,
 } from "@workspace/db";
 import { Router, type IRouter, type Request, type Response } from "express";
@@ -29,6 +33,7 @@ import { createSafeShareSummary } from "../lib/coop-sharing";
 
 const router: IRouter = Router();
 const inviteLifetimeMs = 24 * 60 * 60 * 1000;
+const careStatDecayMs = 6 * 60 * 60 * 1000;
 const summaryWindows = new Map<string, { count: number; until: number }>();
 
 function userIdFromRequest(req: Request): string | undefined {
@@ -118,6 +123,7 @@ function mergeSharedState(
   for (const gift of incoming.gifts) {
     gifts.set(gift.id, { ...gifts.get(gift.id), ...gift });
   }
+  const careStats = mergeCareStats(current.careStats, incoming.careStats);
   return {
     gifts: [...gifts.values()].slice(-300),
     furnitureLayout: {
@@ -128,6 +134,78 @@ function mergeSharedState(
       ...current.placedProps,
       ...incoming.placedProps,
     },
+    ...(careStats ? { careStats } : {}),
+  };
+}
+
+function mergeCareStats(
+  current: CoopCareStats | undefined,
+  incoming: CoopCareStats | undefined,
+): CoopCareStats | undefined {
+  if (!current) return incoming;
+  if (!incoming) return current;
+  if (incoming.revision !== current.revision) {
+    return incoming.revision > current.revision ? incoming : current;
+  }
+  if (incoming.lastInteractionAt !== current.lastInteractionAt) {
+    return incoming.lastInteractionAt > current.lastInteractionAt ? incoming : current;
+  }
+  return incoming.lastDecayAt > current.lastDecayAt ? incoming : current;
+}
+
+function initialCareStats(now: number): CoopCareStats {
+  return {
+    growth: 50,
+    health: 50,
+    bond: 50,
+    lastInteractionAt: now,
+    lastDecayAt: now,
+    revision: 0,
+    lastInteractionCategory: "growth",
+    recentInteractionIds: [],
+  };
+}
+
+function decayCareStats(stats: CoopCareStats, now: number): CoopCareStats {
+  const lastInteractionAt = Math.min(stats.lastInteractionAt, now);
+  const lastDecayAt = Math.min(stats.lastDecayAt, now);
+  const elapsedSteps = Math.floor(Math.max(0, now - lastInteractionAt) / careStatDecayMs);
+  const appliedSteps = Math.floor(Math.max(0, lastDecayAt - lastInteractionAt) / careStatDecayMs);
+  const steps = Math.max(0, elapsedSteps - appliedSteps);
+  if (!steps) {
+    if (lastInteractionAt === stats.lastInteractionAt && lastDecayAt === stats.lastDecayAt) return stats;
+    return { ...stats, lastInteractionAt, lastDecayAt };
+  }
+  return {
+    ...stats,
+    growth: Math.max(0, stats.growth - steps),
+    health: Math.max(0, stats.health - steps),
+    bond: Math.max(0, stats.bond - steps),
+    lastInteractionAt,
+    lastDecayAt: Math.min(now, lastDecayAt + steps * careStatDecayMs),
+  };
+}
+
+function applyCareStatInteraction(
+  stats: CoopCareStats,
+  category: CoopCareStatCategory,
+  interactionId: string,
+  occurredAt: number,
+  now: number,
+): CoopCareStats {
+  if (stats.recentInteractionIds.includes(interactionId)) return stats;
+  const interactionAt = Math.max(stats.lastInteractionAt, Math.min(occurredAt, now));
+  const decayed = decayCareStats(stats, interactionAt);
+  return {
+    ...decayed,
+    growth: Math.min(100, decayed.growth + 1),
+    health: category === "health" ? Math.min(100, decayed.health + 1) : decayed.health,
+    bond: category === "bond" ? Math.min(100, decayed.bond + 1) : decayed.bond,
+    lastInteractionAt: interactionAt,
+    lastDecayAt: interactionAt,
+    revision: decayed.revision + 1,
+    lastInteractionCategory: category,
+    recentInteractionIds: [...decayed.recentInteractionIds, interactionId].slice(-128),
   };
 }
 
@@ -356,6 +434,58 @@ router.put("/coop/state", async (req, res): Promise<void> => {
       updatedAt: household.updatedAt.getTime(),
     }),
   );
+});
+
+router.post("/coop/stats/interactions", async (req, res): Promise<void> => {
+  const userId = requireUser(req, res);
+  if (!userId) return;
+  const input = RecordCoopCareStatInteractionBody.safeParse(req.body);
+  if (!input.success) {
+    res.status(400).json({ error: "互动记录格式不正确。" });
+    return;
+  }
+  const [member] = await db
+    .select()
+    .from(coopMembersTable)
+    .where(eq(coopMembersTable.userId, userId))
+    .limit(1);
+  if (!member) {
+    res.status(404).json({ error: "还没有共同培养房间。" });
+    return;
+  }
+
+  const careStats = await db.transaction(async (tx) => {
+    const [current] = await tx
+      .select()
+      .from(coopHouseholdsTable)
+      .where(eq(coopHouseholdsTable.id, member.householdId))
+      .limit(1)
+      .for("update");
+    if (!current) return undefined;
+    const now = Date.now();
+    const stats = current.sharedState.careStats ?? initialCareStats(now);
+    const updatedCareStats = applyCareStatInteraction(
+      stats,
+      input.data.category as CoopCareStatCategory,
+      input.data.interactionId,
+      input.data.occurredAt,
+      now,
+    );
+    if (updatedCareStats === stats && current.sharedState.careStats) return stats;
+    await tx
+      .update(coopHouseholdsTable)
+      .set({
+        sharedState: { ...current.sharedState, careStats: updatedCareStats },
+      })
+      .where(eq(coopHouseholdsTable.id, member.householdId));
+    return updatedCareStats;
+  });
+
+  if (!careStats) {
+    res.status(404).json({ error: "共同培养房间已不存在。" });
+    return;
+  }
+  res.json(RecordCoopCareStatInteractionResponse.parse({ careStats }));
 });
 
 router.post("/coop/share-notes", async (req, res): Promise<void> => {

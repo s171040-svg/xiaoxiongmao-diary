@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
-import type { DeveloperEvent, DeveloperPose, PerformanceAction, PetEffect, SpacePoliceLetter } from '@/lib/companion-types';
+import type { CareStatCategory, DeveloperEvent, DeveloperPose, PerformanceAction, PetEffect, SpacePoliceLetter } from '@/lib/companion-types';
 import {
   blendRoomPoint,
   CAT_TREE_NEST_POINT,
@@ -253,7 +253,7 @@ type BathBallPointer = {
   offsetY: number;
 };
 
-export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = false, debugClicks = false, showInteractionBubble = false, interactionBubbleText, developerPose = null, developerEvent = null, onChatModeChange, onCapturedHomecomingInteraction, spacePoliceLetter, spacePoliceLetters, spacePoliceMailCount = 0, spacePoliceUnreadCount = 0, onOpenSpacePoliceLetter, onFileSpacePoliceLetter, onEatSpacePoliceLetter, onPlaceSpacePolicePoop, onPackSpacePolicePoop, onMoveSpacePolicePoopBag, onDisposeSpacePolicePoopBag, onFinishSpacePolicePoopDisposal, onOpenSpacePoliceMailbox }: {
+export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = false, debugClicks = false, showInteractionBubble = false, interactionBubbleText, developerPose = null, developerEvent = null, onChatModeChange, onCareInteraction, onCapturedHomecomingInteraction, spacePoliceLetter, spacePoliceLetters, spacePoliceMailCount = 0, spacePoliceUnreadCount = 0, onOpenSpacePoliceLetter, onFileSpacePoliceLetter, onEatSpacePoliceLetter, onPlaceSpacePolicePoop, onPackSpacePolicePoop, onMoveSpacePolicePoopBag, onDisposeSpacePolicePoopBag, onFinishSpacePolicePoopDisposal, onOpenSpacePoliceMailbox }: {
   pet: PetEffect;
   thinking?: boolean;
   motion?: 'idle' | 'sleep';
@@ -264,6 +264,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   developerPose?: DeveloperPose | null;
   developerEvent?: { event: DeveloperEvent; token: number } | null;
   onChatModeChange?: (isChat: boolean) => void;
+  onCareInteraction?: (category: CareStatCategory) => void;
   onCapturedHomecomingInteraction?: () => void;
   spacePoliceLetter?: { deliveredAt: number; openedAt?: number; filedAt?: number; eatenAt?: number; eatAfterAt?: number; poop?: SpacePoliceLetter['poop'] };
   spacePoliceLetters?: SpacePoliceLetter[];
@@ -357,6 +358,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   });
   const [equippedToy, setEquippedToy] = useState<RoomToy | null>(null);
   const equippedToyRef = useRef<RoomToy | null>(null);
+  const toyCareInteractionRecordedRef = useRef(false);
   equippedToyRef.current = equippedToy;
   const [toyPointer, setToyPointer] = useState<{ x: number; y: number } | null>(null);
   const toyPointerRef = useRef<{ x: number; y: number } | null>(null);
@@ -1886,6 +1888,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
     window.clearTimeout(clickExpiryTimerRef.current);
     window.clearTimeout(reactionTimerRef.current);
     setReacting(true);
+    onCareInteraction?.('bond');
     recordDebug('第一次点击已触发；状态=roaming；请求 reacting=true');
     reactionTimerRef.current = window.setTimeout(() => {
       reactionTimerRef.current = 0;
@@ -2098,6 +2101,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       setSleepingInNest(false);
       if (bathPhaseRef.current === 'bathing') {
         activeDrag.liftedFromBath = true;
+        onCareInteraction?.('health');
          const exitImage = dirtyReturn
            ? bathRubbing ? dirtyBathingRubbingFrameUrl(bathFrame) : dirtyBathingFrameUrl(bathFrame)
            : bathRubbing ? bathingRubbingFrameUrl(bathFrame) : bathingFrameUrl(bathFrame);
@@ -2392,6 +2396,10 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
   }, [equippedToy, showInteractionBubble]);
 
   useEffect(() => {
+    if (!equippedToy) toyCareInteractionRecordedRef.current = false;
+  }, [equippedToy]);
+
+  useEffect(() => {
     if (!showInteractionBubble || !equippedToy) return undefined;
     let raf = 0;
     let last = performance.now();
@@ -2437,6 +2445,10 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       }
       setWalk(false);
       updateFacing(dx);
+      if (!toyCareInteractionRecordedRef.current) {
+        toyCareInteractionRecordedRef.current = true;
+        onCareInteraction?.('bond');
+      }
       if (equippedToyRef.current === 'teaser') {
         setPose('swat');
       } else {
@@ -2451,7 +2463,7 @@ export function PetStage({ pet, thinking = false, motion = 'idle', nightMode = f
       setToyPose(null);
       setRoomWalking(false);
     };
-  }, [activityState, applyRoomPoint, dampAfterBath, developerGrab, equippedToy, flyChaseActive, hidden, pet.stage, showInteractionBubble, updateFacing, worldFallPhase]);
+  }, [activityState, applyRoomPoint, dampAfterBath, developerGrab, equippedToy, flyChaseActive, hidden, onCareInteraction, pet.stage, showInteractionBubble, updateFacing, worldFallPhase]);
 
   useEffect(() => {
     if (!equippedToy) return undefined;
