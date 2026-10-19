@@ -41,7 +41,7 @@ type RoomEyeControlOptions = {
   bedRef: { current: HTMLImageElement | null };
   bathStationRef: { current: HTMLElement | null };
   pandaButtonRef: { current: HTMLButtonElement | null };
-  updateRoomFurniturePoint: (id: RoomFurnitureId, point: RoomFurniturePoint) => void;
+  updateRoomFurniturePoint: (id: RoomFurnitureId, point: RoomFurniturePoint) => boolean;
   persistRoomFurnitureLayout: (layout: RoomFurnitureLayout) => void;
   triggerStartle: () => void;
 };
@@ -312,8 +312,12 @@ export function useRoomEyeControl({
     const nextY = next.y * viewportSize.height;
     if (Math.abs(nextX - (rect.left + rect.width / 2)) < 0.5
       && Math.abs(nextY - (rect.top + rect.height / 2)) < 0.5) return;
-    updateRoomFurniturePoint(id, next);
+    const collided = updateRoomFurniturePoint(id, next);
     moveDirtyRef.current = true;
+    if (collided) {
+      finishFurnitureMove();
+      return;
+    }
     const eyePoint = screenPositionRef.current;
     if (eyePoint) {
       startleFromEye({
@@ -321,7 +325,7 @@ export function useRoomEyeControl({
         y: eyePoint.y + nextY - (rect.top + rect.height / 2),
       });
     }
-  }, [furnitureElement, startleFromEye, updateRoomFurniturePoint, viewportSize]);
+  }, [finishFurnitureMove, furnitureElement, startleFromEye, updateRoomFurniturePoint, viewportSize]);
 
   const returnHome = useCallback(() => {
     finishFurnitureMove();

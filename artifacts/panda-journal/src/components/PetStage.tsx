@@ -481,6 +481,9 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
   const packingPoopRef = useRef<number | null>(null);
   const roomWastePointerRef = useRef<RoomWastePointer | null>(null);
   const furniturePointerRef = useRef<FurniturePointer | null>(null);
+  const furnitureContactRef = useRef<Set<RoomFurnitureId>>(new Set());
+  const furnitureCollisionPendingRef = useRef<Set<RoomFurnitureId>>(new Set());
+  const furnitureCollisionActionRef = useRef<(id: RoomFurnitureId) => void>(() => {});
   const suppressFurnitureClickRef = useRef<RoomFurnitureId | null>(null);
   const draggingRef = useRef(false);
   const suppressClickAfterDragRef = useRef(false);
@@ -602,10 +605,49 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
   };
 
   const updateRoomFurniturePoint = useCallback((id: RoomFurnitureId, point: RoomFurniturePoint) => {
+    if (furnitureCollisionPendingRef.current.has(id)) return true;
+    const furniture = id === 'bed' ? bedRef.current
+      : id === 'rack' ? clothesRackRef.current
+        : id === 'bathStation' ? bathStationRef.current : null;
+    const panda = pandaButtonRef.current;
+    const pandaRect = panda?.querySelector('.ps-body')?.getBoundingClientRect() ?? panda?.getBoundingClientRect();
+    const furnitureRect = furniture?.getBoundingClientRect();
+    let collisionStarted = false;
+    if (id !== 'mailbox' && furnitureRect && pandaRect) {
+      const overlaps = (
+        first: { left: number; right: number; top: number; bottom: number },
+        second: { left: number; right: number; top: number; bottom: number },
+      ) => first.left < second.right && first.right > second.left
+        && first.top < second.bottom && first.bottom > second.top;
+      if (!overlaps(furnitureRect, pandaRect)) furnitureContactRef.current.delete(id);
+      const nextRect = {
+        left: point.x * viewportSize.width - furnitureRect.width / 2,
+        right: point.x * viewportSize.width + furnitureRect.width / 2,
+        top: point.y * viewportSize.height - furnitureRect.height / 2,
+        bottom: point.y * viewportSize.height + furnitureRect.height / 2,
+      };
+      if (!overlaps(nextRect, pandaRect)) {
+        furnitureContactRef.current.delete(id);
+      } else if (!furnitureContactRef.current.has(id)) {
+        furnitureContactRef.current.add(id);
+        furnitureCollisionPendingRef.current.add(id);
+        collisionStarted = true;
+      }
+    }
     const next = { ...roomFurnitureLayoutRef.current, [id]: point };
     roomFurnitureLayoutRef.current = next;
     setRoomFurnitureLayout(next);
-  }, []);
+    if (collisionStarted) {
+      window.requestAnimationFrame(() => {
+        try {
+          furnitureCollisionActionRef.current(id);
+        } finally {
+          furnitureCollisionPendingRef.current.delete(id);
+        }
+      });
+    }
+    return collisionStarted;
+  }, [viewportSize]);
 
   const persistRoomFurnitureLayout = useCallback((layout: RoomFurnitureLayout) => {
     try {
@@ -719,8 +761,21 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
       viewportSize.height,
     );
     press.moved = true;
-    updateRoomFurniturePoint(press.id, point);
-  }, [updateRoomFurniturePoint, viewportSize]);
+    const collided = updateRoomFurniturePoint(press.id, point);
+    if (!collided) return;
+    window.clearTimeout(press.holdTimer);
+    furniturePointerRef.current = null;
+    setDraggingFurnitureId(null);
+    persistRoomFurnitureLayout(roomFurnitureLayoutRef.current);
+    window.setTimeout(() => {
+      if (suppressFurnitureClickRef.current === press.id) suppressFurnitureClickRef.current = null;
+    }, 0);
+    try {
+      if (press.element.hasPointerCapture(press.pointerId)) press.element.releasePointerCapture(press.pointerId);
+    } catch {
+      // The browser may already have released capture after pointerup or pointercancel.
+    }
+  }, [persistRoomFurnitureLayout, updateRoomFurniturePoint, viewportSize]);
 
   const finishFurnitureMove = useCallback((event: ReactPointerEvent<Element>) => {
     const press = furniturePointerRef.current;
@@ -1337,6 +1392,85 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
     }, BATH_DROP_MS);
     return true;
   }, [applyRoomPoint, setBathPhaseNow, setDampAfterBathNow, showInteractionBubble, updateFacing]);
+
+  const triggerFurnitureCollisionInteraction = useCallback((id: RoomFurnitureId) => {
+    if (id !== 'bed' && id !== 'rack' && id !== 'bathStation') return;
+    if (!showInteractionBubble || hidden || interactionState === 'chat'
+      || draggingRef.current || sleepingOnBed || sleepingInNest || hangingOnRack
+      || bathPhaseRef.current !== 'none') return;
+
+    const panda = pandaButtonRef.current;
+    const pandaBodyRect = panda?.querySelector('.ps-body')?.getBoundingClientRect() ?? panda?.getBoundingClientRect();
+    const pandaRect = panda?.getBoundingClientRect();
+    const furniture = id === 'bed' ? bedRef.current
+      : id === 'rack' ? clothesRackRef.current : bathStationRef.current;
+    const furnitureRect = furniture?.getBoundingClientRect();
+    if (!pandaRect || !pandaBodyRect || !furnitureRect) return;
+    const overlapping = furnitureRect.left < pandaBodyRect.right
+      && furnitureRect.right > pandaBodyRect.left
+      && furnitureRect.top < pandaBodyRect.bottom
+      && furnitureRect.bottom > pandaBodyRect.top;
+    if (!overlapping) return;
+
+    clearActivityTransition();
+    setActivityState('roaming');
+    setSleepingOnBed(false);
+    setSleepingInNest(false);
+    setHangingOnRack(false);
+    setRoomWalking(false);
+
+    if (id === 'bed') {
+      const width = Math.max(1, window.innerWidth);
+      const height = Math.max(1, window.innerHeight);
+      const target = unprojectRoomPoint(
+        ((furnitureRect.left + furnitureRect.width * 0.5) / width) * 100,
+        ((furnitureRect.top + furnitureRect.height * 0.5 + pandaRect.height * 0.5) / height) * 100,
+        width,
+        height,
+      );
+      updateFacing(target.u - positionRef.current.u);
+      applyRoomPoint(target);
+      setSleepingOnBed(true);
+      setActivityState('sleeping');
+      playPixelTransition('sleep', 'entering', () => setRoomWalking(false));
+    } else if (id === 'rack') {
+      const width = Math.max(1, window.innerWidth);
+      const height = Math.max(1, window.innerHeight);
+      const rackRodY = furnitureRect.top + furnitureRect.height * 0.27;
+      const pandaCenterX = pandaRect.left + pandaRect.width / 2;
+      const hangX = Math.min(
+        furnitureRect.left + furnitureRect.width * 0.76,
+        Math.max(furnitureRect.left + furnitureRect.width * 0.24, pandaCenterX),
+      );
+      const target = unprojectRoomPoint(
+        (hangX / width) * 100,
+        ((rackRodY + pandaRect.height) / height) * 100,
+        width,
+        height,
+      );
+      updateFacing(target.u - positionRef.current.u);
+      applyRoomPoint(target);
+      setHangingOnRack(true);
+      setRoomWalking(false);
+    } else {
+      startBathDropToTub();
+    }
+  }, [
+    applyRoomPoint,
+    clearActivityTransition,
+    hangingOnRack,
+    hidden,
+    interactionState,
+    playPixelTransition,
+    setActivityState,
+    setRoomWalking,
+    showInteractionBubble,
+    sleepingInNest,
+    sleepingOnBed,
+    startBathDropToTub,
+    updateFacing,
+  ]);
+  furnitureCollisionActionRef.current = triggerFurnitureCollisionInteraction;
 
   useEffect(() => {
     if (!showInteractionBubble || !dampAfterBath || !hangingOnRack) {
