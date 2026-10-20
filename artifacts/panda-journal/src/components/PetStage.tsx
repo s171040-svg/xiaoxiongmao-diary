@@ -2606,11 +2606,17 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
     const height = ROOM_IMAGE_HEIGHT * scale;
     const left = (viewportSize.width - width) / 2;
     const top = (viewportSize.height - height) / 2;
+    const boundary = projectRoomPoint(
+      { u: 0.5, v: ROOM_OUTSIDE_BOUNDARY_V },
+      viewportSize.width,
+      viewportSize.height,
+    );
+    const visibleHeight = boundary.y / 100 * viewportSize.height - top;
     root.setProperty('--room-left', `${left}px`);
     root.setProperty('--room-top', `${top}px`);
     root.setProperty('--room-w', `${width}px`);
-    root.setProperty('--room-h', `${height}px`);
-    root.setProperty('--room-gap-bottom', `${top}px`);
+    root.setProperty('--room-h', `${visibleHeight}px`);
+    root.setProperty('--room-gap-bottom', `${viewportSize.height - top - visibleHeight}px`);
     root.setProperty('--room-gap-right', `${left}px`);
   }, [viewportSize]);
 
@@ -3227,13 +3233,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
   const roomBackgroundImage = `url("${import.meta.env.BASE_URL}static/room/room-background-pixellab.png?v=bamboo-room-1")`;
   const roomBackgroundSize = `min(100vw, ${(ROOM_IMAGE_WIDTH / ROOM_IMAGE_HEIGHT) * 100}vh) auto`;
   const roomFloorBounds = roomFloorBoundsPercent(window.innerWidth, window.innerHeight);
-  const outsideBoundaryStart = projectRoomPoint(
-    { u: 0.08, v: ROOM_OUTSIDE_BOUNDARY_V },
-    window.innerWidth,
-    window.innerHeight,
-  );
-  const outsideBoundaryEnd = projectRoomPoint(
-    { u: 0.92, v: ROOM_OUTSIDE_BOUNDARY_V },
+  const outsideBoundary = projectRoomPoint(
+    { u: 0.5, v: ROOM_OUTSIDE_BOUNDARY_V },
     window.innerWidth,
     window.innerHeight,
   );
@@ -3253,7 +3254,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
         }} />
         <div className="ps-room-floor" style={roomImageStyle && {
           ...roomImageStyle,
-          clipPath: `inset(${roomFloorBounds.far}% 0 0)`,
+          clipPath: `inset(${roomFloorBounds.far}% 0 ${100 - outsideBoundary.y}% 0)`,
         }} />
       </div>
         <div className="ps-stage" data-stage={pet.stage} data-room-only={showInteractionBubble}
@@ -3267,14 +3268,6 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
          data-testid="panda-interaction-state" data-damp-after-bath={dampAfterBath ? 'true' : undefined}
          data-damp-drying-ready={dampDryingReady ? 'true' : undefined}
          style={{ ['--ps-dur' as string]: `${seconds}s` }}>
-        {showInteractionBubble && (
-          <div className="ps-room-outside-boundary" data-testid="room-outside-boundary" aria-hidden="true"
-            style={{
-              left: `${outsideBoundaryStart.x}%`,
-              top: `${outsideBoundaryStart.y}%`,
-              width: `${outsideBoundaryEnd.x - outsideBoundaryStart.x}%`,
-            }} />
-        )}
         {wasteBinVisible && (
           <div ref={wasteBinRef} className="ps-room-trash-can"
             aria-label="像素垃圾桶；拖动包好的便便袋到这里" role="img" data-testid="room-waste-bin"

@@ -13,7 +13,6 @@
 .ps-room-surface[data-room-only=true] .ps-room-floor::before{display:none}
 .ps-room-surface[data-room-only=true][data-night=true] .ps-room-backdrop,.ps-room-surface[data-room-only=true][data-night=true] .ps-room-floor{filter:brightness(.58) saturate(.82)}
 .ps-stage{position:fixed;z-index:2;inset:0;width:100vw;height:100vh;height:100dvh;overflow:hidden;pointer-events:none;--room-walk-range:clamp(0px,35vw,42vw);--room-roll-range:clamp(0px,4.5vw,54px)}
-.ps-room-outside-boundary{position:fixed;z-index:230;height:3px;translate:0 -50%;background:#171512;box-shadow:0 1px 0 #171512;opacity:.94;pointer-events:none}
 .ps-snack-feed-token{position:fixed;z-index:50;display:flex;align-items:center;gap:7px;box-sizing:border-box;width:124px;height:54px;padding:5px 8px;border:2px solid #80613e;border-radius:10px;background:#fff7df;color:#49341f;box-shadow:2px 3px 0 #4f3925a6,0 4px 14px #281d164a;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;font-family:"Noto Sans CJK SC",sans-serif}
 .ps-snack-feed-token[data-dragging=true]{z-index:55;cursor:grabbing;transform:scale(1.06);box-shadow:3px 5px 0 #4f3925a6,0 8px 18px #281d1666}
 .ps-snack-feed-emoji{display:grid;flex:none;width:34px;height:34px;place-items:center;border:1px solid #b68e5b;border-radius:8px;background:#f8e7b5;font-size:24px;line-height:1}
