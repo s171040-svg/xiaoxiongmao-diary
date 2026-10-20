@@ -168,12 +168,6 @@ const ROOM_FURNITURE_OCCLUDERS: {
   { id: 'wardrobe', depth: 0.14, region: { left: 815, top: 45, right: 975, bottom: 335 } },
   { id: 'dresser', depth: 0.22, region: { left: 925, top: 215, right: 1024, bottom: 365 } },
   ...LEFT_ROOM_PLANTS.map(plant => ({ ...plant, depth: .82, foreground: true })),
-  {
-    id: 'lower-right-plant',
-    depth: 0.92,
-    foreground: true,
-    polygon: [[880, 478], [884, 465], [894, 456], [906, 449], [922, 444], [938, 446], [950, 435], [968, 436], [981, 445], [1001, 449], [1014, 460], [1024, 461], [1024, 576], [931, 576], [921, 560], [905, 548], [895, 531], [883, 518], [875, 502], [879, 490]],
-  },
 ];
 type TransitionKey = PixelTransitionKey;
 type RoomWastePoint = { x: number; y: number };
@@ -3402,6 +3396,16 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
                   : undefined,
             }} />
         ))}
+        {showInteractionBubble && (
+          <div className="ps-room-image-cutout-canvas" aria-hidden="true">
+            <img
+              className="ps-room-plant-user-cutout"
+              src={`${import.meta.env.BASE_URL}static/room/room-plant-cutout-user.png?v=user-cutout-1`}
+              alt=""
+              draggable={false}
+            />
+          </div>
+        )}
         {showInteractionBubble && placedProps.rack && (
           <img ref={clothesRackRef}
             className={`ps-room-rack${draggingFurnitureId === 'rack' ? ' ps-furniture-dragging' : ''}${roomEye.controlledFurnitureId === 'rack' ? ' ps-furniture-controlled' : ''}`}
