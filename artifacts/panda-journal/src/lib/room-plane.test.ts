@@ -24,6 +24,7 @@ import {
   roomDepthZIndex,
   roomFloorBoundsPercent,
   roomPointAtImagePosition,
+  ROOM_OUTSIDE_BOUNDARY_V,
   ROOM_IMAGE_HEIGHT,
   ROOM_IMAGE_WIDTH,
   unprojectRoomPoint,
@@ -32,8 +33,10 @@ import {
 } from './room-plane';
 
 const far = projectRoomPoint({ u: 0.5, v: 0.1 });
-const near = projectRoomPoint({ u: 0.5, v: 0.9 });
+const near = projectRoomPoint({ u: 0.5, v: ROOM_OUTSIDE_BOUNDARY_V });
 assert.ok(near.y > far.y);
+assert.ok(isWalkableRoomPoint({ u: 0.5, v: ROOM_OUTSIDE_BOUNDARY_V }),
+  'the outside marker sits on the reachable front edge of the room floor');
 assert.ok(near.scale > far.scale, 'the panda appears larger closer to the front of the room');
 assert.ok(far.scale < 0.62, 'the panda appears smaller toward the back of the room');
 assert.equal(projectRoomPoint({ u: 0.5, v: 0.92 }).scale, 0.62,

@@ -15,6 +15,7 @@ import {
   pointAlongRoomWalkPath,
   randomWalkableRoomPoint,
   randomRoomPoint,
+  ROOM_OUTSIDE_BOUNDARY_V,
   roomImagePolygonClipPath,
   roomImageRegionClipPath,
   roomWalkPathLength,
@@ -358,6 +359,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
   const [worldFallPhase, setWorldFallPhase] = useState<WorldFallPhase>('none');
   const worldFallPhaseRef = useRef(worldFallPhase);
   worldFallPhaseRef.current = worldFallPhase;
+  const worldFallBoundaryTriggerRef = useRef<(() => boolean) | null>(null);
   const [worldFallMessageVisible, setWorldFallMessageVisible] = useState(false);
   const [packingPoopDeliveredAt, setPackingPoopDeliveredAt] = useState<number | null>(null);
   const [draggingPoopDeliveredAt, setDraggingPoopDeliveredAt] = useState<number | null>(null);
@@ -1212,8 +1214,17 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
   }, [activityState, hidden, pet.stage, showInteractionBubble, triggerStartle]);
 
   const applyRoomPoint = useCallback((point: RoomPoint) => {
+    if (showInteractionBubble && worldFallPhaseRef.current === 'falling') return;
     const previousPoint = positionRef.current;
-    const elevationDelta = (point.elevation ?? 0) - (previousPoint.elevation ?? 0);
+    const reachedOutsideBoundary = showInteractionBubble && roomWalkingRef.current
+      && worldFallPhaseRef.current === 'none'
+      && previousPoint.v <= ROOM_OUTSIDE_BOUNDARY_V
+      && point.v >= ROOM_OUTSIDE_BOUNDARY_V
+      && (point.elevation ?? 0) <= 0.001;
+    const appliedPoint = reachedOutsideBoundary
+      ? { ...point, v: ROOM_OUTSIDE_BOUNDARY_V, elevation: 0 }
+      : point;
+    const elevationDelta = (appliedPoint.elevation ?? 0) - (previousPoint.elevation ?? 0);
     if (!showInteractionBubble || !roomWalkingRef.current || elevationDelta < -0.0001) {
       if (climbingUpRef.current) {
         climbingUpRef.current = false;
@@ -1223,12 +1234,12 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
       climbingUpRef.current = true;
       setClimbingUp(true);
     }
-    positionRef.current = point;
+    positionRef.current = appliedPoint;
     const track = trackRef.current;
     if (!track) return;
     const projected = showInteractionBubble
-      ? projectRoomPoint(point, window.innerWidth, window.innerHeight)
-      : projectDesktopPoint(point);
+      ? projectRoomPoint(appliedPoint, window.innerWidth, window.innerHeight)
+      : projectDesktopPoint(appliedPoint);
     track.style.setProperty('--room-x', `${projected.x}%`);
     track.style.setProperty('--room-y', `${projected.y}%`);
     track.style.setProperty('--room-scale', projected.scale.toFixed(3));
@@ -1240,12 +1251,12 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
     }
     // Room characters stay in front of movable furniture and fixed cut-outs.
     track.style.zIndex = showInteractionBubble ? '240' : String(projected.zIndex);
-    track.dataset.roomU = point.u.toFixed(3);
-    track.dataset.roomV = point.v.toFixed(3);
-    track.dataset.roomElevation = (point.elevation ?? 0).toFixed(3);
+    track.dataset.roomU = appliedPoint.u.toFixed(3);
+    track.dataset.roomV = appliedPoint.v.toFixed(3);
+    track.dataset.roomElevation = (appliedPoint.elevation ?? 0).toFixed(3);
     track.dataset.roomScale = projected.scale.toFixed(3);
     if (showInteractionBubble) {
-      track.dataset.roomWalkable = String(isWalkableRoomPoint(point));
+      track.dataset.roomWalkable = String(isWalkableRoomPoint(appliedPoint));
       track.style.setProperty('--room-shadow-scale', projected.shadowScale.toFixed(3));
       track.style.setProperty('--room-shadow-opacity', projected.shadowOpacity.toFixed(3));
       track.style.setProperty('--room-shadow-blur', `${projected.shadowBlur.toFixed(2)}px`);
@@ -1253,6 +1264,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
       track.dataset.roomDepth = projected.depth.toFixed(3);
       track.dataset.roomZ = String(projected.zIndex);
     } else delete track.dataset.roomWalkable;
+    if (reachedOutsideBoundary) worldFallBoundaryTriggerRef.current?.();
   }, [showInteractionBubble]);
 
   useLayoutEffect(() => {
@@ -1549,6 +1561,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
         break;
       case 'world-fall':
         lastWorldFallAtRef.current = performance.now();
+        worldFallPhaseRef.current = 'falling';
         setWorldFallMessageVisible(true);
         setWorldFallPhase('falling');
         break;
@@ -1627,7 +1640,12 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
       timer = window.setTimeout(() => setWorldFallPhase('away'), WORLD_FALL_ANIMATION_MS);
     } else if (worldFallPhase === 'away') {
       timer = window.setTimeout(() => {
-        const returnPoint = { ...positionRef.current, u: 0.08 };
+        const returnPoint = nearestWalkableRoomPoint({
+          ...positionRef.current,
+          u: 0.08,
+          v: Math.min(positionRef.current.v, ROOM_OUTSIDE_BOUNDARY_V - 0.04),
+          elevation: 0,
+        });
         applyRoomPoint(returnPoint);
         facingRef.current = 'right';
         setFacing('right');
@@ -1808,20 +1826,23 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
     ));
   }, [applyRoomPoint, bathPhase, showInteractionBubble]);
 
-  const beginRandomWorldFall = useCallback(() => {
+  const beginWorldFall = useCallback((source: 'random' | 'boundary') => {
     const now = performance.now();
     if (!showInteractionBubble || dampAfterBath || worldFallPhaseRef.current !== 'none'
       || interactionStateRef.current !== 'roaming' || activityStateRef.current !== 'roaming'
       || bathPhaseRef.current !== 'none' || hangingOnRackRef.current || draggingRef.current || hidden
       || developerPose || isCuddling || reacting || startled || pet.stage !== 'present'
       || document.visibilityState !== 'visible'
-      || now - lastWorldFallAtRef.current < WORLD_FALL_COOLDOWN_MS) return false;
+      || (source === 'random' && now - lastWorldFallAtRef.current < WORLD_FALL_COOLDOWN_MS)) return false;
     lastWorldFallAtRef.current = now;
+    worldFallPhaseRef.current = 'falling';
+    roomWalkingRef.current = false;
     setRoomWalking(false);
     setWorldFallMessageVisible(true);
     setWorldFallPhase('falling');
     return true;
   }, [dampAfterBath, developerPose, hidden, isCuddling, pet.stage, reacting, showInteractionBubble, startled]);
+  worldFallBoundaryTriggerRef.current = () => beginWorldFall('boundary');
 
   useEffect(() => {
     if (!showInteractionBubble || hidden || developerEvent || worldFallPhase !== 'none') return undefined;
@@ -1832,7 +1853,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
         + Math.random() * (WORLD_FALL_RANDOM_MAX_MS - WORLD_FALL_RANDOM_MIN_MS);
       timer = window.setTimeout(() => {
         if (cancelled) return;
-        if (!beginRandomWorldFall()) scheduleNextFall();
+        if (!beginWorldFall('random')) scheduleNextFall();
       }, delay);
     };
     scheduleNextFall();
@@ -1840,7 +1861,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [beginRandomWorldFall, developerEvent, hidden, showInteractionBubble, worldFallPhase]);
+  }, [beginWorldFall, developerEvent, hidden, showInteractionBubble, worldFallPhase]);
 
   useEffect(() => {
     if (!showInteractionBubble || !roomWalking || !onPlaceSpacePolicePoop) return undefined;
@@ -3206,6 +3227,16 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
   const roomBackgroundImage = `url("${import.meta.env.BASE_URL}static/room/room-background-pixellab.png?v=bamboo-room-1")`;
   const roomBackgroundSize = `min(100vw, ${(ROOM_IMAGE_WIDTH / ROOM_IMAGE_HEIGHT) * 100}vh) auto`;
   const roomFloorBounds = roomFloorBoundsPercent(window.innerWidth, window.innerHeight);
+  const outsideBoundaryStart = projectRoomPoint(
+    { u: 0.08, v: ROOM_OUTSIDE_BOUNDARY_V },
+    window.innerWidth,
+    window.innerHeight,
+  );
+  const outsideBoundaryEnd = projectRoomPoint(
+    { u: 0.92, v: ROOM_OUTSIDE_BOUNDARY_V },
+    window.innerWidth,
+    window.innerHeight,
+  );
   const roomImageStyle = showInteractionBubble ? {
     backgroundImage: roomBackgroundImage,
     backgroundSize: roomBackgroundSize,
@@ -3236,6 +3267,14 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
          data-testid="panda-interaction-state" data-damp-after-bath={dampAfterBath ? 'true' : undefined}
          data-damp-drying-ready={dampDryingReady ? 'true' : undefined}
          style={{ ['--ps-dur' as string]: `${seconds}s` }}>
+        {showInteractionBubble && (
+          <div className="ps-room-outside-boundary" data-testid="room-outside-boundary" aria-hidden="true"
+            style={{
+              left: `${outsideBoundaryStart.x}%`,
+              top: `${outsideBoundaryStart.y}%`,
+              width: `${outsideBoundaryEnd.x - outsideBoundaryStart.x}%`,
+            }} />
+        )}
         {wasteBinVisible && (
           <div ref={wasteBinRef} className="ps-room-trash-can"
             aria-label="像素垃圾桶；拖动包好的便便袋到这里" role="img" data-testid="room-waste-bin"
