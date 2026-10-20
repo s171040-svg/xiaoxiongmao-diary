@@ -638,3 +638,17 @@ mtime_ms = 1792289014893
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/38b19c54-17a2-4699-8bb1-74b6693de81e/724a5871-2de0-43ee-902a-9e3b8b354bb9"
 storage_version_token = "1792506812564045"
 content_type = "image/png"
+
+[[outputs]]
+id = "IvkzDReWjQB7W1h-5KWMR"
+uri = "file://generated-artifacts/panda-night-room-pixellab-preview.png"
+type = "image"
+title = "PixelLab 夜间卧室预览（未接入）"
+description = "384 × 216 概念预览。PixelLab 本次重绘偏离现有房间布局，窗外也没有明显月亮；仅供查看，不是可直接使用的日夜切换素材。"
+logical_id = "0db12712-9156-4a9b-b38c-f841e6fcaae2"
+content_hash = "sha256:504d016fd6553de300c99588603edafe5f6ddda6977f1ad43f0dc09ab81e3e72"
+size = 90727
+mtime_ms = 1792512129474
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/0db12712-9156-4a9b-b38c-f841e6fcaae2/1eb479d2-48f7-4369-9c9c-bf078d5ef098"
+storage_version_token = "1792512143003245"
+content_type = "image/png"
