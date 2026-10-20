@@ -107,7 +107,8 @@ export function RoomPropDock({ equippedToy, onSelectToy, placed, onTogglePlaced,
       <div className="rp-group" role="group" aria-label="小玩具">
         {TOYS.map((toy) => (
           <button key={toy.id} type="button" className="rp-slot" aria-pressed={equippedToy === toy.id}
-            aria-label={toy.label} onClick={() => onSelectToy(toy.id)} data-testid={`prop-toy-${toy.id}`}>
+            aria-label={toy.label} onClick={() => onSelectToy(toy.id)} data-testid={`prop-toy-${toy.id}`}
+            title={toy.id === 'teaser' ? equippedToy === toy.id ? '收回逗猫棒' : '拿出逗猫棒：拖动来回晃动，再次晃动会冲刺' : '开关激光笔：移动光点吸引小熊猫'}>
             {toy.id === 'teaser'
               ? <img className="rp-icon rp-teaser-icon" src={PANDA_TEASER_WAND_URL} alt="" />
               : <PixelIcon name={toy.id} />}

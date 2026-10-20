@@ -48,8 +48,11 @@ const devEventOptions: { event: DeveloperEvent; label: string; durationMs: numbe
   { event: 'dirty-bath', label: '脏兮兮状态洗澡', durationMs: 5000, persistent: true },
   { event: 'dirty-bath-rub', label: '脏兮兮状态浴球搓洗', durationMs: 5000, persistent: true },
   { event: 'dirty-fly-chase', label: '脏兮兮小熊猫被苍蝇追', durationMs: 7000, persistent: true },
-  { event: 'toy-teaser', label: '逗猫棒好奇扑抓', durationMs: 3200 },
-  { event: 'toy-laser', label: '追激光与扑点', durationMs: 3200 },
+  { event: 'toy-curious', label: '逗猫棒：侧头好奇问号', durationMs: 5000 },
+  { event: 'toy-teaser', label: '逗猫棒：兴奋冲刺', durationMs: 5000 },
+  { event: 'toy-brake', label: '逗猫棒：触碰滑行刹车', durationMs: 5000 },
+  { event: 'toy-wall-dizzy', label: '逗猫棒：撞墙眩晕', durationMs: 5000 },
+  { event: 'toy-laser', label: '激光笔：伏低扑点', durationMs: 5000 },
 ];
 type DevTestSelection =
   | { kind: 'action'; action: PerformanceAction }

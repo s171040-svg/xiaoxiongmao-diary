@@ -418,12 +418,18 @@
 .ps-space-letter-box{left:calc(var(--room-left,0px) + var(--room-w,100vw) * .05);bottom:calc(var(--room-gap-bottom,0px) + var(--room-h,100vh) * .12)}
 .ps-room-layout-controls{top:calc(var(--room-top,0px) + 14px)}
 
-/* Toys held by the pointer */
+/* The wand stays in the room; only the laser follows the cursor. */
 .ps-toy{position:fixed;z-index:250;width:0;height:0;pointer-events:none}
 .ps-toy-laser i{position:absolute;left:-6px;top:-6px;width:12px;height:12px;background:#ff3b30;box-shadow:0 0 0 3px #ff3b3055,0 0 0 6px #ff3b3026,0 0 12px 4px #ff3b3088;animation:ps-laser-pulse .5s steps(2) infinite alternate}
 .ps-toy-laser b{display:none}
-.ps-toy-teaser{width:48px;height:128px}
-.ps-toy-teaser img{position:absolute;top:0;left:0;display:block;width:48px;height:128px;object-fit:contain;transform-origin:50% 42%;image-rendering:pixelated;filter:drop-shadow(1px 2px 1px #1d1a1266);animation:ps-teaser-wiggle .42s steps(2,end) infinite alternate}
+.ps-toy-teaser{width:48px;height:128px;pointer-events:auto;cursor:grab;touch-action:none;user-select:none}
+.ps-toy-teaser[data-dragging=true]{cursor:grabbing}
+.ps-toy-teaser img{position:absolute;top:0;left:0;display:block;width:48px;height:128px;object-fit:contain;transform-origin:50% 42%;image-rendering:pixelated;filter:drop-shadow(1px 2px 1px #1d1a1266);pointer-events:none}
+.ps-toy-teaser[data-dragging=true] img{animation:ps-teaser-wiggle .42s steps(2,end) infinite alternate}
+.ps-toy-question{position:absolute;bottom:calc(100% + 3px);left:50%;color:#fff4ba;text-shadow:2px 0 #473421,-2px 0 #473421,0 2px #473421,0 -2px #473421;font:bold 28px monospace;transform:translateX(-50%);pointer-events:none}
+.ps-toy-dizzy-stars{position:absolute;bottom:calc(100% + 4px);left:50%;width:70px;text-align:center;color:#ffe58e;text-shadow:1px 2px #463520;font:bold 23px monospace;animation:ps-toy-stars .8s steps(5,end) infinite;pointer-events:none}
+@keyframes ps-toy-stars{0%{transform:translateX(-60%) rotate(-12deg)}50%{transform:translateX(-40%) rotate(12deg)}100%{transform:translateX(-60%) rotate(-12deg)}}
+@media(prefers-reduced-motion:reduce){.ps-toy-dizzy-stars,.ps-toy-teaser[data-dragging=true] img{animation:none}}
 @keyframes ps-laser-pulse{from{transform:scale(1)}to{transform:scale(1.35)}}
 @keyframes ps-teaser-wiggle{from{transform:rotate(-12deg) translateX(-1px)}to{transform:rotate(12deg) translateX(1px)}}
 @media (prefers-reduced-motion:reduce){.ps-dream-cloud{animation:none}}

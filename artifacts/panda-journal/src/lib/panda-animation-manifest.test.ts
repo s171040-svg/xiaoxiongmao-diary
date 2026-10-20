@@ -82,14 +82,15 @@ test('every snack has a distinct complete 96px eating animation', () => {
   }
 });
 
-test('both new toy interactions have complete transparent 96px frame sequences', () => {
+test('toy reactions and their transitions have complete distinct 96px frame sequences', () => {
   assert.ok(manifestPath, 'could not locate the panda animation manifest');
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
     frameCountBySprite: Record<string, number>;
   };
   const assetRoot = resolve(dirname(manifestPath), '../../public/static/panda');
 
-  for (const sprite of ['toy-teaser', 'toy-laser']) {
+  for (const sprite of ['toy-teaser', 'toy-laser', 'toy-curious', 'toy-brake', 'toy-wall-dizzy']) {
+    const poses = new Set<string>();
     assert.equal(manifest.frameCountBySprite[sprite], 8, `${sprite} should have eight generated poses`);
     for (let frame = 1; frame <= 8; frame += 1) {
       const image = readFileSync(resolve(assetRoot, `frames/${sprite}-${frame}.png`));
@@ -97,6 +98,8 @@ test('both new toy interactions have complete transparent 96px frame sequences',
       assert.equal(image.readUInt32BE(16), 96, `${sprite}-${frame} keeps the 96px width`);
       assert.equal(image.readUInt32BE(20), 96, `${sprite}-${frame} keeps the 96px height`);
       assert.ok(image.length > 1000, `${sprite}-${frame} contains real sprite artwork`);
+      poses.add(image.toString('base64'));
     }
+    assert.ok(poses.size >= 5, `${sprite} has at least five genuinely different transition poses`);
   }
 });

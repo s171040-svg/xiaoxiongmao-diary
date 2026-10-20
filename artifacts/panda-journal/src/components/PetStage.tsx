@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { advanceToy, createShakeDetector, createToyRuntime, shakeToy, toyVisual, TOY_ART_VERSION, type ToyPhase, type ToySprite } from '@/lib/room-toy-interaction';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import type { CareStatCategory, DeveloperEvent, DeveloperPose, Gift, PerformanceAction, PetEffect, SpacePoliceLetter } from '@/lib/companion-types';
 import {
@@ -399,7 +400,14 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
   equippedToyRef.current = equippedToy;
   const [toyPointer, setToyPointer] = useState<{ x: number; y: number } | null>(null);
   const toyPointerRef = useRef<{ x: number; y: number } | null>(null);
-  const [toyPose, setToyPose] = useState<'swat' | 'pounce' | null>(null);
+  const [toyPose, setToyPose] = useState<ToySprite | null>(null);
+  const [toyArtFrame, setToyArtFrame] = useState(0);
+  const [toyPhase, setToyPhase] = useState<ToyPhase>('waiting');
+  const toyRuntimeRef = useRef(createToyRuntime());
+  const toyShakeRef = useRef(createShakeDetector());
+  const toyDragRef = useRef<{ id: number; dx: number; dy: number } | null>(null);
+  const [toyDragging, setToyDragging] = useState(false);
+  const toyAudioRef = useRef<AudioContext | null>(null);
   const capturedHomecomingArrivedRef = useRef(false);
   const capturedHomecomingTokenRef = useRef<number | null>(null);
   const positionedSpacePoliceLetterRef = useRef<number | null>(null);
@@ -874,7 +882,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
     : startled && showInteractionBubble
     ? animationManifest.motionSprites.idle
     : showInteractionBubble && toyPose && pet.stage === 'present' && activityState === 'roaming'
-    ? (equippedToy === 'teaser' ? 'toy-teaser' : 'toy-laser')
+    ? toyPose
     : pet.stage === 'performing' && action === 'captured-homecoming'
     ? animationManifest.actionSprites[action]
     : pet.stage === 'performing' && (interactionState !== 'chat' || pet.actionPreview)
@@ -1204,7 +1212,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
     setFacing(nextFacing);
 
     if (!showInteractionBubble || activityState !== 'roaming' || hidden
-      || interactionStateRef.current !== 'roaming' || pet.stage !== 'present' || draggingRef.current) return;
+      || interactionStateRef.current !== 'roaming' || pet.stage !== 'present' || draggingRef.current || equippedToyRef.current) return;
     const mouse = mousePositionRef.current;
     const track = trackRef.current;
     if (!mouse || !track) return;
@@ -1604,8 +1612,17 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
         }, DIRTY_FLY_DURATION_MS);
         break;
       case 'toy-teaser':
+      case 'toy-curious':
+      case 'toy-brake':
+      case 'toy-wall-dizzy':
       case 'toy-laser': {
-        const toy = developerEvent.event === 'toy-teaser' ? 'teaser' : 'laser';
+        const toy = developerEvent.event === 'toy-laser' ? 'laser' : 'teaser';
+        const runtime = createToyRuntime(performance.now());
+        if (developerEvent.event === 'toy-curious' || developerEvent.event === 'toy-teaser') shakeToy(runtime, performance.now());
+        if (developerEvent.event === 'toy-teaser') runtime.phase = 'excited';
+        if (developerEvent.event === 'toy-brake') { runtime.phase = 'brake'; runtime.slideFrom = { ...positionRef.current }; runtime.velocity = { u: 1, v: 0 }; }
+        if (developerEvent.event === 'toy-wall-dizzy') runtime.phase = 'dizzy';
+        toyRuntimeRef.current = runtime;
         const pandaRect = pandaButtonRef.current?.getBoundingClientRect();
         setEquippedToy(toy);
         if (pandaRect) {
@@ -1622,7 +1639,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
           toyPointerRef.current = null;
           setToyPointer(null);
           setToyPose(null);
-        }, 3200);
+        }, 5000);
         break;
       }
     }
@@ -2676,98 +2693,119 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
     if (!showInteractionBubble || !equippedToy) {
       toyPointerRef.current = null;
       setToyPointer(null);
+      toyDragRef.current = null;
+      setToyDragging(false);
       return undefined;
     }
+    const runtime = createToyRuntime(performance.now());
+    const preview = developerEvent?.event;
+    if (preview === 'toy-curious' || preview === 'toy-teaser') shakeToy(runtime, performance.now());
+    if (preview === 'toy-teaser') runtime.phase = 'excited';
+    if (preview === 'toy-brake') { runtime.phase = 'brake'; runtime.slideFrom = { ...positionRef.current }; runtime.velocity = { u: 1, v: 0 }; }
+    if (preview === 'toy-wall-dizzy') runtime.phase = 'dizzy';
+    toyRuntimeRef.current = runtime;
+    toyShakeRef.current.reset();
+    const rect = pandaButtonRef.current?.getBoundingClientRect();
+    const initial = {
+      x: Math.min(window.innerWidth - 35, (rect?.right ?? window.innerWidth / 2) + 90),
+      y: Math.min(window.innerHeight - 40, rect?.bottom ?? window.innerHeight * .65),
+    };
+    toyPointerRef.current = initial;
+    setToyPointer(initial);
     const onMove = (event: PointerEvent) => {
+      if (equippedToy !== 'laser') return;
       const overDock = (event.target as Element | null)?.closest?.('.rp-dock, .cc-top, [role="dialog"]');
-      const next = overDock ? null : { x: event.clientX, y: event.clientY };
+      if (overDock) return;
+      const next = { x: event.clientX, y: event.clientY };
       toyPointerRef.current = next;
       setToyPointer(next);
     };
-    const onLeave = () => { toyPointerRef.current = null; setToyPointer(null); };
+    const onLeave = () => { toyDragRef.current = null; setToyDragging(false); toyShakeRef.current.reset(); };
+    const onVisibility = () => {
+      onLeave();
+      toyRuntimeRef.current = createToyRuntime(performance.now());
+    };
     const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setEquippedToy(null); };
     window.addEventListener('pointermove', onMove);
     document.documentElement.addEventListener('pointerleave', onLeave);
+    document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('keydown', onKey);
     return () => {
       window.removeEventListener('pointermove', onMove);
       document.documentElement.removeEventListener('pointerleave', onLeave);
+      document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('keydown', onKey);
     };
-  }, [equippedToy, showInteractionBubble]);
+  }, [equippedToy, showInteractionBubble, developerEvent?.event]);
 
   useEffect(() => {
     if (!equippedToy) toyCareInteractionRecordedRef.current = false;
   }, [equippedToy]);
+  useEffect(() => () => {
+    const audio = toyAudioRef.current;
+    toyAudioRef.current = null;
+    if (audio && audio.state !== 'closed') {
+      void audio.close().catch(error => console.warn('Could not close toy audio', error));
+    }
+  }, []);
 
   useEffect(() => {
     if (!showInteractionBubble || !equippedToy) return undefined;
     let raf = 0;
     let last = performance.now();
-    let nearSince = 0;
     let walking = false;
-    let pose: 'swat' | 'pounce' | null = null;
-    const setPose = (next: 'swat' | 'pounce' | null) => { if (pose !== next) { pose = next; setToyPose(next); } };
-    const setWalk = (next: boolean) => { if (walking !== next) { walking = next; setRoomWalking(next); } };
+    let pose: ToySprite | null = null;
+    let visualFrame = -1;
+    let phase: ToyPhase | null = null;
+    const setPose = (next: ToySprite | null) => { if (pose !== next) { pose = next; setToyPose(next); } };
+    const setWalk = (next: boolean) => {
+      roomWalkingRef.current = next;
+      if (walking !== next) { walking = next; setRoomWalking(next); }
+    };
     const tick = (now: number) => {
       raf = window.requestAnimationFrame(tick);
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       const pointer = toyPointerRef.current;
-      const busy = !pointer || pet.stage !== 'present' || activityState !== 'roaming' || hidden || dampAfterBath
+      const busy = !pointer || pet.stage !== 'present' || activityState !== 'roaming' || hidden || dampAfterBath || document.hidden
         || developerGrab || flyChaseActive || worldFallPhase !== 'none' || draggingRef.current
         || bathPhaseRef.current !== 'none' || hangingOnRackRef.current || startledRef.current
         || interactionStateRef.current !== 'roaming';
-      if (busy) { setWalk(false); setPose(null); nearSince = 0; return; }
-      const width = Math.max(1, window.innerWidth);
-      const height = Math.max(1, window.innerHeight);
-      const goal = nearestWalkableRoomPoint(unprojectRoomPoint((pointer.x / width) * 100, (pointer.y / height) * 100, width, height));
-      const from = positionRef.current;
-      const dx = goal.u - from.u;
-      const dy = goal.v - from.v;
-      const distance = Math.hypot(dx, dy);
-      const teaserNearDistance = equippedToyRef.current === 'teaser' ? 0.075 : 0.06;
-      if (distance > teaserNearDistance) {
-        nearSince = 0;
-        setPose(null);
-        const step = Math.min(distance, (equippedToyRef.current === 'laser' ? 0.55 : 0.34) * dt);
-        let next = { u: from.u + (dx / distance) * step, v: from.v + (dy / distance) * step };
-        if (!isWalkableRoomSegment(from, next)) {
-          const slideU = { u: next.u, v: from.v };
-          const slideV = { u: from.u, v: next.v };
-          next = isWalkableRoomSegment(from, slideU) ? slideU : isWalkableRoomSegment(from, slideV) ? slideV : from;
-        }
-        if (next !== from) {
-          updateFacing(next.u - from.u);
-          applyRoomPoint(next);
-          setWalk(true);
-        } else setWalk(false);
+      if (busy) {
+        setWalk(false); setPose(null);
+        toyRuntimeRef.current = createToyRuntime(now);
+        if (phase !== 'waiting') { phase = 'waiting'; setToyPhase('waiting'); }
         return;
       }
-      setWalk(false);
-      updateFacing(dx);
-      if (!toyCareInteractionRecordedRef.current) {
+      const width = Math.max(1, window.innerWidth);
+      const height = Math.max(1, window.innerHeight);
+      const goal = unprojectRoomPoint((pointer.x / width) * 100, (pointer.y / height) * 100, width, height);
+      const from = positionRef.current;
+      const state = toyRuntimeRef.current;
+      const result = advanceToy(state, equippedToy, from, goal, now, dt);
+      const visual = toyVisual(state, now);
+      setPose(visual.sprite);
+      if (visualFrame !== visual.frame) { visualFrame = visual.frame; setToyArtFrame(visual.frame); }
+      if (phase !== state.phase) { phase = state.phase; setToyPhase(state.phase); }
+      setWalk(result.walking);
+      if (state.phase !== 'waiting') updateFacing(result.lookU);
+      if (result.point !== from) applyRoomPoint(result.point);
+      if (result.contact && !toyCareInteractionRecordedRef.current) {
         toyCareInteractionRecordedRef.current = true;
         onCareInteraction?.('bond');
-      }
-      if (equippedToyRef.current === 'teaser') {
-        setPose('swat');
-      } else {
-        if (!nearSince) nearSince = now;
-        const phase = (now - nearSince) % 4200;
-        setPose(phase < 2000 ? 'pounce' : null);
       }
     };
     raf = window.requestAnimationFrame(tick);
     return () => {
       window.cancelAnimationFrame(raf);
       setToyPose(null);
+      roomWalkingRef.current = false;
       setRoomWalking(false);
     };
   }, [activityState, applyRoomPoint, dampAfterBath, developerGrab, equippedToy, flyChaseActive, hidden, onCareInteraction, pet.stage, showInteractionBubble, updateFacing, worldFallPhase]);
 
   useEffect(() => {
-    if (!equippedToy) return undefined;
+    if (equippedToy !== 'laser') return undefined;
     const previous = document.body.style.cursor;
     document.body.style.cursor = 'none';
     return () => { document.body.style.cursor = previous; };
@@ -2776,6 +2814,43 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
   const toggleRoomProp = useCallback((prop: RoomProp) => {
     setPlacedProps((current) => ({ ...current, [prop]: !current[prop] }));
   }, []);
+
+  const beginToyDrag = (event: ReactPointerEvent<HTMLSpanElement>) => {
+    if (equippedToy !== 'teaser' || !event.isPrimary || event.button !== 0 || !toyPointerRef.current) return;
+    event.preventDefault(); event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    toyDragRef.current = { id: event.pointerId, dx: toyPointerRef.current.x - event.clientX, dy: toyPointerRef.current.y - event.clientY };
+    toyShakeRef.current.reset();
+    toyShakeRef.current.move(toyPointerRef.current.x, toyPointerRef.current.y, performance.now());
+    setToyDragging(true);
+    if (!toyAudioRef.current && window.AudioContext) toyAudioRef.current = new AudioContext();
+    void toyAudioRef.current?.resume().catch(error => console.warn('Toy sound unavailable', error));
+  };
+  const moveToyDrag = (event: ReactPointerEvent<HTMLSpanElement>) => {
+    const drag = toyDragRef.current;
+    if (!drag || drag.id !== event.pointerId) return;
+    event.preventDefault(); event.stopPropagation();
+    const next = { x: Math.max(24, Math.min(window.innerWidth - 24, event.clientX + drag.dx)),
+      y: Math.max(46, Math.min(window.innerHeight - 12, event.clientY + drag.dy)) };
+    toyPointerRef.current = next; setToyPointer(next);
+    if (toyShakeRef.current.move(next.x, next.y, performance.now()) && shakeToy(toyRuntimeRef.current, performance.now())) {
+      const audio = toyAudioRef.current;
+      if (audio?.state === 'running') {
+        const oscillator = audio.createOscillator(), volume = audio.createGain();
+        oscillator.type = 'triangle'; oscillator.frequency.setValueAtTime(1100, audio.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(550, audio.currentTime + .1);
+        volume.gain.setValueAtTime(.025, audio.currentTime);
+        volume.gain.exponentialRampToValueAtTime(.001, audio.currentTime + .12);
+        oscillator.connect(volume); volume.connect(audio.destination);
+        oscillator.start(); oscillator.stop(audio.currentTime + .13);
+      }
+    }
+  };
+  const finishToyDrag = (event: ReactPointerEvent<HTMLSpanElement>) => {
+    if (toyDragRef.current?.id !== event.pointerId) return;
+    toyDragRef.current = null; setToyDragging(false); toyShakeRef.current.reset();
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+  };
 
   const handleBathBallPointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (!event.isPrimary || bathPhaseRef.current !== 'bathing' || !bathBallPosition) return;
@@ -3080,10 +3155,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
       ? bathRubbing ? bathingRubbingFrameUrl(bathFrame) : bathingFrameUrl(bathFrame)
     : startled && showInteractionBubble
       ? pandaStaticUrl('startled.png?v=mouse-startle-pixflux-1')
-    : sprite === 'toy-teaser' || sprite === 'toy-laser'
-    ? frame === 0
-      ? pandaStaticUrl('idle.png?v=toy-loop-base-1')
-      : pandaStaticUrl(`frames/${sprite}-${frame}.png?v=pixellab-toy-actions-1`)
+    : toyPose && sprite === toyPose
+    ? pandaStaticUrl(`frames/${toyPose}-${Math.max(1, toyArtFrame)}.png?v=${TOY_ART_VERSION}`)
     : sprite === 'lying'
     ? LYING_SPRITE
     : sprite === 'cuddle-wriggle'
@@ -3255,6 +3328,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
           data-bath-state={showInteractionBubble ? bathPhase : undefined}
          data-night={nightMode}
          data-interaction-state={interactionState}
+         data-toy-state={equippedToy ? toyPhase : undefined}
           data-activity-state={showInteractionBubble ? developerPose ?? activityState : undefined}
           data-dev-pose={developerPose ?? undefined} data-transition-direction={pixelTransitionDirection ?? undefined}
           data-dragging={isDragging} data-pressing={isPressPending}
@@ -3616,7 +3690,16 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
           locked={{ tub: bathPhase !== 'none', rack: hangingOnRack, bed: sleepingOnBed }} />
       )}
       {showInteractionBubble && interactionState !== 'chat' && equippedToy && toyPointer && (
-        <span className={`ps-toy ps-toy-${equippedToy}`} aria-hidden="true" data-testid={`room-toy-${equippedToy}`}
+        <span className={`ps-toy ps-toy-${equippedToy}`} data-testid={`room-toy-${equippedToy}`}
+            role={equippedToy === 'teaser' ? 'button' : undefined} tabIndex={equippedToy === 'teaser' ? 0 : undefined}
+            aria-label={equippedToy === 'teaser' ? '逗猫棒：拖动并来回晃动吸引小熊猫，再次点击逗猫棒按钮收回' : '激光光点'}
+            data-dragging={toyDragging} onPointerDown={beginToyDrag} onPointerMove={moveToyDrag}
+            onPointerUp={finishToyDrag} onPointerCancel={finishToyDrag} onLostPointerCapture={() => { toyDragRef.current = null; setToyDragging(false); }}
+            onKeyDown={event => {
+              if (equippedToy === 'teaser' && (event.key === ' ' || event.key === 'Enter')) {
+                event.preventDefault(); shakeToy(toyRuntimeRef.current, performance.now());
+              }
+            }}
             style={{
               left: equippedToy === 'teaser' ? toyPointer.x - 24 : toyPointer.x,
               top: equippedToy === 'teaser' ? toyPointer.y - 46 : toyPointer.y,
@@ -3629,6 +3712,12 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
       {showInteractionBubble && (
         <div className="ps-bubble-layer" aria-live="off">
           <div ref={bubbleAnchorRef} className="ps-bubble-anchor">
+            {equippedToy === 'teaser' && ['curious', 'approach', 'watching'].includes(toyPhase) && (
+              <span className="ps-toy-question" data-testid="panda-toy-question" role="status">？</span>
+            )}
+            {equippedToy && toyPhase === 'dizzy' && (
+              <span className="ps-toy-dizzy-stars" data-testid="panda-toy-dizzy" aria-label="撞到墙，晕乎乎">✦ · ✧</span>
+            )}
             {showInteractionBubble && worldFallMessageVisible && (
               <span className="ps-thinking ps-room-chat-bubble ps-world-fall-bubble" role="status" aria-live="polite"
                 data-testid="panda-world-fall-message">掉出去啦！</span>

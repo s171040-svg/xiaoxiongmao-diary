@@ -20,7 +20,7 @@ export type PerformanceAction =
   | 'captured-homecoming' | 'climb-up'
   | 'eat-banana' | 'eat-carrot' | 'eat-fish' | 'eat-candy' | 'eat-strawberry' | 'eat-cookie' | 'eat-bamboo';
 export type DeveloperPose = 'idle' | 'lying' | 'sleeping' | 'peeking';
-export type DeveloperEvent = 'startle' | 'grab' | 'dirty-grab' | 'dizzy-drop' | 'world-fall' | 'bath-drop' | 'bath-rub' | 'dirty-bath' | 'dirty-bath-rub' | 'dirty-fly-chase' | 'toy-teaser' | 'toy-laser';
+export type DeveloperEvent = 'startle' | 'grab' | 'dirty-grab' | 'dizzy-drop' | 'world-fall' | 'bath-drop' | 'bath-rub' | 'dirty-bath' | 'dirty-bath-rub' | 'dirty-fly-chase' | 'toy-teaser' | 'toy-laser' | 'toy-curious' | 'toy-brake' | 'toy-wall-dizzy';
 export type ChatMessage = {
   id: string; role: 'user' | 'assistant'; text: string; createdAt: number;
   photo?: string; status?: 'pending' | 'interrupted' | 'failed' | 'sent'; failureReason?: string;
