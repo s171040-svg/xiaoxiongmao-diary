@@ -411,6 +411,7 @@
 .ps-room-surface[data-room-only=true] .ps-room-backdrop{background-color:transparent}
 .ps-room-surface[data-room-only=true] .ps-room-floor{background-color:transparent}
 .ps-room-surface[data-room-only=true]::after{content:"";position:absolute;left:var(--room-left,0);top:var(--room-top,0);width:var(--room-w,100%);height:var(--room-h,100%);box-sizing:border-box;border:6px solid #1d130a;box-shadow:0 0 0 4px #a97c46,0 0 0 8px #1d130a;z-index:3;pointer-events:none}
+.ps-room-outside-boundary{position:fixed;z-index:230;height:3px;translate:0 -50%;background:#171512;box-shadow:0 1px 0 #171512;opacity:.94;pointer-events:none}
 .ps-room-rack{bottom:calc(var(--room-gap-bottom,0px) + var(--room-h,100vh) * .24)}
 .ps-room-bed{top:calc(var(--room-top,0px) + var(--room-h,100vh) * .68);left:calc(var(--room-left,0px) + var(--room-w,100vw) * .26)}
 .ps-bath-station{right:calc(var(--room-gap-right,0px) + var(--room-w,100vw) * .05);bottom:calc(var(--room-gap-bottom,0px) + var(--room-h,100vh) * .12)}

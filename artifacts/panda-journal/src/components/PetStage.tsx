@@ -2606,17 +2606,11 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
     const height = ROOM_IMAGE_HEIGHT * scale;
     const left = (viewportSize.width - width) / 2;
     const top = (viewportSize.height - height) / 2;
-    const boundary = projectRoomPoint(
-      { u: 0.5, v: ROOM_OUTSIDE_BOUNDARY_V },
-      viewportSize.width,
-      viewportSize.height,
-    );
-    const visibleHeight = boundary.y / 100 * viewportSize.height - top;
     root.setProperty('--room-left', `${left}px`);
     root.setProperty('--room-top', `${top}px`);
     root.setProperty('--room-w', `${width}px`);
-    root.setProperty('--room-h', `${visibleHeight}px`);
-    root.setProperty('--room-gap-bottom', `${viewportSize.height - top - visibleHeight}px`);
+    root.setProperty('--room-h', `${height}px`);
+    root.setProperty('--room-gap-bottom', `${top}px`);
     root.setProperty('--room-gap-right', `${left}px`);
   }, [viewportSize]);
 
@@ -3254,7 +3248,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
         }} />
         <div className="ps-room-floor" style={roomImageStyle && {
           ...roomImageStyle,
-          clipPath: `inset(${roomFloorBounds.far}% 0 ${100 - outsideBoundary.y}% 0)`,
+          clipPath: `inset(${roomFloorBounds.far}% 0 0)`,
         }} />
       </div>
         <div className="ps-stage" data-stage={pet.stage} data-room-only={showInteractionBubble}
@@ -3278,6 +3272,14 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
               <i /><i /><i />
             </span>
           </div>
+        )}
+        {showInteractionBubble && (
+          <div className="ps-room-outside-boundary" data-testid="room-outside-boundary" aria-hidden="true"
+            style={{
+              left: 'var(--room-left)',
+              top: `${outsideBoundary.y}%`,
+              width: 'var(--room-w)',
+            }} />
         )}
         {showInteractionBubble && ROOM_FURNITURE_OCCLUDERS.map((furniture) => (
           <div key={furniture.id} className="ps-room-occlusion" aria-hidden="true"
