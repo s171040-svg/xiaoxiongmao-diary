@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { advanceToy, createShakeDetector, createToyRuntime, shakeToy, toyVisual, TOY_ART_VERSION, type ToyPhase, type ToySprite } from '@/lib/room-toy-interaction';
+import { createPlantFallTracker, isBehindLeftRoomPlants, LEFT_ROOM_PLANTS, LEFT_ROOM_PLANT_Z_INDEX, rollLeftPlantFall } from '@/lib/room-plant-interaction';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import type { CareStatCategory, DeveloperEvent, DeveloperPose, Gift, PerformanceAction, PetEffect, SpacePoliceLetter } from '@/lib/companion-types';
 import {
@@ -157,6 +158,7 @@ const PEEKING_SPRITE = pandaStaticUrl('peeking.png?v=look-back-1');
 const ROOM_FURNITURE_OCCLUDERS: {
   id: string;
   depth: number;
+  foreground?: boolean;
   region?: { left: number; top: number; right: number; bottom: number };
   polygon?: readonly (readonly [number, number])[];
 }[] = [
@@ -164,11 +166,7 @@ const ROOM_FURNITURE_OCCLUDERS: {
   { id: 'armchair', depth: 0.03, region: { left: 590, top: 170, right: 790, bottom: 295 } },
   { id: 'wardrobe', depth: 0.14, region: { left: 815, top: 45, right: 975, bottom: 335 } },
   { id: 'dresser', depth: 0.22, region: { left: 925, top: 215, right: 1024, bottom: 365 } },
-  {
-    id: 'lower-left-plant',
-    depth: 0.82,
-    polygon: [[0, 390], [15, 393], [29, 404], [43, 408], [56, 420], [73, 424], [88, 436], [101, 441], [92, 448], [74, 446], [61, 440], [47, 446], [31, 440], [16, 448], [0, 444]],
-  },
+  ...LEFT_ROOM_PLANTS.map(plant => ({ ...plant, depth: .82, foreground: true })),
   {
     id: 'lower-right-plant',
     depth: 0.92,
@@ -1257,7 +1255,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
       bubbleAnchor.style.setProperty('--room-y', `${projected.y}%`);
       bubbleAnchor.style.setProperty('--room-scale', projected.scale.toFixed(3));
     }
-    // Room characters stay in front of movable furniture and fixed cut-outs.
+    // Only the two left foreground plants sit one layer above the panda.
     track.style.zIndex = showInteractionBubble ? '240' : String(projected.zIndex);
     track.dataset.roomU = appliedPoint.u.toFixed(3);
     track.dataset.roomV = appliedPoint.v.toFixed(3);
@@ -1860,6 +1858,17 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
     return true;
   }, [dampAfterBath, developerPose, hidden, isCuddling, pet.stage, reacting, showInteractionBubble, startled]);
   worldFallBoundaryTriggerRef.current = () => beginWorldFall('boundary');
+
+  useEffect(() => {
+    if (!showInteractionBubble || hidden || developerEvent || worldFallPhase !== 'none') return undefined;
+    const tracker = createPlantFallTracker();
+    const timer = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      const behind = isBehindLeftRoomPlants(positionRef.current, window.innerWidth, window.innerHeight);
+      if (rollLeftPlantFall(tracker, behind, performance.now())) beginWorldFall('random');
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, [beginWorldFall, developerEvent, hidden, showInteractionBubble, worldFallPhase]);
 
   useEffect(() => {
     if (!showInteractionBubble || hidden || developerEvent || worldFallPhase !== 'none') return undefined;
@@ -3360,7 +3369,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
             data-testid={`room-occlusion-${furniture.id}`}
             data-room-depth={furniture.depth.toFixed(3)}
             style={{
-              zIndex: roomFurnitureZIndex(furniture.depth),
+              zIndex: furniture.foreground ? LEFT_ROOM_PLANT_Z_INDEX : roomFurnitureZIndex(furniture.depth),
               backgroundImage: roomBackgroundImage,
               backgroundSize: roomBackgroundSize,
               backgroundPosition: 'center center',

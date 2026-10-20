@@ -14,6 +14,9 @@ export type RoomProjection = {
 
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
 const ROOM_MIN = 0.08;
+// The web panda may go behind the two left foreground plants.
+// Keep legacy desktop bounds and the far-wall depth unchanged.
+const ROOM_WALK_MIN_U = 0;
 const ROOM_MAX = 0.92;
 const ROOM_FLOOR_MAX_V = 1;
 const PANDA_BASE_SCALE = 0.62;
@@ -334,7 +337,7 @@ export function unprojectRoomPoint(x: number, y: number, viewportWidth = ROOM_IM
   const v = Math.min(ROOM_FLOOR_MAX_V, Math.max(ROOM_MIN, (y - floor.far) / (floor.near - floor.far)));
   const halfWidth = lerp(FLOOR_FAR_HALF_WIDTH, FLOOR_NEAR_HALF_WIDTH, v);
   return {
-    u: clampRoom(0.5 + (x - 50) / (2 * halfWidth)),
+    u: Math.min(ROOM_MAX, Math.max(ROOM_WALK_MIN_U, 0.5 + (x - 50) / (2 * halfWidth))),
     v,
   };
 }
@@ -397,7 +400,7 @@ let walkableRoomSamples: RoomPoint[] | null = null;
 export function randomWalkableRoomPoint(random = Math.random): RoomPoint {
   for (let attempt = 0; attempt < 48; attempt += 1) {
     const point = {
-      u: ROOM_MIN + random() * (ROOM_MAX - ROOM_MIN),
+      u: ROOM_WALK_MIN_U + random() * (ROOM_MAX - ROOM_WALK_MIN_U),
       v: ROOM_MIN + random() * (ROOM_FLOOR_MAX_V - ROOM_MIN),
     };
     if (isWalkableRoomPoint(point)) return point;
@@ -417,7 +420,7 @@ export function roomWalkPathLength(path: RoomPoint[]): number {
 }
 
 export function isWalkableRoomPoint(point: RoomPoint): boolean {
-  if (point.u < ROOM_MIN || point.u > ROOM_MAX || point.v < ROOM_MIN || point.v > ROOM_FLOOR_MAX_V) return false;
+  if (point.u < ROOM_WALK_MIN_U || point.u > ROOM_MAX || point.v < ROOM_MIN || point.v > ROOM_FLOOR_MAX_V) return false;
   const imagePoint = roomPointImagePosition(point);
   if (isCatTreeWalkImagePoint(imagePoint)) return true;
   if ((point.elevation ?? 0) > 0.001) return false;
@@ -430,7 +433,6 @@ const ROOM_OBSTACLES = [
   { minU: 0.79, maxU: 0.96, minV: 0, maxV: 0.16 }, // wardrobe
   { minU: 0.9, maxU: 1, minV: 0.1, maxV: 0.3 }, // dresser
   { minU: 0, maxU: 0.13, minV: 0, maxV: 0.28 }, // left shelf and table
-  { minU: 0, maxU: 0.14, minV: 0.38, maxV: 1 }, // bottom-left planter
   { minU: 0.82, maxU: 1, minV: 0.52, maxV: 1 }, // bottom-right plant
 ] as const;
 
@@ -438,7 +440,7 @@ function getWalkableRoomSamples(): RoomPoint[] {
   if (walkableRoomSamples) return walkableRoomSamples;
   const samples: RoomPoint[] = [];
   const step = 0.012;
-  for (let u = ROOM_MIN + step / 2; u < ROOM_MAX; u += step) {
+  for (let u = ROOM_WALK_MIN_U + step / 2; u < ROOM_MAX; u += step) {
     for (let v = ROOM_MIN + step / 2; v < ROOM_FLOOR_MAX_V; v += step) {
       const point = { u, v };
       if (isWalkableRoomPoint(point)) samples.push(point);
@@ -557,7 +559,7 @@ export function pointAlongRoomWalkPath(path: RoomPoint[], progress: number): Roo
 /** Keeps a manually moved pet on the floor and outside furniture footprints. */
 export function nearestWalkableRoomPoint(point: RoomPoint): RoomPoint {
   const bounded = {
-    u: Math.min(ROOM_MAX, Math.max(ROOM_MIN, point.u)),
+    u: Math.min(ROOM_MAX, Math.max(ROOM_WALK_MIN_U, point.u)),
     v: Math.min(ROOM_FLOOR_MAX_V, Math.max(ROOM_MIN, point.v)),
     ...(point.elevation !== undefined ? { elevation: Math.max(0, point.elevation) } : {}),
   };
