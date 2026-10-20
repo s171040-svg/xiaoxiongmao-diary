@@ -624,3 +624,17 @@ mtime_ms = 1792505706118
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/e3a45e0f-7fc9-424f-a6dd-ace6bb11560e/b09f00ea-8b4a-471f-b461-76109ee89b5f"
 storage_version_token = "1792505757970302"
 content_type = "image/gif"
+
+[[outputs]]
+id = "5jEQlwTTASpjHwN3gZRjk"
+uri = "file://artifacts/panda-journal/public/static/room/room-background-pixellab.png"
+type = "image"
+title = "当前房间原始背景图"
+description = "1024 × 576 PNG，未缩放、未裁剪。用于手动制作前景遮挡图层。"
+logical_id = "38b19c54-17a2-4699-8bb1-74b6693de81e"
+content_hash = "sha256:b2c8a849954150c3acb793e7949de9c46502ec64e84667ed76b0f4de837c14fe"
+size = 979997
+mtime_ms = 1792289014893
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/38b19c54-17a2-4699-8bb1-74b6693de81e/724a5871-2de0-43ee-902a-9e3b8b354bb9"
+storage_version_token = "1792506812564045"
+content_type = "image/png"
