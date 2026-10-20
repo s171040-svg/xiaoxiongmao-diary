@@ -33,6 +33,8 @@
 .ps-room-occlusion{position:absolute;inset:0;display:block;pointer-events:none;background-repeat:no-repeat}
 .ps-stage[data-night=true] .ps-room-occlusion{filter:brightness(.58) saturate(.82)}
 .ps-room-image-cutout-canvas{position:fixed;z-index:241;top:50%;left:50%;width:min(100vw,177.7777778vh);aspect-ratio:16/9;transform:translate(-50%,-50%);pointer-events:none}
+.ps-room-live-clock{position:absolute;inset:0;display:block;width:100%;height:100%;image-rendering:pixelated;pointer-events:none}
+.ps-stage[data-night=true] .ps-room-live-clock{filter:brightness(.58) saturate(.82)}
 .ps-room-plant-user-cutout{position:absolute;right:0;bottom:0;display:block;width:12.109375%;height:auto;image-rendering:pixelated;pointer-events:none;user-select:none}
 .ps-stage[data-night=true] .ps-room-plant-user-cutout{filter:brightness(.58) saturate(.82)}
 .ps-room-rack{position:fixed;z-index:1;left:68%;bottom:clamp(190px,26vh,280px);width:clamp(58px,6vw,80px);height:auto;transform:translateX(-50%);image-rendering:pixelated;filter:drop-shadow(0 4px 4px #33271c30);pointer-events:auto;touch-action:none;user-select:none;cursor:grab}

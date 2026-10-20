@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { RoomAlarmClock } from './RoomAlarmClock';
 import { advanceToy, createShakeDetector, createToyRuntime, shakeToy, toyVisual, TOY_ART_VERSION, type ToyPhase, type ToySprite } from '@/lib/room-toy-interaction';
 import { createPlantFallTracker, isBehindLeftRoomPlants, LEFT_ROOM_PLANTS, LEFT_ROOM_PLANT_Z_INDEX, rollLeftPlantFall } from '@/lib/room-plant-interaction';
 import { getBathBallSpawnPosition } from '@/lib/bath-ball-position';
@@ -3398,6 +3399,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
         ))}
         {showInteractionBubble && (
           <div className="ps-room-image-cutout-canvas" aria-hidden="true">
+            <RoomAlarmClock />
             <img
               className="ps-room-plant-user-cutout"
               src={`${import.meta.env.BASE_URL}static/room/room-plant-cutout-user.png?v=user-cutout-1`}
