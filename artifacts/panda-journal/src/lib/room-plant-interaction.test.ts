@@ -23,7 +23,7 @@ for (const point of [{ u: 0, v: .41 }, { u: .04, v: .86 }]) {
 }
 assert.ok(isWalkableRoomSegment({ u: .2, v: .6 }, { u: 0, v: .6 }), 'leftward chases can reach behind the plants');
 assert.equal(isWalkableRoomPoint({ u: .05, v: .15 }), false, 'the left shelf remains solid');
-assert.equal(isWalkableRoomPoint({ u: .9, v: .8 }), false, 'the right plant is unchanged');
+assert.equal(isWalkableRoomPoint({ u: .9, v: .8 }), true, 'the right plant now permits walking behind its foreground layer');
 assert.equal(isBehindLeftRoomPlants({ u: .5, v: .8 }), false, 'open floor has no plant penalty');
 assert.equal(isBehindLeftRoomPlants({ u: .9, v: .8 }), false);
 assert.equal(LEFT_ROOM_PLANT_Z_INDEX, 241, 'left plants sit one level above panda z=240');

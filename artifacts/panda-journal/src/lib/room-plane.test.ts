@@ -36,22 +36,28 @@ const far = projectRoomPoint({ u: 0.5, v: 0.1 });
 const near = projectRoomPoint({ u: 0.5, v: ROOM_OUTSIDE_BOUNDARY_V });
 assert.ok(near.y > far.y);
 assert.ok(isWalkableRoomPoint({ u: 0.5, v: ROOM_OUTSIDE_BOUNDARY_V }),
-  'the outside marker sits on the reachable front edge of the room floor');
+  'the exterior edge is reachable instead of being clamped to the floor');
 for (const [width, height] of [[1024, 576], [1280, 720], [1200, 800], [402, 874]]) {
   const boundary = projectRoomPoint({ u: 0.5, v: ROOM_OUTSIDE_BOUNDARY_V }, width, height);
-  const floor = roomFloorBoundsPercent(width, height);
   const imageScale = Math.min(width / ROOM_IMAGE_WIDTH, height / ROOM_IMAGE_HEIGHT);
-  assert.ok(Math.abs((floor.near - boundary.y) / 100 * height - 3 * imageScale) < 1e-9,
-    'the boundary stays just three image pixels above the existing floor bottom, without cropping the room');
+  const imageBottom = (height + ROOM_IMAGE_HEIGHT * imageScale) / 2;
+  assert.ok(Math.abs(boundary.y / 100 * height - imageBottom - imageScale) < 1e-9,
+    'the fall begins one image pixel beyond the unchanged background bottom');
   const restored = unprojectRoomPoint(boundary.x, boundary.y, width, height);
   assert.ok(Math.abs(restored.v - ROOM_OUTSIDE_BOUNDARY_V) < 1e-12,
     'movement and the visible bottom boundary use the same coordinates');
 }
 const bottomTarget = nearestWalkableRoomPoint({ u: 0.5, v: 1 });
 assert.equal(bottomTarget.v, 1, 'the full existing floor remains reachable');
-let bottomSampleIndex = 0;
-assert.ok(randomWalkableRoomPoint(() => bottomSampleIndex++ % 2 === 0 ? 0.5 : 1).v > ROOM_OUTSIDE_BOUNDARY_V,
-  'autonomous walks can reach the outside strip rather than stopping before it');
+const outsideRandom = [0, 0.5, 1];
+assert.ok(randomWalkableRoomPoint(() => outsideRandom.shift() ?? 0.5).v > ROOM_OUTSIDE_BOUNDARY_V,
+  'occasional autonomous walks can step beyond the background');
+assert.equal(nearestWalkableRoomPoint({ u: 0.98, v: 0.8 }).u, 0.98,
+  'the right-side grass no longer blocks the enlarged walking area');
+assert.ok(isWalkableRoomSegment({ u: 0.95, v: 0.8 }, { u: 0.98, v: ROOM_OUTSIDE_BOUNDARY_V + 0.02 }),
+  'the lower-right route can pass behind the grass and leave the floor');
+assert.ok(nearestWalkableRoomPoint({ u: 0.5, v: ROOM_OUTSIDE_BOUNDARY_V + 0.02 }).v > ROOM_OUTSIDE_BOUNDARY_V,
+  'an exterior destination is not silently clamped back inside');
 assert.ok(near.scale > far.scale, 'the panda appears larger closer to the front of the room');
 assert.ok(far.scale < 0.62, 'the panda appears smaller toward the back of the room');
 assert.equal(projectRoomPoint({ u: 0.5, v: 0.92 }).scale, 0.62,
@@ -68,8 +74,8 @@ assert.ok(near.shadowOpacity > far.shadowOpacity);
 assert.ok(near.shadowBlur < far.shadowBlur);
 assert.ok(near.brightness > far.brightness);
 assert.ok(far.brightness >= 0.88 && near.brightness <= 1);
-assert.ok(far.y > 56 && near.y < roomFloorBoundsPercent(ROOM_IMAGE_WIDTH, ROOM_IMAGE_HEIGHT).near,
-  'the web walking plane stays on the selected room image floor');
+assert.ok(far.y > 56 && near.y > 100,
+  'the walking plane extends below the room image for the immediate exit fall');
 const wideRoomFloor = roomFloorBoundsPercent(1200, 800);
 assert.ok(wideRoomFloor.far > 0 && wideRoomFloor.near > wideRoomFloor.far && wideRoomFloor.near < 100,
   'the room image keeps its original aspect ratio while the floor follows its visible position');

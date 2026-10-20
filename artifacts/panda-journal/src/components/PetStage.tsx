@@ -171,6 +171,7 @@ const ROOM_FURNITURE_OCCLUDERS: {
   {
     id: 'lower-right-plant',
     depth: 0.92,
+    foreground: true,
     polygon: [[880, 478], [884, 465], [894, 456], [906, 449], [922, 444], [938, 446], [950, 435], [968, 436], [981, 445], [1001, 449], [1014, 460], [1024, 461], [1024, 576], [931, 576], [921, 560], [905, 548], [895, 531], [883, 518], [875, 502], [879, 490]],
   },
 ];
@@ -1224,7 +1225,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
     if (showInteractionBubble && worldFallPhaseRef.current === 'falling') return;
     const previousPoint = positionRef.current;
     const reachedOutsideBoundary = showInteractionBubble && roomWalkingRef.current
-      && worldFallPhaseRef.current === 'none'
+      && (worldFallPhaseRef.current === 'none' || worldFallPhaseRef.current === 'dirty')
       && previousPoint.v <= ROOM_OUTSIDE_BOUNDARY_V
       && point.v >= ROOM_OUTSIDE_BOUNDARY_V
       && (point.elevation ?? 0) <= 0.001;
@@ -1256,7 +1257,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
       bubbleAnchor.style.setProperty('--room-y', `${projected.y}%`);
       bubbleAnchor.style.setProperty('--room-scale', projected.scale.toFixed(3));
     }
-    // Only the two left foreground plants sit one layer above the panda.
+    // Foreground plants on both sides sit one layer above the panda.
     track.style.zIndex = showInteractionBubble ? '240' : String(projected.zIndex);
     track.dataset.roomU = appliedPoint.u.toFixed(3);
     track.dataset.roomV = appliedPoint.v.toFixed(3);
@@ -1860,12 +1861,15 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
 
   const beginWorldFall = useCallback((source: 'random' | 'boundary') => {
     const now = performance.now();
-    if (!showInteractionBubble || dampAfterBath || worldFallPhaseRef.current !== 'none'
-      || interactionStateRef.current !== 'roaming' || activityStateRef.current !== 'roaming'
+    const boundaryFall = source === 'boundary';
+    const phase = worldFallPhaseRef.current;
+    if (!showInteractionBubble || (phase !== 'none' && !(boundaryFall && phase === 'dirty'))
       || bathPhaseRef.current !== 'none' || hangingOnRackRef.current || draggingRef.current || hidden
-      || developerPose || isCuddling || reacting || startled || pet.stage !== 'present'
+      || pet.stage !== 'present'
       || document.visibilityState !== 'visible'
-      || (source === 'random' && now - lastWorldFallAtRef.current < WORLD_FALL_COOLDOWN_MS)) return false;
+      || (!boundaryFall && (dampAfterBath || interactionStateRef.current !== 'roaming'
+        || activityStateRef.current !== 'roaming' || developerPose || isCuddling || reacting || startled
+        || now - lastWorldFallAtRef.current < WORLD_FALL_COOLDOWN_MS))) return false;
     lastWorldFallAtRef.current = now;
     worldFallPhaseRef.current = 'falling';
     roomWalkingRef.current = false;
