@@ -30,11 +30,32 @@ for (let now = 2000; now < 5000 && state.phase !== 'brake'; now += 20) {
 }
 assert.equal(state.phase, 'brake', 'second shake ends in contact and braking');
 const contactPoint = { ...point };
+assert.deepEqual(contactPoint, { ...target, elevation: 0 }, 'braking starts at the toy, not inside an early proximity radius');
 for (let now = state.since + 20; now <= state.since + 700; now += 20) {
   point = advanceToy(state, 'teaser', point, target, now, .02).point;
 }
 assert.ok(point.u > contactPoint.u + .05, 'momentum moves the panda forward after contact');
 assert.ok(point.u < contactPoint.u + .09, 'braking is a short finite slide');
+for (const direction of [-1, 1]) {
+  const closeRush = createToyRuntime();
+  closeRush.phase = 'rush';
+  closeRush.velocity = { u: direction, v: 0 };
+  const closeTarget = { u: .5, v: .6 };
+  const closeFrom = { u: .5 - direction * .02, v: .6 };
+  const beforeContact = advanceToy(closeRush, 'teaser', closeFrom, closeTarget, 20, .005);
+  assert.equal(closeRush.phase, 'rush', 'being close to the toy must not start braking');
+  assert.equal(beforeContact.contact, false);
+  assert.ok(Math.abs(beforeContact.point.u - closeFrom.u - direction * .004) < 1e-7,
+    'the panda keeps full rush speed before reaching the toy');
+  const onContact = advanceToy(closeRush, 'teaser', beforeContact.point, closeTarget, 40, .05);
+  assert.equal(onContact.contact, true, 'a frame crossing the target registers actual contact');
+  assert.equal(closeRush.phase, 'brake');
+  assert.equal(onContact.point.u, closeTarget.u);
+  assert.equal(onContact.point.v, closeTarget.v);
+  const afterContact = advanceToy(closeRush, 'teaser', onContact.point, closeTarget, 140, .05);
+  assert.ok((afterContact.point.u - closeTarget.u) * direction > 0,
+    'the slide goes beyond the toy only after contact');
+}
 const waitingNearToy = createToyRuntime(0);
 shakeToy(waitingNearToy, 0);
 advanceToy(waitingNearToy, 'teaser', target, target, 1800, .02);

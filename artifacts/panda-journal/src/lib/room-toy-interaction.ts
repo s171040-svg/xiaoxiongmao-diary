@@ -128,7 +128,7 @@ export function advanceToy(
   }
   if (state.phase !== 'approach' && state.phase !== 'rush') return result;
   const rushing = state.phase === 'rush';
-  if (distance < (rushing ? .028 : .045)) {
+  if (distance < (rushing ? 1e-7 : .045)) {
     if (rushing) {
       state.slideFrom = { ...from };
       enter(state, 'brake', now);
@@ -143,13 +143,21 @@ export function advanceToy(
   const length = roomWalkPathLength(path);
   if (length < .0001) return result;
   const speed = rushing ? .8 : toy === 'laser' ? .5 : .22;
-  const point = pointAlongRoomWalkPath(path, Math.min(1, speed * dt / length));
+  const reachesTarget = speed * dt >= length;
+  const point = reachesTarget ? { ...target } : pointAlongRoomWalkPath(path, speed * dt / length);
   const moved = Math.hypot(point.u - from.u, point.v - from.v);
   if (moved > .00001) {
     state.velocity = { u: (point.u - from.u) / moved, v: (point.v - from.v) / moved };
     result.point = point;
     result.walking = true;
     result.lookU = point.u - from.u;
+  }
+  // Keep full rush speed until actual arrival, then slide FROM the contact
+  // position. A proximity radius would start the brake visibly short of the toy.
+  if (rushing && reachesTarget) {
+    state.slideFrom = { ...point };
+    enter(state, 'brake', now);
+    result.contact = true;
   }
   return result;
 }
