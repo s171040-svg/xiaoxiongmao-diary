@@ -610,3 +610,17 @@ mtime_ms = 1792222626228
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/c220a2d7-6841-452d-a45d-32bf22df81df/96f1ffd4-75c2-493a-bfd6-e63dcb14d80a"
 storage_version_token = "1792222649355231"
 content_type = "image/png"
+
+[[outputs]]
+id = "MLhKq4qywhNpqIruGqhCx"
+uri = "file://generated-artifacts/panda-wall-dizzy.gif"
+type = "image"
+title = "撞墙后眩晕跌坐动画"
+description = "原版棕红小熊猫：星星绕头、眩晕眼，失去平衡后跌坐。已接入网页房间的撞墙眩晕动作。"
+logical_id = "e3a45e0f-7fc9-424f-a6dd-ace6bb11560e"
+content_hash = "sha256:72a3697bc34606275fe2aea5f78eff98025ced2c8b2af6e46902ffadbc31a4ec"
+size = 216323
+mtime_ms = 1792505706118
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/e3a45e0f-7fc9-424f-a6dd-ace6bb11560e/b09f00ea-8b4a-471f-b461-76109ee89b5f"
+storage_version_token = "1792505757970302"
+content_type = "image/gif"

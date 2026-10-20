@@ -3467,7 +3467,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
               onPointerUp={roomEye.handlePointerUp}
               onPointerCancel={roomEye.handlePointerCancel}
               onClick={(event) => event.stopPropagation()}>
-              <img src={`${import.meta.env.BASE_URL}static/room/panda-clothes-rack-eyes-pixel.svg?v=complete-eyes-1`}
+              <img src={`${import.meta.env.BASE_URL}static/room/panda-clothes-rack-eyes.png?v=complete-original-eyes-2`}
                 alt="" aria-hidden="true" draggable={false} />
             </button>
             {roomEye.controlledFurnitureId && (

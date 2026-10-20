@@ -16,7 +16,7 @@ export interface ToyRuntime {
   exciteDelay: number;
 }
 export const TOY_FRAMES = 8;
-export const TOY_ART_VERSION = 'toy-redraw-2';
+export const TOY_ART_VERSION = 'toy-redraw-3';
 export function createToyRuntime(now = 0): ToyRuntime {
   return { phase: 'waiting', since: now, noticed: false, lastShake: -Infinity,
     velocity: { u: 0, v: 0 }, slideFrom: { u: .5, v: .5 }, recoverSprite: 'toy-curious', exciteDelay: 0 };
