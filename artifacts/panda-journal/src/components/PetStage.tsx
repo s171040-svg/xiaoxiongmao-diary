@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { advanceToy, createShakeDetector, createToyRuntime, shakeToy, toyVisual, TOY_ART_VERSION, type ToyPhase, type ToySprite } from '@/lib/room-toy-interaction';
 import { createPlantFallTracker, isBehindLeftRoomPlants, LEFT_ROOM_PLANTS, LEFT_ROOM_PLANT_Z_INDEX, rollLeftPlantFall } from '@/lib/room-plant-interaction';
+import { getBathBallSpawnPosition } from '@/lib/bath-ball-position';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import type { CareStatCategory, DeveloperEvent, DeveloperPose, Gift, PerformanceAction, PetEffect, SpacePoliceLetter } from '@/lib/companion-types';
 import {
@@ -1528,6 +1529,22 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
     return true;
   }, []);
 
+  const spawnBathBallBesideTub = useCallback(() => {
+    if (bathPhaseRef.current !== 'bathing') return false;
+    const tubRect = bathTubRef.current?.getBoundingClientRect();
+    if (!tubRect) return false;
+    const position = getBathBallSpawnPosition(tubRect, {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    });
+    bathRubMsRef.current = 0;
+    bathBallOriginRef.current = position;
+    setBathBallPosition(position);
+    setBathBallPlaced(false);
+    setBathRubbing(false);
+    return true;
+  }, []);
+
   useEffect(() => {
     if (!import.meta.env.DEV || !developerEvent || !showInteractionBubble
       || interactionStateRef.current === 'chat') return;
@@ -1805,7 +1822,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
     setBathBallPosition(null);
     setBathBallPlaced(false);
     const autoBall = window.setTimeout(() => {
-      if (bathPhaseRef.current !== 'bathing' || !startDeveloperBathRub()) return;
+      if (bathPhaseRef.current !== 'bathing' || !spawnBathBallBesideTub()) return;
       setBathBallDropping(true);
       bathBallDropTimerRef.current = window.setTimeout(() => {
         bathBallDropTimerRef.current = 0;
@@ -1813,7 +1830,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
       }, BATH_BALL_DROP_MS);
     }, 700);
     return () => window.clearTimeout(autoBall);
-  }, [bathPhase, setBathPhaseNow, showInteractionBubble, startDeveloperBathRub]);
+  }, [bathPhase, setBathPhaseNow, showInteractionBubble, spawnBathBallBesideTub]);
 
   useEffect(() => {
     if (bathPhase !== 'bathing') {
@@ -3450,7 +3467,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
               onPointerUp={roomEye.handlePointerUp}
               onPointerCancel={roomEye.handlePointerCancel}
               onClick={(event) => event.stopPropagation()}>
-              <img src={`${import.meta.env.BASE_URL}static/room/panda-clothes-rack-eyes.png?v=split-rack-eyes-1`}
+              <img src={`${import.meta.env.BASE_URL}static/room/panda-clothes-rack-eyes-pixel.svg?v=complete-eyes-1`}
                 alt="" aria-hidden="true" draggable={false} />
             </button>
             {roomEye.controlledFurnitureId && (
