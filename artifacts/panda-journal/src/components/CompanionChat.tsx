@@ -18,7 +18,7 @@ const catLabel: Record<string, string> = { leisure: '日常', idea: '点子', wo
 const devActionOptions: { action: PerformanceAction; label: string }[] = [
   { action: 'bamboo', label: '啃竹子' },
   { action: 'jump', label: '蹦跳' },
-  { action: 'somersault', label: '翻跟斗' },
+  { action: 'somersault', label: '仰躺挠天花' },
   { action: 'tail', label: '追尾巴' },
   { action: 'cuddle', label: '蹭蹭撒娇' },
   { action: 'captured-homecoming', label: '时空旋涡送回和空间警察来信' },
@@ -217,6 +217,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
   const [devActionResult, setDevActionResult] = useState<{ label: string; started: boolean; durationMs: number; persistent?: boolean } | null>(null);
   const devActionToken = useRef(0);
   const [roomChatOpen, setRoomChatOpen] = useState(false);
+  const [clearMindMode, setClearMindMode] = useState(false);
   const [spacePoliceMailboxOpen, setSpacePoliceMailboxOpen] = useState(false);
   const [spacePoliceLetterOpen, setSpacePoliceLetterOpen] = useState<SpacePoliceLetter | null>(null);
   const [spacePoliceFineGiftId, setSpacePoliceFineGiftId] = useState<string | null>(null);
@@ -335,12 +336,30 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
     : '';
   const roomDraft = c.draft || (latestRoomUser?.status === 'failed' ? latestRoomUser.text : '');
   const canSendRoomMessage = !c.busy && !c.isPhotoLoading && !c.listening && !!roomDraft.trim();
+  useEffect(() => {
+    if (roomOnly && !roomChatOpen) setClearMindMode(false);
+  }, [roomOnly, roomChatOpen]);
+  const sendWithMode = (text?: string) => {
+    void c.send(text, { clearMindMode: !window.pandaDesktop && clearMindMode });
+  };
+  const clearMindControl = !window.pandaDesktop && (
+    <div className="cc-mode-control" data-active={clearMindMode ? 'true' : 'false'}>
+      <button type="button" aria-pressed={clearMindMode}
+        aria-label={`清醒模式${clearMindMode ? '已开启' : '已关闭'}`}
+        title="仅对开关开启期间发送的新消息生效；默认关闭"
+        onClick={() => setClearMindMode(value => !value)}
+        data-testid="button-clear-mind-mode">
+        <span>清醒模式</span><small>{clearMindMode ? '已开启' : '关闭'}</small>
+      </button>
+      {clearMindMode && <span>本次聊天启用清醒支持；关闭后恢复平时聊天</span>}
+    </div>
+  );
   const sendRoomMessage = () => {
     if (!canSendRoomMessage) return;
     if (!c.draft.trim() && latestRoomUser?.status === 'failed' && roomDraft.trim() === latestRoomUser.text) {
       void c.retryMessage(latestRoomUser.id);
     } else {
-      void c.send(roomDraft);
+      sendWithMode(roomDraft);
     }
   };
   const roomKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -370,7 +389,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
   const key = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
-      if (can && (!roomOnly || c.draft.trim())) void c.send();
+      if (can && (!roomOnly || c.draft.trim())) sendWithMode();
     }
   };
   const roomComposer = (
@@ -392,7 +411,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
           <VoiceButton text={c.draft} disabled={c.busy} onText={c.setDraft} onActive={c.setListening} onStatus={(m, e) => setVoice({ m, e })} />
           <input ref={fileRef} type="file" accept="image/*" hidden data-testid="input-photo" onChange={(e) => { void c.choosePhoto(e.target.files?.[0]); e.target.value = ''; }} />
           <button type="button" className="attach-button" disabled={c.busy || c.isPhotoLoading} onClick={() => fileRef.current?.click()} data-testid="button-attach-photo"><ImagePlus size={15} /> 照片</button>
-          <button type="button" className="cc-send" disabled={!can} onClick={() => void c.send()} data-testid="button-send"><SendHorizontal size={16} /> 发送</button>
+          <button type="button" className="cc-send" disabled={!can} onClick={() => sendWithMode()} data-testid="button-send"><SendHorizontal size={16} /> 发送</button>
         </div>
       </div>
       <p className={`cc-status${(voice ? voice.e : c.error) ? ' err' : ''}`} role="status">{voice ? voice.m : c.status}</p>
@@ -443,16 +462,17 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
         && <GiftDrop gift={c.state.pendingGift} startedAt={c.state.giftDropStartedAt} onCollect={c.collectPresent} />}
       {roomOnly ? (
         <>
-          {roomChatOpen && roomComposer}
+          {roomChatOpen && <>{clearMindControl}{roomComposer}</>}
         </>
       ) : (
         <>
           <section className="cc-scroll" aria-label="聊天记录" role="log" aria-live="polite">
             {msgs.map((m) => <Bubble key={m.id} m={m} c={c} canRetry={m.id === lastFailed} />)}
-            {showFeelings && !c.busy && lastLongUser && <EmotionCheckIn key={lastAssistant?.id} source={lastLongUser.text} disabled={false} onChoose={text => void c.send(text)} />}
+            {showFeelings && !c.busy && lastLongUser && <EmotionCheckIn key={lastAssistant?.id} source={lastLongUser.text} disabled={false} onChoose={text => sendWithMode(text)} />}
             {c.busy && !c.replyDisplay && <div className="cc-row bot"><div className="cc-bubble typing" aria-label="小熊猫正在想"><i /><i /><i /></div></div>}
             <div ref={endRef} />
           </section>
+          {clearMindControl}
           {composer}
         </>
       )}

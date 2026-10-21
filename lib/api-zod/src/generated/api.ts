@@ -940,7 +940,8 @@ export const CompanionChatBody = zod.object({
   "memories": zod.array(zod.object({
   "kind": zod.enum(['worry', 'idea', 'action']),
   "text": zod.string().min(1).max(companionChatBodyMemoriesItemTextMax)
-})).max(companionChatBodyMemoriesMax)
+})).max(companionChatBodyMemoriesMax),
+  "clearMindMode": zod.boolean().optional().describe('Enable the clear-mind support prompt for this reply only.')
 })
 
 export const companionChatResponseReplyMax = 300;

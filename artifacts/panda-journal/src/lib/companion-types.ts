@@ -25,6 +25,7 @@ export type ChatMessage = {
   id: string; role: 'user' | 'assistant'; text: string; createdAt: number;
   photo?: string; status?: 'pending' | 'interrupted' | 'failed' | 'sent'; failureReason?: string;
   kind?: 'chat' | 'welcome' | 'proactive' | 'followup' | 'event';
+  clearMindMode?: boolean;
 };
 export type DiaryMemory = {
   id: string; kind: MemoryKind; text: string; createdAt: number;

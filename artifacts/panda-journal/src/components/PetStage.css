@@ -28,6 +28,14 @@
 .ps-thinking{position:absolute;z-index:4;left:calc(50% + 34px);top:14px;padding:3px 10px;border-radius:14px;background:var(--bub,#fff);color:var(--sage,#527459);font:500 15px/1.5 "Noto Sans CJK SC",sans-serif}
 .ps-room-chat-bubble{top:auto;bottom:calc(100% + 8px);left:50%;box-sizing:border-box;width:max-content;max-width:min(320px,calc(100vw - 28px));transform:translateX(-50%);padding:9px 13px;border:1px solid color-mix(in srgb,var(--sage,#527459) 24%,transparent);border-radius:16px;box-shadow:0 4px 16px #1e302a24;white-space:pre-wrap;overflow-wrap:anywhere;text-align:center;line-height:1.55}
 .ps-track{position:absolute;left:var(--room-x,50%);top:var(--room-y,53%);width:calc(92px * var(--room-scale,.89));height:calc(92px * var(--room-scale,.89));display:grid;place-items:end center;transform:translate(-50%,-100%);pointer-events:none}
+.ps-stage[data-dragging=true] .ps-track{left:var(--panda-drag-x,var(--room-x,50%));top:var(--panda-drag-y,var(--room-y,53%))}
+.ps-room-interactive-jar{position:fixed;display:block;transform:translate(-50%,-100%);background:transparent;pointer-events:none}
+.ps-jar-question-mark{position:absolute;z-index:12;top:-22%;left:50%;display:grid;width:18px;height:20px;place-items:center;transform:translateX(-50%);border:1px solid #826340;border-radius:50% 50% 48% 48%;background:#fff4d8;color:#513c28;box-shadow:1px 2px 0 #34271966;font:900 14px/1 "Noto Sans CJK SC",sans-serif;pointer-events:none;animation:ps-jar-question-bob .72s ease-in-out infinite alternate}
+.ps-panda[data-jar-trapped=true]{z-index:8;cursor:grab}
+.ps-panda[data-jar-trapped=true]:hover,.ps-panda[data-jar-trapped=true]:active{translate:0;scale:1}
+.ps-panda[data-jar-trapped=true] .ps-body{clip-path:inset(0 0 48% 0);transform-origin:50% 92%;animation:ps-jar-trapped-wiggle .42s steps(2,end) infinite!important;filter:saturate(.96) brightness(1.02)}
+@keyframes ps-jar-trapped-wiggle{0%,100%{translate:0 0;rotate:-2deg}50%{translate:2px 0;rotate:3deg}}
+@keyframes ps-jar-question-bob{from{translate:-50% 0}to{translate:-50% -3px}}
 .ps-track.ps-bed-sleeping{z-index:4}
 .ps-room-furniture{display:none;position:absolute;width:clamp(116px,14vw,168px);height:auto;image-rendering:pixelated;transform-origin:center bottom;pointer-events:none;user-select:none}
 .ps-room-occlusion{position:absolute;inset:0;display:block;pointer-events:none;background-repeat:no-repeat}
@@ -71,9 +79,15 @@
 .ps-bath-box:focus-visible{outline:2px solid #5f8f72;outline-offset:3px}
 .ps-bath-ball{position:fixed;z-index:260;display:grid;width:40px;height:40px;padding:0;place-items:center;border:0;border-radius:50%;background:transparent;cursor:grab;pointer-events:auto;touch-action:none;user-select:none;filter:drop-shadow(0 2px 3px #443a2740)}
 .ps-bath-ball img{display:block;width:100%;height:100%;image-rendering:pixelated;pointer-events:none}
+.ps-bath-ball-wet img{filter:saturate(.72) brightness(1.08)}
+.ps-bath-ball-wet::after{content:"";position:absolute;right:3px;top:2px;width:4px;height:6px;border:1px solid #357d86;border-radius:55% 55% 60% 60%;background:#a9e4eb;box-shadow:1px 1px 0 #e8fbfc;pointer-events:none}
+.ps-bath-ball-status{position:absolute;left:50%;top:-5px;transform:translate(-50%,-100%);padding:3px 7px;border:1px solid #758d79;border-radius:7px;background:#fffdf2;color:#46604d;font:500 10px/1.25 "Noto Sans CJK SC",sans-serif;white-space:nowrap;pointer-events:none}
 .ps-bath-ball.ps-bath-ball-dragging{z-index:261;cursor:grabbing}
 .ps-bath-ball.ps-bath-ball-dropping{animation:ps-bath-ball-drop 720ms cubic-bezier(.2,.72,.3,1) both}
 .ps-bath-ball:focus-visible{outline:2px solid #5f8f72;outline-offset:2px}
+.ps-window-drying-hook{position:absolute;z-index:34;left:calc(var(--room-left,0px) + var(--room-w,100vw) * .585);top:calc(var(--room-top,0px) + var(--room-h,100vh) * .118);display:block;width:26px;height:34px;padding:0;border:0;background:transparent;pointer-events:auto;touch-action:none}
+.ps-window-drying-hook::before{content:"";position:absolute;left:10px;top:2px;width:6px;height:5px;background:#d5a85d;box-shadow:1px 1px 0 #593b25,-1px -1px 0 #f3d796}
+.ps-window-drying-hook i{position:absolute;left:7px;top:8px;width:10px;height:13px;box-sizing:border-box;border:2px solid #593b25;border-top:0;border-radius:0 0 8px 8px;filter:drop-shadow(1px 1px 0 #f0d08b)}
 .ps-room-trash-can{position:fixed;z-index:120;width:52px;height:54px;translate:-50% -50%;pointer-events:none;filter:drop-shadow(0 3px 0 #49352788)}
 .ps-room-trash-can-lid{position:absolute;left:4px;top:6px;width:44px;height:9px;box-sizing:border-box;border:3px solid #493d31;background:#b99a70;box-shadow:0 -3px 0 #493d31}
 .ps-room-trash-can-body{position:absolute;left:11px;top:16px;width:30px;height:34px;box-sizing:border-box;border:4px solid #493d31;border-top:0;background:#6f8e78;clip-path:polygon(0 0,100% 0,88% 100%,12% 100%)}
@@ -168,7 +182,7 @@
 .ps-panda.ps-dizzy{z-index:5;cursor:default;animation:none}
 .ps-panda.ps-dizzy:hover,.ps-panda.ps-dizzy:active{translate:0 0;scale:1}
 .ps-panda.ps-dizzy .ps-body{animation:none!important;filter:none}
-.ps-panda.ps-world-falling{z-index:6;cursor:default;pointer-events:none;transform-origin:center bottom;animation:ps-world-fall 1.1s cubic-bezier(.35,.05,.68,.36) both}
+.ps-panda.ps-world-falling{z-index:6;cursor:default;pointer-events:none;transform-origin:center center;animation:ps-world-fall 1.1s cubic-bezier(.35,.05,.68,.36) both}
 .ps-panda.ps-world-falling:hover,.ps-panda.ps-world-falling:active{translate:0 0;scale:1}
 .ps-panda.ps-world-dirty{cursor:default}
 .ps-panda.ps-world-dirty .ps-body{transform-origin:center bottom;animation:ps-world-sob 920ms ease-in-out infinite}
@@ -190,7 +204,7 @@
 .ps-stage[data-room-only="true"] .ps-panda.ps-room-rolling .ps-body{width:calc(90px * var(--room-scale,.89));height:calc(90px * var(--room-scale,.89))}
 .ps-stage[data-room-only="true"] .ps-ground-shadow-rolling{animation:ps-room-roll-shadow var(--room-roll-duration) ease-in-out both}
 .ps-panda.ps-spin .ps-body{transform-origin:center;animation:ps-spin-in-place 780ms linear infinite}
-.ps-panda.ps-somersault .ps-body{transform-origin:center;animation:ps-somersault-hop 900ms ease-in-out infinite}
+.ps-panda.ps-somersault .ps-body{transform-origin:center bottom;animation:none}
 .ps-panda.ps-lying,.ps-panda.ps-sleeping{place-items:end center}
 .ps-panda.ps-peeking{place-items:end center}
 .ps-panda.ps-peeking .ps-body{animation:ps-peek-breathe 2.8s ease-in-out infinite}
@@ -272,7 +286,8 @@
 .ps-stage[data-room-only="false"] .ps-gift-held{bottom:8px;font-size:22px}
 @keyframes ps-gift-carry{from{translate:0 1px;rotate:-7deg}to{translate:1px -2px;rotate:7deg}}
 .ps-panda.ps-roll,.ps-panda.ps-spin,.ps-panda.ps-tumble{animation:ps-roll var(--ps-dur) ease-in-out infinite alternate}
-.ps-panda.ps-jump,.ps-panda.ps-somersault{animation:ps-hop calc(var(--ps-dur)/3) ease-in-out 3}
+.ps-panda.ps-jump{animation:ps-hop calc(var(--ps-dur)/3) ease-in-out 3}
+.ps-panda.ps-somersault{animation:none}
 .ps-panda.ps-cuddle{animation:none;place-items:end center;transform-origin:center bottom}
 .ps-panda.ps-cuddle:hover,.ps-panda.ps-cuddle:active{translate:0 0;scale:1}
 .ps-panda.ps-cuddle .ps-body{transform-origin:50% 82%;animation:ps-cuddle-ground-wriggle 1.12s cubic-bezier(.42,.02,.58,.98) infinite}
@@ -294,12 +309,6 @@
 .ps-snack-drop{position:absolute;z-index:5;top:-20%;left:50%;width:28px;height:28px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 1px 2px rgba(29,39,26,.55));pointer-events:none;animation:ps-snack-fall .78s cubic-bezier(.34,.02,.58,1) both}
 @keyframes ps-roll{0%{translate:calc(0px - var(--room-roll-range)) 0;rotate:-8deg}100%{translate:var(--room-roll-range) 0;rotate:8deg}}
 @keyframes ps-spin-in-place{to{rotate:360deg}}
-@keyframes ps-somersault-hop{
-  0%,100%{translate:0 0;rotate:0deg}
-  24%{translate:0 -9px;rotate:90deg}
-  50%{translate:0 -17px;rotate:180deg}
-  76%{translate:0 -9px;rotate:270deg}
-}
 @keyframes ps-room-tumble{
   0%,100%{translate:0 0;rotate:0deg;scale:1}
   20%{translate:-5px -1px;rotate:-4deg;scale:1.02 .99}
@@ -352,11 +361,11 @@
 @keyframes ps-daydream{0%,100%{translate:0 1px;opacity:.45}50%{translate:2px -4px;opacity:1}}
 @keyframes ps-crawl{from{transform:translate(calc(-50% - 80px),-100%);opacity:.6}to{transform:translate(-50%,-100%);opacity:1}}
 @keyframes ps-world-fall{
-  0%{transform:translate(0,0) rotate(0deg) scale(1);opacity:1}
-  18%{transform:translate(0,-12px) rotate(110deg) scale(.92);opacity:1}
-  58%{transform:translate(5px,23px) rotate(360deg) scale(.52);opacity:.86}
-  82%{transform:translate(12px,51px) rotate(530deg) scale(.22);opacity:.52}
-  100%{transform:translate(18px,74px) rotate(700deg) scale(.02);opacity:0}
+  0%{transform:rotate(0deg) scale(1);opacity:1}
+  18%{transform:rotate(110deg) scale(.92);opacity:1}
+  58%{transform:rotate(360deg) scale(.52);opacity:.86}
+  82%{transform:rotate(530deg) scale(.22);opacity:.52}
+  100%{transform:rotate(700deg) scale(.02);opacity:0}
 }
 @keyframes ps-world-note{
   0%{opacity:0;transform:translate(-50%,6px) scale(.95)}

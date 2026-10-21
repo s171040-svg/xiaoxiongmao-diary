@@ -538,6 +538,9 @@ components:
           maxItems: 24
           items:
             $ref: "#/components/schemas/CompanionMemory"
+        clearMindMode:
+          type: boolean
+          description: Enable the clear-mind support prompt for this reply only.
     CompanionResponse:
       type: object
       required: [reply, userName, memories, action]

@@ -68,6 +68,19 @@ assert.ok(Math.abs(projectRoomPoint(CAT_TREE_NEST_POINT).scale - (0.62 * 2 / 3))
   'the panda scales to two-thirds at the nest');
 assert.ok(projectRoomPoint(CAT_TREE_WALK_PATH[0]).scale > projectRoomPoint(CAT_TREE_NEST_POINT).scale,
   'the panda gradually shrinks while climbing toward the nest');
+const droppedOnJarImage = unprojectRoomWalkableSurfacePoint(
+  (258 / ROOM_IMAGE_WIDTH) * 100,
+  (210 / ROOM_IMAGE_HEIGHT) * 100,
+  ROOM_IMAGE_WIDTH,
+  ROOM_IMAGE_HEIGHT,
+);
+assert.ok((droppedOnJarImage.elevation ?? 0) > 0);
+assert.equal(isWalkableRoomPoint(droppedOnJarImage), false,
+  'raised furniture and wall art are not treated as walkable floor when releasing a drag');
+const releasedOnFloor = unprojectRoomWalkableSurfacePoint(25, (350 / ROOM_IMAGE_HEIGHT) * 100,
+  ROOM_IMAGE_WIDTH, ROOM_IMAGE_HEIGHT);
+assert.equal(isWalkableRoomPoint(releasedOnFloor), true,
+  'dragging over the actual floor still produces a walkable destination');
 assert.ok(near.zIndex > far.zIndex);
 assert.ok(near.shadowScale > far.shadowScale);
 assert.ok(near.shadowOpacity > far.shadowOpacity);

@@ -56,7 +56,33 @@ test('every animation inspector action has its own visible animation assets', ()
 
   const stageCss = readFileSync(resolve(assetRoot, '../../../src/components/PetStage.css'), 'utf8');
   assert.match(stageCss, /\.ps-panda\.ps-spin \.ps-body\{[^}]*ps-spin-in-place/);
-  assert.match(stageCss, /\.ps-panda\.ps-somersault \.ps-body\{[^}]*ps-somersault-hop/);
+  assert.match(stageCss, /\.ps-panda\.ps-somersault \.ps-body\{[^}]*animation:none/);
+  assert.match(stageCss, /\.ps-panda\.ps-somersault\{animation:none\}/);
+  assert.doesNotMatch(stageCss, /ps-somersault-hop/);
+});
+
+test('belly-up pawing uses distinct transparent frames and a matched grounded transition', () => {
+  assert.ok(manifestPath);
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  const assetRoot = resolve(dirname(manifestPath), '../../public/static/panda');
+  assert.equal(manifest.actionSprites.somersault, 'back-pawing');
+  assert.equal(manifest.frameCountBySprite['back-pawing'], 8);
+  const frames = [
+    'back-pawing.png',
+    ...Array.from({ length: 8 }, (_, i) => `frames/back-pawing-${i + 1}.png`),
+  ].map(file => readFileSync(resolve(assetRoot, file)));
+  const transition = Array.from({ length: 7 }, (_, i) =>
+    readFileSync(resolve(assetRoot, `transitions/idle-to-back-pawing-${i + 1}.png`)));
+  for (const image of [...frames, ...transition]) {
+    assert.equal(image.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+    assert.equal(image.readUInt32BE(16), 80);
+    assert.equal(image.readUInt32BE(20), 80);
+    assert.equal(image[25], 6, 'PNG must retain RGBA transparency');
+  }
+  assert.ok(new Set(frames.map(image => image.toString('base64'))).size >= 6);
+  assert.equal(new Set(transition.map(image => image.toString('base64'))).size, 7,
+    'five distinct intermediate poses must connect the start and end poses');
+  assert.deepEqual(transition.at(-1), frames[0], 'transition must end on the action pose');
 });
 
 test('every snack has a distinct complete 96px eating animation', () => {

@@ -18,4 +18,6 @@ export interface CompanionInput {
   userName: string;
   /** @maxItems 24 */
   memories: CompanionMemory[];
+  /** Enable the clear-mind support prompt for this reply only. */
+  clearMindMode?: boolean;
 }

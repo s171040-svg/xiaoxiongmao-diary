@@ -652,3 +652,17 @@ mtime_ms = 1792512129474
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/0db12712-9156-4a9b-b38c-f841e6fcaae2/1eb479d2-48f7-4369-9c9c-bf078d5ef098"
 storage_version_token = "1792512143003245"
 content_type = "image/png"
+
+[[outputs]]
+id = "ViIUJxzahxyMNE6aWBpCd"
+uri = "file://generated-artifacts/panda-back-pawing-preview.gif"
+type = "image"
+title = "仰躺挠天花 · 动画预览"
+description = "小熊猫背部贴地，四肢朝上伸爪和蹬腿的透明背景循环动画。"
+logical_id = "629a686b-bf9a-48e8-bd41-1bc9a42d2521"
+content_hash = "sha256:9f6671258ff50c0aa6b7db858679d7f1d11bb68aaa17cd730a2eedc966924ffb"
+size = 63081
+mtime_ms = 1792594404671
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/629a686b-bf9a-48e8-bd41-1bc9a42d2521/80342115-fb59-4bff-a1de-1ec92ffbba44"
+storage_version_token = "1792594693551499"
+content_type = "image/gif"

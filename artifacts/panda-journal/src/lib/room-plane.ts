@@ -165,7 +165,7 @@ function screenPixelToRoomImagePoint(
   return { x: (x - imageLeft) / scale, y: (y - imageTop) / scale };
 }
 
-/** Converts pointer coordinates on the ladder or inside the den to its raised walking surface. */
+/** Preserves raised room-image coordinates while dragging so invalid drops can be snapped on release. */
 export function unprojectRoomWalkableSurfacePoint(
   xPercent: number,
   yPercent: number,
@@ -178,7 +178,7 @@ export function unprojectRoomWalkableSurfacePoint(
     viewportWidth,
     viewportHeight,
   );
-  return isCatTreeWalkImagePoint(imagePoint)
+  return isCatTreeWalkImagePoint(imagePoint) || imagePoint.y < ROOM_IMAGE_FLOOR_FAR_Y
     ? roomPointAtImagePosition(imagePoint.x, imagePoint.y)
     : unprojectRoomPoint(xPercent, yPercent, viewportWidth, viewportHeight);
 }

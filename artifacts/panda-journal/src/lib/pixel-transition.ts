@@ -23,7 +23,7 @@ export const PIXELLAB_TRANSITION_FRAME_FILES: Record<PixelTransitionKey, string[
   jump: numberedFrames('transitions/pixellab-walk-to-jump', 5),
   cuddle: numberedFrames('transitions/pixellab-walk-to-cuddle', 5),
   tail: numberedFrames('transitions/pixellab-walk-to-tail', 7),
-  somersault: numberedFrames('transitions/roll-to-lie-pose-2', 6),
+  somersault: numberedFrames('transitions/idle-to-back-pawing', 7),
   lying: numberedFrames('transitions/pixellab-walk-to-lying', 5),
   sleep: numberedFrames('transitions/pixellab-walk-to-sleep', 7),
   peeking: numberedFrames('transitions/pixellab-walk-to-peeking', 5),

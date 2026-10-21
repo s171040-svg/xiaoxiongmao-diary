@@ -343,14 +343,15 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
     alive.current = true;
     return () => { alive.current = false; timers.current.forEach(clearTimeout); };
   }, []);
-  async function requestReply(messageId: string) {
+  async function requestReply(messageId: string, clearMindMode = false) {
     busyRef.current = true; setBusy(true); setError(false); setStatus('小熊猫在认真听…');
     setReplyDisplay(null);
     const sentAt = Date.now();
     const pause = 500 + Math.random() * 1000;
     notify('唔……');
     try {
-      const input = contextFor(readState(localStorage), messageId);
+      const context = contextFor(readState(localStorage), messageId);
+      const input = clearMindMode ? { ...context, clearMindMode: true } : context;
       const response: CompanionResponse = window.pandaDesktop ? await window.pandaDesktop.chat(input) : await companionChat(input);
       const wait = (ms: number) => new Promise<void>(resolve => window.setTimeout(resolve, ms));
       await wait(Math.max(0, sentAt + pause - Date.now()));
@@ -382,23 +383,25 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
       report(new Error(reason));
     } finally { busyRef.current = false; if (alive.current) { setBusy(false); setReplyDisplay(null); } }
   }
-  async function send(textOverride?: string) {
+  async function send(textOverride?: string, options?: { clearMindMode?: boolean }) {
     if (busyRef.current || isPhotoLoading || listening) return;
     const text = (textOverride ?? current.current.draft).trim();
     if (!text) { report(new Error('照片只留在本机，先配上一句话再发送吧。')); return; }
     acknowledgeCapturedHomecoming();
-    const message: ChatMessage = { id: id(), role: 'user', text, photo: current.current.draftPhoto, createdAt: Date.now(), status: 'pending', kind: 'chat' };
+    const clearMindMode = options?.clearMindMode === true;
+    const message: ChatMessage = { id: id(), role: 'user', text, photo: current.current.draftPhoto, createdAt: Date.now(), status: 'pending', kind: 'chat',
+      clearMindMode: clearMindMode || undefined };
     try {
       transact(s => recordCareStatInteractionInState(recordUserMessage(s, message), 'bond', message.createdAt));
     } catch (e) { report(e); return; }
-    await requestReply(message.id);
+    await requestReply(message.id, clearMindMode);
   }
   async function retryMessage(messageId: string) {
     if (busyRef.current) return;
     if (current.current.messages.filter(m => m.role === 'user').at(-1)?.id !== messageId) { report(new Error('这条后面已有新消息，请继续聊，不重复发送旧消息。')); return; }
     try { transact(s => ({ ...s, messages: s.messages.map(m => m.id === messageId ? { ...m, status: 'pending', failureReason: undefined } : m) })); }
     catch (e) { report(e); return; }
-    await requestReply(messageId);
+    await requestReply(messageId, current.current.messages.find(message => message.id === messageId)?.clearMindMode === true);
   }
   async function choosePhoto(file?: File) {
     if (!file || busyRef.current) return;
