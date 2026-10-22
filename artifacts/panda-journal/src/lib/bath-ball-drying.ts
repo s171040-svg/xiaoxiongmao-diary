@@ -65,3 +65,13 @@ export function finishBathBallDrying(state: BathBallDryingState, now = Date.now(
     ? { wet: false, onWindowHook: true, driesAt: null }
     : state;
 }
+
+export function canPickUpBathBall(state: BathBallDryingState, isBathing: boolean): boolean {
+  return isBathing || state.wet || state.onWindowHook;
+}
+
+export function takeDryBathBallOffHook(state: BathBallDryingState): BathBallDryingState {
+  return !state.wet && state.onWindowHook
+    ? { wet: false, onWindowHook: false, driesAt: null }
+    : state;
+}

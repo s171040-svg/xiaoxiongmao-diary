@@ -6,10 +6,12 @@ import { createPlantFallTracker, isBehindLeftRoomPlants, LEFT_ROOM_PLANTS, LEFT_
 import { getBathBallSpawnPosition } from '@/lib/bath-ball-position';
 import {
   BATH_BALL_DRY_MS,
+  canPickUpBathBall,
   finishBathBallDrying,
   hangBathBallToDry,
   readBathBallDryingState,
   saveBathBallDryingState,
+  takeDryBathBallOffHook,
   wetBathBall,
   type BathBallDryingState,
 } from '@/lib/bath-ball-drying';
@@ -3161,7 +3163,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
 
   const handleBathBallPointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (!event.isPrimary || !bathBallPosition
-      || (bathPhaseRef.current !== 'bathing' && !bathBallDryingRef.current.wet)) return;
+      || !canPickUpBathBall(bathBallDryingRef.current, bathPhaseRef.current === 'bathing')) return;
     event.preventDefault();
     const rect = event.currentTarget.getBoundingClientRect();
     setBathRubbing(false);
@@ -3195,9 +3197,11 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     const pandaRect = pandaButtonRef.current?.getBoundingClientRect();
     const hookRect = windowDryingHookRef.current?.getBoundingClientRect();
     const wet = bathBallDryingRef.current.wet;
-    const droppedOnHook = !cancelled && wet && showInteractionBubble && hookRect
+    const dryOnHook = !wet && bathBallDryingRef.current.onWindowHook;
+    const releasedNearHook = !cancelled && showInteractionBubble && hookRect
       && event.clientX >= hookRect.left - 24 && event.clientX <= hookRect.right + 24
       && event.clientY >= hookRect.top - 24 && event.clientY <= hookRect.bottom + 30;
+    const droppedOnHook = wet && releasedNearHook;
     const releasedOnPanda = !cancelled && bathPhaseRef.current === 'bathing' && pandaRect
       && !wet
       && event.clientX >= pandaRect.left - 12 && event.clientX <= pandaRect.right + 12
@@ -3216,6 +3220,18 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       });
       setBathBallPlaced(true);
       setBathRubbing(true);
+    } else if (dryOnHook && !cancelled) {
+      if (releasedNearHook && hookRect) {
+        const position = getBathBallWindowHookPosition(hookRect);
+        bathBallOriginRef.current = position;
+        setBathBallPosition(position);
+      } else {
+        setBathBallDryingNow(takeDryBathBallOffHook(bathBallDryingRef.current));
+        bathBallOriginRef.current = null;
+        setBathBallPosition(null);
+      }
+      setBathBallPlaced(false);
+      setBathRubbing(false);
     } else {
       setBathBallPosition(bathBallOriginRef.current);
       setBathBallPlaced(false);
@@ -4007,9 +4023,13 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
                   ? `浴球正在窗边晾干，还要 ${bathBallDrySecondsRemaining} 秒`
                   : '湿浴球；拖到圆窗边的小钩子上晾五秒，干了才能再次使用'
                 : bathBallDrying.onWindowHook
-                  ? '浴球已晾干，下次洗澡时可以再次使用'
+                  ? '浴球已晾干；拖动可以从窗钩取下收好，下次洗澡时使用'
                   : '浴球；拖到小熊猫身上就会开始揉洗'}
-              title={bathBallDrying.wet ? '把湿浴球挂到圆窗边的小钩子上晾五秒' : '浴球碰到小熊猫就会开始揉洗；拖开可以停止'}
+              title={bathBallDrying.onWindowHook && !bathBallDrying.wet
+                ? '拖动干浴球即可从窗钩取下收好'
+                : bathBallDrying.wet
+                  ? '把湿浴球挂到圆窗边的小钩子上晾五秒'
+                  : '浴球碰到小熊猫就会开始揉洗；拖开可以停止'}
              data-testid="bath-ball"
             data-on-panda={bathBallPlaced ? 'true' : 'false'}
             data-wet={bathBallDrying.wet ? 'true' : 'false'}
@@ -4023,7 +4043,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
               <span className="ps-bath-ball-status" aria-hidden="true">
                 {bathBallDrying.wet
                   ? bathBallDrying.onWindowHook ? `晾干中 ${bathBallDrySecondsRemaining} 秒` : '拖到窗钩上晾干'
-                  : '晾好了'}
+                  : bathBallDrying.onWindowHook ? '晾好了 · 拖下收好' : '晾好了'}
               </span>
             )}
           </button>

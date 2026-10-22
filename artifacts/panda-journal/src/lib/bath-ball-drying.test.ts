@@ -3,10 +3,12 @@ import test from 'node:test';
 import {
   BATH_BALL_DRY_MS,
   BATH_BALL_DRYING_STORAGE_KEY,
+  canPickUpBathBall,
   finishBathBallDrying,
   hangBathBallToDry,
   readBathBallDryingState,
   saveBathBallDryingState,
+  takeDryBathBallOffHook,
   wetBathBall,
 } from './bath-ball-drying';
 
@@ -46,4 +48,19 @@ test('a wet ball away from the hook remains wet through a reload', () => {
   const wet = wetBathBall();
   saveBathBallDryingState(storage, wet);
   assert.deepEqual(readBathBallDryingState(storage), wet);
+});
+
+test('a dry ball can be picked up from the hook and returned to the ready state', () => {
+  const dryOnHook = finishBathBallDrying(
+    hangBathBallToDry(wetBathBall(), 1000),
+    1000 + BATH_BALL_DRY_MS,
+  );
+
+  assert.equal(canPickUpBathBall(dryOnHook, false), true);
+  assert.deepEqual(takeDryBathBallOffHook(dryOnHook), {
+    wet: false,
+    onWindowHook: false,
+    driesAt: null,
+  });
+  assert.equal(canPickUpBathBall({ wet: false, onWindowHook: false, driesAt: null }, false), false);
 });
