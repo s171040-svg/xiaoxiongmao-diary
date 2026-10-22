@@ -53,6 +53,7 @@ const devEventOptions: { event: DeveloperEvent; label: string; durationMs: numbe
   { event: 'toy-wall-dizzy', label: '逗猫棒：撞墙眩晕', durationMs: 5000 },
   { event: 'toy-laser', label: '激光笔：伏低扑点', durationMs: 5000 },
   { event: 'jar-peeking', label: '罐子：双爪搭沿四处张望', durationMs: 5000 },
+  { event: 'trash-can', label: '垃圾桶：掉进去后屁股露出来', durationMs: 5000, persistent: true },
 ];
 type DevTestSelection =
   | { kind: 'action'; action: PerformanceAction }

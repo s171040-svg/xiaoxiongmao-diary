@@ -8,7 +8,7 @@ import {
 } from '@/lib/room-furniture-layout';
 import { ROOM_IMAGE_HEIGHT, ROOM_IMAGE_WIDTH } from '@/lib/room-plane';
 
-type EyeFurnitureId = Exclude<RoomFurnitureId, 'mailbox'>;
+type EyeFurnitureId = Exclude<RoomFurnitureId, 'mailbox' | 'trashCan'>;
 type ScreenPosition = { x: number; y: number };
 type RoomEyePlacement =
   | { kind: 'home' }

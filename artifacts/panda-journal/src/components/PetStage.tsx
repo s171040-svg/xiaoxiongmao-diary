@@ -159,6 +159,12 @@ const spriteAssetVersion = (sprite: string) => sprite === 'chew' ? 'chew-feed-4'
 const CHEW_FRAME_COUNT = 14;
 const DIZZY_FRAME_COUNT = animationManifest.frameCountBySprite.dizzy;
 const DIZZY_DROP_MS = DIZZY_FRAME_COUNT * animationManifest.frameIntervalMs.dizzy;
+const TRASH_CAN_ENTER_FRAME_COUNT = animationManifest.frameCountBySprite['trash-can-enter'];
+const TRASH_CAN_EXIT_FRAME_COUNT = animationManifest.frameCountBySprite['trash-can-exit'];
+const TRASH_CAN_SPRITE = `${import.meta.env.BASE_URL}static/room/trash-can.png?v=trash-can-pixen-1`;
+const trashCanPandaFrameUrl = (sequence: 'enter' | 'exit', frame: number) => (
+  pandaStaticUrl(`frames/trash-can-${sequence}-${frame}.png?v=trash-can-pixen-1`)
+);
 const DIZZY_HOLD_MS = 2400;
 const BAMBOO_DROP_MS = 780;
 const BATH_DROP_MS = 680;
@@ -269,6 +275,7 @@ type PandaDragPointer = {
 };
 
 type WorldFallPhase = 'none' | 'falling' | 'away' | 'returning' | 'dirty';
+type TrashCanPandaPhase = 'entering' | 'trapped' | 'exiting';
 type FurniturePointer = {
   id: RoomFurnitureId;
   pointerId: number;
@@ -430,6 +437,10 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const roomFurnitureLayoutRef = useRef(roomFurnitureLayout);
   roomFurnitureLayoutRef.current = roomFurnitureLayout;
   const [draggingFurnitureId, setDraggingFurnitureId] = useState<RoomFurnitureId | null>(null);
+  const [trashCanPandaPhase, setTrashCanPandaPhase] = useState<TrashCanPandaPhase | null>(null);
+  const trashCanPandaPhaseRef = useRef<TrashCanPandaPhase | null>(null);
+  const [trashCanPandaFrame, setTrashCanPandaFrame] = useState(0);
+  const [trashCanPandaAnchor, setTrashCanPandaAnchor] = useState<RoomFurniturePoint | null>(null);
   const [viewportSize, setViewportSize] = useState(() => ({
     width: typeof window === 'undefined' ? 1 : window.innerWidth,
     height: typeof window === 'undefined' ? 1 : window.innerHeight,
@@ -475,7 +486,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     () => activeWasteLetters.filter(letter => ['fresh', 'bagged', 'disposing'].includes(letter.poop!.phase)),
     [activeWasteLetters],
   );
-  const wasteBinVisible = showInteractionBubble && activeWasteLetters.length > 0;
+  const wasteBinVisible = showInteractionBubble;
   const isFlyChasing = flyChaseActive && bathPhase === 'none' && interactionState === 'roaming'
     && activityState === 'roaming' && !isDragging && !pandaHanging && !hidden;
   const [nightWakeOverride, setNightWakeOverride] = useState(false);
@@ -514,6 +525,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const dirtyPleaTimerRef = useRef(0);
   const dirtyPleaHideTimerRef = useRef(0);
   const bathBallDropTimerRef = useRef(0);
+  const trashCanPandaAnimationTimerRef = useRef(0);
   const bathRubMsRef = useRef(0);
   const bathTubRef = useRef<HTMLImageElement>(null);
   const bathStationRef = useRef<HTMLDivElement>(null);
@@ -523,7 +535,13 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const windowDryingHookRef = useRef<HTMLButtonElement>(null);
   const bambooJarRef = useRef<HTMLDivElement>(null);
   const spacePoliceMailboxRef = useRef<HTMLButtonElement>(null);
-  const wasteBinRef = useRef<HTMLDivElement>(null);
+  const wasteBinRef = useRef<HTMLButtonElement>(null);
+  const startTrashCanPandaExit = useCallback(() => {
+    if (trashCanPandaPhaseRef.current !== 'trapped') return;
+    trashCanPandaPhaseRef.current = 'exiting';
+    setTrashCanPandaFrame(0);
+    setTrashCanPandaPhase('exiting');
+  }, []);
   const bathBallButtonRef = useRef<HTMLButtonElement>(null);
   const pandaButtonRef = useRef<HTMLButtonElement>(null);
   const snackDropPointerRef = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null);
@@ -734,7 +752,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     if (furnitureCollisionPendingRef.current.has(id)) return true;
     const furniture = id === 'bed' ? bedRef.current
       : id === 'rack' ? clothesRackRef.current
-        : id === 'bathStation' ? bathStationRef.current : null;
+        : id === 'bathStation' ? bathStationRef.current
+          : id === 'trashCan' ? wasteBinRef.current : null;
     const panda = pandaButtonRef.current;
     const pandaRect = panda?.querySelector('.ps-body')?.getBoundingClientRect() ?? panda?.getBoundingClientRect();
     const furnitureRect = furniture?.getBoundingClientRect();
@@ -844,6 +863,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
 
   const beginFurnitureMove = useCallback((id: RoomFurnitureId, event: ReactPointerEvent<Element>) => {
     if (!showInteractionBubble || !event.isPrimary || event.button !== 0) return;
+    if (id === 'trashCan' && trashCanPandaPhaseRef.current !== null && trashCanPandaPhaseRef.current !== 'trapped') return;
     event.stopPropagation();
     const element = event.currentTarget as HTMLElement;
     const rect = element.getBoundingClientRect();
@@ -898,6 +918,19 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       viewportSize.width,
       viewportSize.height,
     );
+    if (press.id === 'trashCan' && trashCanPandaPhaseRef.current === 'trapped') {
+      const pandaRect = pandaButtonRef.current?.querySelector('.ps-body')?.getBoundingClientRect()
+        ?? pandaButtonRef.current?.getBoundingClientRect();
+      const nextRect = {
+        left: point.x * viewportSize.width - rect.width / 2,
+        right: point.x * viewportSize.width + rect.width / 2,
+        top: point.y * viewportSize.height - rect.height / 2,
+        bottom: point.y * viewportSize.height + rect.height / 2,
+      };
+      const stillOverPanda = pandaRect && nextRect.left < pandaRect.right && nextRect.right > pandaRect.left
+        && nextRect.top < pandaRect.bottom && nextRect.bottom > pandaRect.top;
+      if (pandaRect && !stillOverPanda) startTrashCanPandaExit();
+    }
     press.moved = true;
     const collided = updateRoomFurniturePoint(press.id, point);
     if (!collided) return;
@@ -913,7 +946,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     } catch {
       // The browser may already have released capture after pointerup or pointercancel.
     }
-  }, [persistRoomFurnitureLayout, updateRoomFurniturePoint, viewportSize]);
+  }, [persistRoomFurnitureLayout, startTrashCanPandaExit, updateRoomFurniturePoint, viewportSize]);
 
   const finishFurnitureMove = useCallback((event: ReactPointerEvent<Element>) => {
     const press = furniturePointerRef.current;
@@ -1558,8 +1591,55 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     return true;
   }, [applyRoomPoint, setBathPhaseNow, setDampAfterBathNow, showInteractionBubble, updateFacing]);
 
+  const startTrashCanPanda = useCallback(() => {
+    if (!showInteractionBubble || hidden || interactionStateRef.current === 'chat' || draggingRef.current
+      || sleepingOnBed || sleepingInNest || pandaHangingRef.current || bathPhaseRef.current !== 'none'
+      || trashCanPandaPhaseRef.current !== null) return false;
+    const panda = pandaButtonRef.current;
+    const bin = wasteBinRef.current;
+    const pandaRect = panda?.querySelector('.ps-body')?.getBoundingClientRect() ?? panda?.getBoundingClientRect();
+    const binRect = bin?.getBoundingClientRect();
+    if (!pandaRect || !binRect) return false;
+
+    const point = clampRoomFurnitureCenter(
+      pandaRect.left + pandaRect.width / 2,
+      pandaRect.top + pandaRect.height / 2,
+      binRect.width,
+      binRect.height,
+      viewportSize.width,
+      viewportSize.height,
+    );
+    const nextLayout = { ...roomFurnitureLayoutRef.current, trashCan: point };
+    roomFurnitureLayoutRef.current = nextLayout;
+    setRoomFurnitureLayout(nextLayout);
+    persistRoomFurnitureLayout(nextLayout);
+    setTrashCanPandaAnchor(point);
+    setTrashCanPandaFrame(0);
+    trashCanPandaPhaseRef.current = 'entering';
+    setTrashCanPandaPhase('entering');
+
+    clearActivityTransition();
+    setActivityState('roaming');
+    setSleepingOnBed(false);
+    setSleepingInNest(false);
+    setHangingOnRack(false);
+    setHangingOnWindowHook(false);
+    setRoomWalking(false);
+    return true;
+  }, [
+    clearActivityTransition,
+    hidden,
+    persistRoomFurnitureLayout,
+    setActivityState,
+    setRoomWalking,
+    showInteractionBubble,
+    sleepingInNest,
+    sleepingOnBed,
+    viewportSize,
+  ]);
+
   const triggerFurnitureCollisionInteraction = useCallback((id: RoomFurnitureId) => {
-    if (id !== 'bed' && id !== 'rack' && id !== 'bathStation') return;
+    if (id !== 'bed' && id !== 'rack' && id !== 'bathStation' && id !== 'trashCan') return;
     if (!showInteractionBubble || hidden || interactionState === 'chat'
       || draggingRef.current || sleepingOnBed || sleepingInNest || pandaHanging
       || bathPhaseRef.current !== 'none') return;
@@ -1568,7 +1648,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     const pandaBodyRect = panda?.querySelector('.ps-body')?.getBoundingClientRect() ?? panda?.getBoundingClientRect();
     const pandaRect = panda?.getBoundingClientRect();
     const furniture = id === 'bed' ? bedRef.current
-      : id === 'rack' ? clothesRackRef.current : bathStationRef.current;
+      : id === 'rack' ? clothesRackRef.current
+        : id === 'bathStation' ? bathStationRef.current : wasteBinRef.current;
     const furnitureRect = furniture?.getBoundingClientRect();
     if (!pandaRect || !pandaBodyRect || !furnitureRect) return;
     const overlapping = furnitureRect.left < pandaBodyRect.right
@@ -1618,6 +1699,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       applyRoomPoint(target);
       setHangingOnRack(true);
       setRoomWalking(false);
+    } else if (id === 'trashCan') {
+      startTrashCanPanda();
     } else {
       startBathDropToTub();
     }
@@ -1634,6 +1717,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     sleepingInNest,
     sleepingOnBed,
     startBathDropToTub,
+    startTrashCanPanda,
     updateFacing,
   ]);
   furnitureCollisionActionRef.current = triggerFurnitureCollisionInteraction;
@@ -1823,6 +1907,9 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
         setPandaJarTrapped(true);
         break;
       }
+      case 'trash-can':
+        startTrashCanPanda();
+        break;
       case 'toy-teaser':
       case 'toy-curious':
       case 'toy-brake':
@@ -1855,7 +1942,53 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
         break;
       }
     }
-  }, [applyRoomPoint, clearActivityTransition, developerEvent, setFrame, showInteractionBubble, startBathDropToTub, startDeveloperBathRub, startFlyChase, triggerStartle]);
+  }, [applyRoomPoint, clearActivityTransition, developerEvent, setFrame, showInteractionBubble, startBathDropToTub, startDeveloperBathRub, startFlyChase, startTrashCanPanda, triggerStartle]);
+
+  useEffect(() => {
+    if (trashCanPandaPhase !== 'entering' && trashCanPandaPhase !== 'exiting') return undefined;
+    const entering = trashCanPandaPhase === 'entering';
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      if (entering) {
+        trashCanPandaPhaseRef.current = 'trapped';
+        setTrashCanPandaFrame(TRASH_CAN_ENTER_FRAME_COUNT);
+        setTrashCanPandaPhase('trapped');
+      } else {
+        trashCanPandaPhaseRef.current = null;
+        setTrashCanPandaPhase(null);
+        setTrashCanPandaAnchor(null);
+        setTrashCanPandaFrame(0);
+      }
+      return undefined;
+    }
+    const frameCount = entering ? TRASH_CAN_ENTER_FRAME_COUNT : TRASH_CAN_EXIT_FRAME_COUNT;
+    const frameInterval = entering
+      ? animationManifest.frameIntervalMs['trash-can-enter']
+      : animationManifest.frameIntervalMs['trash-can-exit'];
+    let nextFrame = 0;
+    const advance = () => {
+      nextFrame += 1;
+      setTrashCanPandaFrame(nextFrame);
+      if (nextFrame >= frameCount) {
+        if (entering) {
+          trashCanPandaPhaseRef.current = 'trapped';
+          setTrashCanPandaPhase('trapped');
+        } else {
+          trashCanPandaPhaseRef.current = null;
+          setTrashCanPandaPhase(null);
+          setTrashCanPandaAnchor(null);
+          setTrashCanPandaFrame(0);
+        }
+        trashCanPandaAnimationTimerRef.current = 0;
+        return;
+      }
+      trashCanPandaAnimationTimerRef.current = window.setTimeout(advance, frameInterval);
+    };
+    trashCanPandaAnimationTimerRef.current = window.setTimeout(advance, frameInterval);
+    return () => {
+      window.clearTimeout(trashCanPandaAnimationTimerRef.current);
+      trashCanPandaAnimationTimerRef.current = 0;
+    };
+  }, [trashCanPandaPhase]);
 
   useEffect(() => {
     if (!showInteractionBubble) {
@@ -3654,6 +3787,17 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
 
   const roomBackgroundImage = `url("${import.meta.env.BASE_URL}static/room/room-background-pixellab.png?v=bamboo-room-1")`;
   const roomBackgroundSize = `min(100vw, ${(ROOM_IMAGE_WIDTH / ROOM_IMAGE_HEIGHT) * 100}vh) auto`;
+  const trashCanPandaImage = trashCanPandaPhase === 'entering'
+    ? trashCanPandaFrame === 0
+      ? pandaStaticUrl('idle.png?v=trash-can-pixen-1')
+      : trashCanPandaFrameUrl('enter', trashCanPandaFrame)
+    : trashCanPandaPhase === 'trapped'
+      ? trashCanPandaFrameUrl('enter', TRASH_CAN_ENTER_FRAME_COUNT)
+      : trashCanPandaPhase === 'exiting'
+        ? trashCanPandaFrame === 0
+          ? trashCanPandaFrameUrl('enter', TRASH_CAN_ENTER_FRAME_COUNT)
+          : trashCanPandaFrameUrl('exit', trashCanPandaFrame)
+        : null;
   const roomFloorBounds = roomFloorBoundsPercent(window.innerWidth, window.innerHeight);
   const roomImageScale = Math.min(window.innerWidth / ROOM_IMAGE_WIDTH, window.innerHeight / ROOM_IMAGE_HEIGHT);
   const bambooJarTargetProjection = projectRoomPoint(
@@ -3707,16 +3851,39 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
             ['--panda-drag-x' as string]: pandaDragScreenPosition ? `${pandaDragScreenPosition.x}px` : undefined,
             ['--panda-drag-y' as string]: pandaDragScreenPosition ? `${pandaDragScreenPosition.y}px` : undefined,
           }}>
+        {showInteractionBubble && trashCanPandaPhase && trashCanPandaAnchor && trashCanPandaImage && (
+          <img className="ps-room-trash-panda"
+            src={trashCanPandaImage}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            data-testid="trash-can-panda"
+            data-phase={trashCanPandaPhase}
+            style={{
+              left: `${trashCanPandaAnchor.x * 100}%`,
+              top: `calc(${trashCanPandaAnchor.y * 100}% - 22px)`,
+            }} />
+        )}
         {wasteBinVisible && (
-          <div ref={wasteBinRef} className="ps-room-trash-can"
-            aria-label="像素垃圾桶；拖动包好的便便袋到这里" role="img" data-testid="room-waste-bin"
+          <button ref={wasteBinRef}
+            type="button"
+            className={`ps-room-trash-can${draggingFurnitureId === 'trashCan' ? ' ps-furniture-dragging' : ''}`}
+            aria-label={trashCanPandaPhase === 'trapped'
+              ? '小熊猫掉进垃圾桶里了；长按拖动垃圾桶，让小熊猫爬出来'
+              : '像素垃圾桶；长按拖动，拖动包好的便便袋到这里清理'}
+            title="长按拖动垃圾桶；可以接收包好的便便袋"
+            data-testid="room-waste-bin"
+            data-dragging={draggingFurnitureId === 'trashCan' ? 'true' : undefined}
+            data-panda-state={trashCanPandaPhase ?? undefined}
             data-disposing={activeWasteLetters.some(letter => letter.poop?.phase === 'disposing') ? 'true' : undefined}
-            style={{ left: '89%', top: '78%' }}>
-            <span className="ps-room-trash-can-lid" aria-hidden="true" />
-            <span className="ps-room-trash-can-body" aria-hidden="true">
-              <i /><i /><i />
-            </span>
-          </div>
+            style={roomFurnitureStyle('trashCan', wasteBinRef)}
+            onPointerDown={event => beginFurnitureMove('trashCan', event)}
+            onPointerMove={moveFurniture}
+            onPointerUp={finishFurnitureMove}
+            onPointerCancel={finishFurnitureMove}
+            onClickCapture={event => suppressFurnitureClick('trashCan', event)}>
+            <img src={TRASH_CAN_SPRITE} alt="" aria-hidden="true" draggable={false} />
+          </button>
         )}
         {showInteractionBubble && (
           <div className="ps-room-outside-boundary" data-testid="room-outside-boundary" aria-hidden="true"
@@ -3930,6 +4097,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       <button ref={pandaButtonRef} type="button" className={`ps-panda ps-${hangingOnRack ? 'idle' : isCuddling ? 'cuddle' : pet.stage === 'performing' ? action : basePoseClass}${showInteractionBubble && roomWalking && !hangingOnRack ? ' ps-walking' : ''}${showInteractionBubble && activityTransition ? ` ps-transition-${activityTransition}` : ''}${pixelTransitionDirection ? ' ps-pixel-transition' : ''}${interactionState === 'chat' ? ' ps-chatting' : ''}${(showInteractionBubble && activityState === 'lying' || developerPose === 'lying') ? ' ps-lying' : ''}${(showInteractionBubble && activityState === 'peeking' || developerPose === 'peeking') ? ' ps-peeking' : ''}${isSleeping ? ' ps-sleeping' : ''}${developerPose === 'idle' ? ' ps-dev-idle' : ''}${startled ? ' ps-startled' : ''}${isPressPending ? ' ps-pressing' : ''}${reacting ? ' ps-reacting' : ''}${isDragging || developerGrab ? ' ps-dragging' : ''}${hangingOnRack ? ' ps-hanging' : ''}${dirtyGrab ? ' ps-dirty-grabbing' : ''}${showInteractionBubble && dizzyPhase !== 'none' ? ' ps-dizzy' : ''}${worldFallPhase === 'falling' ? ' ps-world-falling' : ''}${bathPhase === 'falling' ? ' ps-bath-dropping' : ''}${bathPhase === 'bathing' ? ' ps-bathing' : ''}${showInteractionBubble && bathTransition === 'exiting' ? ' ps-bath-exiting' : ''}${dirtyReturn ? ' ps-world-dirty' : ''}${isFlyChasing ? ' ps-fly-flee' : ''}`}
                 data-damp-after-bath={dampAfterBath && bathPhase === 'none' ? 'true' : undefined}
                 data-jar-trapped={pandaJarTrapped ? 'true' : undefined}
+                 data-trash-can-state={showInteractionBubble ? trashCanPandaPhase ?? undefined : undefined}
               onPointerEnter={handlePandaPointerEnter}
               onClick={handlePandaClick}
               onPointerDown={handlePandaPointerDown}

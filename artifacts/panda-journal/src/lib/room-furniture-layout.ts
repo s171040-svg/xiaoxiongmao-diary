@@ -1,10 +1,10 @@
 export const ROOM_FURNITURE_LAYOUT_KEY = 'little-panda-room-furniture-layout-v1';
 
-export type RoomFurnitureId = 'bed' | 'rack' | 'mailbox' | 'bathStation';
+export type RoomFurnitureId = 'bed' | 'rack' | 'mailbox' | 'bathStation' | 'trashCan';
 export type RoomFurniturePoint = { x: number; y: number };
 export type RoomFurnitureLayout = Partial<Record<RoomFurnitureId, RoomFurniturePoint>>;
 
-const furnitureIds: RoomFurnitureId[] = ['bed', 'rack', 'mailbox', 'bathStation'];
+const furnitureIds: RoomFurnitureId[] = ['bed', 'rack', 'mailbox', 'bathStation', 'trashCan'];
 
 export function parseRoomFurnitureLayout(raw: string | null): RoomFurnitureLayout {
   if (!raw) return {};

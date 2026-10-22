@@ -666,3 +666,17 @@ mtime_ms = 1792594404671
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/629a686b-bf9a-48e8-bd41-1bc9a42d2521/80342115-fb59-4bff-a1de-1ec92ffbba44"
 storage_version_token = "1792594693551499"
 content_type = "image/gif"
+
+[[outputs]]
+id = "6BSrlhZ8sF_b__4XQC9r2"
+uri = "file://artifacts/panda-journal/public/static/room/trash-can.png"
+type = "image"
+title = "新绘制的像素垃圾桶"
+description = "透明底像素素材；已接入房间并保留便便袋清理用途。"
+logical_id = "73f85e3a-e5c6-44a3-beb2-1ebb1113b404"
+content_hash = "sha256:3572e8491bca36b5639bfcb6048434c06ac97384b96a657b28d8eea46fc3f7fa"
+size = 2082
+mtime_ms = 1792642367895
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/73f85e3a-e5c6-44a3-beb2-1ebb1113b404/8325b12d-ad1a-4975-93de-c3ea0c304fcb"
+storage_version_token = "1792642774187500"
+content_type = "image/png"
