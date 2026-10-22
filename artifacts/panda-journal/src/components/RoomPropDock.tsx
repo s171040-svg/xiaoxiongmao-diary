@@ -4,6 +4,7 @@ export type RoomToy = 'teaser' | 'laser';
 export type RoomProp = 'bed' | 'rack' | 'tub';
 
 export const PANDA_TEASER_WAND_URL = `${import.meta.env.BASE_URL}static/room/panda-cat-teaser-wand.png?v=teaser-wand-1`;
+export const TRUTH_POTION_URL = `${import.meta.env.BASE_URL}static/room/truth-potion.png?v=truth-potion-1`;
 
 const PALETTE: Record<string, string> = {
   k: '#2b1d12', w: '#f4ead2', b: '#8a5a32', B: '#c08a50', g: '#5f8f4a', G: '#a8cf72',
@@ -83,6 +84,8 @@ function PixelIcon({ name }: { name: keyof typeof ICONS }) {
 type Props = {
   equippedToy: RoomToy | null;
   onSelectToy: (toy: RoomToy) => void;
+  truthPotionInRoom: boolean;
+  onToggleTruthPotion: () => void;
   placed: Record<RoomProp, boolean>;
   onTogglePlaced: (prop: RoomProp) => void;
   locked: Record<RoomProp, boolean>;
@@ -99,7 +102,7 @@ const FURNITURE: { id: RoomProp; label: string }[] = [
   { id: 'rack', label: '晾衣架' },
 ];
 
-export function RoomPropDock({ equippedToy, onSelectToy, placed, onTogglePlaced, locked }: Props) {
+export function RoomPropDock({ equippedToy, onSelectToy, truthPotionInRoom, onToggleTruthPotion, placed, onTogglePlaced, locked }: Props) {
   return (
     <section className="rp-dock" aria-label="道具区" data-testid="room-prop-dock"
       onPointerDown={(event) => event.stopPropagation()}>
@@ -115,6 +118,15 @@ export function RoomPropDock({ equippedToy, onSelectToy, placed, onTogglePlaced,
             <span>{toy.label}</span>
           </button>
         ))}
+      </div>
+      <span className="rp-divider" aria-hidden="true" />
+      <div className="rp-group" role="group" aria-label="消耗道具">
+        <button type="button" className="rp-slot" aria-pressed={truthPotionInRoom}
+          aria-label="真话药水" onClick={onToggleTruthPotion} data-testid="prop-truth-potion"
+          title={truthPotionInRoom ? '收回真话药水' : '拿出真话药水，再拖到小熊猫身上让它喝下'}>
+          <img className="rp-icon rp-potion-icon" src={TRUTH_POTION_URL} alt="" />
+          <span>真话药水</span>
+        </button>
       </div>
       <span className="rp-divider" aria-hidden="true" />
       <div className="rp-group" role="group" aria-label="家具">

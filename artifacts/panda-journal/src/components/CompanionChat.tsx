@@ -217,6 +217,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
   const [devActionResult, setDevActionResult] = useState<{ label: string; started: boolean; durationMs: number; persistent?: boolean } | null>(null);
   const devActionToken = useRef(0);
   const [roomChatOpen, setRoomChatOpen] = useState(false);
+  const roomChatWasOpenRef = useRef(false);
   const [clearMindMode, setClearMindMode] = useState(false);
   const [spacePoliceMailboxOpen, setSpacePoliceMailboxOpen] = useState(false);
   const [spacePoliceLetterOpen, setSpacePoliceLetterOpen] = useState<SpacePoliceLetter | null>(null);
@@ -337,21 +338,15 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
   const roomDraft = c.draft || (latestRoomUser?.status === 'failed' ? latestRoomUser.text : '');
   const canSendRoomMessage = !c.busy && !c.isPhotoLoading && !c.listening && !!roomDraft.trim();
   useEffect(() => {
-    if (roomOnly && !roomChatOpen) setClearMindMode(false);
+    if (roomOnly && roomChatWasOpenRef.current && !roomChatOpen) setClearMindMode(false);
+    roomChatWasOpenRef.current = roomChatOpen;
   }, [roomOnly, roomChatOpen]);
   const sendWithMode = (text?: string) => {
     void c.send(text, { clearMindMode: !window.pandaDesktop && clearMindMode });
   };
-  const clearMindControl = !window.pandaDesktop && (
-    <div className="cc-mode-control" data-active={clearMindMode ? 'true' : 'false'}>
-      <button type="button" aria-pressed={clearMindMode}
-        aria-label={`清醒模式${clearMindMode ? '已开启' : '已关闭'}`}
-        title="仅对开关开启期间发送的新消息生效；默认关闭"
-        onClick={() => setClearMindMode(value => !value)}
-        data-testid="button-clear-mind-mode">
-        <span>清醒模式</span><small>{clearMindMode ? '已开启' : '关闭'}</small>
-      </button>
-      {clearMindMode && <span>本次聊天启用清醒支持；关闭后恢复平时聊天</span>}
+  const clearMindStatus = !window.pandaDesktop && clearMindMode && (
+    <div className="cc-mode-status" role="status" data-testid="clear-mind-mode-active">
+      小熊猫喝下了真话药水；清醒模式会持续到本次聊天关闭。
     </div>
   );
   const sendRoomMessage = () => {
@@ -441,6 +436,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
         developerPose={import.meta.env.DEV ? developerPose : null}
         developerEvent={import.meta.env.DEV && roomOnly ? developerEvent : null}
         debugClicks={false} showInteractionBubble={roomOnly}
+         onDrinkTruthPotion={roomOnly && !window.pandaDesktop ? () => setClearMindMode(true) : undefined}
         interactionBubbleText={roomOnly && roomDialogue ? removeActionAsides(roomDialogue) : undefined}
         onChatModeChange={roomOnly ? onRoomChatModeChange : undefined}
         onCareInteraction={c.recordCareStatInteraction}
@@ -462,7 +458,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
         && <GiftDrop gift={c.state.pendingGift} startedAt={c.state.giftDropStartedAt} onCollect={c.collectPresent} />}
       {roomOnly ? (
         <>
-          {roomChatOpen && <>{clearMindControl}{roomComposer}</>}
+          {roomChatOpen && <>{clearMindStatus}{roomComposer}</>}
         </>
       ) : (
         <>
@@ -472,7 +468,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
             {c.busy && !c.replyDisplay && <div className="cc-row bot"><div className="cc-bubble typing" aria-label="小熊猫正在想"><i /><i /><i /></div></div>}
             <div ref={endRef} />
           </section>
-          {clearMindControl}
+          {clearMindStatus}
           {composer}
         </>
       )}

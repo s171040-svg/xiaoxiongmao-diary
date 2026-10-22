@@ -12,5 +12,7 @@
 .rp-slot:focus-visible{outline:3px solid #fff3b0;outline-offset:2px}
 .rp-icon{width:36px;height:27px;image-rendering:pixelated}
 .rp-teaser-icon{width:18px;height:34px;object-fit:contain;transform:rotate(22deg)}
+.rp-potion-icon{width:29px;height:29px;object-fit:contain}
 @media (max-width:560px){.rp-title{display:none}.rp-slot{min-width:48px;padding:4px}.rp-icon{width:28px;height:21px}}
 @media (max-width:560px){.rp-teaser-icon{width:16px;height:29px}}
+@media (max-width:420px){.rp-dock{gap:3px;padding:4px;overflow-x:auto;scrollbar-width:none}.rp-dock::-webkit-scrollbar{display:none}.rp-group{flex:none;gap:3px}.rp-divider{flex:none}.rp-slot{min-width:46px;padding:3px 2px;font-size:10px}.rp-icon{width:26px;height:20px}.rp-teaser-icon{width:14px;height:25px}.rp-potion-icon{width:24px;height:24px}}

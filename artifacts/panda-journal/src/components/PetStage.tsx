@@ -71,7 +71,7 @@ import {
 } from '@/lib/room-furniture-layout';
 import { SPACE_POLICE_LETTER_EAT_DELAY_MS } from '@/lib/companion-store';
 import animationManifest from '@/lib/panda-animation-manifest.json';
-import { PANDA_TEASER_WAND_URL, RoomPropDock, type RoomProp, type RoomToy } from './RoomPropDock';
+import { PANDA_TEASER_WAND_URL, TRUTH_POTION_URL, RoomPropDock, type RoomProp, type RoomToy } from './RoomPropDock';
 import { useRoomEyeControl } from './useRoomEyeControl';
 import './PetStage.css';
 
@@ -89,6 +89,7 @@ const GRAB_HAND_ANCHOR_BY_FORM = {
 const SPACE_POLICE_LETTER_REMINDER_MS = 60_000;
 const SNACK_TOKEN_WIDTH = 124;
 const SNACK_TOKEN_HEIGHT = 54;
+const TRUTH_POTION_TOKEN_SIZE = 56;
 const SPACE_POLICE_ENVELOPE_HOLD_MS = 420;
 const SPACE_POLICE_ENVELOPE_STORE_MS = 190;
 const ROOM_WASTE_HOLD_MS = 520;
@@ -303,10 +304,11 @@ type BathBallPointer = {
   offsetY: number;
 };
 
-export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = false, motion = 'idle', nightMode = false, debugClicks = false, showInteractionBubble = false, interactionBubbleText, developerPose = null, developerEvent = null, onChatModeChange, onCareInteraction, onCapturedHomecomingInteraction, spacePoliceLetter, spacePoliceLetters, spacePoliceMailCount = 0, spacePoliceUnreadCount = 0, onOpenSpacePoliceLetter, onFileSpacePoliceLetter, onEatSpacePoliceLetter, onPlaceSpacePolicePoop, onPackSpacePolicePoop, onMoveSpacePolicePoopBag, onDisposeSpacePolicePoopBag, onFinishSpacePolicePoopDisposal, onOpenSpacePoliceMailbox }: {
+export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthPotion, thinking = false, motion = 'idle', nightMode = false, debugClicks = false, showInteractionBubble = false, interactionBubbleText, developerPose = null, developerEvent = null, onChatModeChange, onCareInteraction, onCapturedHomecomingInteraction, spacePoliceLetter, spacePoliceLetters, spacePoliceMailCount = 0, spacePoliceUnreadCount = 0, onOpenSpacePoliceLetter, onFileSpacePoliceLetter, onEatSpacePoliceLetter, onPlaceSpacePolicePoop, onPackSpacePolicePoop, onMoveSpacePolicePoopBag, onDisposeSpacePolicePoopBag, onFinishSpacePolicePoopDisposal, onOpenSpacePoliceMailbox }: {
   pet: PetEffect;
   selectedSnack?: Pick<Gift, 'id' | 'emoji' | 'item'> | null;
   onFeedSnack?: (giftId: string) => void;
+  onDrinkTruthPotion?: () => void;
   thinking?: boolean;
   motion?: 'idle' | 'sleep';
   nightMode?: boolean;
@@ -398,6 +400,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
   const [poopDragPosition, setPoopDragPosition] = useState<RoomWastePoint | null>(null);
   const [snackDropPosition, setSnackDropPosition] = useState<ScreenPosition | null>(null);
   const [snackDropDragging, setSnackDropDragging] = useState(false);
+  const [truthPotionPosition, setTruthPotionPosition] = useState<ScreenPosition | null>(null);
+  const [truthPotionDragging, setTruthPotionDragging] = useState(false);
   const [capturedHomecomingArrived, setCapturedHomecomingArrived] = useState(false);
   const [spacePoliceEnvelopePosition, setSpacePoliceEnvelopePosition] = useState<{ x: number; y: number } | null>(null);
   const [spacePoliceEnvelopeDragging, setSpacePoliceEnvelopeDragging] = useState(false);
@@ -512,6 +516,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
   const bathBallButtonRef = useRef<HTMLButtonElement>(null);
   const pandaButtonRef = useRef<HTMLButtonElement>(null);
   const snackDropPointerRef = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null);
+  const truthPotionPointerRef = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null);
   const firstActivationAtRef = useRef<number | null>(null);
   const clickExpiryTimerRef = useRef(0);
   const reactionTimerRef = useRef(0);
@@ -645,6 +650,73 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
     if (snackDropPointerRef.current?.pointerId !== event.pointerId) return;
     snackDropPointerRef.current = null;
     setSnackDropDragging(false);
+  };
+
+  const toggleTruthPotion = () => {
+    truthPotionPointerRef.current = null;
+    setTruthPotionDragging(false);
+    if (truthPotionPosition) {
+      setTruthPotionPosition(null);
+      return;
+    }
+    const panda = pandaButtonRef.current?.getBoundingClientRect();
+    const maxX = Math.max(8, window.innerWidth - TRUTH_POTION_TOKEN_SIZE - 8);
+    const maxY = Math.max(90, window.innerHeight - TRUTH_POTION_TOKEN_SIZE - 160);
+    const proposedX = panda ? panda.left - TRUTH_POTION_TOKEN_SIZE - 10 : window.innerWidth * 0.5;
+    const proposedY = panda ? panda.top + (panda.height - TRUTH_POTION_TOKEN_SIZE) / 2 : window.innerHeight * 0.56;
+    setTruthPotionPosition({
+      x: Math.round(Math.max(8, Math.min(maxX, proposedX))),
+      y: Math.round(Math.max(90, Math.min(maxY, proposedY))),
+    });
+  };
+
+  const handleTruthPotionPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (!truthPotionPosition) return;
+    event.preventDefault();
+    event.stopPropagation();
+    truthPotionPointerRef.current = {
+      pointerId: event.pointerId,
+      offsetX: event.clientX - truthPotionPosition.x,
+      offsetY: event.clientY - truthPotionPosition.y,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setTruthPotionDragging(true);
+  };
+
+  const handleTruthPotionPointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const drag = truthPotionPointerRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    setTruthPotionPosition({
+      x: Math.max(0, Math.min(window.innerWidth - TRUTH_POTION_TOKEN_SIZE, event.clientX - drag.offsetX)),
+      y: Math.max(0, Math.min(window.innerHeight - TRUTH_POTION_TOKEN_SIZE, event.clientY - drag.offsetY)),
+    });
+  };
+
+  const handleTruthPotionPointerUp = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const drag = truthPotionPointerRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    truthPotionPointerRef.current = null;
+    setTruthPotionDragging(false);
+    const panda = pandaButtonRef.current?.getBoundingClientRect();
+    const droppedOnPanda = pet.stage === 'present' && panda
+      && event.clientX >= panda.left - 20 && event.clientX <= panda.right + 20
+      && event.clientY >= panda.top - 20 && event.clientY <= panda.bottom + 20;
+    if (droppedOnPanda) {
+      setTruthPotionPosition(null);
+      onDrinkTruthPotion?.();
+      return;
+    }
+    setTruthPotionPosition({
+      x: Math.max(0, Math.min(window.innerWidth - TRUTH_POTION_TOKEN_SIZE, event.clientX - drag.offsetX)),
+      y: Math.max(0, Math.min(window.innerHeight - TRUTH_POTION_TOKEN_SIZE, event.clientY - drag.offsetY)),
+    });
+  };
+
+  const handleTruthPotionPointerCancel = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (truthPotionPointerRef.current?.pointerId !== event.pointerId) return;
+    truthPotionPointerRef.current = null;
+    setTruthPotionDragging(false);
   };
 
   const updateRoomFurniturePoint = useCallback((id: RoomFurnitureId, point: RoomFurniturePoint) => {
@@ -3981,9 +4053,33 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, thinking = fa
         <RoomPropDock
           equippedToy={equippedToy}
           onSelectToy={(toy) => setEquippedToy((current) => current === toy ? null : toy)}
+          truthPotionInRoom={Boolean(truthPotionPosition)}
+          onToggleTruthPotion={toggleTruthPotion}
           placed={placedProps}
           onTogglePlaced={toggleRoomProp}
           locked={{ tub: bathPhase !== 'none', rack: hangingOnRack, bed: sleepingOnBed }} />
+      )}
+      {showInteractionBubble && truthPotionPosition && (
+        <button type="button" className="ps-truth-potion-token"
+          style={{ left: truthPotionPosition.x, top: truthPotionPosition.y }}
+          data-dragging={truthPotionDragging ? 'true' : undefined}
+          data-testid="truth-potion-token"
+          aria-label="真话药水；拖到小熊猫身上让它喝下"
+          title="拖到小熊猫身上让它喝下"
+          onPointerDown={handleTruthPotionPointerDown}
+          onPointerMove={handleTruthPotionPointerMove}
+          onPointerUp={handleTruthPotionPointerUp}
+          onPointerCancel={handleTruthPotionPointerCancel}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              if (pet.stage !== 'present') return;
+              setTruthPotionPosition(null);
+              onDrinkTruthPotion?.();
+            }
+          }}>
+          <img src={TRUTH_POTION_URL} alt="" draggable={false} />
+        </button>
       )}
       {showInteractionBubble && interactionState !== 'chat' && equippedToy && toyPointer && (
         <span className={`ps-toy ps-toy-${equippedToy}`} data-testid={`room-toy-${equippedToy}`}
