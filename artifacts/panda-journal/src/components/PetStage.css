@@ -47,6 +47,7 @@
 .ps-room-plant-user-cutout{position:absolute;right:0;bottom:0;display:block;width:12.109375%;height:auto;image-rendering:pixelated;pointer-events:none;user-select:none}
 .ps-stage[data-night=true] .ps-room-plant-user-cutout{filter:brightness(.58) saturate(.82)}
 .ps-room-rack{position:fixed;z-index:1;left:68%;bottom:clamp(190px,26vh,280px);width:clamp(58px,6vw,80px);height:auto;transform:translateX(-50%);image-rendering:pixelated;filter:drop-shadow(0 4px 4px #33271c30);pointer-events:auto;touch-action:none;user-select:none;cursor:grab}
+.ps-room-rack-occlusion{position:fixed;z-index:240;width:clamp(58px,6vw,80px);height:auto;image-rendering:pixelated;pointer-events:none;user-select:none;visibility:hidden}
 .ps-room-bed{position:fixed;z-index:1;left:clamp(28px,26vw,360px);top:clamp(260px,66vh,560px);width:clamp(103px,12vw,150px);height:auto;transform:translate(-50%,-80%);image-rendering:pixelated;filter:drop-shadow(0 4px 5px #17131d40);pointer-events:auto;touch-action:none;user-select:none;cursor:grab}
 .ps-bath-station{position:fixed;z-index:2;right:clamp(14px,4vw,56px);bottom:clamp(78px,12vh,112px);display:flex;width:max-content;align-items:flex-end;gap:9px;pointer-events:auto;touch-action:none;user-select:none;cursor:grab}
 .ps-room-bathtub{position:static;display:block;width:clamp(96px,13vw,164px);height:auto;image-rendering:pixelated;filter:drop-shadow(0 3px 4px #443a2730);pointer-events:none;user-select:none}

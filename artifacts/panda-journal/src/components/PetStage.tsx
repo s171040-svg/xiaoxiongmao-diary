@@ -40,6 +40,7 @@ import {
   ROOM_IMAGE_WIDTH,
   roomFloorBoundsPercent,
   roomFurnitureZIndex,
+  shouldPandaRenderBehindRack,
   unprojectRoomPoint,
   unprojectRoomWalkableSurfacePoint,
   type RoomPoint,
@@ -510,6 +511,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const bathStationRef = useRef<HTMLDivElement>(null);
   const bedRef = useRef<HTMLImageElement>(null);
   const clothesRackRef = useRef<HTMLImageElement>(null);
+  const rackOcclusionRef = useRef<HTMLImageElement>(null);
   const windowDryingHookRef = useRef<HTMLButtonElement>(null);
   const bambooJarRef = useRef<HTMLDivElement>(null);
   const pandaJarTrapTimerRef = useRef<number>(0);
@@ -821,6 +823,18 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       transform: 'translate(-50%, -50%)',
     };
   }, [roomFurnitureLayout, viewportSize]);
+
+  const syncRackOcclusion = useCallback(() => {
+    const foregroundRack = rackOcclusionRef.current;
+    if (!foregroundRack) return;
+    const pandaRect = pandaButtonRef.current?.getBoundingClientRect();
+    const rackRect = clothesRackRef.current?.getBoundingClientRect();
+    const shouldCoverPanda = showInteractionBubble && !draggingRef.current
+      && pandaRect !== undefined && rackRect !== undefined
+      && shouldPandaRenderBehindRack(pandaRect, rackRect);
+    foregroundRack.style.visibility = shouldCoverPanda ? 'visible' : 'hidden';
+    foregroundRack.dataset.visible = String(shouldCoverPanda);
+  }, [showInteractionBubble]);
 
   const beginFurnitureMove = useCallback((id: RoomFurnitureId, event: ReactPointerEvent<Element>) => {
     if (!showInteractionBubble || !event.isPrimary || event.button !== 0) return;
@@ -1381,6 +1395,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     track.style.zIndex = showInteractionBubble
       ? draggingRef.current ? '260' : '240'
       : String(projected.zIndex);
+    if (showInteractionBubble) syncRackOcclusion();
     track.dataset.roomU = appliedPoint.u.toFixed(3);
     track.dataset.roomV = appliedPoint.v.toFixed(3);
     track.dataset.roomElevation = (appliedPoint.elevation ?? 0).toFixed(3);
@@ -1395,7 +1410,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       track.dataset.roomZ = String(projected.zIndex);
     } else delete track.dataset.roomWalkable;
     if (reachedOutsideBoundary) worldFallBoundaryTriggerRef.current?.();
-  }, [showInteractionBubble]);
+  }, [showInteractionBubble, syncRackOcclusion]);
 
   useLayoutEffect(() => {
     if (!capturedHomecoming) {
@@ -2954,6 +2969,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       ).v;
       element.style.zIndex = String(roomFurnitureZIndex(depth) + 1);
     }
+    syncRackOcclusion();
     if (bathPhaseRef.current === 'bathing' && draggingFurnitureId === 'bathStation') {
       const stationRect = bathStationRef.current?.getBoundingClientRect();
       const tubRect = bathTubRef.current?.getBoundingClientRect();
@@ -2978,7 +2994,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
         bubbleAnchor?.style.setProperty('--room-y', screenYPercent);
       }
     }
-  }, [applyRoomPoint, draggingFurnitureId, placedProps, roomFurnitureLayout, showInteractionBubble, updateFacing, viewportSize]);
+  }, [applyRoomPoint, draggingFurnitureId, hidden, placedProps, roomFurnitureLayout, showInteractionBubble, syncRackOcclusion, updateFacing, viewportSize, worldAway, worldFallMessageVisible]);
 
   useEffect(() => {
     if (!showInteractionBubble || bathPhase !== 'bathing' || !bathRubbing) return undefined;
@@ -3989,6 +4005,15 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
               )}
           </div>
         )}
+      {showInteractionBubble && placedProps.rack && (
+        <img ref={rackOcclusionRef}
+          className="ps-room-rack-occlusion"
+          src={`${import.meta.env.BASE_URL}static/room/panda-clothes-rack-web-no-eyes.png?v=rack-eyes-detached-1`}
+          alt="" aria-hidden="true" draggable={false}
+          style={roomFurnitureStyle('rack', clothesRackRef)}
+          data-testid="room-clothes-rack-occlusion"
+          onLoad={syncRackOcclusion} />
+      )}
         {showInteractionBubble && spacePoliceLetter && spacePoliceLetter.filedAt === undefined
           && spacePoliceLetter.eatenAt === undefined && spacePoliceEnvelopePosition && onOpenSpacePoliceLetter && (
           <>

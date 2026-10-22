@@ -24,6 +24,7 @@ import {
   roomDepthZIndex,
   roomFloorBoundsPercent,
   roomPointAtImagePosition,
+  shouldPandaRenderBehindRack,
   ROOM_OUTSIDE_BOUNDARY_V,
   ROOM_IMAGE_HEIGHT,
   ROOM_IMAGE_WIDTH,
@@ -98,6 +99,19 @@ assert.ok(roomDepthZIndex(0.9) > roomDepthZIndex(0.1));
 assert.ok(roomFurnitureZIndex(0.7) > roomDepthZIndex(0.7), 'furniture covers a character at its depth');
 assert.ok(roomDepthZIndex(0.75) > roomFurnitureZIndex(0.7), 'a character in front of furniture draws over it');
 assert.ok(roomFurnitureZIndex(0.7) > roomDepthZIndex(0.65), 'a character behind furniture is covered');
+const rackBounds = { left: 100, top: 100, right: 160, bottom: 300 };
+assert.equal(shouldPandaRenderBehindRack(
+  { left: 115, top: 120, right: 150, bottom: 170 },
+  rackBounds,
+), true, 'a panda overlapping the rack upper half is drawn behind it');
+assert.equal(shouldPandaRenderBehindRack(
+  { left: 115, top: 220, right: 150, bottom: 270 },
+  rackBounds,
+), false, 'a panda overlapping the rack lower half stays in front');
+assert.equal(shouldPandaRenderBehindRack(
+  { left: 10, top: 120, right: 55, bottom: 170 },
+  rackBounds,
+), false, 'the rack does not occlude a panda that is not horizontally overlapping');
 assert.ok(projectRoomPoint({ u: 0.08, v: 0.8 }).x < projectRoomPoint({ u: 0.08, v: 0.2 }).x,
   'the walkable plane widens toward the viewer');
 

@@ -256,6 +256,20 @@ export function roomFurnitureZIndex(depth: number): number {
   return roomDepthZIndex(depth) + 1;
 }
 
+export type ScreenRectBounds = { left: number; top: number; right: number; bottom: number };
+
+export function shouldPandaRenderBehindRack(
+  panda: ScreenRectBounds,
+  rack: ScreenRectBounds,
+): boolean {
+  const overlaps = panda.right > rack.left && panda.left < rack.right
+    && panda.bottom > rack.top && panda.top < rack.bottom;
+  if (!overlaps) return false;
+  const pandaCenterY = (panda.top + panda.bottom) / 2;
+  const rackMiddleY = (rack.top + rack.bottom) / 2;
+  return pandaCenterY < rackMiddleY;
+}
+
 /**
  * Maps room-plane coordinates to the web room's visible floor.
  * v=0 is the far wall; v=1 is the front edge closest to the viewer.
