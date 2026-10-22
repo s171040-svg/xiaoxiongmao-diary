@@ -36,7 +36,7 @@
 .ps-room-interactive-jar{position:fixed;display:block;transform:translate(-50%,-100%);background:transparent;pointer-events:none}
 .ps-panda[data-jar-trapped=true]{z-index:8;cursor:grab}
 .ps-panda[data-jar-trapped=true]:hover,.ps-panda[data-jar-trapped=true]:active{translate:0;scale:1}
-.ps-panda[data-jar-trapped=true] .ps-body{clip-path:none;transform:none;translate:0 18px;rotate:0;scale:1;animation:none!important;filter:none}
+.ps-panda[data-jar-trapped=true] .ps-body{clip-path:none;transform:none;translate:0 0;rotate:0;scale:1;animation:none!important;filter:none}
 .ps-track.ps-bed-sleeping{z-index:4}
 .ps-room-furniture{display:none;position:absolute;width:clamp(116px,14vw,168px);height:auto;image-rendering:pixelated;transform-origin:center bottom;pointer-events:none;user-select:none}
 .ps-room-occlusion{position:absolute;inset:0;display:block;pointer-events:none;background-repeat:no-repeat}
