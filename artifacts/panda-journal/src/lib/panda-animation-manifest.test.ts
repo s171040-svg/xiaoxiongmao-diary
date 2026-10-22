@@ -129,3 +129,28 @@ test('toy reactions and their transitions have complete distinct 96px frame sequ
     assert.ok(poses.size >= 5, `${sprite} has at least five genuinely different transition poses`);
   }
 });
+
+test('jar-peeking is a distinct animation with a complete 96px sequence and inspector entry', () => {
+  assert.ok(manifestPath, 'could not locate the panda animation manifest');
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+    frameCountBySprite: Record<string, number>;
+  };
+  const assetRoot = resolve(dirname(manifestPath), '../../public/static/panda');
+  const poses = new Set<string>();
+  const files = ['jar-peeking.png', ...Array.from({ length: 8 }, (_, index) => `frames/jar-peeking-${index + 1}.png`)];
+
+  assert.equal(manifest.frameCountBySprite['jar-peeking'], 8, 'jar-peeking should have eight generated poses');
+  for (const file of files) {
+    const image = readFileSync(resolve(assetRoot, file));
+    assert.equal(image.subarray(0, 8).toString('hex'), '89504e470d0a1a0a', `${file} is a PNG`);
+    assert.equal(image.readUInt32BE(16), 96, `${file} keeps the 96px width`);
+    assert.equal(image.readUInt32BE(20), 96, `${file} keeps the 96px height`);
+    assert.ok(image.length > 1000, `${file} contains real sprite artwork`);
+    poses.add(image.toString('base64'));
+  }
+  assert.ok(poses.size >= 5, 'jar-peeking has at least five genuinely different poses');
+
+  const sourceRoot = resolve(dirname(manifestPath), '..');
+  const inspector = readFileSync(resolve(sourceRoot, 'components/CompanionChat.tsx'), 'utf8');
+  assert.match(inspector, /event: 'jar-peeking'.*罐子：双爪搭沿四处张望/, 'jar-peeking should be available in animation inspection');
+});

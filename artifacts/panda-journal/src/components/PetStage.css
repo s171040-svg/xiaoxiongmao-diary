@@ -34,12 +34,9 @@
 .ps-track{position:absolute;left:var(--room-x,50%);top:var(--room-y,53%);width:calc(92px * var(--room-scale,.89));height:calc(92px * var(--room-scale,.89));display:grid;place-items:end center;transform:translate(-50%,-100%);pointer-events:none}
 .ps-stage[data-dragging=true] .ps-track{left:var(--panda-drag-x,var(--room-x,50%));top:var(--panda-drag-y,var(--room-y,53%))}
 .ps-room-interactive-jar{position:fixed;display:block;transform:translate(-50%,-100%);background:transparent;pointer-events:none}
-.ps-jar-question-mark{position:absolute;z-index:12;top:-22%;left:50%;display:grid;width:18px;height:20px;place-items:center;transform:translateX(-50%);border:1px solid #826340;border-radius:50% 50% 48% 48%;background:#fff4d8;color:#513c28;box-shadow:1px 2px 0 #34271966;font:900 14px/1 "Noto Sans CJK SC",sans-serif;pointer-events:none;animation:ps-jar-question-bob .72s ease-in-out infinite alternate}
 .ps-panda[data-jar-trapped=true]{z-index:8;cursor:grab}
 .ps-panda[data-jar-trapped=true]:hover,.ps-panda[data-jar-trapped=true]:active{translate:0;scale:1}
-.ps-panda[data-jar-trapped=true] .ps-body{clip-path:inset(0 0 48% 0);transform-origin:50% 92%;animation:ps-jar-trapped-wiggle .42s steps(2,end) infinite!important;filter:saturate(.96) brightness(1.02)}
-@keyframes ps-jar-trapped-wiggle{0%,100%{translate:0 0;rotate:-2deg}50%{translate:2px 0;rotate:3deg}}
-@keyframes ps-jar-question-bob{from{translate:-50% 0}to{translate:-50% -3px}}
+.ps-panda[data-jar-trapped=true] .ps-body{clip-path:none;transform:none;translate:0 18px;rotate:0;scale:1;animation:none!important;filter:none}
 .ps-track.ps-bed-sleeping{z-index:4}
 .ps-room-furniture{display:none;position:absolute;width:clamp(116px,14vw,168px);height:auto;image-rendering:pixelated;transform-origin:center bottom;pointer-events:none;user-select:none}
 .ps-room-occlusion{position:absolute;inset:0;display:block;pointer-events:none;background-repeat:no-repeat}

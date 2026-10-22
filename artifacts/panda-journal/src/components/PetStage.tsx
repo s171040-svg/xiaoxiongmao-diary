@@ -148,6 +148,7 @@ const spriteAssetVersion = (sprite: string) => sprite === 'chew' ? 'chew-feed-4'
   : sprite === 'back-pawing' ? 'back-pawing-1'
   : sprite === 'tail-chase' ? 'tail-chase-ccw-3'
     : sprite === 'climb-up' ? 'stairs-back-run-1'
+      : sprite === 'jar-peeking' ? 'jar-peeking-pixen-2'
       : sprite.startsWith('eat-') ? 'snack-eating-pixellab-1' : 'tail-left-3';
 const CHEW_FRAME_COUNT = 14;
 const DIZZY_FRAME_COUNT = animationManifest.frameCountBySprite.dizzy;
@@ -986,6 +987,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     && interactionState !== 'chat' && !developerPose && !isDragging && !developerGrab
     && !pandaHanging && !startled && dizzyPhase === 'none' && bathPhase === 'none'
     ? 'climb-up'
+    : showInteractionBubble && pandaJarTrapped
+    ? 'jar-peeking'
     : hoverCuddleVisible
     ? 'cuddle-wriggle'
     : dirtyGrab
@@ -1789,6 +1792,19 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
           setFlyChaseActive(false);
         }, DIRTY_FLY_DURATION_MS);
         break;
+      case 'jar-peeking': {
+        const jarPoint = roomPointAtImagePosition(258, 226);
+        applyRoomPoint(jarPoint);
+        setRoomWalking(false);
+        setPandaJarTrapped(true);
+        window.clearTimeout(pandaJarTrapTimerRef.current);
+        pandaJarTrapTimerRef.current = window.setTimeout(() => {
+          pandaJarTrapTimerRef.current = 0;
+          setPandaJarTrapped(false);
+          applyRoomPoint(nearestWalkableRoomPoint(jarPoint));
+        }, 5000);
+        break;
+      }
       case 'toy-teaser':
       case 'toy-curious':
       case 'toy-brake':
@@ -1821,7 +1837,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
         break;
       }
     }
-  }, [clearActivityTransition, developerEvent, setFrame, showInteractionBubble, startBathDropToTub, startDeveloperBathRub, startFlyChase, triggerStartle]);
+  }, [applyRoomPoint, clearActivityTransition, developerEvent, setFrame, showInteractionBubble, startBathDropToTub, startDeveloperBathRub, startFlyChase, triggerStartle]);
 
   useEffect(() => {
     if (!showInteractionBubble) {
@@ -2286,10 +2302,11 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     let timer = 0;
     const isDirtyPickupTransition = sprite === 'dirty-grab-lift';
     const isCapturedHomecoming = sprite === 'captured-homecoming';
+    const isJarPeeking = sprite === 'jar-peeking';
     const isTransitioningFrames = activityTransition === 'frames-entering' || activityTransition === 'frames-waking';
     const waitingForSnack = pet.stage === 'performing' && pet.action === 'bamboo' && bambooPhase !== 'eating';
     const start = () => {
-      if (hidden || (interactionState === 'chat' && !isCapturedHomecoming && !pet.actionPreview) || document.visibilityState === 'hidden' || motionPreference.matches || timer
+      if (hidden || (interactionState === 'chat' && !isCapturedHomecoming && !isJarPeeking && !pet.actionPreview) || document.visibilityState === 'hidden' || motionPreference.matches || timer
         || waitingForSnack
         || (showInteractionBubble && (activityState === 'lying' || isTransitioningFrames) && !isDirtyPickupTransition)) return;
       timer = window.setInterval(() => {
@@ -3856,7 +3873,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
               onPointerMove={handlePandaPointerMove}
               onPointerUp={handlePandaPointerUp}
               onPointerCancel={handlePandaPointerCancel}
-                   aria-label={capturedHomecoming ? '小熊猫从时空旋涡被送回，旁边有空间警察来信' : hangingOnWindowHook ? '小熊猫挂在圆窗小钩子上；长按可以把它抱下来' : hangingOnRack ? '小熊猫挂在晾衣架上；长按可以把它抱下来' : isFlyChasing ? '脏兮兮的小熊猫被苍蝇追着跑' : bathPhase === 'falling' ? '小熊猫掉进浴缸了' : bathPhase === 'bathing' ? '小熊猫正在洗澡；长按可以提起' : worldFallPhase === 'falling' ? '小熊猫掉出房间了' : dirtyReturn ? '小熊猫灰头土脸地哭着回来了' : dizzyPhase === 'falling' ? '小熊猫松手后掉到地上' : dizzyPhase === 'dazed' ? '小熊猫坐在地上眩晕了一会儿' : isDragging ? '正在拎起小熊猫；拖动到目标位置后松手' : isPressPending ? '按住小熊猫即可拎起' : startled ? '小熊猫被吓了一跳' : isSleeping ? '小熊猫正在睡觉；点击叫醒' : interactionState === 'chat' ? '小熊猫正在聊天；点击房间空白处退出' : '点击小熊猫和它互动'}
+                   aria-label={pandaJarTrapped ? '小熊猫双爪搭在罐沿上，好奇地四处张望' : capturedHomecoming ? '小熊猫从时空旋涡被送回，旁边有空间警察来信' : hangingOnWindowHook ? '小熊猫挂在圆窗小钩子上；长按可以把它抱下来' : hangingOnRack ? '小熊猫挂在晾衣架上；长按可以把它抱下来' : isFlyChasing ? '脏兮兮的小熊猫被苍蝇追着跑' : bathPhase === 'falling' ? '小熊猫掉进浴缸了' : bathPhase === 'bathing' ? '小熊猫正在洗澡；长按可以提起' : worldFallPhase === 'falling' ? '小熊猫掉出房间了' : dirtyReturn ? '小熊猫灰头土脸地哭着回来了' : dizzyPhase === 'falling' ? '小熊猫松手后掉到地上' : dizzyPhase === 'dazed' ? '小熊猫坐在地上眩晕了一会儿' : isDragging ? '正在拎起小熊猫；拖动到目标位置后松手' : isPressPending ? '按住小熊猫即可拎起' : startled ? '小熊猫被吓了一跳' : isSleeping ? '小熊猫正在睡觉；点击叫醒' : interactionState === 'chat' ? '小熊猫正在聊天；点击房间空白处退出' : '点击小熊猫和它互动'}
                   data-testid="button-panda" data-cuddling={isCuddling ? 'true' : undefined} data-sprite={sprite} data-hanging-on-rack={hangingOnRack && !hangingOnWindowHook ? 'true' : undefined} data-hanging-on-window-hook={hangingOnWindowHook ? 'true' : undefined} data-bath-state={showInteractionBubble ? bathPhase : undefined} data-bath-transition={showInteractionBubble ? bathTransition ?? (bathPhase === 'falling' ? 'entering' : undefined) : undefined} data-bath-ball-on-panda={bathBallPlaced ? 'true' : undefined} data-bath-rubbing={showInteractionBubble && bathPhase === 'bathing' ? (bathRubbing ? 'true' : 'false') : undefined} data-sleeping-on-bed={sleepingOnBed ? 'true' : 'false'} data-sleeping-in-nest={sleepingInNest ? 'true' : 'false'} data-reacting={reacting ? 'true' : undefined} data-startled={startled ? 'true' : undefined} data-dizzy-state={showInteractionBubble ? dizzyPhase : undefined} data-facing={facing}
                  data-bamboo-phase={action === 'bamboo' ? bambooPhase : undefined}
                 data-snack-feeding={snackDropDragging ? 'true' : undefined}
@@ -3869,10 +3886,6 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
                  data-sprite={bathTransition === 'exiting' ? dirtyReturn ? bathRubbing ? 'dirty-bathing-soap' : 'dirty-bathing' : 'bathing' : dirtyGrab ? sprite : hangingOnRack ? 'grab' : dirtyReturn && bathPhase === 'bathing' ? (bathRubbing ? 'dirty-bathing-soap' : 'dirty-bathing') : dirtyReturn && isFlyChasing ? 'dirty-flee' : dirtyReturn ? 'dirty-return' : bathPhase === 'bathing' ? 'bathing' : startled && showInteractionBubble ? 'startled' : sprite}
                  data-frame={bathTransition === 'exiting' ? bathFrame : dirtyGrab ? frame : hangingOnRack ? '0' : showInteractionBubble && bathPhase === 'bathing' ? bathFrame : dirtyReturn ? '0' : frame}
                   width={60} height={60} alt="" draggable={false} />
-                  {showInteractionBubble && pandaJarTrapped && (
-                    <span className="ps-jar-question-mark" role="status"
-                      aria-label="小熊猫卡在罐子里，好奇地左右张望并尝试挣脱">？</span>
-                  )}
                  {showInteractionBubble && bathPhase === 'bathing' && (
                    <span className="ps-bath-water-bubbles" aria-hidden="true" data-testid="bath-water-bubbles">
                      <i /><i />
