@@ -136,18 +136,25 @@ function Landing() {
           <div className="landing-trust"><LockKeyhole size={14} /><span>聊天与日记保存在你的设备上</span><i /></div>
           <Link href="/stats-template" className="landing-text-link stats-template-entry">先看看成长档案示例 <ArrowRight size={14} /></Link>
         </div>
-        <div className="landing-scene" aria-label="有窗户、家具和小熊猫的像素房间插画">
-          <div className="scene-label label-window">午后的光</div>
-          <div className="scene-window"><i /><i /><i /><i /></div>
-          <div className="scene-shelf"><span /><span /><span /></div>
-          <div className="scene-picture"><b /><i /></div>
-          <div className="scene-lamp"><i /></div>
-          <div className="scene-bed"><span /><i /></div>
-          <div className="scene-rug" />
-          <div className="scene-panda"><i className="scene-ear left" /><i className="scene-ear right" /><div className="scene-face"><b /><b /><i /></div><span className="scene-body" /></div>
-          <div className="scene-floor" />
-          <div className="scene-caption">16:42 · 今天慢一点也没关系</div>
-          <div className="scene-sparkle one" /><div className="scene-sparkle two" />
+        <div className="landing-scene cover-scene" role="img" aria-label="小熊猫在自己的像素房间里休息">
+          <div
+            className="cover-room-backdrop"
+            style={{ backgroundImage: `url("${basePath}/static/room/room-background-pixellab.png?v=cover-room-2")` }}
+            aria-hidden="true"
+          />
+          <div className="cover-scene-shade" aria-hidden="true" />
+          <div className="cover-scene-label" aria-hidden="true">小熊猫的房间</div>
+          <div className="cover-panda-shadow" aria-hidden="true" />
+          <img
+            className="cover-panda"
+            src={`${basePath}/static/panda/idle.png?v=cover-panda-1`}
+            alt=""
+            aria-hidden="true"
+          />
+          <div className="cover-caption" aria-hidden="true">
+            <span>16:42</span>
+            <span>今天慢一点也没关系</span>
+          </div>
         </div>
         <div className="hero-index">01 — 04</div>
       </section>
