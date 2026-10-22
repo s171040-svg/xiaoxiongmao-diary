@@ -8,7 +8,6 @@ import { splitReply } from '@/lib/reply-rhythm';
 import { VoiceButton } from '@/components/VoiceButton';
 import { PetStage } from '@/components/PetStage';
 import { TopPixelIcon } from '@/components/TopPixelIcon';
-import { GiftDrop } from '@/components/GiftDrop';
 import { EmotionCheckIn } from '@/components/EmotionCheckIn';
 import './CompanionChat.css';
 
@@ -144,8 +143,8 @@ function Gifts({ c, onClose, onChooseSnack }: {
   const [tab, setTab] = useState<'snacks' | 'keepsakes'>('snacks');
   const visibleGifts = tab === 'snacks' ? snacks : keepsakes;
   return (
-    <Modal title="零食箱" sub="带回来的零食会自动放进这里。取出一份，再拖到小熊猫身上喂它。" onClose={onClose} testid="dialog-gifts">
-      <div className="cc-gift-tabs" role="tablist" aria-label="零食箱分类">
+    <Modal title="礼物收纳盒" sub="小熊猫带回来的零食和纪念品都会收在这里。零食可以取出来喂它，纪念品可以收藏。" onClose={onClose} testid="dialog-gifts">
+      <div className="cc-gift-tabs" role="tablist" aria-label="礼物收纳盒分类">
         <button type="button" role="tab" aria-selected={tab === 'snacks'} aria-pressed={tab === 'snacks'}
           data-testid="snack-box-tab-food" onClick={() => setTab('snacks')}>
           零食 · {snacks.length}
@@ -170,7 +169,7 @@ function Gifts({ c, onClose, onChooseSnack }: {
             </div>
           </div>
         </article>)) : <p className="cc-empty">{tab === 'snacks'
-          ? '零食箱还是空的。小熊猫出门带回来的零食会自动收在这里。'
+          ? '收纳盒里还没有零食。打开小熊猫带回来的礼物后，它们会收在这里。'
           : '还没有纪念品。小熊猫偶尔会带回一些森林里的小发现。'}</p>}
     </Modal>
   );
@@ -424,7 +423,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
           {import.meta.env.DEV && c.performTestAction && (
             <button type="button" onClick={() => setDevActionOpen(true)} data-testid="button-dev-action" aria-label="动画检视" title="动画检视"><TopPixelIcon name="inspect" /></button>
           )}
-          <button type="button" onClick={() => setPanel('gifts')} data-testid="button-gifts" aria-label="零食箱" title="零食箱"><TopPixelIcon name="gift" /></button>
+          <button type="button" onClick={() => setPanel('gifts')} data-testid="button-gifts" aria-label="礼物收纳盒" title="礼物收纳盒"><TopPixelIcon name="gift" /></button>
           {import.meta.env.DEV && DevGiftTool && c.addTestGift && (
             <button type="button" onClick={() => setDevGiftOpen(true)} data-testid="button-dev-gift" aria-label="测试礼物" title="测试礼物"><TopPixelIcon name="tool" /></button>
           )}
@@ -442,6 +441,11 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
         onChatModeChange={roomOnly ? onRoomChatModeChange : undefined}
         onCareInteraction={c.recordCareStatInteraction}
          onCapturedHomecomingInteraction={roomOnly ? c.acknowledgeCapturedHomecoming : undefined}
+          pendingGift={roomOnly && !window.pandaDesktop ? c.state.pendingGift : undefined}
+          giftDropStartedAt={roomOnly && !window.pandaDesktop ? c.state.giftDropStartedAt : undefined}
+          onCollectPresent={roomOnly && !window.pandaDesktop ? c.collectPresent : undefined}
+          giftCount={c.state.gifts.length}
+          onOpenGiftStorage={roomOnly && !window.pandaDesktop ? () => setPanel('gifts') : undefined}
          spacePoliceLetter={roomOnly ? c.state.spacePoliceLetter : undefined}
           spacePoliceLetters={roomOnly ? c.state.spacePoliceLetters : undefined}
           spacePoliceMailCount={roomOnly ? spacePoliceLetters.length : undefined}
@@ -455,8 +459,6 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
           onDisposeSpacePolicePoopBag={roomOnly ? c.disposeSpacePolicePoopBagAt : undefined}
           onFinishSpacePolicePoopDisposal={roomOnly ? c.finishSpacePolicePoopDisposalForLetter : undefined}
           onOpenSpacePoliceMailbox={roomOnly ? () => setSpacePoliceMailboxOpen(true) : undefined} />
-      {!window.pandaDesktop && c.pet.stage !== 'returning'
-        && <GiftDrop gift={c.state.pendingGift} startedAt={c.state.giftDropStartedAt} onCollect={c.collectPresent} />}
       {roomOnly ? (
         <>
           {roomChatOpen && <>{clearMindStatus}{roomComposer}</>}

@@ -573,14 +573,14 @@ content_type = "image/png"
 id = "Vs9JOyhkL3SikGsPUDvNT"
 uri = "file://artifacts/panda-journal/public/static/panda/startled.png"
 type = "image"
-title = "小熊猫被鼠标吓到的炸毛姿势"
-description = "PixelLab 生成的 96×96 透明底棕红小熊猫受惊图：耳朵竖起、眼睛睁大、身体和尾巴蓬起；网页房间受惊时使用。"
+title = "小熊猫受惊炸毛姿势"
+description = "96×96 透明像素图；可见轮廓与普通待机图一致。"
 logical_id = "621bb6ad-7264-42a9-976d-8e9e5be59a92"
-content_hash = "sha256:4484ba19a5a5d246130a6dff2665b99eae0754a2a19abd81052506639678a28d"
-size = 3878
-mtime_ms = 1792124263766
-storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/621bb6ad-7264-42a9-976d-8e9e5be59a92/f05a4be5-2849-4a14-b38f-d25e6ec899c3"
-storage_version_token = "1792124345952013"
+content_hash = "sha256:72629de7a251f6c239c08081af843b9bf9d42fd47135f052c8a325c5993254b6"
+size = 3366
+mtime_ms = 1792640594831
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/621bb6ad-7264-42a9-976d-8e9e5be59a92/87a2ad34-a135-42cf-b33a-456b1ca383b9"
+storage_version_token = "1792640703607835"
 content_type = "image/png"
 
 [[outputs]]

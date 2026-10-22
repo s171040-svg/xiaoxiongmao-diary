@@ -1,35 +1,78 @@
+import { useEffect, useState, type CSSProperties } from 'react';
 import type { Gift } from '@/lib/companion-types';
-import { useState } from 'react';
+import type { RoomProjection } from '@/lib/room-plane';
 import './GiftDrop.css';
 
-export function GiftDrop({ gift, startedAt, onCollect }: {
-  gift?: Gift; startedAt?: number; onCollect: (id: string) => void;
-}) {
-  const [openedGiftId, setOpenedGiftId] = useState<string>();
-  if (!gift) return null;
-  const opened = openedGiftId === gift.id;
+const OPEN_FRAME_COUNT = 6;
+const ROOM_ASSET_BASE = `${import.meta.env.BASE_URL}static/room/`;
+const CLOSED_BOX_IMAGE = `${ROOM_ASSET_BASE}gift-arrival-box.png`;
 
-  const handleClick = () => {
-    if (!opened) {
-      setOpenedGiftId(gift.id);
+type GiftDropProps = {
+  gift?: Gift;
+  startedAt?: number;
+  onCollect: (id: string) => void;
+  position?: Pick<RoomProjection, 'x' | 'y' | 'scale' | 'zIndex' | 'depth'>;
+  storagePosition?: Pick<RoomProjection, 'x' | 'y'>;
+};
+
+export function GiftDrop({ gift, startedAt, onCollect, position, storagePosition }: GiftDropProps) {
+  const [openedGiftId, setOpenedGiftId] = useState<string>();
+  const [openFrame, setOpenFrame] = useState(0);
+  const opened = Boolean(gift && (openedGiftId === gift.id || startedAt));
+
+  useEffect(() => {
+    if (!gift || !openedGiftId || openedGiftId !== gift.id || startedAt) {
+      setOpenFrame(startedAt ? OPEN_FRAME_COUNT : 0);
       return;
     }
-    onCollect(gift.id);
-  };
+
+    let frame = 0;
+    setOpenFrame(0);
+    const timer = window.setInterval(() => {
+      frame += 1;
+      setOpenFrame(frame);
+      if (frame >= OPEN_FRAME_COUNT) window.clearInterval(timer);
+    }, 95);
+    return () => window.clearInterval(timer);
+  }, [gift?.id, openedGiftId, startedAt]);
+
+  if (!gift || !position) return null;
+
+  const storage = storagePosition ?? position;
+  const collectDeltaX = ((storage.x - position.x) / 100) * window.innerWidth;
+  const collectDeltaY = ((storage.y - position.y) / 100) * window.innerHeight;
+  const openImage = openFrame > 0
+    ? `${ROOM_ASSET_BASE}gift-arrival-open-${String(openFrame).padStart(2, '0')}.png`
+    : CLOSED_BOX_IMAGE;
 
   return (
-    <div className="gift-drop-layer" aria-live="polite">
-      <button className={`gift-drop${opened ? ' opened' : ''}${startedAt ? ' collecting' : ''}`} type="button"
-        key={gift.id} disabled={Boolean(startedAt)}
-        aria-label={startedAt ? `正在收好小熊猫带回来的${gift.item}` : opened ? `收好小熊猫带回来的${gift.item}` : '打开小熊猫带回来的礼物盒'}
-        data-testid="button-collect-gift" onClick={handleClick}>
-        <span className="gift-drop-box-art" aria-hidden="true">
-          <span className="gift-box-body"><i /></span>
-          <span className="gift-box-lid" />
-          <span className="gift-drop-object"><span className="gift-drop-token">{gift.item}</span></span>
-        </span>
-        <span className="gift-drop-hint">{startedAt ? '收好啦～' : opened ? `小熊猫带给你的${gift.item} · 再点一下收好` : '小熊猫带回来一个礼物 · 点开看看'}</span>
+    <div className={`gift-drop${opened ? ' opened' : ''}${startedAt ? ' collecting' : ''}`}
+      aria-live="polite" data-testid="gift-drop"
+      data-room-depth={position.depth.toFixed(3)}
+      style={{
+        left: `${position.x}%`,
+        top: `${position.y}%`,
+        zIndex: position.zIndex,
+        '--gift-scale': position.scale,
+        '--gift-collect-x': `${collectDeltaX}px`,
+        '--gift-collect-y': `${collectDeltaY}px`,
+      } as CSSProperties}>
+      <button className="gift-drop-box-button" type="button" disabled={opened || Boolean(startedAt)}
+        aria-label="打开小熊猫带回来的礼物盒" data-testid="button-open-gift-box"
+        onClick={() => setOpenedGiftId(gift.id)}>
+        <img src={opened ? openImage : CLOSED_BOX_IMAGE} alt="" draggable={false} />
       </button>
+      {opened && (
+        <button className="gift-drop-reward" type="button" disabled={Boolean(startedAt)}
+          aria-label={`把${gift.item}收进礼物收纳盒`} data-testid="button-collect-gift"
+          onClick={() => onCollect(gift.id)}>
+          <span className="gift-drop-emoji" aria-hidden="true">{gift.emoji}</span>
+          <small>{gift.item}</small>
+        </button>
+      )}
+      <span className="gift-drop-hint">
+        {startedAt ? '正在收进礼物收纳盒…' : opened ? '点礼物收进收纳盒' : '小熊猫带回一个礼物 · 点盒子打开'}
+      </span>
     </div>
   );
 }

@@ -107,7 +107,7 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
     const gift = state.pendingGift;
     if (pet.stage !== 'returning') window.pandaDesktop?.showGift(gift, state.giftDropStartedAt);
     if (!gift) return;
-    if (canFeedGift(gift) && !state.giftDropStartedAt) {
+    if (window.pandaDesktop && canFeedGift(gift) && !state.giftDropStartedAt) {
       collectPresent(gift.id);
       return;
     }
@@ -116,7 +116,9 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
       try {
         const next = transact(s => collectGift(s, gift.id));
         if (!next.pendingGift) {
-          setStatus(canFeedGift(gift) ? '带回来的零食已放进零食箱，可以挑一份喂小熊猫。' : '小礼物收好啦，可以去小礼物里看看。');
+          setStatus(canFeedGift(gift)
+            ? '礼物收进收纳盒啦；打开“零食”页可以喂小熊猫。'
+            : '小礼物收进收纳盒啦；打开“纪念品”页可以查看。');
           motion({ ...petRef.current, carrying: undefined });
         }
       } catch (e) { report(e); }

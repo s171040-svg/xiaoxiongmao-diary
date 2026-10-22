@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { RoomAlarmClock } from './RoomAlarmClock';
 import { PetDepartureNotice } from './PetDepartureNotice';
 import { advanceToy, createShakeDetector, createToyRuntime, shakeToy, toyVisual, TOY_ART_VERSION, type ToyPhase, type ToySprite } from '@/lib/room-toy-interaction';
 import { createPlantFallTracker, isBehindLeftRoomPlants, LEFT_ROOM_PLANTS, LEFT_ROOM_PLANT_Z_INDEX, rollLeftPlantFall } from '@/lib/room-plant-interaction';
 import { getBathBallSpawnPosition } from '@/lib/bath-ball-position';
+import { getGiftDropRoomPoint, getGiftStorageRoomPoint } from '@/lib/gift-drop-position';
+import { isPandaCenterInsideJar } from '@/lib/room-jar-interaction';
+import { GiftDrop } from './GiftDrop';
 import {
   BATH_BALL_DRY_MS,
   canPickUpBathBall,
@@ -308,7 +311,7 @@ type BathBallPointer = {
   offsetY: number;
 };
 
-export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthPotion, thinking = false, motion = 'idle', nightMode = false, debugClicks = false, showInteractionBubble = false, interactionBubbleText, developerPose = null, developerEvent = null, onChatModeChange, onCareInteraction, onCapturedHomecomingInteraction, spacePoliceLetter, spacePoliceLetters, spacePoliceMailCount = 0, spacePoliceUnreadCount = 0, onOpenSpacePoliceLetter, onFileSpacePoliceLetter, onEatSpacePoliceLetter, onPlaceSpacePolicePoop, onPackSpacePolicePoop, onMoveSpacePolicePoopBag, onDisposeSpacePolicePoopBag, onFinishSpacePolicePoopDisposal, onOpenSpacePoliceMailbox }: {
+export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthPotion, thinking = false, motion = 'idle', nightMode = false, debugClicks = false, showInteractionBubble = false, interactionBubbleText, developerPose = null, developerEvent = null, onChatModeChange, onCareInteraction, onCapturedHomecomingInteraction, pendingGift, giftDropStartedAt, onCollectPresent, giftCount = 0, onOpenGiftStorage, spacePoliceLetter, spacePoliceLetters, spacePoliceMailCount = 0, spacePoliceUnreadCount = 0, onOpenSpacePoliceLetter, onFileSpacePoliceLetter, onEatSpacePoliceLetter, onPlaceSpacePolicePoop, onPackSpacePolicePoop, onMoveSpacePolicePoopBag, onDisposeSpacePolicePoopBag, onFinishSpacePolicePoopDisposal, onOpenSpacePoliceMailbox }: {
   pet: PetEffect;
   selectedSnack?: Pick<Gift, 'id' | 'emoji' | 'item'> | null;
   onFeedSnack?: (giftId: string) => void;
@@ -324,6 +327,11 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   onChatModeChange?: (isChat: boolean) => void;
   onCareInteraction?: (category: CareStatCategory) => void;
   onCapturedHomecomingInteraction?: () => void;
+  pendingGift?: Gift;
+  giftDropStartedAt?: number;
+  onCollectPresent?: (giftId: string) => void;
+  giftCount?: number;
+  onOpenGiftStorage?: () => void;
   spacePoliceLetter?: { deliveredAt: number; openedAt?: number; filedAt?: number; eatenAt?: number; eatAfterAt?: number; poop?: SpacePoliceLetter['poop'] };
   spacePoliceLetters?: SpacePoliceLetter[];
   spacePoliceMailCount?: number;
@@ -514,8 +522,6 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const rackOcclusionRef = useRef<HTMLImageElement>(null);
   const windowDryingHookRef = useRef<HTMLButtonElement>(null);
   const bambooJarRef = useRef<HTMLDivElement>(null);
-  const pandaJarTrapTimerRef = useRef<number>(0);
-  useEffect(() => () => window.clearTimeout(pandaJarTrapTimerRef.current), []);
   const spacePoliceMailboxRef = useRef<HTMLButtonElement>(null);
   const wasteBinRef = useRef<HTMLDivElement>(null);
   const bathBallButtonRef = useRef<HTMLButtonElement>(null);
@@ -1813,13 +1819,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
         const jarPoint = roomPointAtImagePosition(258, 226);
         applyRoomPoint(jarPoint);
         setRoomWalking(false);
+        // The panda stays in the jar until the player drags it out.
         setPandaJarTrapped(true);
-        window.clearTimeout(pandaJarTrapTimerRef.current);
-        pandaJarTrapTimerRef.current = window.setTimeout(() => {
-          pandaJarTrapTimerRef.current = 0;
-          setPandaJarTrapped(false);
-          applyRoomPoint(nearestWalkableRoomPoint(jarPoint));
-        }, 5000);
         break;
       }
       case 'toy-teaser':
@@ -2665,9 +2666,6 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       setReacting(false);
       setIsPressPending(false);
       setIsDragging(true);
-      setPandaJarTrapped(false);
-      window.clearTimeout(pandaJarTrapTimerRef.current);
-      pandaJarTrapTimerRef.current = 0;
       if (pandaHangingRef.current && dampAfterBathRef.current && dampDryingReadyRef.current) {
         setDampAfterBathNow(false);
       }
@@ -2751,6 +2749,17 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     const point = unprojectRoomWalkableSurfacePoint(x, y, width, height);
     updateFacing(point.u - positionRef.current.u);
     applyRoomPoint(point);
+    if (pandaJarTrapped) {
+      const jarRect = bambooJarRef.current?.getBoundingClientRect();
+      const pandaHeight = pandaButtonRef.current?.getBoundingClientRect().height ?? 0;
+      const pandaCenter = {
+        x: event.clientX + drag.offsetX,
+        y: event.clientY + drag.offsetY - pandaHeight / 2,
+      };
+      if (jarRect && !isPandaCenterInsideJar(pandaCenter, jarRect)) {
+        setPandaJarTrapped(false);
+      }
+    }
   };
 
   const finishPandaPointer = (event: React.PointerEvent<HTMLButtonElement>, cancelled = false) => {
@@ -2789,8 +2798,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       && pandaCenterY >= hookRect.top - 24 && pandaCenterY <= hookRect.bottom + 30;
     const droppedIntoJar = drag.grabbed && !cancelled && showInteractionBubble
       && jarRect !== undefined && pandaRect !== undefined
-      && pandaCenterX >= jarRect.left && pandaCenterX <= jarRect.right
-      && pandaCenterY >= jarRect.top && pandaCenterY <= jarRect.bottom;
+      && isPandaCenterInsideJar({ x: pandaCenterX, y: pandaCenterY }, jarRect);
     const roomImageScale = Math.min(window.innerWidth / ROOM_IMAGE_WIDTH, window.innerHeight / ROOM_IMAGE_HEIGHT);
     const roomImageLeft = (window.innerWidth - ROOM_IMAGE_WIDTH * roomImageScale) / 2;
     const roomImageTop = (window.innerHeight - ROOM_IMAGE_HEIGHT * roomImageScale) / 2;
@@ -2815,6 +2823,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       setSleepingOnBed(false);
       setSleepingInNest(false);
       setRoomWalking(false);
+      if (!cancelled && pandaJarTrapped && !droppedIntoJar) setPandaJarTrapped(false);
       if (droppedIntoNest) {
         enterCatTreeSleep();
       } else if (droppedOntoBed && bedRect && pandaRect) {
@@ -2865,17 +2874,9 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
         setRoomWalking(false);
       } else if (droppedIntoJar) {
         applyRoomPoint(bambooJarRoomPoint);
+        // Re-entering the jar always requires another deliberate drag to get out.
         setPandaJarTrapped(true);
         setRoomWalking(false);
-        window.clearTimeout(pandaJarTrapTimerRef.current);
-        pandaJarTrapTimerRef.current = window.setTimeout(() => {
-          pandaJarTrapTimerRef.current = 0;
-          setPandaJarTrapped(false);
-          applyRoomPoint(nearestWalkableRoomPoint({
-            u: bambooJarRoomPoint.u,
-            v: bambooJarRoomPoint.v,
-          }));
-        }, 3400);
       } else if (droppedIntoTub && tubRect) {
         startBathDropToTub();
       } else if (triggeredDizzyDrop) {
@@ -3508,7 +3509,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     : showInteractionBubble && bathPhase === 'bathing'
       ? bathRubbing ? bathingRubbingFrameUrl(bathFrame) : bathingFrameUrl(bathFrame)
     : startled && showInteractionBubble
-      ? pandaStaticUrl('startled.png?v=mouse-startle-pixflux-1')
+      ? pandaStaticUrl('startled.png?v=mouse-startle-pixen-2')
     : toyPose && sprite === toyPose
     ? pandaStaticUrl(`frames/${toyPose}-${Math.max(1, toyArtFrame)}.png?v=${TOY_ART_VERSION}`)
     : sprite === 'lying'
@@ -3665,6 +3666,12 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     window.innerWidth,
     window.innerHeight,
   );
+  const giftStorageProjection = showInteractionBubble && onOpenGiftStorage
+    ? projectRoomPoint(getGiftStorageRoomPoint(), window.innerWidth, window.innerHeight)
+    : null;
+  const giftDropProjection = showInteractionBubble && pet.stage !== 'returning' && pendingGift && onCollectPresent
+    ? projectRoomPoint(getGiftDropRoomPoint(pendingGift.id), window.innerWidth, window.innerHeight)
+    : null;
   const roomImageStyle = showInteractionBubble ? {
     backgroundImage: roomBackgroundImage,
     backgroundSize: roomBackgroundSize,
@@ -3877,6 +3884,30 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
             </button>
           );
         })}
+        {giftStorageProjection && onOpenGiftStorage && (
+          <button type="button" className="gift-storage-box"
+            aria-label={`礼物收纳盒，已有${giftCount}件礼物，点击查看`}
+            aria-haspopup="dialog"
+            title="礼物收纳盒"
+            data-testid="room-gift-storage-box"
+            style={{
+              left: `${giftStorageProjection.x}%`,
+              top: `${giftStorageProjection.y}%`,
+              zIndex: giftStorageProjection.zIndex,
+              '--gift-storage-scale': giftStorageProjection.scale,
+            } as CSSProperties}
+            onClick={(event) => { event.stopPropagation(); onOpenGiftStorage(); }}>
+            <img src={`${import.meta.env.BASE_URL}static/room/gift-storage-chest.png`}
+              alt="" aria-hidden="true" draggable={false} />
+            {giftCount > 0 && <span className="gift-storage-count" aria-hidden="true">{giftCount > 99 ? '99+' : giftCount}</span>}
+            <span className="gift-storage-label" aria-hidden="true">礼物收纳盒</span>
+          </button>
+        )}
+        {giftDropProjection && pendingGift && onCollectPresent && (
+          <GiftDrop gift={pendingGift} startedAt={giftDropStartedAt}
+            onCollect={onCollectPresent} position={giftDropProjection}
+            storagePosition={giftStorageProjection ?? undefined} />
+        )}
         {!showInteractionBubble && thinking && <span className="ps-thinking" role="status">唔……</span>}
         {!hidden && (!worldAway || worldFallMessageVisible) && (
           <div ref={trackRef} className={`ps-track${pet.stage === 'returning' ? ' ps-returning' : ''}${worldFallPhase === 'returning' ? ' ps-world-returning' : ''}${worldAway ? ' ps-world-away' : ''}${bathPhase === 'falling' ? ' ps-bath-dropping' : ''}${sleepingOnBed ? ' ps-bed-sleeping' : ''}${sleepingInNest ? ' ps-nest-sleeping' : ''}${hangingOnRack ? ' ps-hanging-on-rack' : ''}${dampAfterBath ? ' ps-damp-after-bath' : ''}${capturedHomecoming && !capturedHomecomingArrived ? ' ps-captured-homecoming' : ''}${capturedHomecoming && capturedHomecomingArrived ? ' ps-captured-hugging' : ''}`}
@@ -3905,7 +3936,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
               onPointerMove={handlePandaPointerMove}
               onPointerUp={handlePandaPointerUp}
               onPointerCancel={handlePandaPointerCancel}
-                   aria-label={pandaJarTrapped ? '小熊猫双爪搭在罐沿上，好奇地四处张望' : capturedHomecoming ? '小熊猫从时空旋涡被送回，旁边有空间警察来信' : hangingOnWindowHook ? '小熊猫挂在圆窗小钩子上；长按可以把它抱下来' : hangingOnRack ? '小熊猫挂在晾衣架上；长按可以把它抱下来' : isFlyChasing ? '脏兮兮的小熊猫被苍蝇追着跑' : bathPhase === 'falling' ? '小熊猫掉进浴缸了' : bathPhase === 'bathing' ? '小熊猫正在洗澡；长按可以提起' : worldFallPhase === 'falling' ? '小熊猫掉出房间了' : dirtyReturn ? '小熊猫灰头土脸地哭着回来了' : dizzyPhase === 'falling' ? '小熊猫松手后掉到地上' : dizzyPhase === 'dazed' ? '小熊猫坐在地上眩晕了一会儿' : isDragging ? '正在拎起小熊猫；拖动到目标位置后松手' : isPressPending ? '按住小熊猫即可拎起' : startled ? '小熊猫被吓了一跳' : isSleeping ? '小熊猫正在睡觉；点击叫醒' : interactionState === 'chat' ? '小熊猫正在聊天；点击房间空白处退出' : '点击小熊猫和它互动'}
+                aria-label={pandaJarTrapped ? '小熊猫双爪搭在罐沿上，好奇地四处张望；长按并拖出罐口才能抱出来' : capturedHomecoming ? '小熊猫从时空旋涡被送回，旁边有空间警察来信' : hangingOnWindowHook ? '小熊猫挂在圆窗小钩子上；长按可以把它抱下来' : hangingOnRack ? '小熊猫挂在晾衣架上；长按可以把它抱下来' : isFlyChasing ? '脏兮兮的小熊猫被苍蝇追着跑' : bathPhase === 'falling' ? '小熊猫掉进浴缸了' : bathPhase === 'bathing' ? '小熊猫正在洗澡；长按可以提起' : worldFallPhase === 'falling' ? '小熊猫掉出房间了' : dirtyReturn ? '小熊猫灰头土脸地哭着回来了' : dizzyPhase === 'falling' ? '小熊猫松手后掉到地上' : dizzyPhase === 'dazed' ? '小熊猫坐在地上眩晕了一会儿' : isDragging ? '正在拎起小熊猫；拖动到目标位置后松手' : isPressPending ? '按住小熊猫即可拎起' : startled ? '小熊猫被吓了一跳' : isSleeping ? '小熊猫正在睡觉；点击叫醒' : interactionState === 'chat' ? '小熊猫正在聊天；点击房间空白处退出' : '点击小熊猫和它互动'}
                   data-testid="button-panda" data-cuddling={isCuddling ? 'true' : undefined} data-sprite={sprite} data-hanging-on-rack={hangingOnRack && !hangingOnWindowHook ? 'true' : undefined} data-hanging-on-window-hook={hangingOnWindowHook ? 'true' : undefined} data-bath-state={showInteractionBubble ? bathPhase : undefined} data-bath-transition={showInteractionBubble ? bathTransition ?? (bathPhase === 'falling' ? 'entering' : undefined) : undefined} data-bath-ball-on-panda={bathBallPlaced ? 'true' : undefined} data-bath-rubbing={showInteractionBubble && bathPhase === 'bathing' ? (bathRubbing ? 'true' : 'false') : undefined} data-sleeping-on-bed={sleepingOnBed ? 'true' : 'false'} data-sleeping-in-nest={sleepingInNest ? 'true' : 'false'} data-reacting={reacting ? 'true' : undefined} data-startled={startled ? 'true' : undefined} data-dizzy-state={showInteractionBubble ? dizzyPhase : undefined} data-facing={facing}
                  data-bamboo-phase={action === 'bamboo' ? bambooPhase : undefined}
                 data-snack-feeding={snackDropDragging ? 'true' : undefined}
@@ -4091,7 +4122,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
           style={{ left: snackDropPosition.x, top: snackDropPosition.y }}
           data-dragging={snackDropDragging ? 'true' : undefined}
           data-testid="snack-feed-token"
-          aria-label={`正在拿着${selectedSnack.item}；拖到小熊猫身上喂它`}
+          aria-label={`零食${selectedSnack.emoji}；拖到小熊猫身上喂它`}
           onPointerDown={handleSnackPointerDown}
           onPointerMove={handleSnackPointerMove}
           onPointerUp={handleSnackPointerUp}
@@ -4104,7 +4135,6 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
             }
           }}>
           <span className="ps-snack-feed-emoji" aria-hidden="true">{selectedSnack.emoji}</span>
-          <span className="ps-snack-feed-label">{selectedSnack.item}<small>拖到小熊猫</small></span>
         </button>
       )}
       {showInteractionBubble && interactionState !== 'chat' && (
