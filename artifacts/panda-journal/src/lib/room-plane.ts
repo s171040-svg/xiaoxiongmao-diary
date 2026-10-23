@@ -270,6 +270,14 @@ export function shouldPandaRenderBehindRack(
   return pandaCenterY < rackMiddleY;
 }
 
+export function shouldRackOccludePanda(
+  panda: ScreenRectBounds,
+  rack: ScreenRectBounds,
+  hangingOnRack: boolean,
+): boolean {
+  return !hangingOnRack && shouldPandaRenderBehindRack(panda, rack);
+}
+
 /**
  * Maps room-plane coordinates to the web room's visible floor.
  * v=0 is the far wall; v=1 is the front edge closest to the viewer.

@@ -15,8 +15,8 @@
 .ps-stage{position:fixed;z-index:2;inset:0;width:100vw;height:100vh;height:100dvh;overflow:hidden;pointer-events:none;--room-walk-range:clamp(0px,35vw,42vw);--room-roll-range:clamp(0px,4.5vw,54px)}
 .ps-snack-feed-token{position:fixed;z-index:50;display:grid;place-items:center;box-sizing:border-box;width:42px;height:42px;padding:0;border:0;border-radius:0;background:transparent;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
 .ps-snack-feed-token[data-dragging=true]{z-index:55;cursor:grabbing;transform:scale(1.08)}
-.ps-truth-potion-token{position:fixed;z-index:50;display:grid;width:56px;height:56px;padding:0;place-items:center;border:0;background:transparent;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
-.ps-truth-potion-token img{display:block;width:52px;height:52px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(1px 2px 2px #39231088);pointer-events:none}
+.ps-truth-potion-token{position:fixed;z-index:50;display:grid;width:28px;height:28px;padding:0;place-items:center;border:0;background:transparent;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.ps-truth-potion-token img{display:block;width:26px;height:26px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(1px 2px 2px #39231088);pointer-events:none}
 .ps-truth-potion-token[data-dragging=true]{z-index:55;cursor:grabbing;transform:scale(1.08)}
 .ps-truth-potion-token:focus-visible{outline:2px solid #f7d368;outline-offset:2px}
 .ps-snack-feed-emoji{display:grid;width:100%;height:100%;place-items:center;font-size:27px;line-height:1;filter:drop-shadow(1px 2px 2px #39231088);pointer-events:none}
@@ -453,3 +453,7 @@
 @keyframes ps-laser-pulse{from{transform:scale(1)}to{transform:scale(1.35)}}
 @keyframes ps-teaser-wiggle{from{transform:rotate(-12deg) translateX(-1px)}to{transform:rotate(12deg) translateX(1px)}}
 @media (prefers-reduced-motion:reduce){.ps-dream-cloud{animation:none}}
+.ps-panda[data-truth-potion-comfort="settling"] .ps-body,.ps-panda[data-truth-potion-comfort="sitting"] .ps-body{animation:none!important;transform:none!important;rotate:0deg!important;scale:1!important;translate:0 0!important;filter:none}
+.ps-truth-potion-invitation{position:absolute;z-index:40;left:50%;top:-10px;box-sizing:border-box;width:max-content;max-width:min(280px,78vw);padding:7px 10px;border:2px solid #705238;background:#fff7dc;color:#36563b;box-shadow:2px 3px 0 #4d392b66;font:600 13px/1.4 "Noto Sans CJK SC",sans-serif;text-align:center;white-space:normal;transform:translate(-50%,-100%);pointer-events:none;animation:ps-potion-invite-pop 260ms cubic-bezier(.2,.9,.35,1.25) both}
+@keyframes ps-potion-invite-pop{from{opacity:0;translate:0 7px;scale:.72}to{opacity:1;translate:0 0;scale:1}}
+@media(prefers-reduced-motion:reduce){.ps-truth-potion-invitation{animation:none}}

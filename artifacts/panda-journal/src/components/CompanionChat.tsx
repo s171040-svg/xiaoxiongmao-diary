@@ -55,6 +55,7 @@ const devEventOptions: { event: DeveloperEvent; label: string; durationMs: numbe
   { event: 'toy-laser', label: '激光笔：伏低扑点', durationMs: 5000 },
   { event: 'jar-peeking', label: '罐子：双爪搭沿四处张望', durationMs: 5000 },
   { event: 'trash-can', label: '垃圾桶：掉进去后屁股露出来', durationMs: 5000, persistent: true },
+  { event: 'truth-potion-comfort', label: '药药药：走到中间坐下倾听', durationMs: 8000, persistent: true },
 ];
 type DevTestSelection =
   | { kind: 'action'; action: PerformanceAction }
@@ -348,7 +349,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
   };
   const clearMindStatus = !window.pandaDesktop && clearMindMode && (
     <div className="cc-mode-status" role="status" data-testid="clear-mind-mode-active">
-      小熊猫喝下了真话药水；清醒模式会持续到本次聊天关闭。
+      小熊猫喝下了药药药；清醒模式会持续到本次聊天关闭。
     </div>
   );
   const sendRoomMessage = () => {

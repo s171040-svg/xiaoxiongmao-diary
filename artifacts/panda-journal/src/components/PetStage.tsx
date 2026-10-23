@@ -43,6 +43,7 @@ import {
   ROOM_IMAGE_WIDTH,
   roomFloorBoundsPercent,
   roomFurnitureZIndex,
+  shouldRackOccludePanda,
   shouldPandaRenderBehindRack,
   unprojectRoomPoint,
   unprojectRoomWalkableSurfacePoint,
@@ -96,7 +97,7 @@ const GRAB_HAND_ANCHOR_BY_FORM = {
 const SPACE_POLICE_LETTER_REMINDER_MS = 60_000;
 const SNACK_TOKEN_WIDTH = 124;
 const SNACK_TOKEN_HEIGHT = 54;
-const TRUTH_POTION_TOKEN_SIZE = 56;
+const TRUTH_POTION_TOKEN_SIZE = 28;
 const SPACE_POLICE_ENVELOPE_HOLD_MS = 420;
 const SPACE_POLICE_ENVELOPE_STORE_MS = 190;
 const ROOM_WASTE_HOLD_MS = 520;
@@ -151,6 +152,11 @@ const DIRTY_PLEAS = [
 ];
 const BATHING_FRAME_COUNT = 8;
 const pandaStaticUrl = (path: string) => `${import.meta.env.BASE_URL}static/panda/${path}`;
+const POTION_COMFORT_SPRITE = pandaStaticUrl('potion-comfort.png?v=truth-potion-comfort-pixen-1');
+const POTION_COMFORT_TRANSITION_FRAME_COUNT = 6;
+const potionComfortTransitionFrameUrl = (frame: number) => pandaStaticUrl(
+  `frames/potion-comfort-transition-${frame}.png?v=truth-potion-comfort-pixellab-1`,
+);
 const spriteAssetVersion = (sprite: string) => sprite === 'chew' ? 'chew-feed-4'
   : sprite === 'back-pawing' ? 'back-pawing-1'
   : sprite === 'tail-chase' ? 'tail-chase-ccw-3'
@@ -388,6 +394,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const previousDreamRef = useRef<string | null>(null);
   const [hangingOnRack, setHangingOnRack] = useState(false);
   const [hangingOnWindowHook, setHangingOnWindowHook] = useState(false);
+  const hangingOnClothesRack = hangingOnRack && !hangingOnWindowHook;
   const pandaHanging = hangingOnRack || hangingOnWindowHook;
   const [pandaJarTrapped, setPandaJarTrapped] = useState(false);
   const [pandaDragScreenPosition, setPandaDragScreenPosition] = useState<ScreenPosition | null>(null);
@@ -430,6 +437,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const [snackDropDragging, setSnackDropDragging] = useState(false);
   const [truthPotionPosition, setTruthPotionPosition] = useState<ScreenPosition | null>(null);
   const [truthPotionDragging, setTruthPotionDragging] = useState(false);
+  const [truthPotionComfortPhase, setTruthPotionComfortPhase] = useState<'walking' | 'settling' | 'sitting' | null>(null);
+  const [truthPotionInvitationVisible, setTruthPotionInvitationVisible] = useState(false);
   const [capturedHomecomingArrived, setCapturedHomecomingArrived] = useState(false);
   const [spacePoliceEnvelopePosition, setSpacePoliceEnvelopePosition] = useState<{ x: number; y: number } | null>(null);
   const [spacePoliceEnvelopeDragging, setSpacePoliceEnvelopeDragging] = useState(false);
@@ -555,6 +564,10 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const pandaButtonRef = useRef<HTMLButtonElement>(null);
   const snackDropPointerRef = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null);
   const truthPotionPointerRef = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null);
+  const truthPotionComfortStartRef = useRef<(() => boolean) | null>(null);
+  const truthPotionComfortStartedRef = useRef(false);
+  const truthPotionComfortRafRef = useRef(0);
+  const truthPotionInvitationTimerRef = useRef(0);
   const firstActivationAtRef = useRef<number | null>(null);
   const clickExpiryTimerRef = useRef(0);
   const reactionTimerRef = useRef(0);
@@ -741,8 +754,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       && event.clientX >= panda.left - 20 && event.clientX <= panda.right + 20
       && event.clientY >= panda.top - 20 && event.clientY <= panda.bottom + 20;
     if (droppedOnPanda) {
-      setTruthPotionPosition(null);
-      onDrinkTruthPotion?.();
+      if (truthPotionComfortStartRef.current?.()) setTruthPotionPosition(null);
       return;
     }
     setTruthPotionPosition({
@@ -865,10 +877,10 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     const rackRect = clothesRackRef.current?.getBoundingClientRect();
     const shouldCoverPanda = showInteractionBubble && !draggingRef.current
       && pandaRect !== undefined && rackRect !== undefined
-      && shouldPandaRenderBehindRack(pandaRect, rackRect);
+      && shouldRackOccludePanda(pandaRect, rackRect, hangingOnClothesRack);
     foregroundRack.style.visibility = shouldCoverPanda ? 'visible' : 'hidden';
     foregroundRack.dataset.visible = String(shouldCoverPanda);
-  }, [showInteractionBubble]);
+  }, [hangingOnClothesRack, showInteractionBubble]);
 
   const beginFurnitureMove = useCallback((id: RoomFurnitureId, event: ReactPointerEvent<Element>) => {
     if (!showInteractionBubble || !event.isPrimary || event.button !== 0) return;
@@ -1123,7 +1135,11 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     && !pandaHanging && !dampAfterBath && bathPhase === 'none' && !startled && dizzyPhase === 'none'
     && worldFallPhase === 'none' && !dirtyReturn && !developerPose;
   const isCuddling = (pet.stage === 'performing' && action === 'cuddle') || hoverCuddleVisible;
-  const sprite = showInteractionBubble && climbingUp && roomWalking && pet.stage === 'present'
+  const sprite = showInteractionBubble && truthPotionComfortPhase === 'settling'
+    ? 'potion-comfort'
+    : showInteractionBubble && truthPotionComfortPhase === 'sitting'
+    ? 'potion-comfort'
+    : showInteractionBubble && climbingUp && roomWalking && pet.stage === 'present'
     && interactionState !== 'chat' && !developerPose && !isDragging && !developerGrab
     && !pandaHanging && !startled && dizzyPhase === 'none' && bathPhase === 'none'
     ? 'climb-up'
@@ -1173,6 +1189,32 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const setFrame = useCallback((next: number) => {
     frameRef.current = next;
     setFrameState(next);
+  }, []);
+  useEffect(() => {
+    if (truthPotionComfortPhase !== 'settling') return undefined;
+    setFrame(0);
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setTruthPotionComfortPhase('sitting');
+      return undefined;
+    }
+    let nextFrame = 0;
+    let finishTimer = 0;
+    const timer = window.setInterval(() => {
+      nextFrame += 1;
+      setFrame(nextFrame);
+      if (nextFrame >= POTION_COMFORT_TRANSITION_FRAME_COUNT) {
+        window.clearInterval(timer);
+        finishTimer = window.setTimeout(() => setTruthPotionComfortPhase('sitting'), 140);
+      }
+    }, 140);
+    return () => {
+      window.clearInterval(timer);
+      window.clearTimeout(finishTimer);
+    };
+  }, [setFrame, truthPotionComfortPhase]);
+  useEffect(() => () => {
+    window.cancelAnimationFrame(truthPotionComfortRafRef.current);
+    window.clearTimeout(truthPotionInvitationTimerRef.current);
   }, []);
   const [bambooPhase, setBambooPhase] = useState<'idle' | 'entering' | 'dropping' | 'eating' | 'settling'>('idle');
 
@@ -1517,7 +1559,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     }
     // Foreground plants on both sides sit one layer above the panda.
     track.style.zIndex = showInteractionBubble
-      ? draggingRef.current ? '260' : '240'
+      ? draggingRef.current ? '260' : hangingOnClothesRack ? '241' : '240'
       : String(projected.zIndex);
     if (showInteractionBubble) syncRackOcclusion();
     track.dataset.roomU = appliedPoint.u.toFixed(3);
@@ -1534,7 +1576,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       track.dataset.roomZ = String(projected.zIndex);
     } else delete track.dataset.roomWalkable;
     if (reachedOutsideBoundary) worldFallBoundaryTriggerRef.current?.();
-  }, [showInteractionBubble, syncRackOcclusion]);
+  }, [hangingOnClothesRack, showInteractionBubble, syncRackOcclusion]);
 
   useLayoutEffect(() => {
     if (!capturedHomecoming) {
@@ -1994,6 +2036,9 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       }
       case 'trash-can':
         startTrashCanPanda();
+        break;
+      case 'truth-potion-comfort':
+        truthPotionComfortStartRef.current?.();
         break;
       case 'toy-teaser':
       case 'toy-curious':
@@ -2516,6 +2561,10 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
 
   useEffect(() => {
     const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (sprite === 'potion-comfort') {
+      setFrame(0);
+      return;
+    }
     const reducedMotionFrame = sprite === 'dizzy'
       ? DIZZY_FRAME_COUNT
       : sprite === 'chew' && pet.stage === 'performing' && pet.action === 'bamboo'
@@ -2601,8 +2650,15 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     if (interactionStateRef.current !== 'chat') return;
     window.clearTimeout(chatIdleTimerRef.current);
     chatIdleTimerRef.current = 0;
+    window.clearTimeout(truthPotionInvitationTimerRef.current);
+    truthPotionInvitationTimerRef.current = 0;
+    setTruthPotionInvitationVisible(false);
+    setTruthPotionComfortPhase(null);
+    truthPotionComfortStartedRef.current = false;
     clearActivityTransition();
     setActivityState('roaming');
+    roomWalkingRef.current = false;
+    setRoomWalking(false);
     interactionStateRef.current = 'roaming';
     setInteractionState('roaming');
     onChatModeChange?.(false);
@@ -2626,6 +2682,73 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     window.clearTimeout(chatIdleTimerRef.current);
     chatIdleTimerRef.current = window.setTimeout(exitChat, CHAT_IDLE_TIMEOUT_MS);
   };
+
+  const startTruthPotionComfort = useCallback(() => {
+    if (!showInteractionBubble || hidden || pet.stage !== 'present'
+      || interactionStateRef.current === 'chat' || truthPotionComfortStartedRef.current
+      || pandaJarTrapped || pandaHangingRef.current || draggingRef.current
+      || bathPhaseRef.current !== 'none' || worldFallPhaseRef.current !== 'none') return false;
+
+    truthPotionComfortStartedRef.current = true;
+    onDrinkTruthPotion?.();
+    window.clearTimeout(truthPotionInvitationTimerRef.current);
+    truthPotionInvitationTimerRef.current = 0;
+    window.cancelAnimationFrame(truthPotionComfortRafRef.current);
+    truthPotionComfortRafRef.current = 0;
+    setTruthPotionInvitationVisible(false);
+    setTruthPotionComfortPhase('walking');
+    setActivityState('roaming');
+    setSleepingOnBed(false);
+    setSleepingInNest(false);
+    clearActivityTransition();
+
+    const destination = nearestWalkableRoomPoint({ u: 0.5, v: 0.06 });
+    const start = nearestWalkableRoomPoint(positionRef.current);
+    const route = planRoomWalkPath(start, destination);
+    const pathLength = roomWalkPathLength(route);
+
+    const arriveAndListen = () => {
+      truthPotionComfortRafRef.current = 0;
+      roomWalkingRef.current = false;
+      setRoomWalking(false);
+      applyRoomPoint(destination);
+      setFrame(0);
+      setTruthPotionComfortPhase('settling');
+      setTruthPotionInvitationVisible(true);
+      enterChat('truth-potion');
+      truthPotionInvitationTimerRef.current = window.setTimeout(() => {
+        truthPotionInvitationTimerRef.current = 0;
+        setTruthPotionInvitationVisible(false);
+      }, 5200);
+    };
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || route.length < 2 || pathLength < 0.01) {
+      arriveAndListen();
+      return true;
+    }
+
+    roomWalkingRef.current = true;
+    setRoomWalking(true);
+    const duration = Math.max(1000, Math.min(3600, pathLength * 4200));
+    const stepCount = Math.max(6, Math.round(duration / 170));
+    const startedAt = performance.now();
+    let previousPoint = start;
+    const advance = (now: number) => {
+      const progress = Math.min(1, (now - startedAt) / duration);
+      const point = pointAlongRoomWalkPath(route, gaitProgress(progress, stepCount));
+      updateFacing(point.u - previousPoint.u);
+      previousPoint = point;
+      applyRoomPoint(point);
+      if (progress >= 1) {
+        arriveAndListen();
+        return;
+      }
+      truthPotionComfortRafRef.current = window.requestAnimationFrame(advance);
+    };
+    truthPotionComfortRafRef.current = window.requestAnimationFrame(advance);
+    return true;
+  }, [applyRoomPoint, clearActivityTransition, enterChat, hidden, onDrinkTruthPotion, pandaJarTrapped, pet.stage, setFrame, showInteractionBubble, updateFacing]);
+  truthPotionComfortStartRef.current = startTruthPotionComfort;
 
   const handlePandaClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (worldFallPhase !== 'none' && worldFallPhase !== 'dirty') return;
@@ -3188,6 +3311,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       ).v;
       element.style.zIndex = String(roomFurnitureZIndex(depth) + 1);
     }
+    const pandaTrack = trackRef.current;
+    if (pandaTrack) pandaTrack.style.zIndex = draggingRef.current ? '260' : hangingOnClothesRack ? '241' : '240';
     syncRackOcclusion();
     if (bathPhaseRef.current === 'bathing' && draggingFurnitureId === 'bathStation') {
       const stationRect = bathStationRef.current?.getBoundingClientRect();
@@ -3213,7 +3338,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
         bubbleAnchor?.style.setProperty('--room-y', screenYPercent);
       }
     }
-  }, [applyRoomPoint, draggingFurnitureId, hidden, placedProps, roomFurnitureLayout, showInteractionBubble, syncRackOcclusion, updateFacing, viewportSize, worldAway, worldFallMessageVisible]);
+  }, [applyRoomPoint, draggingFurnitureId, hangingOnClothesRack, hidden, placedProps, roomFurnitureLayout, showInteractionBubble, syncRackOcclusion, updateFacing, viewportSize, worldAway, worldFallMessageVisible]);
 
   useEffect(() => {
     if (!showInteractionBubble || bathPhase !== 'bathing' || !bathRubbing) return undefined;
@@ -3569,7 +3694,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       if (showInteractionBubble) setRoomWalking(walking);
     };
 
-    const canRoam = () => interactionState === 'roaming' && !equippedToyRef.current && dizzyPhase === 'none' && !reacting && !startled && !developerGrab && !pandaHangingRef.current && !pandaJarTrapped && !dampAfterBath && !startledRef.current && !hidden
+    const canRoam = () => interactionState === 'roaming' && !truthPotionComfortPhase && !equippedToyRef.current && dizzyPhase === 'none' && !reacting && !startled && !developerGrab && !pandaHangingRef.current && !pandaJarTrapped && !dampAfterBath && !startledRef.current && !hidden
       && (worldFallPhase === 'none' || worldFallPhase === 'dirty') && bathPhase === 'none'
       && pet.stage !== 'performing' && pet.stage !== 'returning' && !hoverCuddleActive
       && !developerPose && !pixelTransitionDirection && activityState === 'roaming' && !sleepingInNest
@@ -3706,9 +3831,18 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     worldFallPhase,
     enterCatTreeSleep,
     sleepingInNest,
+    truthPotionComfortPhase,
   ]);
 
-  const image = bathTransition === 'exiting' && bathExitImage
+  const image = truthPotionComfortPhase === 'settling'
+    ? frame === 0
+      ? pandaStaticUrl('idle.png?v=tail-left-3')
+      : frame >= POTION_COMFORT_TRANSITION_FRAME_COUNT
+        ? POTION_COMFORT_SPRITE
+        : potionComfortTransitionFrameUrl(frame)
+    : truthPotionComfortPhase === 'sitting'
+    ? POTION_COMFORT_SPRITE
+    : bathTransition === 'exiting' && bathExitImage
     ? bathExitImage
     : dirtyGrab && sprite === 'dirty-grab-lift'
     ? frame === 0
@@ -4182,6 +4316,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       <button ref={pandaButtonRef} type="button" className={`ps-panda ps-${hangingOnRack ? 'idle' : isCuddling ? 'cuddle' : pet.stage === 'performing' ? action : basePoseClass}${showBoredSearch ? ' ps-bored-hidden' : ''}${showInteractionBubble && roomWalking && !hangingOnRack ? ' ps-walking' : ''}${showInteractionBubble && activityTransition ? ` ps-transition-${activityTransition}` : ''}${pixelTransitionDirection ? ' ps-pixel-transition' : ''}${interactionState === 'chat' ? ' ps-chatting' : ''}${(showInteractionBubble && activityState === 'lying' || developerPose === 'lying') ? ' ps-lying' : ''}${(showInteractionBubble && activityState === 'peeking' || developerPose === 'peeking') ? ' ps-peeking' : ''}${isSleeping ? ' ps-sleeping' : ''}${developerPose === 'idle' ? ' ps-dev-idle' : ''}${startled ? ' ps-startled' : ''}${isPressPending ? ' ps-pressing' : ''}${reacting ? ' ps-reacting' : ''}${isDragging || developerGrab ? ' ps-dragging' : ''}${hangingOnRack ? ' ps-hanging' : ''}${dirtyGrab ? ' ps-dirty-grabbing' : ''}${showInteractionBubble && dizzyPhase !== 'none' ? ' ps-dizzy' : ''}${worldFallPhase === 'falling' ? ' ps-world-falling' : ''}${bathPhase === 'falling' ? ' ps-bath-dropping' : ''}${bathPhase === 'bathing' ? ' ps-bathing' : ''}${showInteractionBubble && bathTransition === 'exiting' ? ' ps-bath-exiting' : ''}${dirtyReturn ? ' ps-world-dirty' : ''}${isFlyChasing ? ' ps-fly-flee' : ''}`}
                 data-damp-after-bath={dampAfterBath && bathPhase === 'none' ? 'true' : undefined}
                 data-jar-trapped={pandaJarTrapped ? 'true' : undefined}
+                 data-truth-potion-comfort={truthPotionComfortPhase ?? undefined}
                  data-trash-can-state={showInteractionBubble ? trashCanPandaPhase ?? undefined : undefined}
               onPointerEnter={handlePandaPointerEnter}
               onClick={handlePandaClick}
@@ -4202,6 +4337,12 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
                  data-sprite={bathTransition === 'exiting' ? dirtyReturn ? bathRubbing ? 'dirty-bathing-soap' : 'dirty-bathing' : 'bathing' : dirtyGrab ? sprite : hangingOnRack ? 'grab' : dirtyReturn && bathPhase === 'bathing' ? (bathRubbing ? 'dirty-bathing-soap' : 'dirty-bathing') : dirtyReturn && isFlyChasing ? 'dirty-flee' : dirtyReturn ? 'dirty-return' : bathPhase === 'bathing' ? 'bathing' : startled && showInteractionBubble ? 'startled' : sprite}
                  data-frame={bathTransition === 'exiting' ? bathFrame : dirtyGrab ? frame : hangingOnRack ? '0' : showInteractionBubble && bathPhase === 'bathing' ? bathFrame : dirtyReturn ? '0' : frame}
                   width={60} height={60} alt="" draggable={false} />
+                  {showInteractionBubble && truthPotionInvitationVisible && (
+                    <span className="ps-truth-potion-invitation" role="status" aria-live="polite"
+                      data-testid="truth-potion-invitation">
+                      有什么心事想和小熊猫说嘛？
+                    </span>
+                  )}
                  {showInteractionBubble && bathPhase === 'bathing' && (
                    <span className="ps-bath-water-bubbles" aria-hidden="true" data-testid="bath-water-bubbles">
                      <i /><i />
@@ -4416,7 +4557,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
           style={{ left: truthPotionPosition.x, top: truthPotionPosition.y }}
           data-dragging={truthPotionDragging ? 'true' : undefined}
           data-testid="truth-potion-token"
-          aria-label="真话药水；拖到小熊猫身上让它喝下"
+          aria-label="药药药；拖到小熊猫身上让它喝下"
           title="拖到小熊猫身上让它喝下"
           onPointerDown={handleTruthPotionPointerDown}
           onPointerMove={handleTruthPotionPointerMove}
@@ -4425,9 +4566,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault();
-              if (pet.stage !== 'present') return;
-              setTruthPotionPosition(null);
-              onDrinkTruthPotion?.();
+              if (truthPotionComfortStartRef.current?.()) setTruthPotionPosition(null);
             }
           }}>
           <img src={TRUTH_POTION_URL} alt="" draggable={false} />

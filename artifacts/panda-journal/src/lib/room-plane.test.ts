@@ -24,6 +24,7 @@ import {
   roomDepthZIndex,
   roomFloorBoundsPercent,
   roomPointAtImagePosition,
+  shouldRackOccludePanda,
   shouldPandaRenderBehindRack,
   ROOM_OUTSIDE_BOUNDARY_V,
   ROOM_IMAGE_HEIGHT,
@@ -112,6 +113,11 @@ assert.equal(shouldPandaRenderBehindRack(
   { left: 10, top: 120, right: 55, bottom: 170 },
   rackBounds,
 ), false, 'the rack does not occlude a panda that is not horizontally overlapping');
+assert.equal(shouldRackOccludePanda(
+  { left: 115, top: 120, right: 150, bottom: 170 },
+  rackBounds,
+  true,
+), false, 'the rack foreground copy never covers a panda hanging on the rack');
 assert.ok(projectRoomPoint({ u: 0.08, v: 0.8 }).x < projectRoomPoint({ u: 0.08, v: 0.2 }).x,
   'the walkable plane widens toward the viewer');
 
