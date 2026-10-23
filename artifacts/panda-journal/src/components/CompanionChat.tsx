@@ -35,6 +35,7 @@ const devPoseOptions: { pose: DeveloperPose; label: string }[] = [
   { pose: 'lying', label: '趴着' },
   { pose: 'sleeping', label: '睡觉' },
   { pose: 'peeking', label: '趴着回头看' },
+  { pose: 'bored-searching', label: '无聊地趴在工具栏找玩家' },
 ];
 const devEventOptions: { event: DeveloperEvent; label: string; durationMs: number; persistent?: boolean }[] = [
   { event: 'startle', label: '被吓一跳', durationMs: 1150 },

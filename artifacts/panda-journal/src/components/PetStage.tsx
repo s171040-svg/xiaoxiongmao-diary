@@ -76,6 +76,7 @@ import {
   type RoomFurniturePoint,
 } from '@/lib/room-furniture-layout';
 import { SPACE_POLICE_LETTER_EAT_DELAY_MS } from '@/lib/companion-store';
+import { BORED_SEARCH_IDLE_MS, isBoredSearchDue } from '@/lib/room-bored-search';
 import animationManifest from '@/lib/panda-animation-manifest.json';
 import { PANDA_TEASER_WAND_URL, TRUTH_POTION_URL, RoomPropDock, type RoomProp, type RoomToy } from './RoomPropDock';
 import { useRoomEyeControl } from './useRoomEyeControl';
@@ -162,6 +163,8 @@ const DIZZY_DROP_MS = DIZZY_FRAME_COUNT * animationManifest.frameIntervalMs.dizz
 const TRASH_CAN_ENTER_FRAME_COUNT = animationManifest.frameCountBySprite['trash-can-enter'];
 const TRASH_CAN_EXIT_FRAME_COUNT = animationManifest.frameCountBySprite['trash-can-exit'];
 const TRASH_CAN_SPRITE = `${import.meta.env.BASE_URL}static/room/trash-can.png?v=trash-can-pixen-1`;
+const BORED_DOCK_FRAME_COUNT = 5;
+const boredDockFrameUrl = (frame: number) => pandaStaticUrl(`bored-over-dock/${frame}.png?v=bored-over-dock-pixellab-1`);
 const trashCanPandaFrameUrl = (sequence: 'enter' | 'exit', frame: number) => (
   pandaStaticUrl(`frames/trash-can-${sequence}-${frame}.png?v=trash-can-pixen-1`)
 );
@@ -247,6 +250,7 @@ const DEVELOPER_POSE_TRANSITION_KEY: Record<DeveloperPose, TransitionKey> = {
   lying: 'lying',
   sleeping: 'sleep',
   peeking: 'peeking',
+  'bored-searching': 'idle',
 };
 const performanceTransitionKey = (action: PerformanceAction | 'idle'): TransitionKey =>
   action === 'idle' ? 'idle' : ACTION_TRANSITION_KEY[action];
@@ -255,6 +259,7 @@ const DEVELOPER_POSE_SPRITES: Record<DeveloperPose, string> = {
   lying: 'lying',
   sleeping: animationManifest.motionSprites.sleep,
   peeking: 'peeking',
+  'bored-searching': animationManifest.motionSprites.idle,
 };
 
 type PandaDragPointer = {
@@ -361,6 +366,10 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const capturedHomecoming = pet.stage === 'performing' && action === 'captured-homecoming';
   const basePoseClass = developerPose ? developerPose === 'sleeping' ? 'sleep' : 'idle' : motion;
   const [interactionState, setInteractionState] = useState<'roaming' | 'chat'>('roaming');
+  const [boredAtDock, setBoredAtDock] = useState(false);
+  const [boredDockFrame, setBoredDockFrame] = useState(0);
+  const [roomPropDockHeight, setRoomPropDockHeight] = useState(68);
+  const lastRoomUserActivityAtRef = useRef(Date.now());
   const [reacting, setReacting] = useState(false);
   const [hoverCuddleActive, setHoverCuddleActive] = useState(false);
   const [roomWalking, setRoomWalking] = useState(false);
@@ -1012,6 +1021,82 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     && activityTransition !== 'frames-entering' && activityTransition !== 'frames-waking'
     && (developerPose === 'sleeping'
       || (showInteractionBubble && (activityState === 'sleeping' || (activityState === 'roaming' && motion === 'sleep' && !nightWakeOverride))));
+  const boredSearchEligible = showInteractionBubble
+    && interactionState === 'roaming' && !hidden && pet.stage === 'present'
+    && activityState === 'roaming' && !roomWalking && !isSleeping
+    && !developerPose && !isDragging && !isPressPending && !developerGrab
+    && !pandaHanging && !pandaJarTrapped && bathPhase === 'none'
+    && !dampAfterBath && !startled && dizzyPhase === 'none'
+    && worldFallPhase === 'none' && !capturedHomecoming
+    && !equippedToy && !selectedSnack && !pendingGift;
+  const boredSearchEligibleRef = useRef(boredSearchEligible);
+  boredSearchEligibleRef.current = boredSearchEligible;
+  const showBoredSearch = showInteractionBubble && !hidden && interactionState !== 'chat'
+    && (developerPose === 'bored-searching' || (boredAtDock && boredSearchEligible));
+  const roomArtworkWidth = Math.min(viewportSize.width, viewportSize.height * ROOM_IMAGE_WIDTH / ROOM_IMAGE_HEIGHT);
+  const boredPandaSize = roomArtworkWidth / 25;
+
+  useEffect(() => {
+    if (!showInteractionBubble) {
+      setBoredAtDock(false);
+      return undefined;
+    }
+    lastRoomUserActivityAtRef.current = Date.now();
+    const resetIdle = () => {
+      lastRoomUserActivityAtRef.current = Date.now();
+      setBoredAtDock(false);
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState !== 'visible') {
+        setBoredAtDock(false);
+        return;
+      }
+      resetIdle();
+    };
+    document.addEventListener('pointerdown', resetIdle, true);
+    document.addEventListener('keydown', resetIdle, true);
+    document.addEventListener('input', resetIdle, true);
+    document.addEventListener('visibilitychange', handleVisibility);
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible'
+        && boredSearchEligibleRef.current
+        && isBoredSearchDue(lastRoomUserActivityAtRef.current, Date.now())) {
+        setBoredAtDock(true);
+      }
+    }, 1000);
+    return () => {
+      document.removeEventListener('pointerdown', resetIdle, true);
+      document.removeEventListener('keydown', resetIdle, true);
+      document.removeEventListener('input', resetIdle, true);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.clearInterval(timer);
+    };
+  }, [showInteractionBubble]);
+
+  useEffect(() => {
+    if (!showBoredSearch || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setBoredDockFrame(0);
+      return undefined;
+    }
+    const sequence = [0, 0, 0, 0, ...Array.from({ length: BORED_DOCK_FRAME_COUNT - 1 }, (_, index) => index + 1)];
+    let frame = 0;
+    const timer = window.setInterval(() => {
+      frame = (frame + 1) % sequence.length;
+      setBoredDockFrame(sequence[frame]);
+    }, 700);
+    return () => window.clearInterval(timer);
+  }, [showBoredSearch]);
+
+  useLayoutEffect(() => {
+    if (!showInteractionBubble || interactionState === 'chat') return undefined;
+    const dock = document.querySelector<HTMLElement>('[data-testid="room-prop-dock"]');
+    if (!dock) return undefined;
+    const updateHeight = () => setRoomPropDockHeight(dock.getBoundingClientRect().height);
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(dock);
+    return () => observer.disconnect();
+  }, [interactionState, showInteractionBubble]);
   useEffect(() => {
     if (!showInteractionBubble || !isSleeping) {
       setDreamAvailable(false);
@@ -4094,7 +4179,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
               <span className="ps-captured-impact-dust" aria-hidden="true"><i /><i /><i /></span>
             )}
               {!worldAway && (
-      <button ref={pandaButtonRef} type="button" className={`ps-panda ps-${hangingOnRack ? 'idle' : isCuddling ? 'cuddle' : pet.stage === 'performing' ? action : basePoseClass}${showInteractionBubble && roomWalking && !hangingOnRack ? ' ps-walking' : ''}${showInteractionBubble && activityTransition ? ` ps-transition-${activityTransition}` : ''}${pixelTransitionDirection ? ' ps-pixel-transition' : ''}${interactionState === 'chat' ? ' ps-chatting' : ''}${(showInteractionBubble && activityState === 'lying' || developerPose === 'lying') ? ' ps-lying' : ''}${(showInteractionBubble && activityState === 'peeking' || developerPose === 'peeking') ? ' ps-peeking' : ''}${isSleeping ? ' ps-sleeping' : ''}${developerPose === 'idle' ? ' ps-dev-idle' : ''}${startled ? ' ps-startled' : ''}${isPressPending ? ' ps-pressing' : ''}${reacting ? ' ps-reacting' : ''}${isDragging || developerGrab ? ' ps-dragging' : ''}${hangingOnRack ? ' ps-hanging' : ''}${dirtyGrab ? ' ps-dirty-grabbing' : ''}${showInteractionBubble && dizzyPhase !== 'none' ? ' ps-dizzy' : ''}${worldFallPhase === 'falling' ? ' ps-world-falling' : ''}${bathPhase === 'falling' ? ' ps-bath-dropping' : ''}${bathPhase === 'bathing' ? ' ps-bathing' : ''}${showInteractionBubble && bathTransition === 'exiting' ? ' ps-bath-exiting' : ''}${dirtyReturn ? ' ps-world-dirty' : ''}${isFlyChasing ? ' ps-fly-flee' : ''}`}
+      <button ref={pandaButtonRef} type="button" className={`ps-panda ps-${hangingOnRack ? 'idle' : isCuddling ? 'cuddle' : pet.stage === 'performing' ? action : basePoseClass}${showBoredSearch ? ' ps-bored-hidden' : ''}${showInteractionBubble && roomWalking && !hangingOnRack ? ' ps-walking' : ''}${showInteractionBubble && activityTransition ? ` ps-transition-${activityTransition}` : ''}${pixelTransitionDirection ? ' ps-pixel-transition' : ''}${interactionState === 'chat' ? ' ps-chatting' : ''}${(showInteractionBubble && activityState === 'lying' || developerPose === 'lying') ? ' ps-lying' : ''}${(showInteractionBubble && activityState === 'peeking' || developerPose === 'peeking') ? ' ps-peeking' : ''}${isSleeping ? ' ps-sleeping' : ''}${developerPose === 'idle' ? ' ps-dev-idle' : ''}${startled ? ' ps-startled' : ''}${isPressPending ? ' ps-pressing' : ''}${reacting ? ' ps-reacting' : ''}${isDragging || developerGrab ? ' ps-dragging' : ''}${hangingOnRack ? ' ps-hanging' : ''}${dirtyGrab ? ' ps-dirty-grabbing' : ''}${showInteractionBubble && dizzyPhase !== 'none' ? ' ps-dizzy' : ''}${worldFallPhase === 'falling' ? ' ps-world-falling' : ''}${bathPhase === 'falling' ? ' ps-bath-dropping' : ''}${bathPhase === 'bathing' ? ' ps-bathing' : ''}${showInteractionBubble && bathTransition === 'exiting' ? ' ps-bath-exiting' : ''}${dirtyReturn ? ' ps-world-dirty' : ''}${isFlyChasing ? ' ps-fly-flee' : ''}`}
                 data-damp-after-bath={dampAfterBath && bathPhase === 'none' ? 'true' : undefined}
                 data-jar-trapped={pandaJarTrapped ? 'true' : undefined}
                  data-trash-can-state={showInteractionBubble ? trashCanPandaPhase ?? undefined : undefined}
@@ -4314,6 +4399,17 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
           placed={placedProps}
           onTogglePlaced={toggleRoomProp}
           locked={{ tub: bathPhase !== 'none', rack: hangingOnRack, bed: sleepingOnBed }} />
+      )}
+      {showBoredSearch && (
+        <div className="ps-bored-panda" role="status" aria-label="小熊猫无聊地趴在工具栏上找你"
+          data-testid="bored-panda-at-dock"
+          style={{
+            ['--bored-panda-size' as string]: `${boredPandaSize}px`,
+            ['--bored-dock-height' as string]: `${roomPropDockHeight}px`,
+          }}>
+          <span className="ps-bored-panda-speech">你在做什么呀</span>
+          <img src={boredDockFrameUrl(boredDockFrame)} alt="" aria-hidden="true" draggable={false} />
+        </div>
       )}
       {showInteractionBubble && truthPotionPosition && (
         <button type="button" className="ps-truth-potion-token"
