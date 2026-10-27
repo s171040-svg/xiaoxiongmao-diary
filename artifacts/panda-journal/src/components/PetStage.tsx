@@ -329,14 +329,13 @@ type BathBallPointer = {
   offsetY: number;
 };
 
-export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthPotion, thinking = false, motion = 'idle', nightMode = false, debugClicks = false, showInteractionBubble = false, interactionBubbleText, developerPose = null, developerEvent = null, onChatModeChange, onCareInteraction, onCapturedHomecomingInteraction, pendingGift, giftDropStartedAt, onCollectPresent, giftCount = 0, onOpenGiftStorage, spacePoliceLetter, spacePoliceLetters, spacePoliceMailCount = 0, spacePoliceUnreadCount = 0, onOpenSpacePoliceLetter, onFileSpacePoliceLetter, onEatSpacePoliceLetter, onPlaceSpacePolicePoop, onPackSpacePolicePoop, onMoveSpacePolicePoopBag, onDisposeSpacePolicePoopBag, onFinishSpacePolicePoopDisposal, onOpenSpacePoliceMailbox }: {
+export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthPotion, thinking = false, motion = 'idle', debugClicks = false, showInteractionBubble = false, interactionBubbleText, developerPose = null, developerEvent = null, onChatModeChange, onCareInteraction, onCapturedHomecomingInteraction, pendingGift, giftDropStartedAt, onCollectPresent, giftCount = 0, onOpenGiftStorage, spacePoliceLetter, spacePoliceLetters, spacePoliceMailCount = 0, spacePoliceUnreadCount = 0, onOpenSpacePoliceLetter, onFileSpacePoliceLetter, onEatSpacePoliceLetter, onPlaceSpacePolicePoop, onPackSpacePolicePoop, onMoveSpacePolicePoopBag, onDisposeSpacePolicePoopBag, onFinishSpacePolicePoopDisposal, onOpenSpacePoliceMailbox }: {
   pet: PetEffect;
   selectedSnack?: Pick<Gift, 'id' | 'emoji' | 'item'> | null;
   onFeedSnack?: (giftId: string) => void;
   onDrinkTruthPotion?: () => void;
   thinking?: boolean;
   motion?: 'idle' | 'sleep';
-  nightMode?: boolean;
   debugClicks?: boolean;
   showInteractionBubble?: boolean;
   interactionBubbleText?: string;
@@ -4043,7 +4042,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   } : undefined;
   return (
     <>
-      <div className="ps-room-surface" data-night={nightMode} data-room-only={showInteractionBubble}
+      <div className="ps-room-surface" data-room-only={showInteractionBubble}
         aria-hidden="true" data-testid="room-surface">
         <div className="ps-room-backdrop" style={roomImageStyle && {
           ...roomImageStyle,
@@ -4056,7 +4055,6 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       </div>
         <div className="ps-stage" data-stage={pet.stage} data-room-only={showInteractionBubble}
           data-bath-state={showInteractionBubble ? bathPhase : undefined}
-         data-night={nightMode}
          data-interaction-state={interactionState}
          data-toy-state={equippedToy ? toyPhase : undefined}
           data-activity-state={showInteractionBubble ? developerPose ?? activityState : undefined}

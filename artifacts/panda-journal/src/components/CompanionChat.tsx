@@ -394,7 +394,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
     <footer className="cc-composer cc-room-composer" data-testid="room-chat-composer">
       <textarea className="cc-room-input" value={roomDraft} onChange={(e) => c.setDraft(e.target.value)}
         onKeyDown={roomKey} rows={2} maxLength={4000}
-        placeholder={c.nightMode ? '今天有什么想放下的？' : '说点什么…'} aria-label="输入消息" data-testid="input-chat" />
+        placeholder="说点什么…" aria-label="输入消息" data-testid="input-chat" />
       <button type="button" className="cc-send" disabled={!canSendRoomMessage}
         onClick={sendRoomMessage} data-testid="button-send">发送</button>
     </footer>
@@ -404,7 +404,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
       {c.photo && <div className="cc-photo"><img src={c.photo} alt="待发送的照片" /><button type="button" aria-label="移除照片" onClick={c.removePhoto} data-testid="button-remove-photo"><X size={12} /></button></div>}
       <div className="cc-box">
         <textarea value={c.draft} onChange={(e) => c.setDraft(e.target.value)} onKeyDown={key} rows={2} maxLength={4000}
-          placeholder={c.nightMode ? '今天有什么想放下的？' : '想说什么都可以，Enter 发送，Shift+Enter 换行'} aria-label="输入消息" data-testid="input-chat" />
+          placeholder="想说什么都可以，Enter 发送，Shift+Enter 换行" aria-label="输入消息" data-testid="input-chat" />
         <div className="cc-tools">
           <VoiceButton text={c.draft} disabled={c.busy} onText={c.setDraft} onActive={c.setListening} onStatus={(m, e) => setVoice({ m, e })} />
           <input ref={fileRef} type="file" accept="image/*" hidden data-testid="input-photo" onChange={(e) => { void c.choosePhoto(e.target.files?.[0]); e.target.value = ''; }} />
@@ -417,10 +417,10 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
     </footer>
   );
   return (
-    <main className={`cc-app${c.nightMode ? ' night' : ''}${window.pandaDesktop ? ' desktop' : ''}${roomOnly ? ' room-only' : ''}`}
-      data-testid="companion-chat" data-mode={c.nightMode ? 'night' : 'day'} data-room-only={roomOnly}>
+    <main className={`cc-app${window.pandaDesktop ? ' desktop' : ''}${roomOnly ? ' room-only' : ''}`}
+      data-testid="companion-chat" data-room-only={roomOnly}>
       {(!roomOnly || !roomChatOpen) && <header className="cc-top">
-        <div className="cc-title"><strong>小熊猫日记</strong><span>{c.nightMode ? '夜深了，轻轻聊' : '今天想聊点什么'}</span></div>
+        <div className="cc-title"><strong>小熊猫日记</strong><span>今天想聊点什么</span></div>
         <div className="cc-actions">
           <button type="button" onClick={() => setPanel('diary')} data-testid="button-diary" aria-label="日记本" title="日记本"><TopPixelIcon name="diary" /></button>
           {import.meta.env.DEV && c.performTestAction && (
@@ -433,7 +433,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
           {window.pandaDesktop && <button type="button" aria-label="收起聊天，回到桌面" onClick={() => window.pandaDesktop?.hideJournal()} data-testid="button-hide-chat"><X size={16} /></button>}
         </div>
       </header>}
-       <PetStage pet={c.pet} thinking={c.busy && !c.replyDisplay} motion={c.nightMode ? 'sleep' : 'idle'} nightMode={c.nightMode}
+       <PetStage pet={c.pet} thinking={c.busy && !c.replyDisplay} motion="idle"
         selectedSnack={selectedSnack ? { id: selectedSnack.id, emoji: selectedSnack.emoji, item: selectedSnack.item } : null}
         onFeedSnack={(giftId) => { c.feedGift(giftId); setSelectedSnackId(null); }}
         developerPose={import.meta.env.DEV ? developerPose : null}

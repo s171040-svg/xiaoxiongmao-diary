@@ -401,7 +401,7 @@ async function main() {
       backdropClip: getComputedStyle(backdrop).clipPath,
       floorClip: getComputedStyle(floor).clipPath,
       width: innerWidth, height: innerHeight,
-      night: planeElement.dataset.night === "true"
+      nightAttributes: document.querySelectorAll("[data-night]").length
     };
   });
   assert.ok(Math.abs(journalRoom.stage.width - journalRoom.width) < 2 && Math.abs(journalRoom.stage.height - journalRoom.height) < 2,
@@ -417,11 +417,10 @@ async function main() {
   assert.equal(journalRoom.furnitureDisplay, "block", "furniture occlusion layers are visible above the panda");
   assert.ok(journalRoom.occlusionCount >= 4, "major painted furniture has depth-sorted occlusion layers");
   assert.deepEqual(journalRoom.roomLayers, ["ps-room-backdrop", "ps-room-floor"]);
-  assert.equal(typeof journalRoom.night, "boolean", "web room reflects the current local day/night mode");
+  assert.equal(journalRoom.nightAttributes, 0, "web room does not switch into an automatic night mode");
   await webRoom.emulateMedia({ reducedMotion: "no-preference" });
-  if (!journalRoom.night) {
-    const journalWalkBounds = await webRoom.evaluate(async () => {
-      const track = document.querySelector(".ps-track");
+  const journalWalkBounds = await webRoom.evaluate(async () => {
+    const track = document.querySelector(".ps-track");
     const points = [];
     const started = performance.now();
       while (performance.now() - started < 9500) {
@@ -444,13 +443,12 @@ async function main() {
         sawWalking: points.some(p => p.sprite === "walk"),
         sawResting: points.some(p => p.sprite === "idle"),
       };
-    });
-    assert.ok(journalWalkBounds.xSpan > 0.01 && journalWalkBounds.ySpan > 0.01, "journal pet moves in both room-plane axes");
-    assert.equal(journalWalkBounds.allPointsWalkable, true, "every sampled roaming position avoids furniture and stays on floor");
-    assert.ok(journalWalkBounds.maxViewportOverflow < 0.05, "room positions project inside the browser viewport");
-    assert.ok(journalWalkBounds.scaleSpan > 0.001, "room pet scales with depth on the room plane");
-    assert.ok(journalWalkBounds.sawWalking && journalWalkBounds.sawResting, "room pet alternates between walking and resting");
-  }
+  });
+  assert.ok(journalWalkBounds.xSpan > 0.01 && journalWalkBounds.ySpan > 0.01, "journal pet moves in both room-plane axes");
+  assert.equal(journalWalkBounds.allPointsWalkable, true, "every sampled roaming position avoids furniture and stays on floor");
+  assert.ok(journalWalkBounds.maxViewportOverflow < 0.05, "room positions project inside the browser viewport");
+  assert.ok(journalWalkBounds.scaleSpan > 0.001, "room pet scales with depth on the room plane");
+  assert.ok(journalWalkBounds.sawWalking && journalWalkBounds.sawResting, "room pet alternates between walking and resting");
 
   const webPandaButton = webRoom.getByTestId("button-panda");
   const webInteraction = webRoom.getByTestId("panda-interaction-state");

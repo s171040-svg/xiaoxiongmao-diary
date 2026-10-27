@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { companionChat, type CompanionResponse } from '@workspace/api-client-react';
 import { isDesktop } from '@/lib/desktop';
-import { isQuietHours } from '@/lib/quiet-hours';
 import { replyFrame, replyRhythm } from '@/lib/reply-rhythm';
 import type { CareStatCategory, CareStats, ChatMessage, CompanionState, Gift, PerformanceAction, PetEffect } from '@/lib/companion-types';
 import type { JournalEntry } from '@/lib/journal-types';
@@ -45,7 +44,6 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
   const [listening, setListening] = useState(false);
   const listeningRef = useRef(listening), photoLoadingRef = useRef(isPhotoLoading);
   listeningRef.current = listening; photoLoadingRef.current = isPhotoLoading;
-  const [nightMode, setNightMode] = useState(isQuietHours);
   const [legacyEntries] = useState(legacy);
   const [pet, setPet] = useState<PetEffect>(() => {
     if (state.trip) return { action: 'idle', stage: 'away', duration: 3000, token: 0 };
@@ -306,7 +304,6 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
     const sync = (event: StorageEvent) => { if (event.key === COMPANION_KEY) { try { const next = readState(localStorage); current.current = next; setState(next); } catch (e) { report(e); } } };
     window.addEventListener('storage', sync);
     const timer = window.setInterval(() => {
-      setNightMode(isQuietHours());
       if (listeningRef.current || photoLoadingRef.current || petRef.current.stage === 'performing' || petRef.current.stage === 'fallen' || petRef.current.stage === 'returning') return;
       const tick = () => {
         try {
@@ -414,7 +411,7 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
   }
   return {
     state, draft: state.draft, photo: state.draftPhoto, busy, replyDisplay, isPhotoLoading, listening, setListening, collectPresent,
-      status, error, nightMode, pet, legacyEntries, send, retryMessage, choosePhoto, perform, acknowledgeCapturedHomecoming, markSpacePoliceLetterOpened, fileSpacePoliceLetter, eatSpacePoliceLetter,
+      status, error, pet, legacyEntries, send, retryMessage, choosePhoto, perform, acknowledgeCapturedHomecoming, markSpacePoliceLetterOpened, fileSpacePoliceLetter, eatSpacePoliceLetter,
       placeSpacePolicePoopAt, packSpacePolicePoopByLetter, moveSpacePolicePoopBagTo, disposeSpacePolicePoopBagAt, finishSpacePolicePoopDisposalForLetter,
      paySpacePoliceFine: (letterId: string, giftId: string) => {
        try {
