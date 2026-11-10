@@ -680,3 +680,31 @@ mtime_ms = 1792642367895
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/73f85e3a-e5c6-44a3-beb2-1ebb1113b404/8325b12d-ad1a-4975-93de-c3ea0c304fcb"
 storage_version_token = "1792642774187500"
 content_type = "image/png"
+
+[[outputs]]
+id = "bLMtjqFp4Ycbile1lLQjf"
+uri = "file://attached_assets/panda-climb-up-pixen-comparison.png"
+type = "image"
+title = "爬梯背影试改前后对比"
+description = "左侧是原始帧，右侧是 PixelLab 单帧试改；仅供检查，未替换项目素材。"
+logical_id = "38f970b2-0495-43b3-a9da-9f5722117fd5"
+content_hash = "sha256:d9426fad3c85fe7325d378bd22b071e24e6949fc6bfb40d75571a01916f3bf2a"
+size = 123832
+mtime_ms = 1794285197879
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/38f970b2-0495-43b3-a9da-9f5722117fd5/c42914eb-f3d7-4ecb-b330-c780eb44970f"
+storage_version_token = "1794285207425304"
+content_type = "image/png"
+
+[[outputs]]
+id = "u1btpa1gbDyrsaENY-iEj"
+uri = "file://attached_assets/panda-climb-up-pixen-preview.png"
+type = "image"
+title = "PixelLab 爬梯背影试改帧"
+description = "96×96 透明 PNG；单帧预览，未接入项目。"
+logical_id = "dca18966-642c-483e-bd37-43dd14099eb5"
+content_hash = "sha256:863bd275afb7e26d63487d732551d7ebb3df6ad73df20a6a6c61f711611b4848"
+size = 2410
+mtime_ms = 1794285197863
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/dca18966-642c-483e-bd37-43dd14099eb5/cac2bc79-f302-439c-9aef-1376ef4a1880"
+storage_version_token = "1794285208732914"
+content_type = "image/png"
