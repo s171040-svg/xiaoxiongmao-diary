@@ -14,6 +14,14 @@ export type PixelTransitionKey =
 export type PixelTransitionDirection = 'entering' | 'waking';
 export type PixelTransitionPhase = `frames-${PixelTransitionDirection}` | null;
 
+/** Stair-turn frames change the pose while the existing walking route keeps advancing. */
+export function pixelTransitionBlocksRoomWalking(
+  key: PixelTransitionKey | null,
+  direction: PixelTransitionDirection | null,
+): boolean {
+  return direction !== null && key !== 'climb-up';
+}
+
 const numberedFrames = (prefix: string, count: number) =>
   Array.from({ length: count }, (_, index) => `${prefix}-${index + 1}.png`);
 

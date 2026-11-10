@@ -5,6 +5,7 @@ import test from 'node:test';
 import {
   PIXELLAB_TRANSITION_FRAME_FILES,
   PIXEL_TRANSITION_FRAME_MS,
+  pixelTransitionBlocksRoomWalking,
   playPixelTransitionFrames,
   type PixelTransitionPhase,
 } from './pixel-transition';
@@ -48,6 +49,17 @@ const transitionEntries = Object.entries(PIXELLAB_TRANSITION_FRAME_FILES) as [
   keyof typeof PIXELLAB_TRANSITION_FRAME_FILES,
   string[],
 ][];
+
+test('stair turns keep the walking route alive while stationary transitions still pause it', () => {
+  assert.equal(pixelTransitionBlocksRoomWalking(null, null), false);
+  for (const direction of ['entering', 'waking'] as const) {
+    assert.equal(pixelTransitionBlocksRoomWalking('climb-up', direction), false);
+    for (const [key] of transitionEntries) {
+      if (key !== 'climb-up') assert.equal(pixelTransitionBlocksRoomWalking(key, direction), true);
+    }
+    assert.equal(pixelTransitionBlocksRoomWalking(null, direction), true);
+  }
+});
 
 test('every enabled transition has at least five real image frames for entering and waking', () => {
   const assetRoot = [

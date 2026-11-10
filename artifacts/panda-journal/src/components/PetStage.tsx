@@ -58,6 +58,7 @@ import {
 import {
   PIXELLAB_TRANSITION_FRAME_FILES,
   PIXEL_TRANSITION_FRAME_MS,
+  pixelTransitionBlocksRoomWalking,
   playPixelTransitionFrames,
   type PixelTransitionKey,
   type PixelTransitionPhase,
@@ -402,6 +403,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const [dirtyGrabLiftComplete, setDirtyGrabLiftComplete] = useState(false);
   const [activityTransition, setActivityTransition] = useState<'settling' | 'entering' | 'waking' | 'frames-entering' | 'frames-waking' | null>(null);
   const [pixelTransitionDirection, setPixelTransitionDirection] = useState<'entering' | 'waking' | null>(null);
+  const [pixelTransitionKey, setPixelTransitionKey] = useState<TransitionKey | null>(null);
+  const roamingTransitionBlocked = pixelTransitionBlocksRoomWalking(pixelTransitionKey, pixelTransitionDirection);
   const [transitionFrameSrc, setTransitionFrameSrc] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isPressPending, setIsPressPending] = useState(false);
@@ -1277,13 +1280,16 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     clearTransitionFrames();
     setActivityTransition(null);
     setPixelTransitionDirection(null);
+    setPixelTransitionKey(null);
   }, [clearTransitionFrames]);
 
   const playPixelTransition = useCallback((key: TransitionKey, direction: 'entering' | 'waking', onComplete: () => void) => {
     const frames = PIXELLAB_TRANSITION_FRAMES[key];
+    setPixelTransitionKey(key);
     setPixelTransitionDirection(direction);
     playTransitionFrames(direction === 'entering' ? frames : [...frames].reverse(), direction, () => {
       setPixelTransitionDirection(null);
+      setPixelTransitionKey(null);
       onComplete();
     });
   }, [playTransitionFrames]);
@@ -3690,13 +3696,16 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     let duration = 0;
     let stepCount = 1;
     const setWalking = (walking: boolean) => {
-      if (showInteractionBubble) setRoomWalking(walking);
+      if (showInteractionBubble) {
+        roomWalkingRef.current = walking;
+        setRoomWalking(walking);
+      }
     };
 
     const canRoam = () => interactionState === 'roaming' && !truthPotionComfortPhase && !equippedToyRef.current && dizzyPhase === 'none' && !reacting && !startled && !developerGrab && !pandaHangingRef.current && !pandaJarTrapped && !dampAfterBath && !startledRef.current && !hidden
       && (worldFallPhase === 'none' || worldFallPhase === 'dirty') && bathPhase === 'none'
       && pet.stage !== 'performing' && pet.stage !== 'returning' && !hoverCuddleActive
-      && !developerPose && !pixelTransitionDirection && activityState === 'roaming' && !sleepingInNest
+      && !developerPose && !roamingTransitionBlocked && activityState === 'roaming' && !sleepingInNest
       && !isDragging && !isPressPending && !draggingRef.current
       && (motion !== 'sleep' || nightWakeOverride) && !preference.matches && document.visibilityState !== 'hidden';
     const schedule = () => {
@@ -3818,7 +3827,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     maybeEnterRest,
     motion,
     developerPose,
-    pixelTransitionDirection,
+    roamingTransitionBlocked,
     nightWakeOverride,
     pet.stage,
     pet.token,
@@ -4330,6 +4339,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
                 data-dev-pose={developerPose ?? undefined}
                 data-activity-transition={showInteractionBubble ? activityTransition ?? 'none' : undefined}
                 data-transition-direction={pixelTransitionDirection ?? undefined}
+                data-transition-key={pixelTransitionKey ?? undefined}
                  data-world-fall-state={showInteractionBubble ? worldFallPhase : undefined}>
                 <img className="ps-body" src={image}
                  data-sprite={bathTransition === 'exiting' ? dirtyReturn ? bathRubbing ? 'dirty-bathing-soap' : 'dirty-bathing' : 'bathing' : dirtyGrab ? sprite : hangingOnRack ? 'grab' : dirtyReturn && bathPhase === 'bathing' ? (bathRubbing ? 'dirty-bathing-soap' : 'dirty-bathing') : dirtyReturn && isFlyChasing ? 'dirty-flee' : dirtyReturn ? 'dirty-return' : bathPhase === 'bathing' ? 'bathing' : startled && showInteractionBubble ? 'startled' : sprite}

@@ -4,3 +4,4 @@
 - [合并后 pnpm 锁文件同步](pnpm-postmerge-lockfile.md) — 任务合并可能造成 workspace 配置与 lockfile 短暂不一致；合并后安装应能自我同步。
 - [PixelLab 动画计费与尺寸](pixellab-animation-sizing.md) — 动画可能先放大输入画布再计费；按完成任务返回的尺寸和实际额度估算。
 - [房间闹钟数字](room-alarm-clock.md) — 实时时间只替换背景钟面里的数字，保留闹钟外形、数字尺寸和方向。
+- [行进中的动作过渡](locomotion-transitions.md) — 爬梯转身需保持路线推进，不能和需要停步的驻留过渡共用移动阻断条件。
