@@ -708,3 +708,45 @@ mtime_ms = 1794285197863
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/dca18966-642c-483e-bd37-43dd14099eb5/cac2bc79-f302-439c-9aef-1376ef4a1880"
 storage_version_token = "1794285208732914"
 content_type = "image/png"
+
+[[outputs]]
+id = "-mO0D3RjvKMCfRU7UOKvq"
+uri = "file://attached_assets/panda-climb-up-left-facing-seed.png"
+type = "image"
+title = "楼梯左上方向镜像参考帧"
+description = "从右上朝向改为左上，仅左右翻转；96×96 透明 PNG，仅用于预览，未接入项目。"
+logical_id = "5a24ef26-ec55-4fa6-8ab1-c6db0f158d2d"
+content_hash = "sha256:83d1cb4318db943285198cea2b4b93a863246f721395e2db9513e69174f941c3"
+size = 1485
+mtime_ms = 1794317812220
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/5a24ef26-ec55-4fa6-8ab1-c6db0f158d2d/d8cdadfb-2385-42a9-975a-bb47eea733d0"
+storage_version_token = "1794317838963096"
+content_type = "image/png"
+
+[[outputs]]
+id = "d-ygdiCX-Plnn0lR8MPvC"
+uri = "file://attached_assets/panda-stair-walk-preview.gif"
+type = "image"
+title = "爬梯左上行走动画预览"
+description = "PixelLab 生成 8 帧，连同镜像首帧共 9 帧；96×96 透明原帧放大 4 倍，仅供预览，未接入项目。"
+logical_id = "acee0b61-6540-42fc-98dc-36ac01df12a4"
+content_hash = "sha256:fcfbf45604f8a532d4787c6b6af03efd6e6f528148b1d900fa45026d0c66f19e"
+size = 52234
+mtime_ms = 1794318308900
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/acee0b61-6540-42fc-98dc-36ac01df12a4/adf3bb14-6897-4b59-859c-4a8622517703"
+storage_version_token = "1794318327597774"
+content_type = "image/gif"
+
+[[outputs]]
+id = "tT32DfC_7uiWoZ57k16pO"
+uri = "file://attached_assets/panda-stair-walk-frames.png"
+type = "image"
+title = "爬梯行走逐帧检查表"
+description = "按播放顺序排列的 9 帧，便于检查脚步、朝向和尺寸稳定性。"
+logical_id = "67fd8b39-8fc9-4445-a294-eaa26160bd79"
+content_hash = "sha256:a378bab90bcb359daf0223c00868de55a2f07058f420a2a17993a1d1409dec66"
+size = 357875
+mtime_ms = 1794318308944
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/67fd8b39-8fc9-4445-a294-eaa26160bd79/63000e48-f00f-462b-ba71-a7100558701a"
+storage_version_token = "1794318328991964"
+content_type = "image/png"

@@ -61,6 +61,33 @@ test('every animation inspector action has its own visible animation assets', ()
   assert.doesNotMatch(stageCss, /ps-somersault-hop/);
 });
 
+test('climb-up uses a complete transparent sequence and matched transition endpoint', () => {
+  assert.ok(manifestPath, 'could not locate the panda animation manifest');
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+    frameCountBySprite: Record<string, number>;
+  };
+  const assetRoot = resolve(dirname(manifestPath), '../../public/static/panda');
+  assert.equal(manifest.frameCountBySprite['climb-up'], 8);
+
+  const framePaths = [
+    'climb-up.png',
+    ...Array.from({ length: 8 }, (_, index) => `frames/climb-up-${index + 1}.png`),
+  ];
+  const frames = framePaths.map(path => readFileSync(resolve(assetRoot, path)));
+  for (const [index, image] of frames.entries()) {
+    assert.equal(image.subarray(0, 8).toString('hex'), '89504e470d0a1a0a', `${framePaths[index]} is a PNG`);
+    assert.equal(image.readUInt32BE(16), 96, `${framePaths[index]} keeps the 96px width`);
+    assert.equal(image.readUInt32BE(20), 96, `${framePaths[index]} keeps the 96px height`);
+    assert.equal(image[25], 6, `${framePaths[index]} retains RGBA transparency`);
+  }
+  assert.ok(new Set(frames.map(image => image.toString('base64'))).size >= 8,
+    'climb-up should contain distinct walking poses');
+
+  const finalTransitionFrame = readFileSync(resolve(assetRoot, 'transitions/walk-to-climb-up-6.png'));
+  assert.deepEqual(finalTransitionFrame, frames[0],
+    'the turn-to-climb transition should end on the mirrored climb-up pose');
+});
+
 test('belly-up pawing uses distinct transparent frames and a matched grounded transition', () => {
   assert.ok(manifestPath);
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));

@@ -160,7 +160,7 @@ const potionComfortTransitionFrameUrl = (frame: number) => pandaStaticUrl(
 const spriteAssetVersion = (sprite: string) => sprite === 'chew' ? 'chew-feed-4'
   : sprite === 'back-pawing' ? 'back-pawing-1'
   : sprite === 'tail-chase' ? 'tail-chase-ccw-3'
-    : sprite === 'climb-up' ? 'stairs-back-run-1'
+    : sprite === 'climb-up' ? 'stairs-back-left-walk-2'
       : sprite === 'jar-peeking' ? 'jar-peeking-pixen-2'
       : sprite.startsWith('eat-') ? 'snack-eating-pixellab-1' : 'tail-left-3';
 const CHEW_FRAME_COUNT = 14;
@@ -224,7 +224,7 @@ const TRANSITION_ASSET_VERSIONS: Record<TransitionKey, string> = {
   sleep: 'sleep-transition-2',
   peeking: 'pixellab-transition-1',
   'captured-homecoming': 'captured-homecoming-exit-1',
-  'climb-up': 'stairs-back-run-1',
+  'climb-up': 'stairs-back-left-walk-2',
 };
 const PIXELLAB_TRANSITION_FRAMES = Object.fromEntries(
   Object.entries(PIXELLAB_TRANSITION_FRAME_FILES).map(([key, files]) => [
