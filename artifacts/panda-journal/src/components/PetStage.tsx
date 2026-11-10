@@ -1492,11 +1492,6 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     hidden,
     interactionState,
     placedProps,
-    hangingOnRack,
-    sleepingOnBed,
-    bathPhase,
-    hasEquippedToy: Boolean(equippedToy),
-    hasSelectedSnack: Boolean(selectedSnack),
     viewportSize,
     roomFurnitureLayout,
     roomFurnitureLayoutRef,
@@ -3319,7 +3314,19 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     const pandaTrack = trackRef.current;
     if (pandaTrack) pandaTrack.style.zIndex = draggingRef.current ? '260' : hangingOnClothesRack ? '241' : '240';
     syncRackOcclusion();
-    if (bathPhaseRef.current === 'bathing' && draggingFurnitureId === 'bathStation') {
+    if (sleepingOnBed) {
+      const bedRect = bedRef.current?.getBoundingClientRect();
+      const pandaRect = pandaButtonRef.current?.getBoundingClientRect();
+      if (bedRect && pandaRect) {
+        applyRoomPoint(unprojectRoomPoint(
+          ((bedRect.left + bedRect.width * 0.5) / Math.max(1, window.innerWidth)) * 100,
+          ((bedRect.top + bedRect.height * 0.5 + pandaRect.height * 0.5) / Math.max(1, window.innerHeight)) * 100,
+          window.innerWidth,
+          window.innerHeight,
+        ));
+      }
+    }
+    if (bathPhaseRef.current === 'bathing') {
       const stationRect = bathStationRef.current?.getBoundingClientRect();
       const tubRect = bathTubRef.current?.getBoundingClientRect();
       if (stationRect && tubRect) {
@@ -3343,7 +3350,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
         bubbleAnchor?.style.setProperty('--room-y', screenYPercent);
       }
     }
-  }, [applyRoomPoint, draggingFurnitureId, hangingOnClothesRack, hidden, placedProps, roomFurnitureLayout, showInteractionBubble, syncRackOcclusion, updateFacing, viewportSize, worldAway, worldFallMessageVisible]);
+  }, [applyRoomPoint, bathPhase, draggingFurnitureId, hangingOnClothesRack, hidden, placedProps, roomFurnitureLayout, showInteractionBubble, sleepingOnBed, syncRackOcclusion, updateFacing, viewportSize, worldAway, worldFallMessageVisible]);
 
   useEffect(() => {
     if (!showInteractionBubble || bathPhase !== 'bathing' || !bathRubbing) return undefined;

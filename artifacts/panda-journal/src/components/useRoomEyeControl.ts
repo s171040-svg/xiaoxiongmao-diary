@@ -29,11 +29,6 @@ type RoomEyeControlOptions = {
   hidden: boolean;
   interactionState: 'roaming' | 'chat';
   placedProps: { bed: boolean; rack: boolean; tub: boolean };
-  hangingOnRack: boolean;
-  sleepingOnBed: boolean;
-  bathPhase: 'none' | 'falling' | 'bathing';
-  hasEquippedToy: boolean;
-  hasSelectedSnack: boolean;
   viewportSize: { width: number; height: number };
   roomFurnitureLayout: RoomFurnitureLayout;
   roomFurnitureLayoutRef: { current: RoomFurnitureLayout };
@@ -54,11 +49,6 @@ export function useRoomEyeControl({
   hidden,
   interactionState,
   placedProps,
-  hangingOnRack,
-  sleepingOnBed,
-  bathPhase,
-  hasEquippedToy,
-  hasSelectedSnack,
   viewportSize,
   roomFurnitureLayout,
   roomFurnitureLayoutRef,
@@ -96,11 +86,8 @@ export function useRoomEyeControl({
   ), [placedProps]);
 
   const canControlFurniture = useCallback((id: EyeFurnitureId) => {
-    if (!showInteractionBubble || hidden || interactionState === 'chat' || !furniturePlaced(id)) return false;
-    if (id === 'rack') return !hangingOnRack;
-    if (id === 'bed') return !sleepingOnBed;
-    return bathPhase === 'none';
-  }, [bathPhase, furniturePlaced, hangingOnRack, hidden, interactionState, showInteractionBubble, sleepingOnBed]);
+    return showInteractionBubble && !hidden && interactionState !== 'chat' && furniturePlaced(id);
+  }, [furniturePlaced, hidden, interactionState, showInteractionBubble]);
 
   useLayoutEffect(() => {
     if (!showInteractionBubble || dragging) return;
@@ -180,11 +167,13 @@ export function useRoomEyeControl({
 
   const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    if (!showInteractionBubble || !event.isPrimary || event.button !== 0 || hasEquippedToy || hasSelectedSnack) return;
+    if (!showInteractionBubble || !event.isPrimary || event.button !== 0) return;
     const sourceFurniture = placement.kind === 'attached' ? placement.id : null;
     if (sourceFurniture && !canControlFurniture(sourceFurniture)) return;
     event.preventDefault();
     const element = event.currentTarget;
+    // preventDefault suppresses the browser's usual focus, including inside Preview's iframe.
+    element.focus({ preventScroll: true });
     const currentPosition = screenPositionRef.current ?? { x: event.clientX, y: event.clientY };
     const press: RoomEyePointer = {
       pointerId: event.pointerId,
@@ -213,7 +202,7 @@ export function useRoomEyeControl({
       setDragging(true);
       startleNearRef.current = false;
     }, ROOM_EYE_HOLD_MS);
-  }, [canControlFurniture, hasEquippedToy, hasSelectedSnack, placement, showInteractionBubble]);
+  }, [canControlFurniture, placement, showInteractionBubble]);
 
   const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
     event.stopPropagation();
@@ -264,6 +253,7 @@ export function useRoomEyeControl({
           yRatio: (point.y - target.rect.top) / Math.max(1, target.rect.height),
         });
         setControlledFurnitureId(target.id);
+        press.element.focus({ preventScroll: true });
         startleNearRef.current = false;
       } else {
         setPlacement({ kind: 'free', x: point.x, y: point.y });
@@ -349,7 +339,6 @@ export function useRoomEyeControl({
   useEffect(() => {
     if (!showInteractionBubble) return undefined;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (hasEquippedToy || hasSelectedSnack) return;
       const target = event.target as Element | null;
       if (target?.closest?.('input, textarea, select, [contenteditable="true"], [role="dialog"]')) return;
       if (event.key === 'Escape' && (controlledFurnitureId || dragging || placement.kind !== 'home')) {
@@ -387,7 +376,7 @@ export function useRoomEyeControl({
       document.removeEventListener('visibilitychange', onVisibilityChange);
       finishFurnitureMove();
     };
-  }, [canControlFurniture, controlledFurnitureId, dragging, finishFurnitureMove, hasEquippedToy, hasSelectedSnack, moveFurniture, placement, returnHome, showInteractionBubble]);
+  }, [canControlFurniture, controlledFurnitureId, dragging, finishFurnitureMove, moveFurniture, placement, returnHome, showInteractionBubble]);
 
   return {
     placement,
