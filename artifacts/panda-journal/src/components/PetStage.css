@@ -51,7 +51,11 @@
 .ps-room-rack-eye:focus-visible{outline:2px solid #f5d98d;outline-offset:1px}
 .ps-room-rack-eye-dragging{z-index:260;cursor:grabbing;transform:translate(-50%,-50%) scale(1.08)}
 .ps-room-rack-eye-controlled img{filter:drop-shadow(0 0 3px #fff2b7) drop-shadow(0 2px 3px #241b1a90)}
-.ps-room-rack-eye-hint{position:fixed;z-index:231;max-width:220px;padding:5px 8px;border:1px solid #d2bd8a;border-radius:10px;background:#fff8e8ed;box-shadow:0 2px 8px #291c1730;color:#59442d;font:600 11px/1.35 "Noto Sans CJK SC",sans-serif;white-space:nowrap;pointer-events:none}
+.ps-room-rack-eye-hint{position:fixed;z-index:261;max-width:220px;padding:5px 8px;border:1px solid #d2bd8a;border-radius:10px;background:#fff8e8ed;box-shadow:0 2px 8px #291c1730;color:#59442d;font:600 11px/1.35 "Noto Sans CJK SC",sans-serif;white-space:nowrap;pointer-events:auto}
+.ps-room-rack-eye-hint button{width:36px;height:36px;margin:0 2px 4px 0;padding:0;border:1px solid #b29a6b;border-radius:4px;background:#fff5d9;color:#59442d;font:700 20px/1 sans-serif;cursor:pointer;touch-action:manipulation}
+.ps-room-rack-eye-hint button:active{background:#e8d7af}
+.ps-room-rack-eye-hint button:focus-visible{outline:2px solid #58734b;outline-offset:1px}
+.ps-room-rack-eye-hint span{display:block;font-size:10px}
 .ps-bath-station.ps-furniture-dragging .ps-bath-box{cursor:grabbing}
 .ps-space-letter-box::before{position:absolute;top:3px;left:-5px;right:-5px;height:9px;border:2px solid #67472c;border-radius:2px;background:linear-gradient(#e8ca91 0 25%,#af7745 27%);box-shadow:0 2px 0 #66452a;content:""}
 .ps-space-letter-box::after{position:absolute;top:24px;right:5px;left:5px;height:2px;background:#76502e;box-shadow:0 4px 0 #76502e;content:"";opacity:.55}

@@ -64,7 +64,6 @@ export function useRoomEyeControl({
   const [screenPosition, setScreenPosition] = useState<ScreenPosition | null>(null);
   const screenPositionRef = useRef<ScreenPosition | null>(null);
   const [dragging, setDragging] = useState(false);
-  const [controlledFurnitureId, setControlledFurnitureId] = useState<EyeFurnitureId | null>(null);
   const eyeButtonRef = useRef<HTMLButtonElement>(null);
   const pointerRef = useRef<RoomEyePointer | null>(null);
   const startleNearRef = useRef(false);
@@ -88,6 +87,10 @@ export function useRoomEyeControl({
   const canControlFurniture = useCallback((id: EyeFurnitureId) => {
     return showInteractionBubble && !hidden && interactionState !== 'chat' && furniturePlaced(id);
   }, [furniturePlaced, hidden, interactionState, showInteractionBubble]);
+  // Attachment is the source of truth. Chat/away only pause control; they must
+  // not leave attached eyes permanently disconnected from their furniture.
+  const controlledFurnitureId = placement.kind === 'attached' && canControlFurniture(placement.id)
+    ? placement.id : null;
 
   useLayoutEffect(() => {
     if (!showInteractionBubble || dragging) return;
@@ -124,13 +127,11 @@ export function useRoomEyeControl({
   useEffect(() => {
     if (placement.kind === 'attached' && !furniturePlaced(placement.id)) {
       setPlacement({ kind: 'home' });
-      setControlledFurnitureId(null);
     }
   }, [furniturePlaced, placement]);
 
   useEffect(() => {
-    if (controlledFurnitureId && !canControlFurniture(controlledFurnitureId)) {
-      setControlledFurnitureId(null);
+    if (!controlledFurnitureId) {
       if (moveDirtyRef.current) {
         persistRoomFurnitureLayout(roomFurnitureLayoutRef.current);
         moveDirtyRef.current = false;
@@ -198,7 +199,6 @@ export function useRoomEyeControl({
       press.active = true;
       const start = screenPositionRef.current ?? currentPosition;
       setPlacement({ kind: 'free', x: start.x, y: start.y });
-      setControlledFurnitureId(null);
       setDragging(true);
       startleNearRef.current = false;
     }, ROOM_EYE_HOLD_MS);
@@ -252,12 +252,10 @@ export function useRoomEyeControl({
           xRatio: (point.x - target.rect.left) / Math.max(1, target.rect.width),
           yRatio: (point.y - target.rect.top) / Math.max(1, target.rect.height),
         });
-        setControlledFurnitureId(target.id);
         press.element.focus({ preventScroll: true });
         startleNearRef.current = false;
       } else {
         setPlacement({ kind: 'free', x: point.x, y: point.y });
-        setControlledFurnitureId(null);
       }
       setDragging(false);
     }
@@ -276,7 +274,6 @@ export function useRoomEyeControl({
     if (press.active) {
       const point = screenPositionRef.current ?? { x: event.clientX, y: event.clientY };
       setPlacement({ kind: 'free', x: point.x, y: point.y });
-      setControlledFurnitureId(null);
       setDragging(false);
     }
   }, []);
@@ -331,10 +328,15 @@ export function useRoomEyeControl({
     pointerRef.current = null;
     startleNearRef.current = false;
     setDragging(false);
-    setControlledFurnitureId(null);
     setPlacement({ kind: 'home' });
     updateScreenPosition(null);
   }, [finishFurnitureMove, updateScreenPosition]);
+
+  const moveControlledFurniture = useCallback((dx: number, dy: number) => {
+    if (!controlledFurnitureId || !canControlFurniture(controlledFurnitureId)) return;
+    moveFurniture(controlledFurnitureId, dx, dy, 8);
+    finishFurnitureMove();
+  }, [canControlFurniture, controlledFurnitureId, finishFurnitureMove, moveFurniture]);
 
   useEffect(() => {
     if (!showInteractionBubble) return undefined;
@@ -365,12 +367,12 @@ export function useRoomEyeControl({
     const onVisibilityChange = () => {
       if (document.visibilityState !== 'visible') finishFurnitureMove();
     };
-    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keydown', onKeyDown, true);
     window.addEventListener('keyup', onKeyUp);
     window.addEventListener('blur', onBlur);
     document.addEventListener('visibilitychange', onVisibilityChange);
     return () => {
-      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keydown', onKeyDown, true);
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlur);
       document.removeEventListener('visibilitychange', onVisibilityChange);
@@ -383,6 +385,7 @@ export function useRoomEyeControl({
     screenPosition,
     dragging,
     controlledFurnitureId,
+    moveControlledFurniture,
     eyeButtonRef,
     handlePointerDown,
     handlePointerMove,

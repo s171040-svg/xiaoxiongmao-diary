@@ -4246,13 +4246,26 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
                 alt="" aria-hidden="true" draggable={false} />
             </button>
             {roomEye.controlledFurnitureId && (
-              <span className="ps-room-rack-eye-hint" role="status" aria-live="polite"
+              <div className="ps-room-rack-eye-hint" role="group" aria-label="移动眼睛附着的家具"
                 style={{
                   left: `${Math.max(8, Math.min(viewportSize.width - 220, roomEye.screenPosition.x + 22))}px`,
                   top: `${Math.max(8, roomEye.screenPosition.y - 34)}px`,
                 }}>
-                ← ↑ ↓ → 移动家具 · Shift加速 · Esc收回
-              </span>
+                {([
+                  ['←', '向左移动家具', -1, 0],
+                  ['↑', '向上移动家具', 0, -1],
+                  ['↓', '向下移动家具', 0, 1],
+                  ['→', '向右移动家具', 1, 0],
+                ] as const).map(([symbol, label, dx, dy]) => (
+                  <button key={symbol} type="button" aria-label={label}
+                    onPointerDown={event => event.stopPropagation()}
+                    onClick={event => {
+                      event.stopPropagation();
+                      roomEye.moveControlledFurniture(dx, dy);
+                    }}>{symbol}</button>
+                ))}
+                <span>方向键也可移动 · Shift加速 · Esc收回</span>
+              </div>
             )}
           </>
         )}
@@ -4525,7 +4538,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
           </aside>
         )}
       </div>
-      {pet.stage === 'away' && <PetDepartureNotice key={pet.token} />}
+      {showInteractionBubble && pet.stage === 'away' && pet.token > 0
+        && <PetDepartureNotice key={pet.token} point={{ ...positionRef.current }} />}
       {selectedSnack && snackDropPosition && (
         <button type="button" className="ps-snack-feed-token"
           style={{ left: snackDropPosition.x, top: snackDropPosition.y }}
