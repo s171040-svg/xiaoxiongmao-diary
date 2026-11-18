@@ -2357,9 +2357,9 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       || bathPhaseRef.current !== 'none' || pandaHangingRef.current || draggingRef.current || hidden
       || pet.stage !== 'present'
       || document.visibilityState !== 'visible'
+      || now - lastWorldFallAtRef.current < WORLD_FALL_COOLDOWN_MS
       || (!boundaryFall && (dampAfterBath || interactionStateRef.current !== 'roaming'
-        || activityStateRef.current !== 'roaming' || developerPose || isCuddling || reacting || startled
-        || now - lastWorldFallAtRef.current < WORLD_FALL_COOLDOWN_MS))) return false;
+        || activityStateRef.current !== 'roaming' || developerPose || isCuddling || reacting || startled))) return false;
     lastWorldFallAtRef.current = now;
     worldFallPhaseRef.current = 'falling';
     roomWalkingRef.current = false;
