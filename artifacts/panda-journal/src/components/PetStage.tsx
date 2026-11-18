@@ -466,10 +466,10 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     height: typeof window === 'undefined' ? 1 : window.innerHeight,
   }));
   const [placedProps, setPlacedProps] = useState<Record<RoomProp, boolean>>(() => {
-    const defaults = { bed: true, rack: true, tub: true };
+    const defaults = { bed: false, rack: true, tub: true };
     try {
       const raw = window.localStorage.getItem(ROOM_PROPS_KEY);
-      return raw ? { ...defaults, ...(JSON.parse(raw) as Partial<Record<RoomProp, boolean>>) } : defaults;
+      return raw ? { ...defaults, ...(JSON.parse(raw) as Partial<Record<RoomProp, boolean>>), bed: false } : defaults;
     } catch { return defaults; }
   });
   const [equippedToy, setEquippedToy] = useState<RoomToy | null>(null);
@@ -3276,7 +3276,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       } catch (error) { console.error('Could not apply the shared room state.', error); }
       roomFurnitureLayoutRef.current = layout;
       setRoomFurnitureLayout(layout);
-      setPlacedProps(current => ({ ...current, ...props }) as Record<RoomProp, boolean>);
+      setPlacedProps(current => ({ ...current, ...props, bed: false }) as Record<RoomProp, boolean>);
     };
     window.addEventListener('panda-coop-shared-state', receiveSharedRoom);
     return () => window.removeEventListener('panda-coop-shared-state', receiveSharedRoom);
