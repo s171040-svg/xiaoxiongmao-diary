@@ -330,7 +330,7 @@ type BathBallPointer = {
   offsetY: number;
 };
 
-export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthPotion, thinking = false, motion = 'idle', debugClicks = false, showInteractionBubble = false, interactionBubbleText, developerPose = null, developerEvent = null, onChatModeChange, onCareInteraction, onCapturedHomecomingInteraction, pendingGift, giftDropStartedAt, onCollectPresent, giftCount = 0, onOpenGiftStorage, spacePoliceLetter, spacePoliceLetters, spacePoliceMailCount = 0, spacePoliceUnreadCount = 0, onOpenSpacePoliceLetter, onFileSpacePoliceLetter, onEatSpacePoliceLetter, onPlaceSpacePolicePoop, onPackSpacePolicePoop, onMoveSpacePolicePoopBag, onDisposeSpacePolicePoopBag, onFinishSpacePolicePoopDisposal, onOpenSpacePoliceMailbox }: {
+export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthPotion, thinking = false, motion = 'idle', debugClicks = false, showInteractionBubble = false, showArrowMarker = false, interactionBubbleText, developerPose = null, developerEvent = null, onChatModeChange, onCareInteraction, onCapturedHomecomingInteraction, pendingGift, giftDropStartedAt, onCollectPresent, giftCount = 0, onOpenGiftStorage, spacePoliceLetter, spacePoliceLetters, spacePoliceMailCount = 0, spacePoliceUnreadCount = 0, onOpenSpacePoliceLetter, onFileSpacePoliceLetter, onEatSpacePoliceLetter, onPlaceSpacePolicePoop, onPackSpacePolicePoop, onMoveSpacePolicePoopBag, onDisposeSpacePolicePoopBag, onFinishSpacePolicePoopDisposal, onOpenSpacePoliceMailbox }: {
   pet: PetEffect;
   selectedSnack?: Pick<Gift, 'id' | 'emoji' | 'item'> | null;
   onFeedSnack?: (giftId: string) => void;
@@ -339,6 +339,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   motion?: 'idle' | 'sleep';
   debugClicks?: boolean;
   showInteractionBubble?: boolean;
+  showArrowMarker?: boolean;
   interactionBubbleText?: string;
   developerPose?: DeveloperPose | null;
   developerEvent?: { event: DeveloperEvent; token: number } | null;
@@ -4646,6 +4647,9 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
               && !isSleeping && !isDragging && !hangingOnRack && dirtyPleaText && (
                 <span className="ps-thinking ps-room-chat-bubble ps-world-dirty-plea" role="status" aria-live="polite"
                   data-testid="panda-dirty-plea">{dirtyPleaText}</span>
+            )}
+            {showInteractionBubble && showArrowMarker && !worldAway && (
+              <span className="ps-arrow-marker" aria-hidden="true" data-testid="panda-arrow-marker">▼</span>
             )}
             {showInteractionBubble && !dampAfterBath && !capturedHomecoming && worldFallPhase === 'none' && !isSleeping && !startled && !isDragging && !hangingOnRack && interactionBubbleText && (
               <span className="ps-thinking ps-room-chat-bubble" role="status" aria-live="polite"

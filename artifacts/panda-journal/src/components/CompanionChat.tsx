@@ -220,6 +220,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
   const [devActionResult, setDevActionResult] = useState<{ label: string; started: boolean; durationMs: number; persistent?: boolean } | null>(null);
   const devActionToken = useRef(0);
   const [roomChatOpen, setRoomChatOpen] = useState(false);
+  const [pandaArrowShown, setPandaArrowShown] = useState(false);
   const roomChatWasOpenRef = useRef(false);
   const [clearMindMode, setClearMindMode] = useState(false);
   const [spacePoliceMailboxOpen, setSpacePoliceMailboxOpen] = useState(false);
@@ -366,9 +367,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
       sendRoomMessage();
     }
   };
-  const roomNarration = [...msgs].reverse().find((message) => message.role === 'assistant')?.text;
-  const roomSpeech = roomOnly && roomNarration ? removeActionAsides(roomNarration) : roomNarration;
-  const roomDialogue = roomChatOpen ? roomBubbleText : roomSpeech;
+  const roomDialogue = roomChatOpen ? roomBubbleText : '';
   const lastAssistant = msgs.at(-1);
   const lastAssistantIndex = msgs.length - 1;
   const lastLongUser = lastAssistant?.role === 'assistant' && lastAssistant.kind === 'chat'
@@ -426,6 +425,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
           {import.meta.env.DEV && c.performTestAction && (
             <button type="button" onClick={() => setDevActionOpen(true)} data-testid="button-dev-action" aria-label="动画检视" title="动画检视"><TopPixelIcon name="inspect" /></button>
           )}
+          {roomOnly && <button type="button" onClick={() => setPandaArrowShown(shown => !shown)} aria-pressed={pandaArrowShown} data-testid="button-panda-arrow" aria-label="箭头标记" title="在小熊猫头上显示红色箭头"><TopPixelIcon name="arrow" /></button>}
           <button type="button" onClick={() => setPanel('gifts')} data-testid="button-gifts" aria-label="礼物收纳盒" title="礼物收纳盒"><TopPixelIcon name="gift" /></button>
           {import.meta.env.DEV && DevGiftTool && c.addTestGift && (
             <button type="button" onClick={() => setDevGiftOpen(true)} data-testid="button-dev-gift" aria-label="测试礼物" title="测试礼物"><TopPixelIcon name="tool" /></button>
@@ -438,7 +438,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
         onFeedSnack={(giftId) => { c.feedGift(giftId); setSelectedSnackId(null); }}
         developerPose={import.meta.env.DEV ? developerPose : null}
         developerEvent={import.meta.env.DEV && roomOnly ? developerEvent : null}
-        debugClicks={false} showInteractionBubble={roomOnly}
+        debugClicks={false} showInteractionBubble={roomOnly} showArrowMarker={roomOnly && pandaArrowShown}
          onDrinkTruthPotion={roomOnly && !window.pandaDesktop ? () => setClearMindMode(true) : undefined}
         interactionBubbleText={roomOnly && roomDialogue ? removeActionAsides(roomDialogue) : undefined}
         onChatModeChange={roomOnly ? onRoomChatModeChange : undefined}
