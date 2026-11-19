@@ -806,3 +806,31 @@ mtime_ms = 1795082008984
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/bad7011d-1575-4cd1-8b55-efa5423ec719/a34e2f4f-9bd1-4fc4-bed9-a4328c287f68"
 storage_version_token = "1795082041876071"
 content_type = "image/png"
+
+[[outputs]]
+id = "sMRkCKoJb59QeRlnLWJLY"
+uri = "file://attached_assets/generated_images/pomeranian-five-options.png"
+type = "image"
+title = "白色小狗｜5 款卡通像素形象"
+description = "左上为当前小熊猫，其余按 01–05 编号。保持粗像素与短腿体型，探索不同脸型、耳朵和表情，统一使用白色毛球尾。"
+logical_id = "59a91ec7-48f8-43d8-91ca-b8d8d8790435"
+content_hash = "sha256:836f02ad56a07d7b8835dcb6e0fad0aee99f61ed6f730b766218373b2814161c"
+size = 46544
+mtime_ms = 1795082397944
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/59a91ec7-48f8-43d8-91ca-b8d8d8790435/79f52811-444c-41cf-84d3-1ccd8c83c444"
+storage_version_token = "1795082465206057"
+content_type = "image/png"
+
+[[outputs]]
+id = "LZVACz0qky3x9IkjqAuFi"
+uri = "file://attached_assets/generated_images/pomeranian-five-transparent-sheet.png"
+type = "image"
+title = "5 款白色小狗｜透明底原尺寸"
+description = "从左至右为 01–05，每格 96×96 像素。仅角色设计预览，未接入动画或替换现有小熊猫。"
+logical_id = "591d94f4-7d8f-452d-bc70-b400d55027fa"
+content_hash = "sha256:39ad101261c9a2fce753ad701f78e69d6c8d20b32932fa83be09ee45efbdb7a9"
+size = 5683
+mtime_ms = 1795082451396
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/591d94f4-7d8f-452d-bc70-b400d55027fa/8a580193-b3b8-43b1-b277-122d8ebe0095"
+storage_version_token = "1795082466485413"
+content_type = "image/png"
