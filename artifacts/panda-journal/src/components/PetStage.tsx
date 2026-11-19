@@ -3787,6 +3787,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
         duration = showInteractionBubble
           ? flyChaseActive ? 2000 + distance * 1800 : 6200 + distance * 6500 + Math.random() * 1100
           : 2600 + Math.random() * 1800;
+        if (showInteractionBubble && characterId === 'xiaobai' && !flyChaseActive) duration /= 0.85;
         stepCount = Math.max(8, Math.round(duration / 440));
         setWalking(true);
         raf = window.requestAnimationFrame(step);
@@ -3845,6 +3846,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   }, [
     activityState,
     bathPhase,
+    characterId,
     dampAfterBath,
     applyRoomPoint,
     dizzyPhase,
