@@ -23,7 +23,11 @@ const dateLabel = (value: number) => new Intl.DateTimeFormat('zh-CN', {
 }).format(value);
 
 function errorText(error: unknown) {
-  if (error instanceof Error) return error.message;
+  if (error instanceof Error) {
+    const data = 'data' in error ? error.data : null;
+    if (data && typeof data === 'object' && 'error' in data && typeof data.error === 'string') return data.error;
+    return error.message;
+  }
   return '刚才没有连上共同房间，请稍后再试。';
 }
 
@@ -41,8 +45,14 @@ export function CoopHub({ onClose, sharedSnapshot, onHouseholdCreated }: Props) 
   const [copied, setCopied] = useState(false);
   const [formError, setFormError] = useState('');
   const data = household.data;
+  const hasHouseholdError = household.isError && household.error?.status !== 404;
   const busy = createHousehold.isPending || createInvitation.isPending || joinHousehold.isPending;
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: getGetCoopHouseholdQueryKey() });
+  const invalidate = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: getGetCoopHouseholdQueryKey() }),
+      queryClient.invalidateQueries({ queryKey: ['pet-character'] }),
+    ]);
+  };
 
   const startHousehold = async () => {
     setFormError('');
@@ -119,10 +129,10 @@ export function CoopHub({ onClose, sharedSnapshot, onHouseholdCreated }: Props) 
           </div>
         </section>
 
-        {(household.isError || formError) && (
+        {(hasHouseholdError || formError) && (
           <div className="coop-alert" role="alert">
             <span>{formError || '共同房间暂时无法读取。你仍可以稍后重试，或先尝试建立 / 加入房间。'}</span>
-            {household.isError && <button type="button" onClick={() => void household.refetch()}><RefreshCw size={14} /> 重试</button>}
+            {hasHouseholdError && <button type="button" onClick={() => void household.refetch()}><RefreshCw size={14} /> 重试</button>}
           </div>
         )}
 
@@ -217,7 +227,7 @@ export function CoopHub({ onClose, sharedSnapshot, onHouseholdCreated }: Props) 
             <article className="coop-start-card">
               <span className="coop-step">02 / 加入</span>
               <h2>朋友已经准备好<br />一间小房间？</h2>
-              <p>输入对方生成的邀请码，成为第二位照看者。一个房间最多两个人。</p>
+              <p>输入对方生成的邀请码，成为第二位照看者。一个房间最多两个人。加入后两人共用同一角色；尚未选角的账号将绑定房间的角色。双方已选不同角色时暂不能加入，角色转化液尚未开放。</p>
               <form className="coop-join-form" onSubmit={join}>
                 <label htmlFor="coop-code">邀请码</label>
                 <input id="coop-code" value={code} onChange={event => setCode(event.target.value.toUpperCase().slice(0, 12))} minLength={8} maxLength={12} autoComplete="off" placeholder="输入 8–12 位邀请码" />

@@ -30,6 +30,7 @@ import {
 } from "@workspace/db";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { createSafeShareSummary } from "../lib/coop-sharing";
+import { bindHouseholdCharacter, lockCharacterAccount } from "../lib/pet-character";
 
 const router: IRouter = Router();
 const inviteLifetimeMs = 24 * 60 * 60 * 1000;
@@ -236,6 +237,7 @@ router.post("/coop/household", async (req, res): Promise<void> => {
 
   try {
     const response = await db.transaction(async (tx) => {
+      await lockCharacterAccount(tx, userId);
       const [existing] = await tx
         .select()
         .from(coopMembersTable)
@@ -255,6 +257,7 @@ router.post("/coop/household", async (req, res): Promise<void> => {
         userId,
         playerNumber: 1,
       });
+      await bindHouseholdCharacter(tx, household.id, [userId]);
       return household.id;
     });
 
@@ -318,6 +321,7 @@ router.post("/coop/join", async (req, res): Promise<void> => {
 
   try {
     const joined = await db.transaction(async (tx) => {
+      await lockCharacterAccount(tx, userId);
       const [existing] = await tx
         .select()
         .from(coopMembersTable)
@@ -354,6 +358,9 @@ router.post("/coop/join", async (req, res): Promise<void> => {
         .where(eq(coopMembersTable.householdId, household.id));
       if (members.length >= 2) return "full" as const;
 
+      const character = await bindHouseholdCharacter(tx, household.id, [...members.map(m => m.userId), userId]);
+      if (character.conflict) return "character-conflict" as const;
+
       await tx.insert(coopMembersTable).values({
         householdId: household.id,
         userId,
@@ -366,6 +373,10 @@ router.post("/coop/join", async (req, res): Promise<void> => {
       return "joined" as const;
     });
 
+    if (joined === "character-conflict") {
+      res.status(409).json({ error: "你与这个房间已选定不同伙伴；角色转化液尚未开放，暂时不能合并。邀请码未消耗。" });
+      return;
+    }
     if (joined === "invalid") {
       res.status(400).json({ error: "邀请码已过期或无效。" });
       return;

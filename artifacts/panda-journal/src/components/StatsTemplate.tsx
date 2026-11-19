@@ -6,6 +6,8 @@ import { getGetCoopHouseholdQueryKey, useGetCoopHousehold } from '@workspace/api
 import { CARE_STAT_DECAY_INTERVAL_MS, COMPANION_KEY, decayCareStatState, decayCareStats, readState, writeState } from '@/lib/companion-store';
 import type { CareStats } from '@/lib/companion-types';
 import './StatsTemplate.css';
+import { PetCharacterPicker } from './PetCharacterPicker';
+import { usePetCharacter } from '@/hooks/use-pet-character';
 
 type StatMeterProps = {
   label: string;
@@ -44,6 +46,7 @@ function readLocalCareStats(): { stats: CareStats | null; error: string } {
 }
 
 export function StatsTemplate() {
+  const petCharacter = usePetCharacter();
   const { isSignedIn } = useAuth();
   const household = useGetCoopHousehold({ query: {
     queryKey: getGetCoopHouseholdQueryKey(),
@@ -96,7 +99,7 @@ export function StatsTemplate() {
           <div>
             <p className="stats-eyebrow">A GENTLE GROWTH RECORD</p>
             <h1>一起照看的日子，<br /><em>会慢慢留下痕迹。</em></h1>
-            <p className="stats-lede">这里记录小熊猫的实时状态。每次有效互动都会逐步提升相关数值；心情跟随最近一次互动的反应。</p>
+            <p className="stats-lede">这里记录{petCharacter.name}的实时状态。每次有效互动都会逐步提升相关数值；心情跟随最近一次互动的反应。</p>
           </div>
           <aside className="stats-sample-stamp">
             <span>当前状态</span>
@@ -112,10 +115,13 @@ export function StatsTemplate() {
         </div>
         {storageError && !sharedRecord && <p className="stats-storage-error" role="alert">{storageError}</p>}
 
+        <PetCharacterPicker />
         <section className="stats-panda-panel" aria-labelledby="panda-stats-heading">
           <div className="stats-panda-heading">
-            <div className="stats-panda-mark" aria-hidden="true"><i /><b /><span /></div>
-            <div><p className="stats-kicker">YOUR LITTLE COMPANION</p><h2 id="panda-stats-heading">小熊猫的成长档案</h2></div>
+            {petCharacter.characterId === 'xiaobai'
+              ? <img src={`${import.meta.env.BASE_URL}static/xiaobai/idle.png`} width="60" height="60" style={{ imageRendering: 'pixelated' }} alt="" />
+              : <div className="stats-panda-mark" aria-hidden="true"><i /><b /><span /></div>}
+            <div><p className="stats-kicker">YOUR LITTLE COMPANION</p><h2 id="panda-stats-heading">{petCharacter.name}的成长档案</h2></div>
             <span className="stats-level">同步状态 <b>{sharedRecord ? '两人共用' : '当前设备'}</b></span>
           </div>
           <div className="stats-meters">

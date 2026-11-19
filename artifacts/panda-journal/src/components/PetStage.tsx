@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { RoomAlarmClock } from './RoomAlarmClock';
 import { PetDepartureNotice } from './PetDepartureNotice';
+import { useCharacterAsset, useCharacterBody } from '@/hooks/use-character-art';
+import { usePetNarration } from '@/hooks/use-pet-character';
 import { advanceToy, createShakeDetector, createToyRuntime, shakeToy, toyVisual, TOY_ART_VERSION, type ToyPhase, type ToySprite } from '@/lib/room-toy-interaction';
 import { createPlantFallTracker, isBehindLeftRoomPlants, LEFT_ROOM_PLANTS, LEFT_ROOM_PLANT_Z_INDEX, rollLeftPlantFall } from '@/lib/room-plant-interaction';
 import { getBathBallSpawnPosition } from '@/lib/bath-ball-position';
@@ -3904,6 +3906,9 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       ? pandaStaticUrl(`${sprite}.png?v=${spriteAssetVersion(sprite)}`)
       : pandaStaticUrl(`frames/${sprite}-${frame}.png?v=${spriteAssetVersion(sprite)}`);
   currentImageRef.current = image;
+  const resolveCharacterAsset = useCharacterAsset();
+  const characterBody = useCharacterBody(image, !!pixelTransitionDirection);
+  const narrate = usePetNarration();
 
   useLayoutEffect(() => {
     if (!showInteractionBubble || !isDragging) return;
@@ -4087,7 +4092,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
           }}>
         {showInteractionBubble && trashCanPandaPhase && trashCanPandaAnchor && trashCanPandaImage && (
           <img className="ps-room-trash-panda"
-            src={trashCanPandaImage}
+            src={resolveCharacterAsset(trashCanPandaImage)}
             alt=""
             aria-hidden="true"
             draggable={false}
@@ -4362,14 +4367,14 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
                 data-transition-direction={pixelTransitionDirection ?? undefined}
                 data-transition-key={pixelTransitionKey ?? undefined}
                  data-world-fall-state={showInteractionBubble ? worldFallPhase : undefined}>
-                <img className="ps-body" src={image}
+                <img className="ps-body" src={characterBody}
                  data-sprite={bathTransition === 'exiting' ? dirtyReturn ? bathRubbing ? 'dirty-bathing-soap' : 'dirty-bathing' : 'bathing' : dirtyGrab ? sprite : hangingOnRack ? 'grab' : dirtyReturn && bathPhase === 'bathing' ? (bathRubbing ? 'dirty-bathing-soap' : 'dirty-bathing') : dirtyReturn && isFlyChasing ? 'dirty-flee' : dirtyReturn ? 'dirty-return' : bathPhase === 'bathing' ? 'bathing' : startled && showInteractionBubble ? 'startled' : sprite}
                  data-frame={bathTransition === 'exiting' ? bathFrame : dirtyGrab ? frame : hangingOnRack ? '0' : showInteractionBubble && bathPhase === 'bathing' ? bathFrame : dirtyReturn ? '0' : frame}
                   width={60} height={60} alt="" draggable={false} />
                   {showInteractionBubble && truthPotionInvitationVisible && (
                     <span className="ps-truth-potion-invitation" role="status" aria-live="polite"
                       data-testid="truth-potion-invitation">
-                      有什么心事想和小熊猫说嘛？
+                      {narrate('有什么心事想和小熊猫说嘛？')}
                     </span>
                   )}
                  {showInteractionBubble && bathPhase === 'bathing' && (
@@ -4396,7 +4401,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
                 )}
                 {(activityTransition === 'frames-entering' || activityTransition === 'frames-waking')
                  && transitionFrameSrc && (
-                 <img className="ps-transition-frame" src={transitionFrameSrc} alt="" aria-hidden="true" draggable={false} />
+                 <img className="ps-transition-frame" src={resolveCharacterAsset(transitionFrameSrc)} alt="" aria-hidden="true" draggable={false} />
                )}
               {isDragging && showInteractionBubble && (
                 <>
@@ -4527,7 +4532,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
             )}
           </button>
         )}
-        {pet.stage === 'fallen' && <p className="ps-away" role="status">呜哇——！小熊猫掉出去啦，马上回来。</p>}
+        {pet.stage === 'fallen' && <p className="ps-away" role="status">{narrate('呜哇——！小熊猫掉出去啦，马上回来。')}</p>}
         {import.meta.env.DEV && debugClicks && interactionState !== 'chat' && (
           <aside className="ps-debug-panel" data-testid="panda-click-debug" aria-label="小熊猫点击诊断">
             <strong>临时点击诊断</strong>
@@ -4579,7 +4584,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
             ['--bored-dock-height' as string]: `${roomPropDockHeight}px`,
           }}>
           <span className="ps-bored-panda-speech">你在做什么呀</span>
-          <img src={boredDockFrameUrl(boredDockFrame)} alt="" aria-hidden="true" draggable={false} />
+          <img src={resolveCharacterAsset(boredDockFrameUrl(boredDockFrame))} alt="" aria-hidden="true" draggable={false} />
         </div>
       )}
       {showInteractionBubble && truthPotionPosition && (

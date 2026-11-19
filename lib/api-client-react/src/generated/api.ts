@@ -36,7 +36,9 @@ import type {
   CoopStateResponse,
   HealthStatus,
   JournalClassification,
-  JournalClassificationInput
+  JournalClassificationInput,
+  PetCharacterInput,
+  PetCharacterSelection
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -65,6 +67,171 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetPetCharacterUrl = () => {
+
+
+
+
+  return `/api/pet/character`
+}
+
+/**
+ * @summary Read the account's permanent character choice
+ */
+export const getPetCharacter = async ( options?: Parameters<typeof customFetch>[1]): Promise<PetCharacterSelection> => {
+
+  return customFetch<PetCharacterSelection>(getGetPetCharacterUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPetCharacterQueryKey = () => {
+    return [
+    `/api/pet/character`
+    ] as const;
+    }
+
+
+export const getGetPetCharacterQueryOptions = <TData = Awaited<ReturnType<typeof getPetCharacter>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPetCharacter>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPetCharacterQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPetCharacter>>> = ({ signal }) => getPetCharacter({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPetCharacter>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPetCharacterQueryResult = NonNullable<Awaited<ReturnType<typeof getPetCharacter>>>
+export type GetPetCharacterQueryError = ErrorType<void>
+
+
+/**
+ * @summary Read the account's permanent character choice
+ */
+
+export function useGetPetCharacter<TData = Awaited<ReturnType<typeof getPetCharacter>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPetCharacter>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPetCharacterQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getChoosePetCharacterUrl = () => {
+
+
+
+
+  return `/api/pet/character`
+}
+
+/**
+ * @summary Choose once, also binding both household members
+ */
+export const choosePetCharacter = async (petCharacterInput: PetCharacterInput, options?: Parameters<typeof customFetch>[1]): Promise<PetCharacterSelection> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<PetCharacterSelection>(getChoosePetCharacterUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(petCharacterInput)
+  }
+);}
+
+
+
+
+
+export const getChoosePetCharacterMutationKey = () => ['choosePetCharacter'] as const;
+
+export const getChoosePetCharacterMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof choosePetCharacter>>, TError,ChoosePetCharacterMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof choosePetCharacter>>, TError,ChoosePetCharacterMutationVariables, TContext> => {
+
+const mutationKey = getChoosePetCharacterMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof choosePetCharacter>>, ChoosePetCharacterMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  choosePetCharacter(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ChoosePetCharacterMutationResult = NonNullable<Awaited<ReturnType<typeof choosePetCharacter>>>
+    export type ChoosePetCharacterMutationBody = BodyType<PetCharacterInput>
+    export type ChoosePetCharacterMutationError = ErrorType<void>
+    export type ChoosePetCharacterMutationVariables = {data: BodyType<PetCharacterInput>}
+
+    /**
+ * @summary Choose once, also binding both household members
+ */
+export const useChoosePetCharacter = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof choosePetCharacter>>, TError,ChoosePetCharacterMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof choosePetCharacter>>,
+        TError,
+        ChoosePetCharacterMutationVariables,
+        TContext
+      > => {
+      return useMutation(getChoosePetCharacterMutationOptions(options));
+    }
 
 export const getGetCoopHouseholdUrl = () => {
 

@@ -18,6 +18,8 @@ import {
 import { CompanionChat } from '@/components/CompanionChat';
 import { CoopHub } from '@/components/CoopHub';
 import { StatsTemplate } from '@/components/StatsTemplate';
+import { PetCharacterProvider, usePetCharacter } from '@/hooks/use-pet-character';
+import { PetCharacterPicker } from '@/components/PetCharacterPicker';
 import { useCompanion } from '@/hooks/use-companion';
 import { isDesktop } from '@/lib/desktop';
 import { queryClient } from '@/lib/query-client';
@@ -209,6 +211,7 @@ function localRoomSnapshot(
 }
 
 function Room() {
+  const petCharacter = usePetCharacter();
   const companion = useCompanion({ allowRandomPerformanceFall: isDesktop() });
   const client = useQueryClient();
   const { isSignedIn } = useAuth();
@@ -412,9 +415,12 @@ function Room() {
 
   return (
     <div className="room-page">
-      <CompanionChat companion={companion} roomOnly={!isDesktop()} />
+      <div inert={!isDesktop() && petCharacter.isSignedIn && (!petCharacter.selection?.locked || petCharacter.isLoading || !!petCharacter.error)}>
+        <CompanionChat companion={companion} roomOnly={!isDesktop()} />
+      </div>
+      {!isDesktop() && !hubOpen && <PetCharacterPicker compact onJoinHousehold={() => setHubOpen(true)} />}
       <header className="room-account-bar">
-        <Link href="/stats-template" className="room-coop-open"><HeartPulse size={15} />成长档案</Link>
+        <Link href="/stats-template" className="room-coop-open"><HeartPulse size={15} />成长档案 · {petCharacter.name}</Link>
         <button type="button" className="room-coop-open" onClick={() => {
           if (!isSignedIn) {
             setLocation('/sign-up');
@@ -460,6 +466,7 @@ function ClerkProviderWithRoutes() {
     >
       <QueryClientProvider client={queryClient}>
         <ClerkQueryClientCacheInvalidator />
+        <PetCharacterProvider>
         <Switch>
           <Route path="/" component={HomeRedirect} />
           <Route path="/sign-in/*?" component={SignInPage} />
@@ -468,6 +475,7 @@ function ClerkProviderWithRoutes() {
           <Route path="/room" component={Room} />
           <Route><Redirect to="/" /></Route>
         </Switch>
+        </PetCharacterProvider>
       </QueryClientProvider>
     </ClerkProvider>
   );

@@ -60,6 +60,7 @@ export const coopNoteCategory = pgEnum("panda_coop_note_category", [
 
 export const coopHouseholdsTable = pgTable("panda_coop_households", {
   id: uuid("id").defaultRandom().primaryKey(),
+  characterId: text("character_id"),
   createdBy: text("created_by").notNull(),
   sharedState: jsonb("shared_state").$type<CoopSharedState>().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })

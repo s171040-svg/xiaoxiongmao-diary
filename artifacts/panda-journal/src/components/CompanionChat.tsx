@@ -1,6 +1,8 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { ImagePlus, Pause, Play, RotateCw, SendHorizontal, Trash2, X } from 'lucide-react';
 import type { CompanionController } from '@/hooks/use-companion';
+import { usePetCharacter, usePetNarration } from '@/hooks/use-pet-character';
+import { XIAOBAI_SHARED_ACTION_NOTE } from '@/lib/pet-character-assets';
 import type { ChatMessage, DeveloperEvent, DeveloperPose, Gift, MemoryKind, PerformanceAction, SpacePoliceLetter } from '@/lib/companion-types';
 import type { JournalEntry } from '@/lib/journal-types';
 import { canFeedGift } from '@/lib/companion-store';
@@ -73,6 +75,7 @@ function removeActionAsides(text: string) {
 }
 
 function Modal({ title, sub, onClose, children, testid }: { title: string; sub: string; onClose: () => void; children: React.ReactNode; testid: string }) {
+  const narrate = usePetNarration();
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const d = ref.current;
@@ -86,7 +89,7 @@ function Modal({ title, sub, onClose, children, testid }: { title: string; sub: 
       onCancel={(e) => { e.preventDefault(); onClose(); }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <header className="cc-dhead">
-        <div><h2 id={`${testid}-t`}>{title}</h2><p>{sub}</p></div>
+        <div><h2 id={`${testid}-t`}>{title}</h2><p>{narrate(sub)}</p></div>
         <button type="button" className="cc-icon" aria-label="关闭" onClick={onClose} autoFocus data-testid={`${testid}-close`}><X size={18} /></button>
       </header>
       {children}
@@ -180,16 +183,18 @@ function Gifts({ c, onClose, onChooseSnack }: {
 
 function Bubble({ m, canRetry, c }: { m: ChatMessage; canRetry: boolean; c: CompanionController }) {
   const mine = m.role === 'user';
-  const display = c.replyDisplay?.id === m.id ? splitReply(c.replyDisplay.text) : null;
+  const narrate = usePetNarration();
+  const text = mine ? m.text : narrate(m.text);
+  const display = c.replyDisplay?.id === m.id ? splitReply(narrate(c.replyDisplay.text)) : null;
   return (
     <div className={`cc-row ${mine ? 'me' : 'bot'}`}>
       <div className={`cc-bubble${m.status === 'pending' ? ' pending' : ''}${m.status === 'failed' ? ' failed' : ''}${m.status === 'interrupted' ? ' interrupted' : ''}`} data-testid={`message-${m.id}`}>
         {m.photo && <img src={m.photo} alt="发送的照片" />}
         {display
-          ? <p className="cc-thinking-copy" aria-live="off" aria-label="小熊猫正在把话慢慢说出来"><span aria-hidden="true">{splitReply(m.text).map((char, i) => (
+          ? <p className="cc-thinking-copy" aria-live="off" aria-label={narrate('小熊猫正在把话慢慢说出来')}><span aria-hidden="true">{splitReply(text).map((char, i) => (
               <span className="cc-thought-char" key={i}><span className="cc-char-space">{char}</span><span>{display[i] || '\u00a0'}</span></span>
             ))}</span></p>
-          : <p>{m.text}</p>}
+          : <p>{text}</p>}
       </div>
       <div className="cc-stamp">
         <time>{clock.format(m.createdAt)}</time>
@@ -206,6 +211,8 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
   companion: CompanionController;
   roomOnly?: boolean;
 }) {
+  const { characterId, name: characterName } = usePetCharacter();
+  const narrate = usePetNarration();
   const [panel, setPanel] = useState<'diary' | 'gifts' | null>(null);
   const [selectedSnackId, setSelectedSnackId] = useState<string | null>(null);
   const selectedSnack = selectedSnackId
@@ -440,7 +447,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
         developerEvent={import.meta.env.DEV && roomOnly ? developerEvent : null}
         debugClicks={false} showInteractionBubble={roomOnly} showArrowMarker={roomOnly && pandaArrowShown}
          onDrinkTruthPotion={roomOnly && !window.pandaDesktop ? () => setClearMindMode(true) : undefined}
-        interactionBubbleText={roomOnly && roomDialogue ? removeActionAsides(roomDialogue) : undefined}
+        interactionBubbleText={roomOnly && roomDialogue ? narrate(removeActionAsides(roomDialogue)) : undefined}
         onChatModeChange={roomOnly ? onRoomChatModeChange : undefined}
         onCareInteraction={c.recordCareStatInteraction}
          onCapturedHomecomingInteraction={roomOnly ? c.acknowledgeCapturedHomecoming : undefined}
@@ -556,6 +563,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
       {import.meta.env.DEV && devActionOpen && c.performTestAction && (
         <Modal title="动画检视" sub="选一个动作指令，小熊猫将在 2 秒后执行。倒数时换选其他动作会重新计时。"
           onClose={() => setDevActionOpen(false)} testid="dialog-dev-action">
+          <p data-testid="character-action-coverage">当前角色：{characterName}。{characterId === 'xiaobai' ? XIAOBAI_SHARED_ACTION_NOTE : '使用原版小熊猫动作。'}</p>
           <h3 className="cc-dev-action-section-title">动态动作</h3>
           <div className="cc-dev-action-grid">
             {devActionOptions.map(({ action, label }) => (

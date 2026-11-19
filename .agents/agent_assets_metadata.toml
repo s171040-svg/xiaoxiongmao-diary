@@ -834,3 +834,31 @@ mtime_ms = 1795082451396
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/591d94f4-7d8f-452d-bc70-b400d55027fa/8a580193-b3b8-43b1-b277-122d8ebe0095"
 storage_version_token = "1795082466485413"
 content_type = "image/png"
+
+[[outputs]]
+id = "bZAcqeNMR9AprUaN_2QMG"
+uri = "file://generated-artifacts/xiaobai-preview/action-preview.gif"
+type = "image"
+title = "小白首批动作预览"
+description = "行走、小跳、仰躺蹬爪、洗澡搓洗、趴着撒娇、吃胡萝卜六组动作。"
+logical_id = "a7ce403a-c098-4242-8ddf-2e86e500db58"
+content_hash = "sha256:360dd9a04b2f7f601e5e5c9f3ce35ee425bca33ddae34fa3be4687b878b7eeaa"
+size = 134648
+mtime_ms = 1795085313843
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/a7ce403a-c098-4242-8ddf-2e86e500db58/926775c2-3304-45be-8dfd-1f2289a2331d"
+storage_version_token = "1795085327608860"
+content_type = "image/gif"
+
+[[outputs]]
+id = "4EFbJQ3ulvlr6erGJpU0A"
+uri = "file://generated-artifacts/xiaobai-preview/pose-sheet.png"
+type = "image"
+title = "小白姿势一览"
+description = "查看首批重绘的12个姿势，原小熊猫素材保持不变。"
+logical_id = "758e67f9-3cb3-4109-a3a5-8875fc9c88b1"
+content_hash = "sha256:9b290017840b8aa369f258d02d37d4598f68c2f876d81b2d10cb8bda81426d25"
+size = 86834
+mtime_ms = 1795085304283
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/758e67f9-3cb3-4109-a3a5-8875fc9c88b1/4b61aff8-2a8a-4cc0-92ae-1b025692eb7a"
+storage_version_token = "1795085328959138"
+content_type = "image/png"

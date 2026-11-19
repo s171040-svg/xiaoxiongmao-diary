@@ -39,3 +39,7 @@ export * from './healthStatus';
 export * from './journalClassification';
 export * from './journalClassificationCategory';
 export * from './journalClassificationInput';
+export * from './petCharacterInput';
+export * from './petCharacterInputCharacterId';
+export * from './petCharacterSelection';
+export * from './petCharacterSelectionCharacterId';

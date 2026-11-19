@@ -2,6 +2,8 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { projectRoomPoint, type RoomPoint } from '@/lib/room-plane';
 import { PIXELLAB_TRANSITION_FRAME_FILES } from '@/lib/pixel-transition';
+import { usePetCharacter } from '@/hooks/use-pet-character';
+import { characterAsset, xiaobaiAsset } from '@/lib/pet-character-assets';
 import './PetDepartureNotice.css';
 
 const SIT_MS = 1400;
@@ -13,6 +15,7 @@ const asset = (file: string) => `${import.meta.env.BASE_URL}static/panda/${file}
 
 /** The room event is decorative; only its final goodbye is announced. */
 export function PetDepartureNotice({ point }: { point: RoomPoint }) {
+  const { characterId } = usePetCharacter();
   const [origin] = useState(point);
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
@@ -54,7 +57,12 @@ export function PetDepartureNotice({ point }: { point: RoomPoint }) {
         '--departure-x': `${-progress * 150 * projected.scale}px`,
         opacity: progress < 0.35 ? 1 : (1 - progress) / 0.65,
       } as CSSProperties}>
-      <img src={src} alt="" draggable={false} data-facing={phase === 'sitting' ? 'front' : 'left'} />
+      <img src={characterId === 'xiaobai'
+        ? phase === 'sitting' ? xiaobaiAsset('sit.png')
+          : phase === 'settling' ? xiaobaiAsset(`transitions/to-sit/${1 + Math.min(5, Math.floor(elapsed / (SETTLE_MS / 6)))}.png`)
+          : phase === 'rising' ? xiaobaiAsset(`transitions/to-sit/${6 - Math.min(5, Math.floor((elapsed - riseStart) / (RISE_MS / 6)))}.png`)
+          : characterAsset(src, characterId).src
+        : src} alt="" draggable={false} data-facing={phase === 'sitting' ? 'front' : 'left'} />
     </div>
   );
 }

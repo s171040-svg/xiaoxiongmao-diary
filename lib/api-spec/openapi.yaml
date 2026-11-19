@@ -15,6 +15,43 @@ tags:
   - name: co-op
     description: Private two-player panda households and emotion-only messages
 paths:
+  /pet/character:
+    get:
+      operationId: getPetCharacter
+      tags: [co-op]
+      summary: Read the account's permanent character choice
+      responses:
+        "200":
+          description: First choice, or the common household choice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PetCharacterSelection"
+        "401":
+          description: Sign in required
+    post:
+      operationId: choosePetCharacter
+      tags: [co-op]
+      summary: Choose once, also binding both household members
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PetCharacterInput"
+      responses:
+        "200":
+          description: Permanent character selection saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PetCharacterSelection"
+        "400":
+          description: Invalid character
+        "401":
+          description: Sign in required
+        "409":
+          description: Already selected, transformation is not available
   /coop/household:
     get:
       operationId: getCoopHousehold
@@ -268,6 +305,24 @@ paths:
           description: AI analysis unavailable
 components:
   schemas:
+    PetCharacterInput:
+      type: object
+      required: [characterId]
+      properties:
+        characterId:
+          type: string
+          enum: [panda, xiaobai]
+    PetCharacterSelection:
+      type: object
+      required: [characterId, locked, shared]
+      properties:
+        characterId:
+          type: [string, "null"]
+          enum: [panda, xiaobai, null]
+        locked:
+          type: boolean
+        shared:
+          type: boolean
     CoopRoomPoint:
       type: object
       required: [x, y]

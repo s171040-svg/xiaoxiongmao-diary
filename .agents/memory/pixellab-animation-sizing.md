@@ -5,6 +5,12 @@ description: PixelLab animation generation can enlarge sprite canvases, changing
 
 Use the completed job's reported output size and `charged_generations` as the source of truth. Do not estimate animation cost from the input sprite dimensions alone; `animateImage` can expand a small reference sprite before generating frames. For a batch of variants, inspect one completed job before estimating the remaining budget.
 
+Keep submitted generation jobs below the live concurrency limit; the workspace has returned `8/8 jobs` and rejected further submissions. A rejected request without a job id is not a queued job.
+
+**Why:** Submitting an entire animation batch at once can leave later poses ungenerated while earlier ones succeed.
+
+**How to apply:** Track successful job ids and generation receipts, wait for capacity before retrying only rejected items, and keep the user's batch budget separate from older design experiments.
+
 **Why:** A 64px panda reference produced 96px frames and was billed at two generations for an eight-frame animation.
 
 **How to apply:** When generating multiple related panda animations, check the first completed result's size and charge before deciding how many more jobs to start.

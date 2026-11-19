@@ -9,6 +9,30 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Read the account's permanent character choice
+ */
+export const GetPetCharacterResponse = zod.object({
+  "characterId": zod.union([zod.literal('panda'),zod.literal('xiaobai'),zod.literal(null)]).nullable(),
+  "locked": zod.boolean(),
+  "shared": zod.boolean()
+})
+
+
+/**
+ * @summary Choose once, also binding both household members
+ */
+export const ChoosePetCharacterBody = zod.object({
+  "characterId": zod.enum(['panda', 'xiaobai'])
+})
+
+export const ChoosePetCharacterResponse = zod.object({
+  "characterId": zod.union([zod.literal('panda'),zod.literal('xiaobai'),zod.literal(null)]).nullable(),
+  "locked": zod.boolean(),
+  "shared": zod.boolean()
+})
+
+
+/**
  * @summary Get the authenticated player's shared panda household
  */
 export const getCoopHouseholdResponseSharedStateGiftsItemIdMax = 120;
