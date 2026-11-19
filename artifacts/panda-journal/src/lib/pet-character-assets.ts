@@ -7,7 +7,7 @@ export const xiaobaiAsset = (path: string) => {
   const version = path === 'jar.png' || path.startsWith('loops/jar/') || path.startsWith('transitions/to-jar/')
     ? 'xiaobai-jar-clear-2'
     : path === 'grab.png' || path.startsWith('transitions/to-grab/')
-      ? 'xiaobai-scruff-dazed-2' : 'xiaobai-1';
+      ? 'xiaobai-scruff-cute-3' : 'xiaobai-1';
   return `${base()}${path}?v=${version}`;
 };
 

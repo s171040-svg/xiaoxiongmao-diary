@@ -932,3 +932,17 @@ mtime_ms = 1795090871001
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/7d222e49-ec5b-4e86-b0f9-a5dc96cbc12d/5346fd80-6f9b-4e26-ad06-eb46b780e48c"
 storage_version_token = "1795090952431872"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "M13POTvCI5cZEe2lEsfeE"
+uri = "file://generated-artifacts/xiaobai-cute-grab/cute-grab.gif"
+type = "image"
+title = "小白新版提起表情"
+description = "圆眼、微微朝下的视线与小嘴，保留发懵感；含六帧提起过渡。"
+logical_id = "f5655806-cc68-4ac4-b304-f0dcae9ccd51"
+content_hash = "sha256:79eb58a4678c446ae122047fbb8a8545d0de611a213bd2795746def7fe13faba"
+size = 39824
+mtime_ms = 1795095781751
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/f5655806-cc68-4ac4-b304-f0dcae9ccd51/6f6ad0b6-a4cb-4ae1-8d68-d9b4bcf77105"
+storage_version_token = "1795095831202784"
+content_type = "image/gif"
