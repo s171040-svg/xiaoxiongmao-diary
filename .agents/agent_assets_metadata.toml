@@ -750,3 +750,31 @@ mtime_ms = 1794318308944
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/67fd8b39-8fc9-4445-a294-eaa26160bd79/63000e48-f00f-462b-ba71-a7100558701a"
 storage_version_token = "1794318328991964"
 content_type = "image/png"
+
+[[outputs]]
+id = "O52UOqjw0lmBxAp4w2NZg"
+uri = "file://attached_assets/generated_images/panda-pomeranian-comparison.png"
+type = "image"
+title = "白色博美角色初稿｜与小熊猫对比"
+description = "左边是现有小熊猫，右边是白色博美初稿；同为 96×96 画布，按相同比例放大，便于检查体型与像素风格。"
+logical_id = "5c2b3247-7d76-48d4-951b-6751d3a095f0"
+content_hash = "sha256:f64b302a78a80bcc8c3f6204b0abdb7f9d8d9b941cb5674758f7d847bd9fd08d"
+size = 4604
+mtime_ms = 1795081809073
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/5c2b3247-7d76-48d4-951b-6751d3a095f0/99e68a27-a6f9-4a58-b5d3-35e868f7ff62"
+storage_version_token = "1795081840989017"
+content_type = "image/png"
+
+[[outputs]]
+id = "3vRTDNtRktlLHI9u93Ut4"
+uri = "file://attached_assets/generated_images/white-pomeranian-draft.png"
+type = "image"
+title = "白色博美｜透明底原始图"
+description = "96×96 像素静态角色初稿，尚未替换游戏角色或制作动画。"
+logical_id = "0ea849aa-ceb0-4db0-80dd-041a422a7283"
+content_hash = "sha256:496eb9a8651351d98843e8f02c65e3eb6768bde300e4e51752a3baf24093baf6"
+size = 1875
+mtime_ms = 1795081790801
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/0ea849aa-ceb0-4db0-80dd-041a422a7283/d00cf088-0ef6-4191-ab7c-6a96b1c88aac"
+storage_version_token = "1795081842316220"
+content_type = "image/png"
