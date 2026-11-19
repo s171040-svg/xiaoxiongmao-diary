@@ -6,7 +6,7 @@ import { usePetCharacter, usePetNarration } from '@/hooks/use-pet-character';
 import { advanceToy, createShakeDetector, createToyRuntime, shakeToy, toyVisual, TOY_ART_VERSION, type ToyPhase, type ToySprite } from '@/lib/room-toy-interaction';
 import { createPlantFallTracker, isBehindLeftRoomPlants, LEFT_ROOM_PLANTS, LEFT_ROOM_PLANT_Z_INDEX, rollLeftPlantFall } from '@/lib/room-plant-interaction';
 import { getBathBallSpawnPosition } from '@/lib/bath-ball-position';
-import { bathPetClipPath } from '@/lib/room-bath-occlusion';
+import { bathPetAnchor, bathPetClipPath } from '@/lib/room-bath-occlusion';
 import { getGiftDropRoomPoint, getGiftStorageRoomPoint } from '@/lib/gift-drop-position';
 import { isPandaCenterInsideJar } from '@/lib/room-jar-interaction';
 import { GiftDrop } from './GiftDrop';
@@ -1716,9 +1716,10 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     }
     const width = Math.max(1, window.innerWidth);
     const height = Math.max(1, window.innerHeight);
+    const bathAnchor = bathPetAnchor(tubRect, track?.getBoundingClientRect().height ?? 0);
     const target = unprojectRoomPoint(
-      ((tubRect.left + tubRect.width / 2) / width) * 100,
-      ((tubRect.top + tubRect.height * 0.86) / height) * 100,
+      (bathAnchor.x / width) * 100,
+      (bathAnchor.y / height) * 100,
       width,
       height,
     );
@@ -3352,8 +3353,9 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       const stationRect = bathStationRef.current?.getBoundingClientRect();
       const tubRect = bathTubRef.current?.getBoundingClientRect();
       if (stationRect && tubRect) {
-        const screenX = tubRect.left + tubRect.width / 2;
-        const screenY = tubRect.top + tubRect.height * 0.86;
+        const { x: screenX, y: screenY } = bathPetAnchor(
+          tubRect, trackRef.current?.getBoundingClientRect().height ?? 0,
+        );
         const target = unprojectRoomPoint(
           (screenX / Math.max(1, window.innerWidth)) * 100,
           (screenY / Math.max(1, window.innerHeight)) * 100,

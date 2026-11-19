@@ -1,8 +1,19 @@
 import assert from 'node:assert/strict';
-import { bathPetClipPath } from './room-bath-occlusion';
+import { bathPetAnchor, bathPetClipPath } from './room-bath-occlusion';
 
 const track = { left: 0, top: 0, width: 128, height: 96 };
 const tub = { ...track };
+for (const size of [40, 78, 110]) {
+  const anchor = bathPetAnchor(tub, size);
+  assert.equal(anchor.x, 64);
+  // The face ends at 64% of the track; leave a 2% track-height gap above water.
+  assert(Math.abs(anchor.y - size * 0.36 - (46 - size * 0.02)) < 0.001);
+  const moved = bathPetAnchor({ ...tub, left: 20, top: 30 }, size);
+  assert.equal(moved.x, anchor.x + 20);
+  assert.equal(moved.y, anchor.y + 30);
+  const scaledAnchor = bathPetAnchor({ left: 0, top: 0, width: 256, height: 192 }, size * 2);
+  assert.equal(scaledAnchor.y, anchor.y * 2);
+}
 const path = bathPetClipPath(track, tub);
 assert(path);
 const points = (clip: string) => [...clip.matchAll(/(-?[\d.]+)px (-?[\d.]+)px/g)]

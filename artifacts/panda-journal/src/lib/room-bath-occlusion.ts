@@ -5,6 +5,14 @@ export interface BathSceneRect {
   height: number;
 }
 
+/** Align the base of the face above the water, independent of pet/tub size ratio. */
+export function bathPetAnchor(tub: BathSceneRect, trackHeight: number) {
+  return {
+    x: tub.left + tub.width / 2,
+    y: tub.top + tub.height * 46 / 96 + trackHeight * 0.34,
+  };
+}
+
 // Front edge of the water opening in the existing 128×96 bathtub sprite.
 // Mask the pet below this contour, revealing the tub's original front rim/wall.
 const WATER_FRONT_EDGE = [
