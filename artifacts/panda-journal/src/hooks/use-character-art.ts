@@ -17,7 +17,7 @@ export function useCharacterBody(source: string, externalTransition: boolean) {
   const [loopFrame, setLoopFrame] = useState(0);
   useEffect(() => {
     setLoopFrame(0);
-    if (characterId !== 'xiaobai' || !asset.group || !XIAOBAI_LOOP_COUNTS[asset.group]) return;
+    if (characterId !== 'xiaobai' || !asset.group || asset.group === 'cuddle' || !XIAOBAI_LOOP_COUNTS[asset.group]) return;
     const interval = ({ idle: 420, sleep: 520, lying: 420, peeking: 320, walk: 120, climb: 120 } as Record<string, number>)[asset.group] ?? 140;
     const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') setLoopFrame(frame => frame + 1);
@@ -54,7 +54,10 @@ export function useCharacterBody(source: string, externalTransition: boolean) {
     return () => window.clearInterval(timer);
     // Deliberately follow semantic poses, not each frame of a running loop.
   }, [asset.group, asset.explicitTransition, characterId, externalTransition]);
-  const body = characterId === 'xiaobai' && !asset.explicitTransition && asset.group && XIAOBAI_LOOP_COUNTS[asset.group]
+  // Keep Xiaobai's accepted resting cuddle pose without the side-to-side loop.
+  const body = characterId === 'xiaobai' && !asset.explicitTransition && asset.group === 'cuddle'
+    ? xiaobaiAsset('loops/cuddle/2.png')
+    : characterId === 'xiaobai' && !asset.explicitTransition && asset.group && XIAOBAI_LOOP_COUNTS[asset.group]
     ? xiaobaiAsset(`loops/${asset.group}/${1 + loopFrame % XIAOBAI_LOOP_COUNTS[asset.group]}.png`)
     : asset.src;
   return transition?.target === asset.group ? transition.src : body;

@@ -298,6 +298,8 @@
 .ps-panda.ps-cuddle{animation:none;place-items:end center;transform-origin:center bottom}
 .ps-panda.ps-cuddle:hover,.ps-panda.ps-cuddle:active{translate:0 0;scale:1}
 .ps-panda.ps-cuddle .ps-body{transform-origin:50% 82%;animation:ps-cuddle-ground-wriggle 1.12s cubic-bezier(.42,.02,.58,.98) infinite}
+.ps-panda[data-character="xiaobai"].ps-cuddle .ps-body{animation:none;translate:0 0;rotate:0deg;scale:1}
+.ps-track:has(.ps-panda[data-character="xiaobai"].ps-cuddle) .ps-ground-shadow-cuddling{animation:none}
 .ps-panda.ps-cuddle.ps-chatting .ps-body{animation:none!important}
 .ps-ground-shadow-cuddling{animation:ps-cuddle-ground-shadow 1.12s ease-in-out infinite}
 .ps-away{margin:0;position:absolute;z-index:3;inset:0;display:grid;place-items:center;font-size:15px;color:#6d8670}
