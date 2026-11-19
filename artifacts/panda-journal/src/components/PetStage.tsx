@@ -6,6 +6,7 @@ import { usePetCharacter, usePetNarration } from '@/hooks/use-pet-character';
 import { advanceToy, createShakeDetector, createToyRuntime, shakeToy, toyVisual, TOY_ART_VERSION, type ToyPhase, type ToySprite } from '@/lib/room-toy-interaction';
 import { createPlantFallTracker, isBehindLeftRoomPlants, LEFT_ROOM_PLANTS, LEFT_ROOM_PLANT_Z_INDEX, rollLeftPlantFall } from '@/lib/room-plant-interaction';
 import { getBathBallSpawnPosition } from '@/lib/bath-ball-position';
+import { bathPetClipPath } from '@/lib/room-bath-occlusion';
 import { getGiftDropRoomPoint, getGiftStorageRoomPoint } from '@/lib/gift-drop-position';
 import { isPandaCenterInsideJar } from '@/lib/room-jar-interaction';
 import { GiftDrop } from './GiftDrop';
@@ -887,6 +888,18 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     foregroundRack.dataset.visible = String(shouldCoverPanda);
   }, [hangingOnClothesRack, showInteractionBubble]);
 
+  const syncBathOcclusion = useCallback(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    const tub = bathTubRef.current;
+    const clip = showInteractionBubble && bathPhaseRef.current === 'bathing'
+      && !draggingRef.current && tub
+      ? bathPetClipPath(track.getBoundingClientRect(), tub.getBoundingClientRect())
+      : null;
+    track.style.clipPath = clip ?? '';
+    track.dataset.bathOccluded = clip ? 'true' : 'false';
+  }, [showInteractionBubble]);
+
   const beginFurnitureMove = useCallback((id: RoomFurnitureId, event: ReactPointerEvent<Element>) => {
     if (!showInteractionBubble || !event.isPrimary || event.button !== 0) return;
     if (id === 'trashCan' && trashCanPandaPhaseRef.current !== null && trashCanPandaPhaseRef.current !== 'trapped') return;
@@ -1564,7 +1577,10 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     track.style.zIndex = showInteractionBubble
       ? draggingRef.current ? '260' : hangingOnClothesRack ? '241' : '240'
       : String(projected.zIndex);
-    if (showInteractionBubble) syncRackOcclusion();
+    if (showInteractionBubble) {
+      syncRackOcclusion();
+      syncBathOcclusion();
+    }
     track.dataset.roomU = appliedPoint.u.toFixed(3);
     track.dataset.roomV = appliedPoint.v.toFixed(3);
     track.dataset.roomElevation = (appliedPoint.elevation ?? 0).toFixed(3);
@@ -1579,7 +1595,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       track.dataset.roomZ = String(projected.zIndex);
     } else delete track.dataset.roomWalkable;
     if (reachedOutsideBoundary) worldFallBoundaryTriggerRef.current?.();
-  }, [hangingOnClothesRack, showInteractionBubble, syncRackOcclusion]);
+  }, [hangingOnClothesRack, showInteractionBubble, syncBathOcclusion, syncRackOcclusion]);
 
   useLayoutEffect(() => {
     if (!capturedHomecoming) {
@@ -3302,7 +3318,10 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
 
   // Movable furniture sorts against the fixed room cut-outs by where its base stands.
   useLayoutEffect(() => {
-    if (!showInteractionBubble) return;
+    if (!showInteractionBubble) {
+      syncBathOcclusion();
+      return;
+    }
     for (const element of [clothesRackRef.current, bedRef.current, bathStationRef.current]) {
       if (!element) continue;
       const rect = element.getBoundingClientRect();
@@ -3353,7 +3372,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
         bubbleAnchor?.style.setProperty('--room-y', screenYPercent);
       }
     }
-  }, [applyRoomPoint, bathPhase, draggingFurnitureId, hangingOnClothesRack, hidden, placedProps, roomFurnitureLayout, showInteractionBubble, sleepingOnBed, syncRackOcclusion, updateFacing, viewportSize, worldAway, worldFallMessageVisible]);
+    syncBathOcclusion();
+  }, [applyRoomPoint, bathPhase, draggingFurnitureId, hangingOnClothesRack, hidden, placedProps, roomFurnitureLayout, showInteractionBubble, sleepingOnBed, syncBathOcclusion, syncRackOcclusion, updateFacing, viewportSize, worldAway, worldFallMessageVisible]);
 
   useEffect(() => {
     if (!showInteractionBubble || bathPhase !== 'bathing' || !bathRubbing) return undefined;
@@ -4229,6 +4249,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
             data-testid="bath-station">
             <img ref={bathTubRef} className="ps-room-bathtub"
               src={`${import.meta.env.BASE_URL}static/room/pet-bathtub.png?v=pet-bathtub-1`}
+              onLoad={syncBathOcclusion}
               alt="" aria-hidden="true" draggable={false} data-testid="room-bathtub" />
           </div>
         )}

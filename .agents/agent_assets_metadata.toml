@@ -918,3 +918,17 @@ mtime_ms = 1795089680906
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/ba210e8b-f7bb-402b-80d2-e4a7853f4ced/f4eae95d-9fd4-441c-a016-991a6679a462"
 storage_version_token = "1795089812253605"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "U2d3PIT981iCETW3IuvIJ"
+uri = "file://generated-artifacts/bath-occlusion-check.jpg"
+type = "image"
+title = "浴缸遮挡修复前后对照"
+description = "使用实际浴缸、宠物素材和网页样式核对，小白的下半身已藏到前缸沿后；同时对照了小熊猫。"
+logical_id = "7d222e49-ec5b-4e86-b0f9-a5dc96cbc12d"
+content_hash = "sha256:8c46a9349c9141b6a119844318048a79ee6cabe936e4672c9cd1fae78218203f"
+size = 40048
+mtime_ms = 1795090871001
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/7d222e49-ec5b-4e86-b0f9-a5dc96cbc12d/5346fd80-6f9b-4e26-ad06-eb46b780e48c"
+storage_version_token = "1795090952431872"
+content_type = "image/jpeg"

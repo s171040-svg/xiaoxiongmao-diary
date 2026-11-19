@@ -156,6 +156,7 @@
 .ps-panda.ps-bath-dropping{z-index:8;cursor:default;pointer-events:none;animation:ps-bath-plunge .68s cubic-bezier(.4,0,.78,.38) both}
 .ps-panda.ps-bath-dropping:hover,.ps-panda.ps-bath-dropping:active{translate:0 0;scale:1}
 .ps-panda.ps-bathing{z-index:5;cursor:grab;animation:none;translate:0 0;scale:1}
+.ps-track[data-bath-occluded="true"] .ps-ground-shadow{display:none}
 .ps-panda.ps-bathing:hover,.ps-panda.ps-bathing:active{translate:0 0;scale:1}
 .ps-panda.ps-bathing .ps-body{opacity:1;animation:none!important;filter:none;translate:0;rotate:0deg;scale:1}
 .ps-panda.ps-bathing[data-bath-rubbing="true"] .ps-body{animation:ps-bath-scrub 260ms ease-in-out infinite alternate!important;transform-origin:50% 82%}
