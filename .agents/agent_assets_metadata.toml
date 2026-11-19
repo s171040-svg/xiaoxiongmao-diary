@@ -778,3 +778,31 @@ mtime_ms = 1795081790801
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/0ea849aa-ceb0-4db0-80dd-041a422a7283/d00cf088-0ef6-4191-ab7c-6a96b1c88aac"
 storage_version_token = "1795081842316220"
 content_type = "image/png"
+
+[[outputs]]
+id = "e2qct9hwahwaFMw--zLmg"
+uri = "file://attached_assets/generated_images/white-pomeranian-big-eyes-preview.png"
+type = "image"
+title = "白色博美重新设计｜大眼睛、毛球尾"
+description = "重新生成犬类造型，圆润蓬松的脸、大眼睛和短小白色毛球尾；仅为静态预览，未替换游戏角色。"
+logical_id = "b556b1c7-c33b-4cab-8205-d3b6e75dccb1"
+content_hash = "sha256:72184727bedc704bd0444b84c24c687b1de8445c949484d9357e662de7b56283"
+size = 4376
+mtime_ms = 1795082008696
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/b556b1c7-c33b-4cab-8205-d3b6e75dccb1/53b45d71-efa0-4e3a-bdf8-3dfa96453a61"
+storage_version_token = "1795082040574681"
+content_type = "image/png"
+
+[[outputs]]
+id = "431pevpbIhk4ilCOYyJLl"
+uri = "file://attached_assets/generated_images/panda-pomeranian-redesign-comparison.png"
+type = "image"
+title = "与现有小熊猫对比"
+description = "左边为原小熊猫，右边为新设计，均使用 96×96 画布并按相同倍率放大。"
+logical_id = "bad7011d-1575-4cd1-8b55-efa5423ec719"
+content_hash = "sha256:99bd4cdbc6e32d3a4e4f0db0ea73774b6fa35dafa1a7e95337aeea802a05b9a2"
+size = 5869
+mtime_ms = 1795082008984
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/bad7011d-1575-4cd1-8b55-efa5423ec719/a34e2f4f-9bd1-4fc4-bed9-a4328c287f68"
+storage_version_token = "1795082041876071"
+content_type = "image/png"
