@@ -29,3 +29,25 @@ for (const name of readdirSync(transitionDir)) {
   assert(new Set(signatures).size >= 5, `${name} has duplicated intermediate poses`);
 }
 console.log(`PASS: ${mapped} character sources resolve to Xiaobai; panda originals unchanged; all pose transitions contain ≥5 distinct images.`);
+const cleanJarImages = [
+  'jar.png',
+  ...Array.from({ length: 8 }, (_, i) => `loops/jar/${i + 1}.png`),
+  ...[4, 5, 6].map(i => `transitions/to-jar/${i}.png`),
+];
+for (const file of cleanJarImages) {
+  const path = join(publicDir, 'static/xiaobai', file);
+  const alpha = execFileSync('magick', [
+    path, '-crop', '49x29+30+66', '+repage', '-alpha', 'extract', '-format', '%[fx:maxima]', 'info:',
+  ], { encoding: 'utf8' }).trim();
+  assert.equal(Number(alpha), 0, `${file} still contains the unwanted white container`);
+}
+for (const file of cleanJarImages.slice(0, 9)) {
+  for (const [x, y] of [[48, 32], [34, 56], [66, 56]]) {
+    const alpha = execFileSync('magick', [
+      join(publicDir, 'static/xiaobai', file), '-crop', `1x1+${x}+${y}`, '+repage',
+      '-alpha', 'extract', '-format', '%[fx:mean]', 'info:',
+    ], { encoding: 'utf8' }).trim();
+    assert(Number(alpha) > 0, `${file} lost the puppy's face or paws`);
+  }
+}
+console.log('PASS: extra white container is transparent in every affected frame; face and paws remain visible.');

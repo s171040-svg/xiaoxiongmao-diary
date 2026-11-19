@@ -3,7 +3,11 @@ import { PIXELLAB_TRANSITION_FRAME_FILES } from './pixel-transition';
 import type { PetCharacterId } from '@/hooks/use-pet-character';
 
 const base = () => `${import.meta.env.BASE_URL}static/xiaobai/`;
-export const xiaobaiAsset = (path: string) => `${base()}${path}?v=xiaobai-1`;
+export const xiaobaiAsset = (path: string) => {
+  const version = path === 'jar.png' || path.startsWith('loops/jar/') || path.startsWith('transitions/to-jar/')
+    ? 'xiaobai-jar-clear-2' : 'xiaobai-1';
+  return `${base()}${path}?v=${version}`;
+};
 
 /** Each alias names a Xiaobai redraw, never an original panda body. */
 const aliases: Record<string, string> = {
