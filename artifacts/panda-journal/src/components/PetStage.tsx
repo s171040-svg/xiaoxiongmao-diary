@@ -2,7 +2,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useSta
 import { RoomAlarmClock } from './RoomAlarmClock';
 import { PetDepartureNotice } from './PetDepartureNotice';
 import { useCharacterAsset, useCharacterBody } from '@/hooks/use-character-art';
-import { usePetNarration } from '@/hooks/use-pet-character';
+import { usePetCharacter, usePetNarration } from '@/hooks/use-pet-character';
 import { advanceToy, createShakeDetector, createToyRuntime, shakeToy, toyVisual, TOY_ART_VERSION, type ToyPhase, type ToySprite } from '@/lib/room-toy-interaction';
 import { createPlantFallTracker, isBehindLeftRoomPlants, LEFT_ROOM_PLANTS, LEFT_ROOM_PLANT_Z_INDEX, rollLeftPlantFall } from '@/lib/room-plant-interaction';
 import { getBathBallSpawnPosition } from '@/lib/bath-ball-position';
@@ -3909,6 +3909,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const resolveCharacterAsset = useCharacterAsset();
   const characterBody = useCharacterBody(image, !!pixelTransitionDirection);
   const narrate = usePetNarration();
+  const { characterId } = usePetCharacter();
 
   useLayoutEffect(() => {
     if (!showInteractionBubble || !isDragging) return;
@@ -4348,6 +4349,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
               {!worldAway && (
       <button ref={pandaButtonRef} type="button" className={`ps-panda ps-${hangingOnRack ? 'idle' : isCuddling ? 'cuddle' : pet.stage === 'performing' ? action : basePoseClass}${showBoredSearch ? ' ps-bored-hidden' : ''}${showInteractionBubble && roomWalking && !hangingOnRack ? ' ps-walking' : ''}${showInteractionBubble && activityTransition ? ` ps-transition-${activityTransition}` : ''}${pixelTransitionDirection ? ' ps-pixel-transition' : ''}${interactionState === 'chat' ? ' ps-chatting' : ''}${(showInteractionBubble && activityState === 'lying' || developerPose === 'lying') ? ' ps-lying' : ''}${(showInteractionBubble && activityState === 'peeking' || developerPose === 'peeking') ? ' ps-peeking' : ''}${isSleeping ? ' ps-sleeping' : ''}${developerPose === 'idle' ? ' ps-dev-idle' : ''}${startled ? ' ps-startled' : ''}${isPressPending ? ' ps-pressing' : ''}${reacting ? ' ps-reacting' : ''}${isDragging || developerGrab ? ' ps-dragging' : ''}${hangingOnRack ? ' ps-hanging' : ''}${dirtyGrab ? ' ps-dirty-grabbing' : ''}${showInteractionBubble && dizzyPhase !== 'none' ? ' ps-dizzy' : ''}${worldFallPhase === 'falling' ? ' ps-world-falling' : ''}${bathPhase === 'falling' ? ' ps-bath-dropping' : ''}${bathPhase === 'bathing' ? ' ps-bathing' : ''}${showInteractionBubble && bathTransition === 'exiting' ? ' ps-bath-exiting' : ''}${dirtyReturn ? ' ps-world-dirty' : ''}${isFlyChasing ? ' ps-fly-flee' : ''}`}
                 data-damp-after-bath={dampAfterBath && bathPhase === 'none' ? 'true' : undefined}
+                 data-character={characterId}
                 data-jar-trapped={pandaJarTrapped ? 'true' : undefined}
                  data-truth-potion-comfort={truthPotionComfortPhase ?? undefined}
                  data-trash-can-state={showInteractionBubble ? trashCanPandaPhase ?? undefined : undefined}
@@ -4403,7 +4405,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
                  && transitionFrameSrc && (
                  <img className="ps-transition-frame" src={resolveCharacterAsset(transitionFrameSrc)} alt="" aria-hidden="true" draggable={false} />
                )}
-              {isDragging && showInteractionBubble && (
+              {(isDragging || developerGrab) && showInteractionBubble && (
                 <>
                   <span className="ps-grab-hook" aria-hidden="true"><i /><b /></span>
                   <span className="ps-grab-daze" aria-hidden="true">···</span>

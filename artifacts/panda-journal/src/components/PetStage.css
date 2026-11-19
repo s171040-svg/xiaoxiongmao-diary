@@ -271,6 +271,8 @@
 .ps-scared-mark i{display:block;width:6px;height:9px;margin:11px 0 0 -2px;border-radius:70% 20% 70% 70%;background:#83b9ce;rotate:35deg}
 .ps-panda[data-facing="left"].ps-startled .ps-scared-mark{right:auto;left:8%}
 .ps-grab-hook{position:absolute;z-index:5;top:3%;left:50%;width:22px;height:19px;translate:-50% 0;pointer-events:none}
+.ps-panda[data-character="xiaobai"] .ps-grab-hook{z-index:0}
+.ps-panda[data-character="xiaobai"].ps-dragging .ps-body{position:relative;z-index:1}
 .ps-grab-hook::before{position:absolute;top:0;left:7px;width:8px;height:11px;border:2px solid #694831;border-bottom:0;border-radius:8px 8px 2px 2px;background:#e7c19d;box-shadow:0 1px 0 #fff9;content:""}
 .ps-grab-hook i,.ps-grab-hook b{position:absolute;top:7px;width:7px;height:9px;border:2px solid #694831;border-top:0;border-radius:1px 1px 6px 6px;background:#e7c19d;box-shadow:0 1px 0 #fff9}
 .ps-grab-hook i{left:1px;rotate:-25deg}.ps-grab-hook b{right:1px;rotate:25deg}

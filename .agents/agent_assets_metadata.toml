@@ -890,3 +890,31 @@ mtime_ms = 1795086837623
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/4a32e32e-739e-42b4-a51e-9d5dd1a44d04/a149d70d-2cf1-4e68-a554-62a94209897e"
 storage_version_token = "1795086905834649"
 content_type = "image/png"
+
+[[outputs]]
+id = "5dc9xRcB9M7pRzg6Cj7Ra"
+uri = "file://generated-artifacts/xiaobai-grab-redesign/xiaobai-scruff-dazed.gif"
+type = "image"
+title = "小白 · 发懵吊起过渡"
+description = "新版表情与6帧吊起衔接，已替换网页中的普通吊起姿势。夹子由网页单独绘制在角色身后。"
+logical_id = "345fd4ab-b711-487c-a53e-f7b2c6274207"
+content_hash = "sha256:d38eefab074b41d5f0494664036eb4b6018b6f652c006f6268e21d143d04b2f5"
+size = 86725
+mtime_ms = 1795089575580
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/345fd4ab-b711-487c-a53e-f7b2c6274207/8fdb8c48-6716-4cc3-ac2a-4898b412dc8b"
+storage_version_token = "1795089810944971"
+content_type = "image/gif"
+
+[[outputs]]
+id = "BlXB1pBzui-BwcIODQava"
+uri = "file://generated-artifacts/xiaobai-grab-redesign/layer-check.jpg"
+type = "image"
+title = "吊起姿势与夹子层级效果"
+description = "使用网页实际样式核对左右朝向和原尺寸；夹子在小白后层。"
+logical_id = "ba210e8b-f7bb-402b-80d2-e4a7853f4ced"
+content_hash = "sha256:0c8f71672fa3ac688e867abd1728eaa0c98f25e18726927dbc31774a6b5a7c3b"
+size = 31517
+mtime_ms = 1795089680906
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/ba210e8b-f7bb-402b-80d2-e4a7853f4ced/f4eae95d-9fd4-441c-a016-991a6679a462"
+storage_version_token = "1795089812253605"
+content_type = "image/jpeg"
