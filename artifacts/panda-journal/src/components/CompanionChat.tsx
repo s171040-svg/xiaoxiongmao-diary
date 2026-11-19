@@ -143,6 +143,7 @@ function Gifts({ c, onClose, onChooseSnack }: {
   onClose: () => void;
   onChooseSnack: (giftId: string) => void;
 }) {
+  const narrate = usePetNarration();
   const gifts = [...c.state.gifts].sort((a, b) => b.receivedAt - a.receivedAt);
   const snacks = gifts.filter(canFeedGift);
   const keepsakes = gifts.filter(gift => !canFeedGift(gift));
@@ -164,7 +165,7 @@ function Gifts({ c, onClose, onChooseSnack }: {
         <article className="cc-card cc-gift" key={g.id}>
           <span className="cc-gemoji" aria-hidden="true">{g.emoji}</span>
           <div><strong>{g.item}</strong><small>来自 {g.animal} · {fmt.format(g.receivedAt)}</small>
-            <details><summary>看看带回来的故事</summary><p>{g.story}</p></details>
+            <details><summary>看看带回来的故事</summary><p>{narrate(g.story)}</p></details>
             <div className="cc-gift-actions">
               <button type="button" onClick={() => c.favoriteGift(g.id)} aria-pressed={Boolean(g.favorite)}>{g.favorite ? '已收藏 · 取消' : '收藏'}</button>
               {tab === 'snacks' && <button type="button" disabled={Boolean(g.fedAt)}
@@ -174,9 +175,9 @@ function Gifts({ c, onClose, onChooseSnack }: {
               {tab === 'keepsakes' && <small>纪念小物，留着收藏</small>}
             </div>
           </div>
-        </article>)) : <p className="cc-empty">{tab === 'snacks'
+        </article>)) : <p className="cc-empty">{narrate(tab === 'snacks'
           ? '收纳盒里还没有零食。打开小熊猫带回来的礼物后，它们会收在这里。'
-          : '还没有纪念品。小熊猫偶尔会带回一些森林里的小发现。'}</p>}
+          : '还没有纪念品。小熊猫偶尔会带回一些森林里的小发现。')}</p>}
     </Modal>
   );
 }
@@ -546,7 +547,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
                     ))}
                   </div>
                 ) : (
-                  <p className="cc-police-fine-empty" data-testid="space-police-fine-empty">收藏里还没有纪念品。等小熊猫带回一件礼物后，就可以来缴纳啦。</p>
+                  <p className="cc-police-fine-empty" data-testid="space-police-fine-empty">{narrate('收藏里还没有纪念品。等小熊猫带回一件礼物后，就可以来缴纳啦。')}</p>
                 )}
                 <button type="button" className="cc-police-pay-button" disabled={!spacePoliceFineGiftId || !policeFineGifts.some(gift => gift.id === spacePoliceFineGiftId)}
                   onClick={() => {

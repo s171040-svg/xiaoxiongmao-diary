@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import type { Gift } from '@/lib/companion-types';
 import type { RoomProjection } from '@/lib/room-plane';
+import { usePetCharacter } from '@/hooks/use-pet-character';
 import './GiftDrop.css';
 
 const OPEN_FRAME_COUNT = 6;
@@ -16,6 +17,7 @@ type GiftDropProps = {
 };
 
 export function GiftDrop({ gift, startedAt, onCollect, position, storagePosition }: GiftDropProps) {
+  const { name: petName } = usePetCharacter();
   const [openedGiftId, setOpenedGiftId] = useState<string>();
   const [openFrame, setOpenFrame] = useState(0);
   const opened = Boolean(gift && (openedGiftId === gift.id || startedAt));
@@ -58,7 +60,7 @@ export function GiftDrop({ gift, startedAt, onCollect, position, storagePosition
         '--gift-collect-y': `${collectDeltaY}px`,
       } as CSSProperties}>
       <button className="gift-drop-box-button" type="button" disabled={opened || Boolean(startedAt)}
-        aria-label="打开小熊猫带回来的礼物盒" data-testid="button-open-gift-box"
+        aria-label={`打开${petName}带回来的礼物盒`} data-testid="button-open-gift-box"
         onClick={() => setOpenedGiftId(gift.id)}>
         <img src={opened ? openImage : CLOSED_BOX_IMAGE} alt="" draggable={false} />
       </button>
@@ -71,7 +73,7 @@ export function GiftDrop({ gift, startedAt, onCollect, position, storagePosition
         </button>
       )}
       <span className="gift-drop-hint">
-        {startedAt ? '正在收进礼物收纳盒…' : opened ? '点礼物收进收纳盒' : '小熊猫带回一个礼物 · 点盒子打开'}
+        {startedAt ? '正在收进礼物收纳盒…' : opened ? '点礼物收进收纳盒' : `${petName}带回一个礼物 · 点盒子打开`}
       </span>
     </div>
   );

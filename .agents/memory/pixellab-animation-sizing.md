@@ -20,3 +20,9 @@ For limb-focused animations, start with a pose in which each intended moving lim
 **Why:** A curled back-facing panda source produced almost only tail movement despite explicit four-limb instructions; a source with separated paws produced visible arm and leg articulation.
 
 **How to apply:** Inspect the source silhouette and the complete generated frame sequence, not just the prompt or first returned preview. Keep unsuccessful generations out of the application.
+
+For complex rolls, constrain an intermediate back-facing or belly-up body pose and generate the two pose transitions separately. Keep lateral travel separate from the pose generation.
+
+**Why:** A wide-canvas start/end request produced walking followed by a head tilt instead of a torso-led roll. A constrained belly-up middle pose made the torso visibly turn before the head followed.
+
+**How to apply:** Review every intermediate pose for a connected neck and actual trunk rotation; stage translation can move the character horizontally but must not substitute for redrawn rolling poses.

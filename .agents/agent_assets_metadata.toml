@@ -862,3 +862,31 @@ mtime_ms = 1795085304283
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/758e67f9-3cb3-4109-a3a5-8875fc9c88b1/4b61aff8-2a8a-4cc0-92ae-1b025692eb7a"
 storage_version_token = "1795085328959138"
 content_type = "image/png"
+
+[[outputs]]
+id = "q4cxcqLrtCA9RNJ1oB7-e"
+uri = "file://generated-artifacts/xiaobai-roll-preview/xiaobai-roll-preview.gif"
+type = "image"
+title = "小白滚动动作 · 第一套预览"
+description = "从左向右滚动：身体先翻、头部随后跟上，末尾保持侧躺。仅为预览，尚未接入房间。"
+logical_id = "d036294a-55b5-4890-95fa-99f73df7f0f9"
+content_hash = "sha256:02060b5b2d51647667033f7b0eb9dd7d0633cff02fd05b85b90b713e95752f23"
+size = 105809
+mtime_ms = 1795086836215
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/d036294a-55b5-4890-95fa-99f73df7f0f9/3515868c-eb35-4eaf-bedb-d641a205767b"
+storage_version_token = "1795086904439602"
+content_type = "image/gif"
+
+[[outputs]]
+id = "DywYGvqUYV44tUhW90FZP"
+uri = "file://generated-artifacts/xiaobai-roll-preview/key-poses.png"
+type = "image"
+title = "滚动关键姿势对照"
+description = "查看身体与头部的先后关系，以及最后头身同轴的侧躺姿势。"
+logical_id = "4a32e32e-739e-42b4-a51e-9d5dd1a44d04"
+content_hash = "sha256:be4edc5790f88b4dd8119e75bc72a71006d615000508b999f13bf9be8a900d42"
+size = 464321
+mtime_ms = 1795086837623
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/4a32e32e-739e-42b4-a51e-9d5dd1a44d04/a149d70d-2cf1-4e68-a554-62a94209897e"
+storage_version_token = "1795086905834649"
+content_type = "image/png"
