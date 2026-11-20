@@ -5,15 +5,15 @@ html[data-lite-desktop="true"] .pet-home-objects,
 html[data-lite-desktop="true"] .quiet-caption,
 html[data-lite-desktop="true"] .pet-orbit,
 html[data-lite-desktop="true"] .pet-gift-card{display:none!important}
-html[data-lite-desktop="true"] .pet-presence{width:80px;height:80px;transform:translate(-50%,-100%);isolation:isolate}
+html[data-lite-desktop="true"] .pet-presence{width:40px;height:40px;transform:translate(-50%,-100%);isolation:isolate}
 html[data-lite-desktop="true"] .pet-presence[hidden]{display:none}
-html[data-lite-desktop="true"] .panda-button{width:80px;height:80px;scale:1;transform:none;animation:none;touch-action:none}
+html[data-lite-desktop="true"] .panda-button{width:40px;height:40px;scale:1;transform:none;animation:none;touch-action:none}
 html[data-lite-desktop="true"] .panda-button:hover,
 html[data-lite-desktop="true"] .panda-button:active{scale:1;transform:none}
-html[data-lite-desktop="true"] .panda-character{width:80px;height:80px;animation:none;transform:none;filter:none}
+html[data-lite-desktop="true"] .panda-character{width:40px;height:40px;animation:none;transform:none;filter:none}
 html[data-lite-desktop="true"] [data-facing="left"] .panda-character{transform:scaleX(-1)}
 html[data-lite-desktop="true"] [data-dragging="true"] .panda-button{cursor:grabbing}
-html[data-lite-desktop="true"] .pet-shadow{bottom:0;animation:none;scale:.6}
+html[data-lite-desktop="true"] .pet-shadow{bottom:0;animation:none;scale:.3}
 html[data-lite-desktop="true"] [data-dragging="true"] .pet-shadow{opacity:0}
-html[data-lite-desktop="true"] .speech-bubble{width:210px;max-width:calc(100vw - 16px);bottom:88px}
-html[data-lite-desktop="true"] [data-room-bubble="below"] .speech-bubble{top:88px;bottom:auto}
+html[data-lite-desktop="true"] .speech-bubble{width:210px;max-width:calc(100vw - 16px);bottom:48px}
+html[data-lite-desktop="true"] [data-room-bubble="below"] .speech-bubble{top:48px;bottom:auto}

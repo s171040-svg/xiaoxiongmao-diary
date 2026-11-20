@@ -47,6 +47,12 @@ async function run() {
   await pet.waitForLoadState("domcontentloaded");
   await room.waitForLoadState("domcontentloaded");
   await pet.emulateMedia({ reducedMotion: "no-preference" });
+  for (const selector of [".pet-presence", "#panda", "#panda-sprite"]) {
+    const size = await pet.locator(selector).evaluate(el => {
+      const rect = el.getBoundingClientRect(); return { width: rect.width, height: rect.height };
+    });
+    assert.deepEqual(size, { width: 40, height: 40 }, `${selector} is half the previous 80px desktop size`);
+  }
   await application.evaluate(({ screen, BrowserWindow }) => {
     screen.getCursorScreenPoint = () => ({ x: -1000, y: -1000 });
     const win = BrowserWindow.getAllWindows().find(w => w.webContents.getURL().includes("pet.html"));
