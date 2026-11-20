@@ -1,6 +1,6 @@
 "use strict";
 const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, screen, dialog } = require("electron");
-const { execFile } = require("node:child_process");
+const { createScanner, localWindows } = require("./windows-platforms.cjs");
 const path = require("node:path");
 const fs = require("node:fs");
 const { classify } = require("./ai.cjs");
@@ -25,16 +25,12 @@ let saveTimer;
 let companionEffect = { stage: "present", action: "idle", duration: 3000, token: 0 };
 let chatCalls = [];
 let desktopWindowRects = [];
-let obstaclePollTimer;
-let obstaclePollInFlight = false;
-let obstacleScanWarned = false;
-let obstacleScanFailed = false;
+let platformScanner;
+let platformRevision = 0;
 let journalWasVisible = false;
 const windowedPetWidth = 340, windowedPetHeight = 360;
 const fullDesktopMode = process.platform === "win32" && !process.env.REPL_ID;
 const useInlineGift = process.platform === "linux" && Boolean(process.env.REPL_ID);
-// V1 uses screen bounds only. Window enumeration must not freeze a desktop pet.
-const avoidDesktopWindows = false;
 const desktopVersion = require("../package.json").version;
 const nativeGiftWindowsEnabled = false; // Gifts stay in the room in the quiet first version.
 let desktopPetState = { mode: "desktop", characterId: "panda", identityReady: true, paused: false };
@@ -58,133 +54,25 @@ function returnPetHome() {
   publishPetState();
 }
 
-function windowScanScript() {
-  return `
-$ErrorActionPreference = 'SilentlyContinue'
-Add-Type -TypeDefinition @'
-using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Text;
-public static class PandaWindowBounds {
-  [StructLayout(LayoutKind.Sequential)]
-  private struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
-  private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
-  public sealed class WindowRect {
-    public int x { get; set; }
-    public int y { get; set; }
-    public int width { get; set; }
-    public int height { get; set; }
-  }
-  [DllImport("user32.dll")] private static extern bool SetProcessDPIAware();
-  [DllImport("user32.dll")] private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
-  [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr hWnd);
-  [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
-  [DllImport("user32.dll", CharSet=CharSet.Unicode)] private static extern int GetClassName(IntPtr hWnd, StringBuilder className, int maxCount);
-  [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
-  public static WindowRect[] GetWindows(int ownProcessId) {
-    try { SetProcessDPIAware(); } catch { }
-    var result = new List<WindowRect>();
-    EnumWindowsProc callback = (hWnd, lParam) => {
-      if (!IsWindowVisible(hWnd)) return true;
-      uint processId;
-      GetWindowThreadProcessId(hWnd, out processId);
-      if (processId == (uint)ownProcessId) return true;
-      var className = new StringBuilder(128);
-      GetClassName(hWnd, className, className.Capacity);
-      var name = className.ToString();
-      if (name == "Progman" || name == "WorkerW" || name == "Shell_TrayWnd" || name == "Shell_SecondaryTrayWnd") return true;
-      RECT rect;
-      if (!GetWindowRect(hWnd, out rect)) return true;
-      var width = rect.Right - rect.Left;
-      var height = rect.Bottom - rect.Top;
-      if (width < 48 || height < 48) return true;
-      result.Add(new WindowRect { x = rect.Left, y = rect.Top, width = width, height = height });
-      return true;
-    };
-    EnumWindows(callback, IntPtr.Zero);
-    GC.KeepAlive(callback);
-    return result.ToArray();
-  }
-}
-'@
-$windows = [PandaWindowBounds]::GetWindows(${process.pid})
-ConvertTo-Json -InputObject @($windows) -Compress
-`;
-}
-
 function sendPet(channel, value) {
   if (petWindow && !petWindow.isDestroyed()) petWindow.webContents.send(channel, value);
 }
 
-function clipToWorkArea(rect, area, scaleFactor = 1) {
-  const x = rect.x / scaleFactor - area.x;
-  const y = rect.y / scaleFactor - area.y;
-  const right = Math.min(area.width, x + rect.width / scaleFactor);
-  const bottom = Math.min(area.height, y + rect.height / scaleFactor);
-  const left = Math.max(0, x);
-  const top = Math.max(0, y);
-  if (right <= left || bottom <= top) return null;
-  return { x: left, y: top, width: right - left, height: bottom - top };
-}
-
-function collectDesktopObstacles() {
-  if (!avoidDesktopWindows || !fullDesktopMode) return [];
-  const display = screen.getPrimaryDisplay();
-  const area = display.workArea;
-  if (obstacleScanFailed) return [{ x: 0, y: 0, width: area.width, height: area.height }];
-  const obstacles = desktopWindowRects
-    .map((rect) => clipToWorkArea(rect, area, display.scaleFactor || 1))
-    .filter(Boolean);
-  for (const window of [journalWindow, giftWindow]) {
-    if (!window || window.isDestroyed() || !window.isVisible() || window.isMinimized()) continue;
-    const rect = window.getBounds();
-    const local = clipToWorkArea(rect, area);
-    if (local) obstacles.push(local);
-  }
-  return obstacles;
-}
-
-function publishDesktopObstacles() {
-  sendPet("desktop:obstacles", collectDesktopObstacles());
-}
-
-function pollDesktopWindows() {
-  if (!avoidDesktopWindows || !fullDesktopMode || obstaclePollInFlight || !petWindow || petWindow.isDestroyed()
-    || !petWindow.isVisible() || desktopPetState.mode !== "desktop") return;
-  obstaclePollInFlight = true;
-  execFile("powershell.exe", [
-    "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", windowScanScript(),
-  ], { windowsHide: true, timeout: 2500, maxBuffer: 256 * 1024 }, (error, stdout) => {
-    obstaclePollInFlight = false;
-    if (error) {
-      obstacleScanFailed = true;
-      if (!obstacleScanWarned) {
-        obstacleScanWarned = true;
-        console.warn("读取桌面应用窗口范围失败；为避免挡住工作内容，小熊猫暂时停止漫游。");
-      }
-      publishDesktopObstacles();
-      return;
-    }
+function platformSnapshot() {
+  let windows = [];
+  if (fullDesktopMode) {
     try {
-      const parsed = JSON.parse(stdout.trim() || "[]");
-      const rects = Array.isArray(parsed) ? parsed : parsed ? [parsed] : [];
-      desktopWindowRects = rects.filter((rect) => rect
-        && [rect.x, rect.y, rect.width, rect.height].every(Number.isFinite)
-        && rect.width > 0 && rect.height > 0);
-      obstacleScanFailed = false;
-      obstacleScanWarned = false;
+      windows = localWindows(desktopWindowRects, screen.getPrimaryDisplay().workArea,
+        rect => screen.screenToDipRect(null, rect));
     } catch {
-      obstacleScanFailed = true;
-      if (!obstacleScanWarned) {
-        obstacleScanWarned = true;
-        console.warn("读取桌面应用窗口范围失败；为避免挡住工作内容，小熊猫暂时停止漫游。");
-      }
-      publishDesktopObstacles();
-      return;
+      console.warn("窗口坐标暂不可用，桌宠仅沿任务栏活动。");
     }
-    publishDesktopObstacles();
-  });
+  }
+  return { revision: platformRevision, windows };
+}
+function publishDesktopPlatforms() {
+  platformRevision++;
+  sendPet("desktop:platforms", platformSnapshot());
 }
 function setMotion(value) {
   if (motion === value) return;
@@ -403,6 +291,10 @@ ipcMain.handle("desktop-pet:state", event => {
   if (!trusted(event, petWindow) && !trusted(event, journalWindow)) throw new Error("无效的桌宠请求");
   return desktopPetState;
 });
+ipcMain.handle("desktop-pet:platforms", event => {
+  if (!trusted(event, petWindow)) throw new Error("无效的平台请求");
+  return platformSnapshot();
+});
 ipcMain.on("desktop-pet:character", (event, value) => {
   if (!trusted(event, journalWindow) || !value || !["panda", "xiaobai"].includes(value.characterId)
     || typeof value.ready !== "boolean") return;
@@ -512,23 +404,26 @@ else {
       publishPetState();
       sendPet("companion:motion", companionEffect);
       if (useInlineGift) sendPet("gift:state", giftState?.gift ? giftState : null);
-      publishDesktopObstacles();
+      publishDesktopPlatforms();
     });
     if (fullDesktopMode) {
       screen.on("display-metrics-changed", () => {
         if (!petWindow || petWindow.isDestroyed()) return;
         petWindow.setBounds(screen.getPrimaryDisplay().workArea);
-        publishDesktopObstacles();
+        publishDesktopPlatforms();
       });
-      if (avoidDesktopWindows) {
-        obstaclePollTimer = setInterval(pollDesktopWindows, 1200);
-        pollDesktopWindows();
-      }
+      platformScanner = createScanner({
+        onSnapshot(windows) { desktopWindowRects = windows; publishDesktopPlatforms(); },
+        onFailure() { console.warn("窗口上沿检测暂不可用，桌宠将落到任务栏继续活动并自动重试。"); },
+      });
+      petWindow.on("hide", () => platformScanner.stop());
+      petWindow.on("show", () => platformScanner.start());
+      platformScanner.start();
     }
     // Keep the local companion clock alive without displaying the chat page.
     openJournal(false);
     const menu = Menu.buildFromTemplate([
-      { label: `小熊猫日记 v${desktopVersion} · 桌面行走修复版`, enabled: false },
+      { label: `小熊猫日记 v${desktopVersion} · 横线平台桌宠`, enabled: false },
       { type: "separator" },
       { label: "回家（打开养成房间）", click: () => returnPetHome() },
       { label: "显示桌宠", click: () => showDesktopPet() },
@@ -552,13 +447,13 @@ else {
       console.warn("系统托盘不可用，可右键小熊猫打开日记或退出。");
     }
     tick = setInterval(() => { updatePet(); updateGiftHit(); }, 80);
-    console.info(`精简桌宠 v${desktopVersion} 已启动（仅屏幕边界）；单击询问是否回家，长按可拖动。`);
+    console.info(`平台桌宠 v${desktopVersion} 已启动（任务栏与窗口上沿）；单击询问是否回家，长按可拖动。`);
   }).catch((error) => { console.error("桌宠启动失败：", error.message); app.quit(); });
 }
 app.on("before-quit", () => {
   quitting = true;
   clearInterval(tick);
-  clearInterval(obstaclePollTimer);
+  platformScanner?.stop();
   clearTimeout(saveTimer);
 });
 app.on("window-all-closed", () => {});

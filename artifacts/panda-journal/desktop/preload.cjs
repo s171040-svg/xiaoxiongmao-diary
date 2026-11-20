@@ -11,6 +11,8 @@ function subscribe(channel, callback) {
 contextBridge.exposeInMainWorld("pandaDesktop", {
   desktopPetState: () => ipcRenderer.invoke("desktop-pet:state"),
   onDesktopPetState: (callback) => subscribe("desktop-pet:state", callback),
+  desktopPlatforms: () => ipcRenderer.invoke("desktop-pet:platforms"),
+  onDesktopPlatforms: (callback) => subscribe("desktop:platforms", callback),
   syncDesktopCharacter: (selection) => ipcRenderer.send("desktop-pet:character", selection),
   enterDesktop: () => ipcRenderer.invoke("desktop-pet:enter"),
   returnHome: () => ipcRenderer.invoke("desktop-pet:home"),

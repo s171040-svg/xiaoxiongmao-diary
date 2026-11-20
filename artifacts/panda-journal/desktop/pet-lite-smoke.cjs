@@ -6,7 +6,7 @@ const os = require("node:os");
 const path = require("node:path");
 const http = require("node:http");
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), "panda-lite-native-"));
-const output = path.resolve(__dirname, "../../../generated-artifacts/desktop-walking-v1");
+const output = path.resolve(__dirname, "../../../generated-artifacts/desktop-platforms-v020");
 fs.mkdirSync(output, { recursive: true });
 const executable = process.env.PATH.split(path.delimiter).filter(d => !d.includes("node_modules"))
   .map(d => path.join(d, "electron")).find(p => fs.existsSync(p)) || require("electron");
@@ -77,9 +77,58 @@ async function run() {
   await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.motion === "walk");
   const start = await position();
   await until(async () => {
-    const now = await position(); return Math.hypot(now.x - start.x, now.y - start.y) > 6;
+    const now = await position(); assert.equal(now.y, start.y, "taskbar walking is horizontal");
+    return Math.abs(now.x - start.x) > 6;
   }, "pet still walks when a failed Windows scan reported the entire screen blocked");
   assert((await state()).ignored, "empty desktop passes mouse input through");
+  let revision = 10000;
+  async function platforms(windows) {
+    await application.evaluate(({ BrowserWindow }, snapshot) => {
+      BrowserWindow.getAllWindows().find(w => w.webContents.getURL().includes("pet.html"))
+        .webContents.send("desktop:platforms", snapshot);
+    }, { revision: revision++, windows });
+    // Bounds-only test windows for screenshots, not a production UI.
+    await pet.evaluate(windows => {
+      document.querySelectorAll(".test-window").forEach(el => el.remove());
+      for (const w of windows) {
+        const el = document.createElement("div"); el.className = "test-window";
+        el.textContent = "模拟窗口上沿";
+        el.style.cssText = `position:fixed;pointer-events:none;left:${w.x}px;top:${w.y}px;width:${w.width}px;height:${w.height}px;border-top:2px solid #877d67;background:#eee8d9;color:#746c5a;font-size:12px;z-index:-1;padding:8px;box-sizing:border-box`;
+        document.body.append(el);
+      }
+    }, windows);
+  }
+  const upper = { id: "111", x: 70, y: 120, width: 210, height: 100, z: 0 };
+  const lower = { id: "222", x: 40, y: 240, width: 260, height: 90, z: 1 };
+  await platforms([upper, lower]);
+  const initialBox = await pet.locator("#panda").boundingBox();
+  await pet.mouse.move(initialBox.x + 20, initialBox.y + 20); await pet.mouse.down();
+  await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.dragging === "true");
+  await pet.mouse.move(170, 60, { steps: 5 }); await pet.mouse.up();
+  await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.platform === "111");
+  assert.equal((await position()).y, 120, "release falls onto upper window, not its titlebar bottom");
+  await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.motion === "walk");
+  const upperStart = await position();
+  await until(async () => {
+    const p = await position(); assert.equal(p.y, 120);
+    return Math.abs(p.x - upperStart.x) > 3;
+  }, "walks horizontally on a window top");
+  await pet.screenshot({ path: path.join(output, "native-window-platform.png") });
+  const beforeMove = await position();
+  await platforms([{ ...upper, x: 90, y: 140 }, lower]);
+  await until(async () => (await position()).y === 140, "standing pet follows its moved window");
+  assert(Math.abs((await position()).x - beforeMove.x - 20) < 2);
+  const beforeClose = await position();
+  await platforms([lower]);
+  await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.falling === "true");
+  assert(Math.abs((await position()).x - beforeClose.x) < .1, "window close does not cause sideways motion");
+  await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.platform === "222");
+  assert.equal((await position()).y, 240);
+  assert(Math.abs((await position()).x - beforeClose.x) < .1, "lands on the nearest platform directly below");
+  await pet.screenshot({ path: path.join(output, "native-lower-platform.png") });
+  await platforms([]);
+  await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.platform === "taskbar");
+  assert.equal((await position()).y, 360, "no window beneath means landing at taskbar");
   await pet.locator("#panda").click();
   await pet.locator("#speech").waitFor({ state: "visible" });
   assert.equal(await pet.locator("#speech-copy").textContent(), "要回家吗？");
@@ -120,7 +169,7 @@ async function run() {
   });
   await until(async () => { const s = await state(); return s.pet && !s.room; }, "closing room keeps the desktop pet alive");
   assert.deepEqual(errors, []);
-  console.log("PASS native walking, pass-through, click/cancel, drag, role sync, room-event isolation, reduced motion, home/desktop/close.");
+  console.log("PASS horizontal taskbar/window walking, moved support, vertical falls to lower window/taskbar, 40px size, pass-through, drag, role sync and home.");
 }
 run().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {
   if (application) await application.close().catch(() => {});

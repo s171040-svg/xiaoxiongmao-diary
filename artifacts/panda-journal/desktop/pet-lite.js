@@ -1,8 +1,8 @@
-/* First desktop version: quiet walking, rest, drag and an explicit return-home prompt.
+/* Desktop-only platforms: horizontal walking, gravity, drag and return home.
  * Room gifts, falls, toys and AI performances intentionally do not drive this layer. */
 (() => {
   "use strict";
-  const bridge = window.pandaDesktop, model = window.PandaDesktopPet;
+  const bridge = window.pandaDesktop, model = window.PandaDesktopPet, geometry = window.PandaDesktopPlatforms;
   const actor = document.getElementById("panda"), image = document.getElementById("panda-sprite");
   const presence = document.querySelector(".pet-presence");
   const bubble = document.getElementById("speech"), copy = document.getElementById("speech-copy");
@@ -13,7 +13,9 @@
   home.textContent = "回家"; stay.textContent = "再玩一会儿";
   actor.setAttribute("aria-label", "点击询问是否回家；长按可拖动");
   let state = { mode: "desktop", characterId: "panda", paused: false, identityReady: false };
-  let manifest = { frameCount: 4 }, point = model.constrain({ x: innerWidth * .65, y: innerHeight * .75 }, innerWidth, innerHeight);
+  let windows = [], surfaces = geometry.platforms([], innerWidth, innerHeight);
+  let support = surfaces[0], velocity = 0, platformRevision = -1;
+  let manifest = { frameCount: 4 }, point = { x: innerWidth * .65, y: support.y };
   let destination = null, frame = 0, lastFrame = 0, previous = performance.now();
   let motion = "idle", nextWalk = performance.now() + 1800, press = null, held = false, suppressClickUntil = 0;
   let promptOpen = false, disposed = false;
@@ -25,6 +27,8 @@
     presence.dataset.character = state.characterId;
     presence.dataset.dragging = String(held);
     presence.dataset.paused = String(state.paused);
+    presence.dataset.platform = support?.ownerId || "";
+    presence.dataset.falling = String(!support && !held);
     presence.dataset.roomSide = point.x < innerWidth / 2 ? "left" : "right";
     presence.dataset.roomBubble = point.y < 175 ? "below" : "above";
     const transitionIndex = Math.floor((performance.now() - transitionStartedAt) / 75);
@@ -62,7 +66,7 @@
   document.addEventListener("keydown", e => { if (e.key === "Escape") closePrompt(); });
   function beginDrag() {
     if (!press) return;
-    held = true; destination = null; closePrompt(); setMotion("grab");
+    held = true; support = null; velocity = 0; destination = null; closePrompt(); setMotion("grab");
     bridge.setPetDragging(true);
     bridge.setIgnoreMouseEvents(false);
     render();
@@ -77,7 +81,7 @@
     if (!press || press.id !== e.pointerId) return;
     press.x = e.clientX; press.y = e.clientY;
     if (!held) return;
-    point = model.constrain({ x: press.x - press.offsetX, y: press.y - press.offsetY }, innerWidth, innerHeight);
+    point = geometry.constrain({ x: press.x - press.offsetX, y: press.y - press.offsetY }, innerWidth, innerHeight);
     render(); publishRegions();
   });
   function endDrag(e) {
@@ -85,7 +89,8 @@
     clearTimeout(press.timer); press = null;
     if (held) {
       held = false; suppressClickUntil = performance.now() + 450;
-      bridge.setPetDragging(false); setMotion("idle"); nextWalk = performance.now() + 2000;
+      support = geometry.supportAt(point, surfaces); velocity = 0;
+      bridge.setPetDragging(false); setMotion(support ? "idle" : "grab"); nextWalk = performance.now() + 2000;
     }
     render(); publishRegions();
   }
@@ -119,6 +124,17 @@
     render(); publishRegions();
   }
   unsubs.push(bridge.onDesktopPetState(applyState));
+  function applyPlatforms(snapshot) {
+    if (!snapshot || !Number.isFinite(snapshot.revision) || snapshot.revision < platformRevision
+      || !Array.isArray(snapshot.windows)) return;
+    platformRevision = snapshot.revision;
+    windows = snapshot.windows;
+    surfaces = geometry.platforms(windows, innerWidth, innerHeight);
+  }
+  unsubs.push(bridge.onDesktopPlatforms(applyPlatforms));
+  void bridge.desktopPlatforms().then(applyPlatforms).catch(() => {
+    console.error("桌面平台资料暂不可用，将仅沿任务栏活动。");
+  });
   void bridge.desktopPetState().then(applyState);
   fetch("../src/lib/panda-animation-manifest.json").then(r => {
     if (!r.ok) throw new Error("Animation manifest missing");
@@ -130,11 +146,28 @@
   function tick(now) {
     const delta = (now - previous) / 1000; previous = now;
     let needsRender = transitionFrames.length > 0;
-    const active = state.mode === "desktop" && state.identityReady && !state.paused && !preference.matches
-      && document.visibilityState !== "hidden" && !held && !promptOpen && !press;
+    const physical = state.mode === "desktop" && state.identityReady
+      && document.visibilityState !== "hidden" && !held && !press;
+    if (physical) {
+      const tracked = geometry.track(point, support, surfaces);
+      const moved = tracked.point.x !== point.x || tracked.point.y !== point.y;
+      if (support && (!tracked.support || moved)) {
+        destination = null; velocity = 0; nextWalk = now + 1500;
+        setMotion(tracked.support ? "idle" : "grab");
+      }
+      point = tracked.point; support = tracked.support;
+      if (!support) {
+        const falling = geometry.fall(point, velocity, delta, surfaces, preference.matches);
+        point = falling.point; velocity = falling.velocity; support = falling.support;
+        destination = null; nextWalk = now + 1500;
+        setMotion(support ? "idle" : "grab");
+        needsRender = true;
+      } else if (moved) needsRender = true;
+    }
+    const active = physical && support && !state.paused && !preference.matches && !promptOpen;
     if (active) {
       if (!destination && now >= nextWalk) {
-        destination = model.target(point, innerWidth, innerHeight);
+        destination = geometry.walkTarget(point, support);
         if (destination) {
           presence.dataset.facing = destination.x < point.x ? "left" : "right";
           setMotion("walk");
@@ -142,14 +175,14 @@
       }
       if (destination && !transitionFrames.length) {
         const step = model.advance(point, destination, delta, state.characterId);
-        point = model.constrain(step.point, innerWidth, innerHeight);
+        point = { x: Math.min(support.right, Math.max(support.left, step.point.x)), y: support.y };
         needsRender = true;
         if (step.arrived) {
           destination = null; nextWalk = now + 4500 + Math.random() * 5500;
           setMotion(Math.random() < .2 ? "sleep" : "idle");
         }
       }
-    } else if (!held && !promptOpen && (state.paused || preference.matches)) {
+    } else if (support && !held && !promptOpen && (state.paused || preference.matches)) {
       destination = null; setMotion("idle");
     }
     const interval = motion === "walk" ? state.characterId === "xiaobai" ? 140 : 180
@@ -166,7 +199,8 @@
     console.error("桌宠素材加载失败：", image.getAttribute("src"));
   });
   window.addEventListener("resize", () => {
-    point = model.constrain(point, innerWidth, innerHeight); destination = null; render(); publishRegions();
+    surfaces = geometry.platforms(windows, innerWidth, innerHeight);
+    point = geometry.constrain(point, innerWidth, innerHeight); destination = null; render(); publishRegions();
   });
   const hitTimer = setInterval(publishRegions, 100);
   window.addEventListener("beforeunload", () => {

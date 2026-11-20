@@ -67,7 +67,7 @@ async function main() {
   fs.mkdirSync(outputRoot, { recursive: true });
 
   for (const file of ["main.cjs", "preload.cjs", "pet.html", "pet.css", "pet-renderer.js", "roaming-geometry.js",
-    "pet-lite.js", "pet-lite-model.js", "pet-lite.css"]) {
+    "pet-lite.js", "pet-lite-model.js", "pet-lite.css", "platform-model.js", "windows-platforms.cjs"]) {
     fs.copyFileSync(path.join(__dirname, file), path.join(stageRoot, "desktop", file));
   }
   copyDirectory(path.join(packageRoot, "dist", "desktop"), path.join(stageRoot, "dist", "desktop"));
@@ -165,7 +165,7 @@ async function main() {
     version: packageInfo.version,
     sourceRevision: process.env.GITHUB_SHA || "local-build",
     buildRun: process.env.GITHUB_RUN_NUMBER || null,
-    movement: "screen-bounds-only",
+    movement: "taskbar-and-window-top-platforms",
     installers: installers.map(file => ({ file: path.basename(file), bytes: fs.statSync(file).size })),
   }, null, 2)}\n`);
   console.log(`Windows installer created:\n${installers.join("\n")}`);

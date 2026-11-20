@@ -10,7 +10,8 @@ html[data-lite-desktop="true"] .pet-presence[hidden]{display:none}
 html[data-lite-desktop="true"] .panda-button{width:40px;height:40px;scale:1;transform:none;animation:none;touch-action:none}
 html[data-lite-desktop="true"] .panda-button:hover,
 html[data-lite-desktop="true"] .panda-button:active{scale:1;transform:none}
-html[data-lite-desktop="true"] .panda-character{width:40px;height:40px;animation:none;transform:none;filter:none}
+/* Both current sprite sets use a 96px canvas with the ground baseline at y=88. */
+html[data-lite-desktop="true"] .panda-character{position:relative;top:3.333px;width:40px;height:40px;animation:none;transform:none;filter:none}
 html[data-lite-desktop="true"] [data-facing="left"] .panda-character{transform:scaleX(-1)}
 html[data-lite-desktop="true"] [data-dragging="true"] .panda-button{cursor:grabbing}
 html[data-lite-desktop="true"] .pet-shadow{bottom:0;animation:none;scale:.3}

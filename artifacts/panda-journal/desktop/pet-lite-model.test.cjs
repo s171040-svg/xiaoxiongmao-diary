@@ -31,38 +31,22 @@ test("walking has a constant gentle speed and Xiaobai is slightly slower", () =>
   assert(model.advance(from, { x: .1, y: 0 }, .04, "panda").arrived);
 });
 
-test("dragged pets stay within the screen work area, including small previews", () => {
-  for (const [width, height] of [[1920, 1080], [340, 360], [70, 70]]) {
-    const p = model.constrain({ x: -10000, y: 10000 }, width, height);
-    assert(p.x >= 0 && p.x <= width && p.y >= 0 && p.y <= height);
-  }
-});
-
-test("first-version walking only depends on work-area bounds, not app windows", () => {
-  for (const [width, height] of [[1920, 1080], [340, 360], [1280, 720]]) {
-    for (const start of [{ x: width * .65, y: height * .75 }, { x: 42, y: 86 },
-      { x: width - 42, y: height - 18 }]) {
-      const end = model.target(start, width, height);
-      assert(end, "an ordinary desktop can always offer a walking target");
-      assert(Math.hypot(end.x - start.x, end.y - start.y) >= 20);
-      const b = model.bounds(width, height);
-      assert(end.x >= b.left && end.x <= b.right && end.y >= b.top && end.y <= b.bottom);
-    }
-  }
+test("desktop no longer has an arbitrary two-dimensional walk target", () => {
+  assert.equal(model.target, undefined);
   const renderer = fs.readFileSync(path.join(__dirname, "pet-lite.js"), "utf8");
   assert(!renderer.includes("onDesktopObstacles"), "stale/failed window scans cannot stop the renderer");
-  const main = fs.readFileSync(path.join(__dirname, "main.cjs"), "utf8");
-  assert(main.includes("const avoidDesktopWindows = false"), "Windows scanning stays disabled in v1");
+  assert(renderer.includes("geometry.walkTarget(point, support)"));
 });
 
 test("the installer staging list includes every new renderer dependency", () => {
   const packageScript = fs.readFileSync(path.join(__dirname, "package-win.cjs"), "utf8");
   const html = fs.readFileSync(path.join(__dirname, "pet.html"), "utf8");
-  for (const file of ["pet-lite.js", "pet-lite.css", "pet-lite-model.js"]) {
+  for (const file of ["pet-lite.js", "pet-lite.css", "pet-lite-model.js", "platform-model.js"]) {
     assert(packageScript.includes(`"${file}"`));
     assert(html.includes(`./${file}`));
     assert(fs.existsSync(path.join(__dirname, file)));
   }
+  assert(packageScript.includes('"windows-platforms.cjs"'));
 });
 
 test("rest and lift transitions reuse real existing intermediate images", () => {
