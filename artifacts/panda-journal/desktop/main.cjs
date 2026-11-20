@@ -2,10 +2,10 @@
 const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, screen, dialog } = require("electron");
 const { createScanner, localWindows } = require("./windows-platforms.cjs");
 const path = require("node:path");
-const fs = require("node:fs");
 const { classify } = require("./ai.cjs");
 const { chat } = require("@workspace/companion-ai");
 const createTrayIcon = require("./tray-icon.cjs");
+const journalConnection = require("./journal-connection.cjs");
 
 app.setName("小熊猫日记");
 if (process.env.PANDA_PROFILE_DIR) app.setPath("userData", path.resolve(process.env.PANDA_PROFILE_DIR));
@@ -33,13 +33,14 @@ const fullDesktopMode = process.platform === "win32" && !process.env.REPL_ID;
 const useInlineGift = process.platform === "linux" && Boolean(process.env.REPL_ID);
 const desktopVersion = require("../package.json").version;
 const nativeGiftWindowsEnabled = false; // Gifts stay in the room in the quiet first version.
-let desktopPetState = { mode: "desktop", characterId: "panda", identityReady: true, paused: false, quietMode: false };
+let desktopPetState = { mode: "desktop", characterId: "panda", identityReady: false, identityStatus: "loading", paused: false, quietMode: false };
 let petDragging = false;
 function publishPetState() {
   sendPet("desktop-pet:state", desktopPetState);
   if (journalWindow && !journalWindow.isDestroyed()) journalWindow.webContents.send("desktop-pet:state", desktopPetState);
 }
 function showDesktopPet() {
+  if (!desktopPetState.identityReady) { returnPetHome(); return; }
   desktopPetState.mode = "desktop";
   hideJournal();
   petWindow?.showInactive();
@@ -158,7 +159,7 @@ function hideJournal() {
   roam = null;
   restUntil = Date.now() + 3000;
   setMotion("idle");
-  if (desktopPetState.mode === "room") {
+  if (desktopPetState.mode === "room" && desktopPetState.identityReady) {
     desktopPetState.mode = "desktop";
     petWindow?.showInactive();
     publishPetState();
@@ -186,24 +187,39 @@ function openJournal(show = true) {
       },
     });
     // Only the first-party journal is loaded; secrets are never exposed to it.
-    const url = process.env.PANDA_JOURNAL_URL
-      || (development ? (process.env.REPL_ID ? "http://localhost:80/" : "http://localhost:21836/") : null);
+    let url;
+    try {
+      url = process.env.PANDA_JOURNAL_URL
+        || (development ? (process.env.REPL_ID ? "http://localhost:80/" : "http://localhost:21836/")
+          : journalConnection.readTarget(app.getPath("userData")).url);
+    } catch (error) {
+      dialog.showErrorBox("无法连接网页版房间", error.message);
+      journalWindow.destroy();
+      return;
+    }
     if (url) {
       const parsed = new URL(url);
       if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("Invalid journal URL");
       secureWindow(journalWindow, parsed.origin);
       if (parsed.pathname === "/") parsed.pathname = "/room";
-      journalWindow.loadURL(parsed.href).catch(() => dialog.showErrorBox("日记页面暂时没有打开", "请确认日记网页服务正在运行，再重新打开。"));
-    } else {
-      const file = path.join(__dirname, "../dist/desktop/index.html");
-      if (!fs.existsSync(file)) {
-        dialog.showErrorBox("还没有构建日记页面", "请先运行 pnpm --filter @workspace/panda-journal run desktop:build。");
-        journalWindow.destroy();
-        return;
-      }
-      secureWindow(journalWindow, "null");
-      journalWindow.loadFile(file);
+      journalWindow.loadURL(parsed.href).catch(() => {
+        dialog.showErrorBox("网页版房间暂时没有打开", "请检查网络，或从系统托盘选择与你浏览器一致的网页版房间。读取不到角色时，桌宠不会显示成另一只。");
+        if (journalWindow && !journalWindow.isDestroyed()) journalWindow.show();
+      });
     }
+    const invalidateCharacter = () => {
+      desktopPetState.identityReady = false;
+      desktopPetState.identityStatus = "loading";
+      petWindow?.hide();
+      publishPetState();
+    };
+    journalWindow.webContents.on("did-start-navigation", (_event, _url, _inPlace, isMainFrame) => {
+      if (isMainFrame) invalidateCharacter();
+    });
+    journalWindow.webContents.on("render-process-gone", () => {
+      invalidateCharacter();
+      dialog.showErrorBox("房间连接已中断", "桌宠已暂时隐藏，避免显示错误角色。请从托盘重新打开房间。");
+    });
     journalWindow.once("ready-to-show", () => {
       if (shouldShow) { journalWindow.show(); journalWindow.focus(); }
       else journalWindow.webContents.send("companion:visibility", false);
@@ -299,13 +315,26 @@ ipcMain.handle("desktop-pet:platforms", event => {
 ipcMain.on("desktop-pet:character", (event, value) => {
   if (!trusted(event, journalWindow) || !value || !["panda", "xiaobai"].includes(value.characterId)
     || typeof value.ready !== "boolean") return;
-  desktopPetState.characterId = value.characterId;
-  desktopPetState.identityReady = value.ready;
+  const wasReady = desktopPetState.identityReady;
+  const ready = value.status === "ready" && value.ready === true;
+  if (ready) desktopPetState.characterId = value.characterId;
+  desktopPetState.identityReady = ready;
+  desktopPetState.identityStatus = typeof value.status === "string" ? value.status : "outdated";
+  if (!ready) {
+    petWindow?.hide();
+    if (value.status !== "loading" && desktopPetState.mode !== "room") {
+      desktopPetState.mode = "room";
+      openJournal();
+    }
+  } else if (!wasReady && desktopPetState.mode === "desktop") petWindow?.showInactive();
   publishPetState();
 });
 ipcMain.handle("desktop-pet:enter", event => {
   if (!trusted(event, journalWindow)) throw new Error("请从房间开启桌宠");
-  if (!desktopPetState.identityReady) throw new Error("请先完成角色选择，或等待角色资料读取完成");
+  if (!desktopPetState.identityReady) {
+    if (desktopPetState.identityStatus === "outdated") throw new Error("当前网页版尚未更新角色同步，请更新网页版，或在托盘连接当前测试房间。");
+    throw new Error("请先登录与网页相同的账号并读取已选角色，再开启桌宠。");
+  }
   showDesktopPet();
   return desktopPetState;
 });
@@ -389,6 +418,7 @@ else {
     petWindow = new BrowserWindow({
       ...initialBounds,
       transparent: !useInlineGift, frame: false, alwaysOnTop: true, skipTaskbar: true,
+      show: false,
       resizable: false, hasShadow: false, backgroundColor: useInlineGift ? "#dfd4b9" : "#00000000",
       webPreferences: {
         preload: path.join(__dirname, "preload.cjs"), contextIsolation: true,
@@ -427,7 +457,25 @@ else {
       { label: `小熊猫日记 v${desktopVersion} · 横线平台桌宠`, enabled: false },
       { type: "separator" },
       { id: "return-home", label: "回家（打开养成房间）", click: () => returnPetHome() },
-      { label: "显示桌宠", click: () => showDesktopPet() },
+      { id: "show-desktop", label: "显示桌宠", click: () => showDesktopPet() },
+      { label: "连接网页版房间…", enabled: !development && !process.env.PANDA_JOURNAL_URL, click: async () => {
+        const owner = journalWindow && !journalWindow.isDestroyed() ? journalWindow : petWindow;
+        const { response } = await dialog.showMessageBox(owner, {
+          type: "question", title: "使用与网页相同的房间",
+          message: "请选择你在浏览器中玩的版本，并在客户端登录同一个账号。",
+          detail: "测试版与正式版的账号和数据相互独立。这里只切换连接，不修改已选角色，也不删除任何养成记录。",
+          buttons: [...journalConnection.targets.map(target => target.label), "取消"],
+          defaultId: 0, cancelId: journalConnection.targets.length,
+        });
+        if (response >= journalConnection.targets.length) return;
+        try {
+          journalConnection.saveTarget(app.getPath("userData"), journalConnection.targets[response].id);
+          desktopPetState.identityReady = false; desktopPetState.mode = "room";
+          petWindow?.hide(); publishPetState();
+          journalWindow?.destroy(); journalWindow = null;
+          openJournal();
+        } catch (error) { dialog.showErrorBox("房间连接未更改", error.message); }
+      } },
       { id: "quiet-mode", label: "安静模式", type: "checkbox", click: () => {
         desktopPetState.quietMode = !desktopPetState.quietMode;
         desktopPetState.paused = false;

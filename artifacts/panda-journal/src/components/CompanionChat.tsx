@@ -40,6 +40,7 @@ const devPoseOptions: { pose: DeveloperPose; label: string }[] = [
   { pose: 'bored-searching', label: '无聊地趴在工具栏找玩家' },
 ];
 const devEventOptions: { event: DeveloperEvent; label: string; durationMs: number; persistent?: boolean }[] = [
+  { event: 'dream', label: '做梦（随机像素梦境）', durationMs: 15000, persistent: true },
   { event: 'punch', label: '挨一拳：后仰倒地再爬起', durationMs: 2000 },
   { event: 'startle', label: '被吓一跳', durationMs: 1150 },
   { event: 'grab', label: '被提起发懵', durationMs: 2500 },

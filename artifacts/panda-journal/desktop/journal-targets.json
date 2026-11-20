@@ -1,0 +1,15 @@
+{
+  "defaultTarget": "preview",
+  "targets": [
+    {
+      "id": "preview",
+      "label": "当前测试房间",
+      "url": "https://7656f5f2-f8c1-442e-b040-96d97d308f6c-00-397twabse1t59.sisko.replit.dev/room"
+    },
+    {
+      "id": "production",
+      "label": "正式发布房间",
+      "url": "https://mao-mao-mao-mao-mao.replit.app/room"
+    }
+  ]
+}

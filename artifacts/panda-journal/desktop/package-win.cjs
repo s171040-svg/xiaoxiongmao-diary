@@ -67,7 +67,8 @@ async function main() {
   fs.mkdirSync(outputRoot, { recursive: true });
 
   for (const file of ["main.cjs", "preload.cjs", "pet.html", "pet.css", "pet-renderer.js", "roaming-geometry.js",
-    "pet-lite.js", "pet-lite-model.js", "pet-lite.css", "platform-model.js", "windows-platforms.cjs"]) {
+    "pet-lite.js", "pet-lite-model.js", "pet-lite.css", "platform-model.js", "windows-platforms.cjs",
+    "journal-connection.cjs", "journal-targets.json"]) {
     fs.copyFileSync(path.join(__dirname, file), path.join(stageRoot, "desktop", file));
   }
   copyDirectory(path.join(packageRoot, "dist", "desktop"), path.join(stageRoot, "dist", "desktop"));

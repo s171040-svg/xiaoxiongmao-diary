@@ -28,7 +28,7 @@
 .cc-danger,.cc-confirm .cc-danger{background:#ed8177!important;color:#3f241e!important;box-shadow:inset -3px -3px 0 #bf5148,inset 3px 3px 0 #ffb4a5}
 button:disabled{opacity:.55}
 .cc-app button:focus-visible,.cc-dialog button:focus-visible{outline:3px solid #fff3b0!important;outline-offset:2px}
-.cc-app button:not(.ps-panda):not(.ps-space-letter-box):not(.ps-room-waste):not(.ps-bath-ball):not(.ps-space-police-envelope):not(.rp-slot):not(.rp-reset),
+.cc-app button:not(.ps-panda):not(.pd-dream):not(.ps-space-letter-box):not(.ps-room-waste):not(.ps-bath-ball):not(.ps-space-police-envelope):not(.rp-slot):not(.rp-reset),
 .cc-dialog button:not(.cc-icon),.memory-dialog button{
   border-radius:0!important;border-style:solid!important;border-width:3px!important;border-color:var(--px-edge)!important;
   font-family:var(--px-font)!important;image-rendering:pixelated;transition:none!important;

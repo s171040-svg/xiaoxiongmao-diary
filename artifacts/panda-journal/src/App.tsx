@@ -422,7 +422,8 @@ function Room() {
       {!hubOpen && <PetCharacterPicker compact onJoinHousehold={() => setHubOpen(true)} />}
       <header className="room-account-bar">
         {isDesktop() && <button type="button" className="room-coop-open"
-          disabled={petCharacter.isLoading || !!petCharacter.error || (petCharacter.isSignedIn && !petCharacter.selection?.locked)}
+          disabled={!petCharacter.isSignedIn || petCharacter.isLoading || !!petCharacter.error || !petCharacter.selection?.locked}
+          title={!petCharacter.isSignedIn ? '请先在客户端登录与网页相同的账号，同步已选伙伴' : undefined}
           onClick={async () => {
             setDesktopError('');
             try { await window.pandaDesktop!.enterDesktop(); }

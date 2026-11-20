@@ -46,6 +46,7 @@ async function run() {
   pet.on("pageerror", error => errors.push(error.message));
   await pet.waitForLoadState("domcontentloaded");
   await room.waitForLoadState("domcontentloaded");
+  await room.evaluate(() => window.pandaDesktop.syncDesktopCharacter({ characterId: "panda", ready: true, status: "ready" }));
   await pet.emulateMedia({ reducedMotion: "no-preference" });
   if (!process.env.PANDA_ONLY_WEB_TEST) {
   for (const selector of [".pet-presence", "#panda", "#panda-sprite"]) {
@@ -212,7 +213,7 @@ async function run() {
   await until(async () => { const s = await state(); return s.room && !s.pet; }, "panda returns home from right-click menu");
   await room.locator("#enter").click();
   await until(async () => { const s = await state(); return s.pet && !s.room; }, "panda re-enters desktop after right-click return");
-  await room.evaluate(() => window.pandaDesktop.syncDesktopCharacter({ characterId: "xiaobai", ready: true }));
+  await room.evaluate(() => window.pandaDesktop.syncDesktopCharacter({ characterId: "xiaobai", ready: true, status: "ready" }));
   await pet.waitForFunction(() => document.querySelector("#panda-sprite").src.includes("xiaobai"));
   await room.evaluate(() => window.pandaDesktop.companionMotion({ stage: "away", action: "idle", token: 1, duration: 3000 }));
   assert((await state()).pet, "room departures do not hide the walking desktop pet");

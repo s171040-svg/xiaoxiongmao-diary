@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { PetDreamBubble } from './PetDreamBubble';
+import { choosePetDream, DREAM_READY_MS, type PetDream } from '@/lib/pet-dreams';
 import { RoomAlarmClock } from './RoomAlarmClock';
 import { PetDepartureNotice } from './PetDepartureNotice';
 import { useCharacterAsset, useCharacterBody } from '@/hooks/use-character-art';
@@ -114,21 +116,6 @@ const STARTLE_DURATION_MS = 720;
 const ACTIVITY_SETTLE_MS = 320;
 const ACTIVITY_POSE_MS = 360;
 const CAT_TREE_SLEEP_MS = 5 * 60 * 1000;
-const PANDA_DREAM_READY_MS = 2 * 60 * 1000;
-const PANDA_DREAMS = [
-  '梦见自己坐着竹叶船顺河漂流，萤火虫一路替它照亮前方。',
-  '梦见月亮山长满了竹笋，月光闻起来像甜甜的蜂蜜。',
-  '梦见开了一家竹笋冰淇淋店，第一勺要留给你。',
-  '梦见一朵胖云变成软枕头，托着它慢慢飘过星星。',
-  '梦见竹林深处有间热乎乎的包子铺，蒸笼还会唱歌。',
-  '梦见和小鱼在星河里比赛，看谁先找到北极星。',
-  '梦见一颗会打呼噜的星星，和它一起打出轻轻的节拍。',
-  '梦见把森林里的露珠收集起来，做成闪闪发亮的玻璃珠。',
-  '梦见自己成了小小飞船船长，载着竹笋去拜访月亮。',
-  '梦见枕头长出翅膀，带它去看了一片会发光的海。',
-  '梦见和小鸟搭了一座树顶图书馆，每本书都藏着一片竹叶。',
-  '梦见云上开野餐会，它给每一朵云都分了一粒糖。',
-] as const;
 const CAT_TREE_AUTO_NAP_COOLDOWN_MS = 90 * 1000;
 const CAT_TREE_AUTO_NAP_CHANCE = 0.08;
 const WORLD_FALL_ANIMATION_MS = 1100;
@@ -394,11 +381,10 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const [activityState, setActivityState] = useState<RoomActivityState>('roaming');
   const [sleepingOnBed, setSleepingOnBed] = useState(false);
   const [sleepingInNest, setSleepingInNest] = useState(false);
-  const [dreamAvailable, setDreamAvailable] = useState(false);
-  const [dreamText, setDreamText] = useState<string | null>(null);
-  const [dreamOpen, setDreamOpen] = useState(false);
-  const dreamPopoverId = useId();
-  const previousDreamRef = useRef<string | null>(null);
+  const [dream, setDream] = useState<PetDream | null>(null);
+  const previousDreamRef = useRef<PetDream['id'] | undefined>(undefined);
+  const [dreamPreviewToken, setDreamPreviewToken] = useState<number | null>(null);
+  const handledDreamPreviewRef = useRef<number | null>(null);
   const [hangingOnRack, setHangingOnRack] = useState(false);
   const [hangingOnWindowHook, setHangingOnWindowHook] = useState(false);
   const hangingOnClothesRack = hangingOnRack && !hangingOnWindowHook;
@@ -1132,23 +1118,18 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   }, [interactionState, showInteractionBubble]);
   useEffect(() => {
     if (!showInteractionBubble || !isSleeping) {
-      setDreamAvailable(false);
-      setDreamText(null);
-      setDreamOpen(false);
+      setDream(null);
+      setDreamPreviewToken(null);
       return undefined;
     }
-    setDreamAvailable(false);
-    setDreamText(null);
-    setDreamOpen(false);
+    setDream(null);
     const timer = window.setTimeout(() => {
-      const options = PANDA_DREAMS.filter(dream => dream !== previousDreamRef.current);
-      const nextDream = options[Math.floor(Math.random() * options.length)] ?? PANDA_DREAMS[0];
-      previousDreamRef.current = nextDream;
-      setDreamText(nextDream);
-      setDreamAvailable(true);
-    }, PANDA_DREAM_READY_MS);
+      const nextDream = choosePetDream(previousDreamRef.current);
+      previousDreamRef.current = nextDream.id;
+      setDream(nextDream);
+    }, dreamPreviewToken === null ? DREAM_READY_MS : 0);
     return () => window.clearTimeout(timer);
-  }, [isSleeping, showInteractionBubble]);
+  }, [isSleeping, showInteractionBubble, dreamPreviewToken]);
   const isSleepingRef = useRef(isSleeping);
   isSleepingRef.current = isSleeping;
   const hoverCuddleVisible = showInteractionBubble && !equippedToy && hoverCuddleActive && pet.stage === 'present'
@@ -1983,6 +1964,12 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   useEffect(() => {
     if (!import.meta.env.DEV || !developerEvent || !showInteractionBubble
       || interactionStateRef.current === 'chat') return;
+    // A preview is a one-shot request. Changing pose/callbacks must not put a
+    // pet back to sleep after the user has already woken it.
+    if (developerEvent.event === 'dream') {
+      if (handledDreamPreviewRef.current === developerEvent.token) return;
+      handledDreamPreviewRef.current = developerEvent.token;
+    }
     window.clearTimeout(developerEventTimerRef.current);
     developerEventTimerRef.current = 0;
     setDeveloperGrab(false);
@@ -1992,6 +1979,10 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     setRoomWalking(false);
 
     switch (developerEvent.event) {
+      case 'dream':
+        setDreamPreviewToken(developerEvent.token);
+        setActivityState('sleeping');
+        break;
       case 'punch':
         startPunchReaction();
         break;
@@ -4480,37 +4471,9 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
               </button>
               )}
               {showInteractionBubble && interactionState !== 'chat' && isSleeping
-                && dreamAvailable && dreamText && (
-                <>
-                  <button type="button"
-                    className={`ps-dream-cloud ps-dream-cloud-${facing === 'left' ? 'left' : 'right'}${dreamOpen ? ' ps-dream-cloud-open' : ''}`}
-                    aria-label={dreamOpen ? '收起小熊猫的梦' : '查看小熊猫的梦'}
-                    aria-expanded={dreamOpen}
-                    aria-controls={dreamPopoverId}
-                    title={dreamOpen ? '收起梦境' : '点击查看小熊猫的梦'}
-                    data-testid="panda-dream-cloud"
-                    onPointerDown={event => event.stopPropagation()}
-                    onClick={event => {
-                      event.stopPropagation();
-                      setDreamOpen(open => !open);
-                    }}>
-                    <span aria-hidden="true">☁️</span>
-                  </button>
-                  {dreamOpen && (
-                    <div id={dreamPopoverId}
-                      className={`ps-dream-popover ps-dream-popover-${facing === 'left' ? 'left' : 'right'}`}
-                      role="group" aria-label="小熊猫的梦境" data-testid="panda-dream-popover">
-                      <button type="button" className="ps-dream-close" aria-label="关闭梦境"
-                        onPointerDown={event => event.stopPropagation()}
-                        onClick={event => {
-                          event.stopPropagation();
-                          setDreamOpen(false);
-                        }}>×</button>
-                      <strong>小熊猫的梦</strong>
-                      <p>{dreamText}</p>
-                    </div>
-                  )}
-                </>
+                && dream && (
+                <PetDreamBubble initialDream={dream} side={facing === 'left' ? 'left' : 'right'}
+                  petName={characterId === 'xiaobai' ? '小白' : '小熊猫'} />
               )}
           </div>
         )}
