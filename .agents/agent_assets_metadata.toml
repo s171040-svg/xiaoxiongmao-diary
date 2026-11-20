@@ -946,3 +946,17 @@ mtime_ms = 1795095781751
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/f5655806-cc68-4ac4-b304-f0dcae9ccd51/6f6ad0b6-a4cb-4ae1-8d68-d9b4bcf77105"
 storage_version_token = "1795095831202784"
 content_type = "image/gif"
+
+[[outputs]]
+id = "pHnnUHkdm93J_wd0tQprM"
+uri = "file://generated-artifacts/desktop-walking-v1/native-home-prompt.png"
+type = "image"
+title = "桌宠首版：点击询问是否回家"
+description = "原生窗口实测截图。小白支持慢走、长按拖动和回家选择；浅色底仅用于 Replit Linux 预览。"
+logical_id = "97f17765-d3e9-4a2c-a628-fb57be304f13"
+content_hash = "sha256:e235eac7c31dfcf1475c944e59b0990fdfe782e2f073e71f1fee013401aa4bea"
+size = 14797
+mtime_ms = 1795149976347
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/97f17765-d3e9-4a2c-a628-fb57be304f13/513fd4b5-dbc1-47b1-a48c-11ee6bedfc7d"
+storage_version_token = "1795150195873180"
+content_type = "image/png"

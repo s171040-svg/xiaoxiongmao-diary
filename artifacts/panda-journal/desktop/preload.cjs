@@ -9,6 +9,12 @@ function subscribe(channel, callback) {
 }
 
 contextBridge.exposeInMainWorld("pandaDesktop", {
+  desktopPetState: () => ipcRenderer.invoke("desktop-pet:state"),
+  onDesktopPetState: (callback) => subscribe("desktop-pet:state", callback),
+  syncDesktopCharacter: (selection) => ipcRenderer.send("desktop-pet:character", selection),
+  enterDesktop: () => ipcRenderer.invoke("desktop-pet:enter"),
+  returnHome: () => ipcRenderer.invoke("desktop-pet:home"),
+  setPetDragging: (value) => ipcRenderer.send("desktop-pet:dragging", Boolean(value)),
   chat: (input) => ipcRenderer.invoke("companion:chat", input),
   companionMotion: (effect) => ipcRenderer.send("companion:motion", effect),
   notifyMessage: (text) => ipcRenderer.send("companion:message", text),

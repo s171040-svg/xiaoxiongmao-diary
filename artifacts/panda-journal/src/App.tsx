@@ -212,7 +212,8 @@ function localRoomSnapshot(
 
 function Room() {
   const petCharacter = usePetCharacter();
-  const companion = useCompanion({ allowRandomPerformanceFall: isDesktop() });
+  const companion = useCompanion({ allowRandomPerformanceFall: false });
+  const [desktopError, setDesktopError] = useState('');
   const client = useQueryClient();
   const { isSignedIn } = useAuth();
   const { signOut } = useClerk();
@@ -415,11 +416,19 @@ function Room() {
 
   return (
     <div className="room-page">
-      <div inert={!isDesktop() && petCharacter.isSignedIn && (!petCharacter.selection?.locked || petCharacter.isLoading || !!petCharacter.error)}>
-        <CompanionChat companion={companion} roomOnly={!isDesktop()} />
+      <div inert={petCharacter.isSignedIn && (!petCharacter.selection?.locked || petCharacter.isLoading || !!petCharacter.error)}>
+        <CompanionChat companion={companion} roomOnly />
       </div>
-      {!isDesktop() && !hubOpen && <PetCharacterPicker compact onJoinHousehold={() => setHubOpen(true)} />}
+      {!hubOpen && <PetCharacterPicker compact onJoinHousehold={() => setHubOpen(true)} />}
       <header className="room-account-bar">
+        {isDesktop() && <button type="button" className="room-coop-open"
+          disabled={petCharacter.isLoading || !!petCharacter.error || (petCharacter.isSignedIn && !petCharacter.selection?.locked)}
+          onClick={async () => {
+            setDesktopError('');
+            try { await window.pandaDesktop!.enterDesktop(); }
+            catch (error) { setDesktopError(error instanceof Error ? error.message : '桌宠暂时没有启动，请重试'); }
+          }}>出门到桌面</button>}
+        {desktopError && <span role="alert" className="room-account-status">{desktopError}</span>}
         <Link href="/stats-template" className="room-coop-open"><HeartPulse size={15} />成长档案 · {petCharacter.name}</Link>
         <button type="button" className="room-coop-open" onClick={() => {
           if (!isSignedIn) {

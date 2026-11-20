@@ -33,6 +33,27 @@ let journalWasVisible = false;
 const windowedPetWidth = 340, windowedPetHeight = 360;
 const fullDesktopMode = process.platform === "win32" && !process.env.REPL_ID;
 const useInlineGift = process.platform === "linux" && Boolean(process.env.REPL_ID);
+const nativeGiftWindowsEnabled = false; // Gifts stay in the room in the quiet first version.
+let desktopPetState = { mode: "desktop", characterId: "panda", identityReady: true, paused: false };
+let petDragging = false;
+function publishPetState() {
+  sendPet("desktop-pet:state", desktopPetState);
+  if (journalWindow && !journalWindow.isDestroyed()) journalWindow.webContents.send("desktop-pet:state", desktopPetState);
+}
+function showDesktopPet() {
+  desktopPetState.mode = "desktop";
+  hideJournal();
+  petWindow?.showInactive();
+  publishPetState();
+}
+function returnPetHome() {
+  openJournal();
+  if (!journalWindow || journalWindow.isDestroyed()) throw new Error("房间暂时没有打开");
+  desktopPetState.mode = "room";
+  petDragging = false;
+  petWindow?.hide();
+  publishPetState();
+}
 
 function windowScanScript() {
   return `
@@ -126,7 +147,8 @@ function publishDesktopObstacles() {
 }
 
 function pollDesktopWindows() {
-  if (!fullDesktopMode || obstaclePollInFlight || !petWindow || petWindow.isDestroyed()) return;
+  if (!fullDesktopMode || obstaclePollInFlight || !petWindow || petWindow.isDestroyed()
+    || !petWindow.isVisible() || desktopPetState.mode !== "desktop") return;
   obstaclePollInFlight = true;
   execFile("powershell.exe", [
     "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", windowScanScript(),
@@ -176,6 +198,7 @@ function trusted(event, window) {
     && event.senderFrame === window.webContents.mainFrame;
 }
 function displayGift() {
+  if (!nativeGiftWindowsEnabled) return;
   if (useInlineGift) {
     if (giftWindow && !giftWindow.isDestroyed()) giftWindow.hide();
     giftRegion = null;
@@ -244,6 +267,11 @@ function hideJournal() {
   roam = null;
   restUntil = Date.now() + 3000;
   setMotion("idle");
+  if (desktopPetState.mode === "room") {
+    desktopPetState.mode = "desktop";
+    petWindow?.showInactive();
+    publishPetState();
+  }
 }
 function secureWindow(window, origin) {
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
@@ -273,7 +301,8 @@ function openJournal(show = true) {
       const parsed = new URL(url);
       if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("Invalid journal URL");
       secureWindow(journalWindow, parsed.origin);
-      journalWindow.loadURL(url).catch(() => dialog.showErrorBox("日记页面暂时没有打开", "请确认日记网页服务正在运行，再重新打开。"));
+      if (parsed.pathname === "/") parsed.pathname = "/room";
+      journalWindow.loadURL(parsed.href).catch(() => dialog.showErrorBox("日记页面暂时没有打开", "请确认日记网页服务正在运行，再重新打开。"));
     } else {
       const file = path.join(__dirname, "../dist/desktop/index.html");
       if (!fs.existsSync(file)) {
@@ -315,6 +344,8 @@ function openJournal(show = true) {
 
 function updatePet() {
   if (!petWindow || petWindow.isDestroyed()) return;
+  if (!petWindow.isVisible() || desktopPetState.mode !== "desktop") return;
+  if (petDragging) { setIgnored(false); return; }
   const bounds = petWindow.getBounds();
   const cursor = screen.getCursorScreenPoint();
   const x = cursor.x - bounds.x, y = cursor.y - bounds.y;
@@ -365,6 +396,33 @@ function updatePet() {
 }
 
 ipcMain.on("pet:ignore", (event, ignore) => { if (trusted(event, petWindow)) setIgnored(Boolean(ignore)); });
+ipcMain.handle("desktop-pet:state", event => {
+  if (!trusted(event, petWindow) && !trusted(event, journalWindow)) throw new Error("无效的桌宠请求");
+  return desktopPetState;
+});
+ipcMain.on("desktop-pet:character", (event, value) => {
+  if (!trusted(event, journalWindow) || !value || !["panda", "xiaobai"].includes(value.characterId)
+    || typeof value.ready !== "boolean") return;
+  desktopPetState.characterId = value.characterId;
+  desktopPetState.identityReady = value.ready;
+  publishPetState();
+});
+ipcMain.handle("desktop-pet:enter", event => {
+  if (!trusted(event, journalWindow)) throw new Error("请从房间开启桌宠");
+  if (!desktopPetState.identityReady) throw new Error("请先完成角色选择，或等待角色资料读取完成");
+  showDesktopPet();
+  return desktopPetState;
+});
+ipcMain.handle("desktop-pet:home", event => {
+  if (!trusted(event, petWindow)) throw new Error("无效的回家请求");
+  returnPetHome();
+  return desktopPetState;
+});
+ipcMain.on("desktop-pet:dragging", (event, value) => {
+  if (!trusted(event, petWindow)) return;
+  petDragging = value === true;
+  if (petDragging) setIgnored(false);
+});
 ipcMain.on("pet:hit-regions", (event, value) => {
   if (!trusted(event, petWindow) || !Array.isArray(value) || value.length > 8) return;
   const bounds = petWindow.getBounds();
@@ -418,35 +476,12 @@ ipcMain.on("companion:message", (event, text) => {
   if (trusted(event, journalWindow) && typeof text === "string" && text.length <= 500
     && (!journalWindow.isVisible() || journalWindow.isMinimized())) sendPet("pet:message", text);
 });
-ipcMain.on("companion:motion", (event, effect) => {
-  const maxDuration = effect?.action === "bamboo" && effect?.stage === "performing" ? 7000 : 5000;
-  if (!trusted(event, journalWindow) || !effect
-    || !["present", "performing", "fallen", "returning", "away"].includes(effect.stage)
-    || !["idle", "bamboo", "roll", "jump", "spin", "somersault", "tail", "tumble", "cuddle"].includes(effect.action)
-    || ["roll", "spin", "tumble"].includes(effect.action)
-    || !Number.isFinite(effect.duration) || effect.duration < 2000 || effect.duration > maxDuration
-    || !Number.isFinite(effect.token)) return;
-  const previous = companionEffect;
-  companionEffect = { stage: effect.stage, action: effect.action, duration: effect.duration, token: effect.token,
-    carrying: typeof effect.carrying === "string" ? effect.carrying.slice(0, 8) : undefined };
-  sendPet("companion:motion", companionEffect);
-  if (!petWindow || petWindow.isDestroyed()) return;
-  roam = null;
-  if (["fallen", "away"].includes(effect.stage)) { petWindow.hide(); return; }
-  if (effect.stage === "returning") {
-    setMotion("walk");
-    petWindow.showInactive();
-  } else {
-    setMotion("idle");
-    restUntil = Date.now() + 3000;
-    if (previous.stage !== "present") petWindow.showInactive();
-  }
-});
+// Room performances, away/fall events and messages do not drive the quiet v1 desktop renderer.
 
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) app.quit();
 else {
-  app.on("second-instance", () => openJournal());
+  app.on("second-instance", () => returnPetHome());
   app.whenReady().then(() => {
     const area = screen.getPrimaryDisplay().workArea;
     const initialBounds = fullDesktopMode ? area : {
@@ -457,20 +492,21 @@ else {
     };
     petWindow = new BrowserWindow({
       ...initialBounds,
-      transparent: true, frame: false, alwaysOnTop: true, skipTaskbar: true,
-      resizable: false, hasShadow: false, backgroundColor: "#00000000",
+      transparent: !useInlineGift, frame: false, alwaysOnTop: true, skipTaskbar: true,
+      resizable: false, hasShadow: false, backgroundColor: useInlineGift ? "#dfd4b9" : "#00000000",
       webPreferences: {
         preload: path.join(__dirname, "preload.cjs"), contextIsolation: true,
         nodeIntegration: false, sandbox: true, backgroundThrottling: false,
       },
     });
-    petWindow.setAlwaysOnTop(true, "screen-saver");
+    petWindow.setAlwaysOnTop(true, "floating");
     petWindow.setIgnoreMouseEvents(true, { forward: true });
     secureWindow(petWindow, "null");
     petWindow.loadFile(path.join(__dirname, "pet.html"), {
       query: { desktopMode: fullDesktopMode ? "full" : "windowed" },
     });
     petWindow.webContents.on("did-finish-load", () => {
+      publishPetState();
       sendPet("companion:motion", companionEffect);
       if (useInlineGift) sendPet("gift:state", giftState?.gift ? giftState : null);
       publishDesktopObstacles();
@@ -487,7 +523,12 @@ else {
     // Keep the local companion clock alive without displaying the chat page.
     openJournal(false);
     const menu = Menu.buildFromTemplate([
-      { label: "打开小熊猫聊天", click: () => openJournal() },
+      { label: "回家（打开养成房间）", click: () => returnPetHome() },
+      { label: "显示桌宠", click: () => showDesktopPet() },
+      { label: "暂停走动", type: "checkbox", click: item => {
+        desktopPetState.paused = item.checked; publishPetState();
+      } },
+      { label: "隐藏桌宠", click: () => petWindow?.hide() },
       { type: "separator" },
       { label: "退出桌宠", click: () => app.quit() },
     ]);
@@ -498,13 +539,13 @@ else {
       tray = new Tray(icon);
       tray.setToolTip("小熊猫日记 · 双击桌宠说说心事");
       tray.setContextMenu(menu);
-      tray.on("click", () => openJournal());
+      tray.on("click", () => returnPetHome());
     } catch {
       // The pet's right-click menu remains available if no system tray exists.
       console.warn("系统托盘不可用，可右键小熊猫打开日记或退出。");
     }
     tick = setInterval(() => { updatePet(); updateGiftHit(); }, 80);
-    console.info("小熊猫桌宠已启动；双击小熊猫打开互动气泡。");
+    console.info("精简桌宠已启动；单击询问是否回家，长按可拖动。");
   }).catch((error) => { console.error("桌宠启动失败：", error.message); app.quit(); });
 }
 app.on("before-quit", () => {
@@ -515,5 +556,5 @@ app.on("before-quit", () => {
 });
 app.on("window-all-closed", () => {});
 app.on("activate", () => {
-  if (petWindow && !petWindow.isDestroyed() && !["fallen", "away"].includes(companionEffect.stage)) petWindow.showInactive();
+  if (desktopPetState.mode === "desktop" && petWindow && !petWindow.isDestroyed()) petWindow.showInactive();
 });

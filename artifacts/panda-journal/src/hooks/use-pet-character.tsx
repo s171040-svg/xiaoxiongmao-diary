@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react';
 import { useAuth } from '@clerk/react';
 import { useGetPetCharacter, useChoosePetCharacter } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -36,6 +36,10 @@ type PetCharacterState = ReturnType<typeof useCharacterState>;
 const Context = createContext<PetCharacterState | null>(null);
 export function PetCharacterProvider({ children }: { children: ReactNode }) {
   const value = useCharacterState();
+  useEffect(() => {
+    const ready = !value.isLoading && !value.error && (!value.isSignedIn || !!value.selection?.locked);
+    window.pandaDesktop?.syncDesktopCharacter?.({ characterId: value.characterId, ready });
+  }, [value.characterId, value.error, value.isLoading, value.isSignedIn, value.selection?.locked]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 export function usePetCharacter() {
