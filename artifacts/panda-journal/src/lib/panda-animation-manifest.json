@@ -1,4 +1,10 @@
 {
+  "punch": {
+    "frameCount": 25,
+    "frameIntervalMs": 80,
+    "reducedDurationMs": 400,
+    "impactFrame": 12
+  },
   "frameCount": 4,
   "frameCountBySprite": {
     "chew": 14,

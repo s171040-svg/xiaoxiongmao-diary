@@ -198,6 +198,9 @@
 .ps-world-dirty-plea{z-index:7;border-color:#a67d59;background:#fff1df;color:#78533b;font-weight:700;animation:ps-dirty-plea-in 320ms ease-out both}
 .ps-panda:focus-visible{outline:2px solid #5f8f72;outline-offset:2px}
 .ps-panda.ps-reacting{animation:ps-react 1.4s ease-in-out both}
+/* The new click reaction is redrawn pixel art, not the legacy CSS wiggle. */
+.ps-stage .ps-panda[data-punch-active="true"],
+.ps-stage .ps-panda[data-punch-active="true"] .ps-body{animation:none!important}
 .ps-panda.ps-startled{animation:ps-startle 620ms cubic-bezier(.12,.86,.22,1) both;transform-origin:center bottom}
 .ps-panda.ps-startled .ps-body{animation:ps-startle-shiver 70ms steps(2,end) 6;transform-origin:center bottom}
 .ps-panda.ps-chatting{animation:none;cursor:pointer}

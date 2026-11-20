@@ -83,6 +83,8 @@ import {
 import { SPACE_POLICE_LETTER_EAT_DELAY_MS } from '@/lib/companion-store';
 import { BORED_SEARCH_IDLE_MS, isBoredSearchDue } from '@/lib/room-bored-search';
 import animationManifest from '@/lib/panda-animation-manifest.json';
+import { punchDuration } from '@/lib/panda-punch';
+import { usePandaPunch } from '@/hooks/use-panda-punch';
 import { PANDA_TEASER_WAND_URL, TRUTH_POTION_URL, RoomPropDock, type RoomProp, type RoomToy } from './RoomPropDock';
 import { useRoomEyeControl } from './useRoomEyeControl';
 import './PetStage.css';
@@ -1243,6 +1245,18 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     setDebugEntries((entries) => [...entries, `${time} ${message}`].slice(-10));
   }, [debugClicks]);
 
+  const startPunchReaction = useCallback(() => {
+    if (characterId !== 'panda') return false;
+    window.clearTimeout(reactionTimerRef.current);
+    setReacting(true);
+    setRoomWalking(false);
+    reactionTimerRef.current = window.setTimeout(() => {
+      reactionTimerRef.current = 0;
+      setReacting(false);
+    }, punchDuration(window.matchMedia('(prefers-reduced-motion: reduce)').matches));
+    return true;
+  }, [characterId]);
+
   const clearTransitionFrames = useCallback(() => {
     activityTransitionCancelRef.current?.();
     activityTransitionCancelRef.current = null;
@@ -1978,6 +1992,9 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     setRoomWalking(false);
 
     switch (developerEvent.event) {
+      case 'punch':
+        startPunchReaction();
+        break;
       case 'startle':
         triggerStartle();
         break;
@@ -2093,7 +2110,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
         break;
       }
     }
-  }, [applyRoomPoint, clearActivityTransition, developerEvent, setFrame, showInteractionBubble, startBathDropToTub, startDeveloperBathRub, startFlyChase, startTrashCanPanda, triggerStartle]);
+  }, [applyRoomPoint, clearActivityTransition, developerEvent, setFrame, showInteractionBubble, startBathDropToTub, startDeveloperBathRub, startFlyChase, startTrashCanPanda, triggerStartle, startPunchReaction]);
 
   useEffect(() => {
     if (trashCanPandaPhase !== 'entering' && trashCanPandaPhase !== 'exiting') return undefined;
@@ -2809,8 +2826,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       setSleepingInNest(false);
       setActivityState('roaming');
       if (motion === 'sleep') setNightWakeOverride(true);
-      recordDebug('睡觉中被点击：触发受惊动作，不进入聊天');
-      triggerStartle();
+      recordDebug('睡觉中被点击：触发点击反应，不进入聊天');
+      if (!startPunchReaction()) triggerStartle();
       return;
     }
     if (event.detail >= 2) {
@@ -2828,14 +2845,14 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     firstActivationAtRef.current = now;
     window.clearTimeout(clickExpiryTimerRef.current);
     window.clearTimeout(reactionTimerRef.current);
-    setReacting(true);
-    onCareInteraction?.('bond');
-    recordDebug('第一次点击已触发；状态=roaming；请求 reacting=true');
-    reactionTimerRef.current = window.setTimeout(() => {
-      reactionTimerRef.current = 0;
-      setReacting(false);
-      recordDebug('第一次点击反应结束；reacting=false');
-    }, REACTION_DURATION_MS);
+    if (!startPunchReaction()) {
+      setReacting(true);
+      onCareInteraction?.('bond');
+      reactionTimerRef.current = window.setTimeout(() => {
+        reactionTimerRef.current = 0;
+        setReacting(false);
+      }, REACTION_DURATION_MS);
+    }
     clickExpiryTimerRef.current = window.setTimeout(() => {
       if (firstActivationAtRef.current === now) firstActivationAtRef.current = null;
       clickExpiryTimerRef.current = 0;
@@ -3932,7 +3949,12 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       : pandaStaticUrl(`frames/${sprite}-${frame}.png?v=${spriteAssetVersion(sprite)}`);
   currentImageRef.current = image;
   const resolveCharacterAsset = useCharacterAsset();
-  const characterBody = useCharacterBody(image, !!pixelTransitionDirection);
+  const normalCharacterBody = useCharacterBody(image, !!pixelTransitionDirection);
+  const punchFrame = usePandaPunch(reacting && characterId === 'panda' && !isDragging && !developerGrab
+    && !pandaHanging && !pandaJarTrapped && !dirtyReturn && bathPhase === 'none'
+    && dizzyPhase === 'none' && !truthPotionComfortPhase && pet.stage === 'present'
+    && interactionState !== 'chat');
+  const characterBody = punchFrame === null ? normalCharacterBody : pandaStaticUrl(`punch/${punchFrame}.png`);
   const narrate = usePetNarration();
 
   useLayoutEffect(() => {
@@ -4390,13 +4412,14 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
                 data-snack-feeding={snackDropDragging ? 'true' : undefined}
                 data-activity-state={showInteractionBubble ? developerPose ?? activityState : undefined}
                 data-dev-pose={developerPose ?? undefined}
+                data-punch-active={punchFrame !== null ? 'true' : undefined}
                 data-activity-transition={showInteractionBubble ? activityTransition ?? 'none' : undefined}
                 data-transition-direction={pixelTransitionDirection ?? undefined}
                 data-transition-key={pixelTransitionKey ?? undefined}
                  data-world-fall-state={showInteractionBubble ? worldFallPhase : undefined}>
                 <img className="ps-body" src={characterBody}
-                 data-sprite={bathTransition === 'exiting' ? dirtyReturn ? bathRubbing ? 'dirty-bathing-soap' : 'dirty-bathing' : 'bathing' : dirtyGrab ? sprite : hangingOnRack ? 'grab' : dirtyReturn && bathPhase === 'bathing' ? (bathRubbing ? 'dirty-bathing-soap' : 'dirty-bathing') : dirtyReturn && isFlyChasing ? 'dirty-flee' : dirtyReturn ? 'dirty-return' : bathPhase === 'bathing' ? 'bathing' : startled && showInteractionBubble ? 'startled' : sprite}
-                 data-frame={bathTransition === 'exiting' ? bathFrame : dirtyGrab ? frame : hangingOnRack ? '0' : showInteractionBubble && bathPhase === 'bathing' ? bathFrame : dirtyReturn ? '0' : frame}
+                 data-sprite={punchFrame !== null ? 'punch' : bathTransition === 'exiting' ? dirtyReturn ? bathRubbing ? 'dirty-bathing-soap' : 'dirty-bathing' : 'bathing' : dirtyGrab ? sprite : hangingOnRack ? 'grab' : dirtyReturn && bathPhase === 'bathing' ? (bathRubbing ? 'dirty-bathing-soap' : 'dirty-bathing') : dirtyReturn && isFlyChasing ? 'dirty-flee' : dirtyReturn ? 'dirty-return' : bathPhase === 'bathing' ? 'bathing' : startled && showInteractionBubble ? 'startled' : sprite}
+                 data-frame={punchFrame ?? (bathTransition === 'exiting' ? bathFrame : dirtyGrab ? frame : hangingOnRack ? '0' : showInteractionBubble && bathPhase === 'bathing' ? bathFrame : dirtyReturn ? '0' : frame)}
                   width={60} height={60} alt="" draggable={false} />
                   {showInteractionBubble && truthPotionInvitationVisible && (
                     <span className="ps-truth-potion-invitation" role="status" aria-live="polite"

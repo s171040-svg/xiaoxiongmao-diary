@@ -11,9 +11,10 @@
   const preference = matchMedia("(prefers-reduced-motion: reduce)");
   document.documentElement.dataset.liteDesktop = "true";
   home.textContent = "回家"; stay.textContent = "再玩一会儿";
-  actor.setAttribute("aria-label", "点击询问是否回家；长按可拖动");
+  actor.setAttribute("aria-label", "点击触发挨拳后仰动作；长按可拖动；右键回家");
   let state = { mode: "desktop", characterId: "panda", paused: false, quietMode: false, identityReady: false };
   let quietRest = null;
+  let punchStarted = null;
   let windows = [], surfaces = geometry.platforms([], innerWidth, innerHeight);
   let support = surfaces[0], velocity = 0, platformRevision = -1;
   let manifest = { frameCount: 4 }, point = { x: innerWidth * .65, y: support.y };
@@ -24,7 +25,9 @@
   const unsubs = [];
   function render() {
     presence.style.left = `${point.x}px`; presence.style.top = `${point.y}px`;
-    presence.dataset.motion = motion;
+    const punchFrame = punchStarted === null ? null
+      : model.punchFrame(performance.now() - punchStarted, manifest, preference.matches);
+    presence.dataset.motion = punchFrame === null ? motion : "punch";
     presence.dataset.character = state.characterId;
     presence.dataset.dragging = String(held);
     presence.dataset.paused = String(state.paused);
@@ -34,11 +37,14 @@
     presence.dataset.roomSide = point.x < innerWidth / 2 ? "left" : "right";
     presence.dataset.roomBubble = point.y < 175 ? "below" : "above";
     const transitionIndex = Math.floor((performance.now() - transitionStartedAt) / 75);
-    const source = transitionFrames[transitionIndex] ?? model.sprite(state.characterId, motion, frame, manifest);
+    const source = punchFrame === null
+      ? transitionFrames[transitionIndex] ?? model.sprite(state.characterId, motion, frame, manifest)
+      : `../public/static/panda/punch/${punchFrame}.png`;
     if (transitionIndex >= transitionFrames.length) transitionFrames = [];
     if (image.getAttribute("src") !== source) image.setAttribute("src", source);
     image.style.top = `${model.spriteTop(source)}px`;
-    image.dataset.sprite = motion; image.dataset.frame = String(frame);
+    image.dataset.sprite = punchFrame === null ? motion : "punch";
+    image.dataset.frame = String(punchFrame ?? frame);
   }
   function setMotion(value) {
     if (motion === value) return;
@@ -62,7 +68,12 @@
     render(); publishRegions();
   }
   actor.addEventListener("click", event => {
-    if (event.detail === 0 || performance.now() >= suppressClickUntil) showPrompt();
+    if (event.detail !== 0 && performance.now() < suppressClickUntil) return;
+    if (state.characterId !== "panda") { showPrompt(); return; }
+    if (held || !support || !state.identityReady || punchStarted !== null || !manifest.punch) return;
+    destination = null; closePrompt(); setMotion("idle");
+    punchStarted = performance.now() + transitionFrames.length * 75;
+    render();
   });
   home.addEventListener("click", async () => {
     home.disabled = true;
@@ -74,6 +85,7 @@
   document.addEventListener("keydown", e => { if (e.key === "Escape") closePrompt(); });
   function beginDrag() {
     if (!press) return;
+    punchStarted = null;
     held = true; support = null; velocity = 0; destination = null; closePrompt(); setMotion("grab");
     bridge.setPetDragging(true);
     bridge.setIgnoreMouseEvents(false);
@@ -124,6 +136,7 @@
     const changed = state.characterId !== value.characterId;
     const quietChanged = Boolean(state.quietMode) !== Boolean(value.quietMode);
     state = value;
+    if (changed || quietChanged || state.mode !== "desktop" || state.paused) punchStarted = null;
     if (state.quietMode && (!quietRest || quietChanged)) quietRest = model.quietRest(null, performance.now());
     if (!state.quietMode) quietRest = null;
     if (changed) transitionFrames = [];
@@ -165,6 +178,7 @@
       const tracked = geometry.track(point, support, surfaces);
       const moved = tracked.point.x !== point.x || tracked.point.y !== point.y;
       if (support && (!tracked.support || moved)) {
+        if (!tracked.support) punchStarted = null;
         destination = null; velocity = 0; nextWalk = now + 1500;
         setMotion(tracked.support ? settledMotion() : "grab");
       }
@@ -177,12 +191,18 @@
         needsRender = true;
       } else if (moved) needsRender = true;
     }
-    if (physical && support && state.quietMode && !promptOpen) {
+    if (punchStarted !== null) {
+      needsRender = true;
+      if (now >= punchStarted && model.punchFrame(now - punchStarted, manifest, preference.matches) === null) {
+        punchStarted = null; setMotion(support ? settledMotion() : "grab"); nextWalk = now + 1500;
+      }
+    }
+    if (physical && support && state.quietMode && !promptOpen && punchStarted === null) {
       destination = null;
       if (!quietRest || now >= quietRest.until) quietRest = model.quietRest(quietRest?.motion, now);
       setMotion(quietRest.motion);
     }
-    const active = physical && support && !state.quietMode && !state.paused && !preference.matches && !promptOpen;
+    const active = physical && support && punchStarted === null && !state.quietMode && !state.paused && !preference.matches && !promptOpen;
     if (active) {
       if (!destination && now >= nextWalk) {
         destination = geometry.walkTarget(point, support);

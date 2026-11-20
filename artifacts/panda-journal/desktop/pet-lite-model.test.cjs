@@ -86,3 +86,21 @@ test("quiet prone poses preserve their scale and align with the same floor", () 
     assert.equal(model.spriteTop(`../public/static/panda/frames/sleep-${frame}.png`), 8);
   }
 });
+
+test("punch is a complete one-shot animation, not a looping or CSS-only reaction", () => {
+  const hashes = [];
+  for (let frame = 0; frame < manifest.punch.frameCount; frame++) {
+    const png = fs.readFileSync(path.join(__dirname, `../public/static/panda/punch/${frame}.png`));
+    assert.equal(png.readUInt32BE(16), 96);
+    assert.equal(png.readUInt32BE(20), 96);
+    hashes.push(require("node:crypto").createHash("sha256").update(png).digest("hex"));
+    assert.equal(model.punchFrame(frame * manifest.punch.frameIntervalMs, manifest), frame);
+  }
+  assert(new Set(hashes.slice(1, 10)).size >= 5, "real intermediate poses into the fall");
+  assert(new Set(hashes.slice(-10, -1)).size >= 5, "real recovery poses");
+  assert.equal(model.punchFrame(-1, manifest), null);
+  assert.equal(model.punchFrame(2000, manifest), null);
+  assert.equal(model.punchFrame(10000, manifest), null, "tab resumption cannot replay the punch forever");
+  assert.equal(model.punchFrame(0, manifest, true), manifest.punch.impactFrame);
+  assert.equal(model.punchFrame(manifest.punch.reducedDurationMs, manifest, true), null);
+});

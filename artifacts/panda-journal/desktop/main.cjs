@@ -426,7 +426,7 @@ else {
     const menu = Menu.buildFromTemplate([
       { label: `小熊猫日记 v${desktopVersion} · 横线平台桌宠`, enabled: false },
       { type: "separator" },
-      { label: "回家（打开养成房间）", click: () => returnPetHome() },
+      { id: "return-home", label: "回家（打开养成房间）", click: () => returnPetHome() },
       { label: "显示桌宠", click: () => showDesktopPet() },
       { id: "quiet-mode", label: "安静模式", type: "checkbox", click: () => {
         desktopPetState.quietMode = !desktopPetState.quietMode;
@@ -460,7 +460,7 @@ else {
       console.warn("系统托盘不可用，可右键小熊猫打开日记或退出。");
     }
     tick = setInterval(() => { updatePet(); updateGiftHit(); }, 80);
-    console.info(`平台桌宠 v${desktopVersion} 已启动（任务栏与窗口上沿）；单击询问是否回家，长按可拖动。`);
+    console.info(`平台桌宠 v${desktopVersion} 已启动（任务栏与窗口上沿）；单击小熊猫播放挨拳动作，长按可拖动，右键可回家。`);
   }).catch((error) => { console.error("桌宠启动失败：", error.message); app.quit(); });
 }
 app.on("before-quit", () => {

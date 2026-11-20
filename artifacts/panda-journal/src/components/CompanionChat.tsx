@@ -40,6 +40,7 @@ const devPoseOptions: { pose: DeveloperPose; label: string }[] = [
   { pose: 'bored-searching', label: '无聊地趴在工具栏找玩家' },
 ];
 const devEventOptions: { event: DeveloperEvent; label: string; durationMs: number; persistent?: boolean }[] = [
+  { event: 'punch', label: '挨一拳：后仰倒地再爬起', durationMs: 2000 },
   { event: 'startle', label: '被吓一跳', durationMs: 1150 },
   { event: 'grab', label: '被提起发懵', durationMs: 2500 },
   { event: 'dirty-grab', label: '脏脏小熊猫被提起', durationMs: 2500 },
@@ -589,7 +590,8 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
               <div className="cc-dev-action-grid">
                 {devEventOptions.map(({ event, label }) => (
                   <button key={event} type="button" data-testid={`button-dev-event-${event}`}
-                    disabled={c.pet.stage !== 'present'} onClick={() => scheduleDevTest({ kind: 'event', event })}>
+                    disabled={c.pet.stage !== 'present' || (event === 'punch' && characterId !== 'panda')}
+                    onClick={() => scheduleDevTest({ kind: 'event', event })}>
                     <Play size={14} />{label}
                   </button>
                 ))}

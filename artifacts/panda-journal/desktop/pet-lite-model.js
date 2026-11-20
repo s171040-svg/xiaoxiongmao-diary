@@ -6,6 +6,11 @@
 })(typeof window !== "undefined" ? window : globalThis, function () {
   const motions = new Set(["idle", "walk", "sleep", "grab", "lying", "stare"]);
   const quietMotions = ["lying", "stare", "sleep"];
+  function punchFrame(elapsed, manifest, reduced = false) {
+    const config = manifest.punch;
+    if (!config || elapsed < 0 || elapsed >= (reduced ? config.reducedDurationMs : config.frameCount * config.frameIntervalMs)) return null;
+    return reduced ? config.impactFrame : Math.min(config.frameCount - 1, Math.floor(elapsed / config.frameIntervalMs));
+  }
   function quietRest(previous, now, random = Math.random) {
     const choices = quietMotions.filter(value => value !== previous);
     return { motion: choices[Math.min(choices.length - 1, Math.floor(random() * choices.length))],
@@ -62,5 +67,5 @@
     if (from === to) return [];
     return [...framesFor(from).reverse(), ...framesFor(to)];
   }
-  return { sprite, spriteTop, advance, transition, quietRest };
+  return { sprite, spriteTop, advance, transition, quietRest, punchFrame };
 });

@@ -6,7 +6,7 @@ const os = require("node:os");
 const path = require("node:path");
 const http = require("node:http");
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), "panda-lite-native-"));
-const output = path.resolve(__dirname, "../../../generated-artifacts/desktop-quiet-v021");
+const output = path.resolve(__dirname, "../../../generated-artifacts/desktop-punch-v022");
 fs.mkdirSync(output, { recursive: true });
 const executable = process.env.PATH.split(path.delimiter).filter(d => !d.includes("node_modules"))
   .map(d => path.join(d, "electron")).find(p => fs.existsSync(p)) || require("electron");
@@ -47,6 +47,7 @@ async function run() {
   await pet.waitForLoadState("domcontentloaded");
   await room.waitForLoadState("domcontentloaded");
   await pet.emulateMedia({ reducedMotion: "no-preference" });
+  if (!process.env.PANDA_ONLY_WEB_TEST) {
   for (const selector of [".pet-presence", "#panda", "#panda-sprite"]) {
     const size = await pet.locator(selector).evaluate(el => {
       const rect = el.getBoundingClientRect(); return { width: rect.width, height: rect.height };
@@ -135,6 +136,13 @@ async function run() {
   await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.motion === "lying"
     && document.querySelector("#panda-sprite").src.endsWith("/peeking.png"));
   const quietStart = await position();
+  await pet.locator("#panda").click();
+  await pet.waitForFunction(() => document.querySelector("#panda-sprite").dataset.sprite === "punch");
+  assert(await pet.locator("#speech").isHidden(), "clicking panda no longer asks to go home");
+  await pet.screenshot({ path: path.join(output, "native-punch.png") });
+  await pet.waitForFunction(() => document.querySelector("#panda-sprite").dataset.sprite === "lying");
+  assert.equal(await pet.locator(".pet-presence").getAttribute("data-quiet"), "true",
+    "punch ends back in the same quiet rest, without turning quiet mode off");
   await pet.waitForTimeout(3500);
   assert.deepEqual(await position(), quietStart, "quiet mode cancels the existing walk and stays parked");
   const beforeMove = await position();
@@ -179,11 +187,11 @@ async function run() {
   const resumed = await position();
   await until(async () => Math.abs((await position()).x - resumed.x) > 3, "cancel quiet mode resumes platform walking");
   await pet.locator("#panda").click();
-  await pet.locator("#speech").waitFor({ state: "visible" });
-  assert.equal(await pet.locator("#speech-copy").textContent(), "要回家吗？");
+  await pet.waitForFunction(() => document.querySelector("#panda-sprite").dataset.sprite === "punch");
+  const punchedAt = await position();
+  await pet.waitForFunction(() => document.querySelector("#panda-sprite").dataset.sprite !== "punch");
+  assert.deepEqual(await position(), punchedAt, "hit animation stays on its platform without lateral wandering");
   const parked = await position();
-  await pet.locator("#dismiss-prompt").click();
-  await pet.locator("#speech").waitFor({ state: "hidden" });
   await pet.locator("#panda").hover();
   const box = await pet.locator("#panda").boundingBox();
   await pet.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -193,6 +201,17 @@ async function run() {
   await pet.mouse.up();
   assert(Math.hypot((await position()).x - parked.x, (await position()).y - parked.y) > 20);
   assert(await pet.locator("#speech").isHidden(), "drag release does not open the home prompt");
+  assert.notEqual(await pet.locator("#panda-sprite").getAttribute("data-sprite"), "punch",
+    "drag release never counts as a punch click");
+  await pet.locator("#panda").click({ button: "right" });
+  await application.evaluate(() => {
+    const item = globalThis.__desktopMenuForTest?.getMenuItemById("return-home");
+    if (!item) throw new Error("Right-click return-home option is missing");
+    item.click(item);
+  });
+  await until(async () => { const s = await state(); return s.room && !s.pet; }, "panda returns home from right-click menu");
+  await room.locator("#enter").click();
+  await until(async () => { const s = await state(); return s.pet && !s.room; }, "panda re-enters desktop after right-click return");
   await room.evaluate(() => window.pandaDesktop.syncDesktopCharacter({ characterId: "xiaobai", ready: true }));
   await pet.waitForFunction(() => document.querySelector("#panda-sprite").src.includes("xiaobai"));
   await room.evaluate(() => window.pandaDesktop.companionMotion({ stage: "away", action: "idle", token: 1, duration: 3000 }));
@@ -217,8 +236,43 @@ async function run() {
     BrowserWindow.getAllWindows().find(w => !w.webContents.getURL().includes("pet.html")).close();
   });
   await until(async () => { const s = await state(); return s.pet && !s.room; }, "closing room keeps the desktop pet alive");
+  }
+  if (process.env.PANDA_WEB_TEST_URL) {
+    await application.evaluate(({ BrowserWindow }) => {
+      const webTest = new BrowserWindow({ width: 1280, height: 800, webPreferences: { sandbox: true } });
+      webTest.loadURL("about:blank");
+    });
+    await until(() => application.windows().length === 3, "isolated web room window created");
+    const web = application.windows().find(w => w !== pet && w !== room);
+    web.on("pageerror", error => errors.push(error.message));
+    await web.route("**/api/companion/chat", route => route.abort());
+    await web.addInitScript(() => { Math.random = () => .5; });
+    await web.goto(process.env.PANDA_WEB_TEST_URL);
+    await web.emulateMedia({ reducedMotion: "no-preference" });
+    const panda = web.getByTestId("button-panda");
+    await panda.waitFor({ state: "visible" });
+    await panda.click();
+    await web.waitForFunction(() => document.querySelector(".ps-body[data-sprite='punch']") !== null);
+    const beforePunch = await panda.boundingBox();
+    await web.waitForTimeout(700);
+    await web.screenshot({ path: path.join(output, "web-punch.png") });
+    const duringPunch = await panda.boundingBox();
+    assert(Math.abs(beforePunch.x - duringPunch.x) < 1 && Math.abs(beforePunch.y - duringPunch.y) < 1,
+      "web punch does not roam away during its one-shot reaction");
+    await web.waitForFunction(() => document.querySelector(".ps-body[data-sprite='punch']") === null);
+    await web.waitForFunction(() => {
+      const image = document.querySelector(".ps-body");
+      return image?.complete && image.naturalWidth > 0;
+    });
+    await web.getByTestId("button-dev-action").click();
+    await web.getByTestId("button-dev-event-punch").click();
+    await web.waitForFunction(() => document.querySelector(".ps-body[data-sprite='punch']") !== null);
+    await web.waitForFunction(() => document.querySelector(".ps-body[data-sprite='punch']") === null);
+    await web.close();
+    console.log("PASS real web room click reaction, fixed position, recovery and animation-inspector action.");
+  }
   assert.deepEqual(errors, []);
-  console.log("PASS native quiet menu, three long-rest poses, stationary quiet mode, quiet drag/fall/window-close recovery, cancel-to-walk, platforms, 40px size, pass-through, role sync and home.");
+  if (!process.env.PANDA_ONLY_WEB_TEST) console.log("PASS click punch and quiet recovery, no home prompt on panda click, drag without punching, quiet/platform movement, role sync and home.");
 }
 run().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {
   if (application) await application.close().catch(() => {});

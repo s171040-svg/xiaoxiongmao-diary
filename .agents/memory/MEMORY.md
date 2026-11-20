@@ -5,3 +5,4 @@
 - [PixelLab 动画计费与尺寸](pixellab-animation-sizing.md) — 动画可能先放大输入画布再计费；按完成任务返回的尺寸和实际额度估算。
 - [房间闹钟数字](room-alarm-clock.md) — 实时时间只替换背景钟面里的数字，保留闹钟外形、数字尺寸和方向。
 - [行进中的动作过渡](locomotion-transitions.md) — 爬梯转身需保持路线推进，不能和需要停步的驻留过渡共用移动阻断条件。
+- [浏览器单次动画时钟](browser-animation-clock.md) — RAF 时间戳可能略早于 effect 的开始时间；微小负时长不能当作播放结束。
