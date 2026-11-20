@@ -35,24 +35,14 @@
       : { point: { x: from.x + (to.x - from.x) / distance * step,
         y: from.y + (to.y - from.y) / distance * step }, arrived: step === distance };
   }
-  function clearPath(from, to, obstacles) {
-    for (let i = 0; i <= 24; i++) {
-      const x = from.x + (to.x - from.x) * i / 24;
-      const y = from.y + (to.y - from.y) * i / 24;
-      if (obstacles.some(r => x + 28 > r.x && x - 28 < r.x + r.width
-        && y > r.y && y - 58 < r.y + r.height)) return false;
-    }
-    return true;
-  }
-  function target(from, width, height, obstacles, random = Math.random) {
+  function target(from, width, height, random = Math.random) {
     for (let i = 0; i < 35; i++) {
       const direction = random() * Math.PI * 2, distance = 50 + random() * 140;
       const candidate = constrain({ x: from.x + Math.cos(direction) * distance,
         y: from.y + Math.sin(direction) * distance * .5 }, width, height);
-      if (Math.hypot(candidate.x - from.x, candidate.y - from.y) >= 20
-        && clearPath(from, candidate, obstacles)) return candidate;
+      if (Math.hypot(candidate.x - from.x, candidate.y - from.y) >= 20) return candidate;
     }
-    return null; // No safe route: wait instead of crossing somebody's work.
+    return null; // Extremely small areas may have no room for a 20px step.
   }
   function transition(character, from, to) {
     const framesFor = motion => {
@@ -67,5 +57,5 @@
     if (from === to) return [];
     return [...framesFor(from).reverse(), ...framesFor(to)];
   }
-  return { sprite, bounds, constrain, advance, clearPath, target, transition };
+  return { sprite, bounds, constrain, advance, target, transition };
 });

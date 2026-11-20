@@ -161,6 +161,13 @@ async function main() {
     .filter((name) => name.toLowerCase().endsWith(".exe"))
     .map((name) => path.join(outputRoot, name));
   if (!installers.length) throw new Error(`Build succeeded but no .exe was found in ${outputRoot}`);
+  fs.writeFileSync(path.join(outputRoot, "BUILD-INFO.json"), `${JSON.stringify({
+    version: packageInfo.version,
+    sourceRevision: process.env.GITHUB_SHA || "local-build",
+    buildRun: process.env.GITHUB_RUN_NUMBER || null,
+    movement: "screen-bounds-only",
+    installers: installers.map(file => ({ file: path.basename(file), bytes: fs.statSync(file).size })),
+  }, null, 2)}\n`);
   console.log(`Windows installer created:\n${installers.join("\n")}`);
 }
 

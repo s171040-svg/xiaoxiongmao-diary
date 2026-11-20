@@ -14,7 +14,7 @@
   actor.setAttribute("aria-label", "点击询问是否回家；长按可拖动");
   let state = { mode: "desktop", characterId: "panda", paused: false, identityReady: false };
   let manifest = { frameCount: 4 }, point = model.constrain({ x: innerWidth * .65, y: innerHeight * .75 }, innerWidth, innerHeight);
-  let destination = null, obstacles = [], frame = 0, lastFrame = 0, previous = performance.now();
+  let destination = null, frame = 0, lastFrame = 0, previous = performance.now();
   let motion = "idle", nextWalk = performance.now() + 1800, press = null, held = false, suppressClickUntil = 0;
   let promptOpen = false, disposed = false;
   let transitionFrames = [], transitionStartedAt = 0;
@@ -119,7 +119,6 @@
     render(); publishRegions();
   }
   unsubs.push(bridge.onDesktopPetState(applyState));
-  unsubs.push(bridge.onDesktopObstacles(value => { obstacles = Array.isArray(value) ? value : []; }));
   void bridge.desktopPetState().then(applyState);
   fetch("../src/lib/panda-animation-manifest.json").then(r => {
     if (!r.ok) throw new Error("Animation manifest missing");
@@ -135,7 +134,7 @@
       && document.visibilityState !== "hidden" && !held && !promptOpen && !press;
     if (active) {
       if (!destination && now >= nextWalk) {
-        destination = model.target(point, innerWidth, innerHeight, obstacles);
+        destination = model.target(point, innerWidth, innerHeight);
         if (destination) {
           presence.dataset.facing = destination.x < point.x ? "left" : "right";
           setMotion("walk");
@@ -143,15 +142,11 @@
       }
       if (destination && !transitionFrames.length) {
         const step = model.advance(point, destination, delta, state.characterId);
-        if (!model.clearPath(point, step.point, obstacles)) {
-          destination = null; setMotion("idle"); nextWalk = now + 3000;
-        } else {
-          point = step.point;
-          needsRender = true;
-          if (step.arrived) {
-            destination = null; nextWalk = now + 4500 + Math.random() * 5500;
-            setMotion(Math.random() < .2 ? "sleep" : "idle");
-          }
+        point = model.constrain(step.point, innerWidth, innerHeight);
+        needsRender = true;
+        if (step.arrived) {
+          destination = null; nextWalk = now + 4500 + Math.random() * 5500;
+          setMotion(Math.random() < .2 ? "sleep" : "idle");
         }
       }
     } else if (!held && !promptOpen && (state.paused || preference.matches)) {

@@ -38,11 +38,21 @@ test("dragged pets stay within the screen work area, including small previews", 
   }
 });
 
-test("blocked routes wait instead of crossing app windows", () => {
-  assert(!model.clearPath({ x: 10, y: 100 }, { x: 300, y: 100 },
-    [{ x: 100, y: 10, width: 100, height: 200 }]));
-  assert.equal(model.target({ x: 170, y: 200 }, 340, 360,
-    [{ x: 0, y: 0, width: 340, height: 360 }]), null);
+test("first-version walking only depends on work-area bounds, not app windows", () => {
+  for (const [width, height] of [[1920, 1080], [340, 360], [1280, 720]]) {
+    for (const start of [{ x: width * .65, y: height * .75 }, { x: 42, y: 86 },
+      { x: width - 42, y: height - 18 }]) {
+      const end = model.target(start, width, height);
+      assert(end, "an ordinary desktop can always offer a walking target");
+      assert(Math.hypot(end.x - start.x, end.y - start.y) >= 20);
+      const b = model.bounds(width, height);
+      assert(end.x >= b.left && end.x <= b.right && end.y >= b.top && end.y <= b.bottom);
+    }
+  }
+  const renderer = fs.readFileSync(path.join(__dirname, "pet-lite.js"), "utf8");
+  assert(!renderer.includes("onDesktopObstacles"), "stale/failed window scans cannot stop the renderer");
+  const main = fs.readFileSync(path.join(__dirname, "main.cjs"), "utf8");
+  assert(main.includes("const avoidDesktopWindows = false"), "Windows scanning stays disabled in v1");
 });
 
 test("the installer staging list includes every new renderer dependency", () => {

@@ -7,6 +7,7 @@ on:
       - main
       - master
       - github-snapshot
+      - "desktop-walking-*"
     paths:
       - ".github/workflows/windows-installer.yml"
       - "artifacts/panda-journal/**"
@@ -41,6 +42,9 @@ jobs:
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check desktop walking and packaged assets
+        run: node --test artifacts/panda-journal/desktop/pet-lite-model.test.cjs
+
       - name: Build installer
         run: pnpm --filter @workspace/panda-journal run desktop:installer:win
 
@@ -48,6 +52,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: xiaoxiongmao-journal-windows-x64
-          path: generated-artifacts/windows-installer/*.exe
+          path: |
+            generated-artifacts/windows-installer/*.exe
+            generated-artifacts/windows-installer/BUILD-INFO.json
           if-no-files-found: error
           retention-days: 30

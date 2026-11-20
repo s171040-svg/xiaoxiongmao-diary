@@ -63,11 +63,16 @@ async function run() {
   const position = () => pet.locator(".pet-presence").evaluate(el => ({
     x: parseFloat(el.style.left), y: parseFloat(el.style.top),
   }));
+  // Reproduce the old Windows failure: a stale scan marked the entire screen blocked.
+  await application.evaluate(({ BrowserWindow }) => {
+    BrowserWindow.getAllWindows().find(w => w.webContents.getURL().includes("pet.html"))
+      .webContents.send("desktop:obstacles", [{ x: 0, y: 0, width: 99999, height: 99999 }]);
+  });
   await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.motion === "walk");
   const start = await position();
   await until(async () => {
     const now = await position(); return Math.hypot(now.x - start.x, now.y - start.y) > 6;
-  }, "pet actually walks rather than just changing frames");
+  }, "pet still walks when a failed Windows scan reported the entire screen blocked");
   assert((await state()).ignored, "empty desktop passes mouse input through");
   await pet.locator("#panda").click();
   await pet.locator("#speech").waitFor({ state: "visible" });

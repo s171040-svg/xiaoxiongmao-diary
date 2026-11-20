@@ -33,6 +33,9 @@ let journalWasVisible = false;
 const windowedPetWidth = 340, windowedPetHeight = 360;
 const fullDesktopMode = process.platform === "win32" && !process.env.REPL_ID;
 const useInlineGift = process.platform === "linux" && Boolean(process.env.REPL_ID);
+// V1 uses screen bounds only. Window enumeration must not freeze a desktop pet.
+const avoidDesktopWindows = false;
+const desktopVersion = require("../package.json").version;
 const nativeGiftWindowsEnabled = false; // Gifts stay in the room in the quiet first version.
 let desktopPetState = { mode: "desktop", characterId: "panda", identityReady: true, paused: false };
 let petDragging = false;
@@ -126,7 +129,7 @@ function clipToWorkArea(rect, area, scaleFactor = 1) {
 }
 
 function collectDesktopObstacles() {
-  if (!fullDesktopMode) return [];
+  if (!avoidDesktopWindows || !fullDesktopMode) return [];
   const display = screen.getPrimaryDisplay();
   const area = display.workArea;
   if (obstacleScanFailed) return [{ x: 0, y: 0, width: area.width, height: area.height }];
@@ -147,7 +150,7 @@ function publishDesktopObstacles() {
 }
 
 function pollDesktopWindows() {
-  if (!fullDesktopMode || obstaclePollInFlight || !petWindow || petWindow.isDestroyed()
+  if (!avoidDesktopWindows || !fullDesktopMode || obstaclePollInFlight || !petWindow || petWindow.isDestroyed()
     || !petWindow.isVisible() || desktopPetState.mode !== "desktop") return;
   obstaclePollInFlight = true;
   execFile("powershell.exe", [
@@ -517,12 +520,16 @@ else {
         petWindow.setBounds(screen.getPrimaryDisplay().workArea);
         publishDesktopObstacles();
       });
-      obstaclePollTimer = setInterval(pollDesktopWindows, 1200);
-      pollDesktopWindows();
+      if (avoidDesktopWindows) {
+        obstaclePollTimer = setInterval(pollDesktopWindows, 1200);
+        pollDesktopWindows();
+      }
     }
     // Keep the local companion clock alive without displaying the chat page.
     openJournal(false);
     const menu = Menu.buildFromTemplate([
+      { label: `小熊猫日记 v${desktopVersion} · 桌面行走修复版`, enabled: false },
+      { type: "separator" },
       { label: "回家（打开养成房间）", click: () => returnPetHome() },
       { label: "显示桌宠", click: () => showDesktopPet() },
       { label: "暂停走动", type: "checkbox", click: item => {
@@ -545,7 +552,7 @@ else {
       console.warn("系统托盘不可用，可右键小熊猫打开日记或退出。");
     }
     tick = setInterval(() => { updatePet(); updateGiftHit(); }, 80);
-    console.info("精简桌宠已启动；单击询问是否回家，长按可拖动。");
+    console.info(`精简桌宠 v${desktopVersion} 已启动（仅屏幕边界）；单击询问是否回家，长按可拖动。`);
   }).catch((error) => { console.error("桌宠启动失败：", error.message); app.quit(); });
 }
 app.on("before-quit", () => {
