@@ -368,6 +368,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   onFinishSpacePolicePoopDisposal?: (deliveredAt: number) => void;
   onOpenSpacePoliceMailbox?: () => void;
 }) {
+  const { characterId } = usePetCharacter();
   const hidden = pet.stage === 'fallen' || pet.stage === 'away';
   const seconds = Math.min(5, Math.max(2, pet.duration > 100 ? pet.duration / 1000 : pet.duration || 2));
   const requestedAction = pet.stage === 'performing' ? pet.action : 'idle';
@@ -3933,7 +3934,6 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const resolveCharacterAsset = useCharacterAsset();
   const characterBody = useCharacterBody(image, !!pixelTransitionDirection);
   const narrate = usePetNarration();
-  const { characterId } = usePetCharacter();
 
   useLayoutEffect(() => {
     if (!showInteractionBubble || !isDragging) return;
