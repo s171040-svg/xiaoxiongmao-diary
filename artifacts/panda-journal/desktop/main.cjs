@@ -33,7 +33,7 @@ const fullDesktopMode = process.platform === "win32" && !process.env.REPL_ID;
 const useInlineGift = process.platform === "linux" && Boolean(process.env.REPL_ID);
 const desktopVersion = require("../package.json").version;
 const nativeGiftWindowsEnabled = false; // Gifts stay in the room in the quiet first version.
-let desktopPetState = { mode: "desktop", characterId: "panda", identityReady: true, paused: false };
+let desktopPetState = { mode: "desktop", characterId: "panda", identityReady: true, paused: false, quietMode: false };
 let petDragging = false;
 function publishPetState() {
   sendPet("desktop-pet:state", desktopPetState);
@@ -246,6 +246,7 @@ function updatePet() {
   });
   // Cursor polling also works on Linux, where forward:true is unsupported.
   setIgnored(!overPet);
+  if (desktopPetState.quietMode || desktopPetState.paused) { roam = null; return; }
   if (["fallen", "away"].includes(companionEffect.stage)) return;
   if (["returning", "performing"].includes(companionEffect.stage)) return;
   const journalVisible = Boolean(journalWindow?.isVisible() && !journalWindow.isMinimized());
@@ -427,7 +428,19 @@ else {
       { type: "separator" },
       { label: "回家（打开养成房间）", click: () => returnPetHome() },
       { label: "显示桌宠", click: () => showDesktopPet() },
-      { label: "暂停走动", type: "checkbox", click: item => {
+      { id: "quiet-mode", label: "安静模式", type: "checkbox", click: () => {
+        desktopPetState.quietMode = !desktopPetState.quietMode;
+        desktopPetState.paused = false;
+        const quietItem = menu.getMenuItemById("quiet-mode");
+        quietItem.label = desktopPetState.quietMode ? "取消安静模式" : "安静模式";
+        quietItem.checked = desktopPetState.quietMode;
+        const pauseItem = menu.getMenuItemById("pause-walking");
+        pauseItem.checked = false; pauseItem.enabled = !desktopPetState.quietMode;
+        roam = null;
+        publishPetState();
+        if (tray) tray.setContextMenu(menu);
+      } },
+      { id: "pause-walking", label: "暂停走动", type: "checkbox", click: item => {
         desktopPetState.paused = item.checked; publishPetState();
       } },
       { label: "隐藏桌宠", click: () => petWindow?.hide() },

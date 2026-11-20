@@ -4,17 +4,38 @@
   if (typeof module === "object" && module.exports) module.exports = api;
   if (root) root.PandaDesktopPet = api;
 })(typeof window !== "undefined" ? window : globalThis, function () {
-  const motions = new Set(["idle", "walk", "sleep", "grab"]);
+  const motions = new Set(["idle", "walk", "sleep", "grab", "lying", "stare"]);
+  const quietMotions = ["lying", "stare", "sleep"];
+  function quietRest(previous, now, random = Math.random) {
+    const choices = quietMotions.filter(value => value !== previous);
+    return { motion: choices[Math.min(choices.length - 1, Math.floor(random() * choices.length))],
+      until: now + 300000 + Math.floor(random() * 300000) };
+  }
+  function spriteTop(source) {
+    // The existing prone art has transparent space below its feet. Preserve its
+    // scale but align each actual pose (including transitions) to the platform.
+    // The older sleep loop is 80px, not 96px; its feet end at row 64.
+    if (/\/panda\/(?:sleep\.png|frames\/sleep-\d+\.png)/.test(source)) return (80 - 64) * 40 / 80;
+    const bottom = source.includes("/panda/peeking.png") ? 74
+      : source.includes("pixellab-walk-to-peeking-")
+        ? [86, 80, 75, 73, 72][Number(source.match(/peeking-(\d+)/)[1]) - 1]
+        : source.includes("pixellab-walk-to-sleep-")
+          ? [88, 88, 85, 80, 80, 80, 80][Number(source.match(/sleep-(\d+)/)[1]) - 1] : 88;
+    return (96 - bottom) * 40 / 96;
+  }
   function sprite(character, motion, frame, manifest) {
     if (!["panda", "xiaobai"].includes(character) || !motions.has(motion)) {
       throw new Error("Unknown desktop character or motion");
     }
     if (character === "xiaobai") {
       if (motion === "grab") return "../public/static/xiaobai/grab.png?v=xiaobai-scruff-cute-3";
+      if (motion === "stare") return "../public/static/xiaobai/transitions/to-idle/6.png";
       const count = motion === "walk" ? 8 : 4;
       return `../public/static/xiaobai/loops/${motion}/${1 + frame % count}.png`;
     }
     if (motion === "grab") return "../public/static/panda/grab.png";
+    if (motion === "lying") return "../public/static/panda/peeking.png";
+    if (motion === "stare") return "../public/static/panda/transitions/pixellab-walk-to-idle-5.png";
     const count = manifest.frameCountBySprite?.[motion] ?? manifest.frameCount;
     return frame === 0 ? `../public/static/panda/${motion}.png`
       : `../public/static/panda/frames/${motion}-${1 + (frame - 1) % count}.png`;
@@ -28,10 +49,12 @@
   }
   function transition(character, from, to) {
     const framesFor = motion => {
-      if (character === "xiaobai" && ["sleep", "grab"].includes(motion)) {
+      if (character === "xiaobai" && ["sleep", "grab", "lying", "stare"].includes(motion)) {
         return Array.from({ length: 6 }, (_, i) =>
-          `../public/static/xiaobai/transitions/to-${motion}/${i + 1}.png${motion === "grab" ? "?v=xiaobai-scruff-cute-3" : ""}`);
+          `../public/static/xiaobai/transitions/to-${motion === "stare" ? "idle" : motion}/${i + 1}.png${motion === "grab" ? "?v=xiaobai-scruff-cute-3" : ""}`);
       }
+      if (character === "panda" && ["lying", "stare"].includes(motion)) return Array.from({ length: 5 }, (_, i) =>
+        `../public/static/panda/transitions/pixellab-walk-to-${motion === "lying" ? "peeking" : "idle"}-${i + 1}.png`);
       if (character === "panda" && motion === "sleep") return Array.from({ length: 7 }, (_, i) =>
         `../public/static/panda/transitions/pixellab-walk-to-sleep-${i + 1}.png`);
       return [];
@@ -39,5 +62,5 @@
     if (from === to) return [];
     return [...framesFor(from).reverse(), ...framesFor(to)];
   }
-  return { sprite, advance, transition };
+  return { sprite, spriteTop, advance, transition, quietRest };
 });

@@ -9,7 +9,7 @@ const manifest = require("../src/lib/panda-animation-manifest.json");
 
 test("both pets resolve only existing first-version transparent PNG assets", () => {
   for (const character of ["panda", "xiaobai"]) {
-    for (const motion of ["idle", "walk", "sleep", "grab"]) {
+    for (const motion of ["idle", "walk", "sleep", "grab", "lying", "stare"]) {
       for (let frame = 0; frame < 40; frame++) {
         const asset = model.sprite(character, motion, frame, manifest);
         const png = fs.readFileSync(path.resolve(__dirname, asset.split("?")[0]));
@@ -53,11 +53,36 @@ test("rest and lift transitions reuse real existing intermediate images", () => 
   for (const [character, from, to] of [
     ["xiaobai", "idle", "grab"], ["xiaobai", "grab", "idle"],
     ["xiaobai", "sleep", "grab"], ["panda", "idle", "sleep"],
+    ["panda", "idle", "lying"], ["panda", "lying", "stare"],
+    ["panda", "stare", "sleep"], ["panda", "sleep", "lying"],
+    ["xiaobai", "lying", "stare"], ["xiaobai", "stare", "sleep"],
   ]) {
     const frames = model.transition(character, from, to);
     assert(frames.length >= 5);
     const hashes = frames.map(file => require("node:crypto").createHash("sha256")
       .update(fs.readFileSync(path.resolve(__dirname, file.split("?")[0]))).digest("hex"));
     assert(new Set(hashes).size >= 5, "not padded by repeating the same image");
+  }
+});
+
+test("quiet rests choose only three calm poses, lasting five to ten minutes", () => {
+  const selected = new Set();
+  for (const random of [0, .4, .999999]) {
+    const rest = model.quietRest(null, 1234, () => random);
+    selected.add(rest.motion);
+    assert(rest.until >= 301234 && rest.until < 601234);
+    assert.notEqual(model.quietRest(rest.motion, rest.until, () => random).motion, rest.motion);
+  }
+  assert.deepEqual([...selected].sort(), ["lying", "sleep", "stare"]);
+});
+
+test("quiet prone poses preserve their scale and align with the same floor", () => {
+  assert.equal(model.spriteTop("../public/static/panda/peeking.png"), 22 * 40 / 96);
+  for (let frame = 1; frame <= 5; frame++) {
+    assert(Number.isFinite(model.spriteTop(`../public/static/panda/transitions/pixellab-walk-to-peeking-${frame}.png`)));
+  }
+  assert.equal(model.spriteTop("../public/static/panda/sleep.png"), 16 * 40 / 80);
+  for (let frame = 1; frame <= 4; frame++) {
+    assert.equal(model.spriteTop(`../public/static/panda/frames/sleep-${frame}.png`), 8);
   }
 });

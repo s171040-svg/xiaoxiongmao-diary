@@ -12,7 +12,8 @@
   document.documentElement.dataset.liteDesktop = "true";
   home.textContent = "回家"; stay.textContent = "再玩一会儿";
   actor.setAttribute("aria-label", "点击询问是否回家；长按可拖动");
-  let state = { mode: "desktop", characterId: "panda", paused: false, identityReady: false };
+  let state = { mode: "desktop", characterId: "panda", paused: false, quietMode: false, identityReady: false };
+  let quietRest = null;
   let windows = [], surfaces = geometry.platforms([], innerWidth, innerHeight);
   let support = surfaces[0], velocity = 0, platformRevision = -1;
   let manifest = { frameCount: 4 }, point = { x: innerWidth * .65, y: support.y };
@@ -27,6 +28,7 @@
     presence.dataset.character = state.characterId;
     presence.dataset.dragging = String(held);
     presence.dataset.paused = String(state.paused);
+    presence.dataset.quiet = String(Boolean(state.quietMode));
     presence.dataset.platform = support?.ownerId || "";
     presence.dataset.falling = String(!support && !held);
     presence.dataset.roomSide = point.x < innerWidth / 2 ? "left" : "right";
@@ -35,6 +37,7 @@
     const source = transitionFrames[transitionIndex] ?? model.sprite(state.characterId, motion, frame, manifest);
     if (transitionIndex >= transitionFrames.length) transitionFrames = [];
     if (image.getAttribute("src") !== source) image.setAttribute("src", source);
+    image.style.top = `${model.spriteTop(source)}px`;
     image.dataset.sprite = motion; image.dataset.frame = String(frame);
   }
   function setMotion(value) {
@@ -43,13 +46,18 @@
     transitionStartedAt = performance.now();
     motion = value; frame = 0; lastFrame = performance.now(); render();
   }
+  function settledMotion() {
+    return state.quietMode && quietRest ? quietRest.motion : "idle";
+  }
   function closePrompt() {
     promptOpen = false; bubble.hidden = true;
     nextWalk = performance.now() + 2000; publishRegions();
   }
   function showPrompt() {
     if (held || !state.identityReady) return;
-    destination = null; setMotion("idle"); promptOpen = true;
+    destination = null;
+    if (!state.quietMode) setMotion("idle");
+    promptOpen = true;
     copy.textContent = "要回家吗？"; actions.hidden = false; bubble.hidden = false;
     render(); publishRegions();
   }
@@ -90,7 +98,7 @@
     if (held) {
       held = false; suppressClickUntil = performance.now() + 450;
       support = geometry.supportAt(point, surfaces); velocity = 0;
-      bridge.setPetDragging(false); setMotion(support ? "idle" : "grab"); nextWalk = performance.now() + 2000;
+      bridge.setPetDragging(false); setMotion(support ? settledMotion() : "grab"); nextWalk = performance.now() + 2000;
     }
     render(); publishRegions();
   }
@@ -114,11 +122,16 @@
   function applyState(value) {
     if (!value || !["panda", "xiaobai"].includes(value.characterId)) return;
     const changed = state.characterId !== value.characterId;
+    const quietChanged = Boolean(state.quietMode) !== Boolean(value.quietMode);
     state = value;
+    if (state.quietMode && (!quietRest || quietChanged)) quietRest = model.quietRest(null, performance.now());
+    if (!state.quietMode) quietRest = null;
     if (changed) transitionFrames = [];
     if (state.mode !== "desktop" || !state.identityReady) endDrag();
-    if (changed || state.paused || state.mode !== "desktop") {
-      destination = null; closePrompt(); setMotion("idle");
+    if (changed || quietChanged || state.paused || state.mode !== "desktop") {
+      destination = null; closePrompt();
+      if (!held) setMotion(support ? settledMotion() : "grab");
+      if (quietChanged && !state.quietMode) nextWalk = performance.now() + 200;
     }
     presence.hidden = !state.identityReady || state.mode !== "desktop";
     render(); publishRegions();
@@ -153,18 +166,23 @@
       const moved = tracked.point.x !== point.x || tracked.point.y !== point.y;
       if (support && (!tracked.support || moved)) {
         destination = null; velocity = 0; nextWalk = now + 1500;
-        setMotion(tracked.support ? "idle" : "grab");
+        setMotion(tracked.support ? settledMotion() : "grab");
       }
       point = tracked.point; support = tracked.support;
       if (!support) {
         const falling = geometry.fall(point, velocity, delta, surfaces, preference.matches);
         point = falling.point; velocity = falling.velocity; support = falling.support;
         destination = null; nextWalk = now + 1500;
-        setMotion(support ? "idle" : "grab");
+        setMotion(support ? settledMotion() : "grab");
         needsRender = true;
       } else if (moved) needsRender = true;
     }
-    const active = physical && support && !state.paused && !preference.matches && !promptOpen;
+    if (physical && support && state.quietMode && !promptOpen) {
+      destination = null;
+      if (!quietRest || now >= quietRest.until) quietRest = model.quietRest(quietRest?.motion, now);
+      setMotion(quietRest.motion);
+    }
+    const active = physical && support && !state.quietMode && !state.paused && !preference.matches && !promptOpen;
     if (active) {
       if (!destination && now >= nextWalk) {
         destination = geometry.walkTarget(point, support);
@@ -182,12 +200,12 @@
           setMotion(Math.random() < .2 ? "sleep" : "idle");
         }
       }
-    } else if (support && !held && !promptOpen && (state.paused || preference.matches)) {
+    } else if (!state.quietMode && support && !held && !promptOpen && (state.paused || preference.matches)) {
       destination = null; setMotion("idle");
     }
     const interval = motion === "walk" ? state.characterId === "xiaobai" ? 140 : 180
       : motion === "sleep" ? 520 : 420;
-    if (now - lastFrame >= interval && !preference.matches) {
+    if (now - lastFrame >= interval && !preference.matches && !state.quietMode) {
       frame++; lastFrame = now;
       needsRender = true;
     }

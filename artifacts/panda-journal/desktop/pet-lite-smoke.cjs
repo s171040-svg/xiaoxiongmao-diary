@@ -6,7 +6,7 @@ const os = require("node:os");
 const path = require("node:path");
 const http = require("node:http");
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), "panda-lite-native-"));
-const output = path.resolve(__dirname, "../../../generated-artifacts/desktop-platforms-v020");
+const output = path.resolve(__dirname, "../../../generated-artifacts/desktop-quiet-v021");
 fs.mkdirSync(output, { recursive: true });
 const executable = process.env.PATH.split(path.delimiter).filter(d => !d.includes("node_modules"))
   .map(d => path.join(d, "electron")).find(p => fs.existsSync(p)) || require("electron");
@@ -114,6 +114,29 @@ async function run() {
     return Math.abs(p.x - upperStart.x) > 3;
   }, "walks horizontally on a window top");
   await pet.screenshot({ path: path.join(output, "native-window-platform.png") });
+  // Intercept only the popup display; exercise the actual native right-click
+  // handler and its real MenuItems, not a separate test-only state setter.
+  await application.evaluate(({ Menu }) => {
+    Menu.prototype.popup = function () { globalThis.__desktopMenuForTest = this; };
+  });
+  async function toggleQuiet() {
+    await pet.locator("#panda").click({ button: "right" });
+    return application.evaluate(() => {
+      const menu = globalThis.__desktopMenuForTest;
+      const assertMenu = menu?.getMenuItemById("quiet-mode");
+      if (!assertMenu) throw new Error("Pet right-click did not expose quiet mode");
+      assertMenu.click(assertMenu);
+      return { label: assertMenu.label, checked: assertMenu.checked,
+        pauseEnabled: menu.getMenuItemById("pause-walking").enabled };
+    });
+  }
+  await pet.evaluate(() => { Math.random = () => 0; });
+  assert.deepEqual(await toggleQuiet(), { label: "取消安静模式", checked: true, pauseEnabled: false });
+  await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.motion === "lying"
+    && document.querySelector("#panda-sprite").src.endsWith("/peeking.png"));
+  const quietStart = await position();
+  await pet.waitForTimeout(3500);
+  assert.deepEqual(await position(), quietStart, "quiet mode cancels the existing walk and stays parked");
   const beforeMove = await position();
   await platforms([{ ...upper, x: 90, y: 140 }, lower]);
   await until(async () => (await position()).y === 140, "standing pet follows its moved window");
@@ -125,10 +148,36 @@ async function run() {
   await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.platform === "222");
   assert.equal((await position()).y, 240);
   assert(Math.abs((await position()).x - beforeClose.x) < .1, "lands on the nearest platform directly below");
+  assert.equal(await pet.locator(".pet-presence").getAttribute("data-quiet"), "true");
+  assert.equal(await pet.locator(".pet-presence").getAttribute("data-motion"), "lying",
+    "window closing never cancels quiet mode or the resting pose");
   await pet.screenshot({ path: path.join(output, "native-lower-platform.png") });
+  const quietBox = await pet.locator("#panda").boundingBox();
+  await pet.mouse.move(quietBox.x + 20, quietBox.y + 20); await pet.mouse.down();
+  await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.dragging === "true");
+  await pet.mouse.move(210, 170, { steps: 5 }); await pet.mouse.up();
+  await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.platform === "222"
+    && document.querySelector(".pet-presence").dataset.motion === "lying");
+  const quietDropped = await position();
+  await pet.waitForTimeout(2200);
+  assert.deepEqual(await position(), quietDropped, "drag and gravity preserve quiet mode without restarting walking");
+  await pet.screenshot({ path: path.join(output, "native-quiet-lying.png") });
+  for (const [random, pose] of [[.4, "stare"], [.999, "sleep"]]) {
+    assert.equal((await toggleQuiet()).label, "安静模式");
+    await pet.evaluate(random => { Math.random = () => random; }, random);
+    await toggleQuiet();
+    await pet.waitForFunction(pose => document.querySelector(".pet-presence").dataset.motion === pose, pose);
+    await pet.waitForTimeout(1000); // Let the real pose-entry frames finish.
+    await pet.screenshot({ path: path.join(output, `native-quiet-${pose}.png`) });
+  }
   await platforms([]);
   await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.platform === "taskbar");
   assert.equal((await position()).y, 360, "no window beneath means landing at taskbar");
+  assert.equal(await pet.locator(".pet-presence").getAttribute("data-quiet"), "true");
+  await toggleQuiet();
+  await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.motion === "walk");
+  const resumed = await position();
+  await until(async () => Math.abs((await position()).x - resumed.x) > 3, "cancel quiet mode resumes platform walking");
   await pet.locator("#panda").click();
   await pet.locator("#speech").waitFor({ state: "visible" });
   assert.equal(await pet.locator("#speech-copy").textContent(), "要回家吗？");
@@ -169,7 +218,7 @@ async function run() {
   });
   await until(async () => { const s = await state(); return s.pet && !s.room; }, "closing room keeps the desktop pet alive");
   assert.deepEqual(errors, []);
-  console.log("PASS horizontal taskbar/window walking, moved support, vertical falls to lower window/taskbar, 40px size, pass-through, drag, role sync and home.");
+  console.log("PASS native quiet menu, three long-rest poses, stationary quiet mode, quiet drag/fall/window-close recovery, cancel-to-walk, platforms, 40px size, pass-through, role sync and home.");
 }
 run().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {
   if (application) await application.close().catch(() => {});
