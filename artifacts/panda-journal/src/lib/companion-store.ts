@@ -1,5 +1,5 @@
 import type { CompanionInput, CompanionResponse } from '@workspace/api-client-react';
-import type { CareStatCategory, CareStats, ChatMessage, CompanionState, DiaryMemory, Gift, PendingCareStatInteraction, PerformanceAction, SpacePoliceLetter, SpacePoop } from './companion-types';
+import type { CareStatCategory, CareStats, ChatMessage, CompanionState, DiaryMemory, Gift, PendingCareStatInteraction, PerformanceAction, SharedCareStats, SpacePoliceLetter, SpacePoop } from './companion-types';
 
 export const COMPANION_KEY = 'little-panda-companion-v1';
 export const MINUTE = 60_000;
@@ -30,6 +30,8 @@ export function initialCareStats(now = Date.now()): CareStats {
     growth: 50,
     health: 50,
     bond: 50,
+    hunger: 100,
+    hungerUpdatedAt: now,
     lastInteractionAt: now,
     lastDecayAt: now,
     revision: 0,
@@ -38,15 +40,36 @@ export function initialCareStats(now = Date.now()): CareStats {
   };
 }
 
+export function normalizeCareStats(stats: SharedCareStats, hungerUpdatedAtFallback = stats.lastInteractionAt): CareStats {
+  return {
+    ...stats,
+    hunger: stats.hunger ?? 100,
+    hungerUpdatedAt: stats.hungerUpdatedAt ?? hungerUpdatedAtFallback,
+  };
+}
+
 function validCareStats(value: unknown): value is CareStats {
   if (!value || typeof value !== 'object') return false;
   const stats = value as CareStats;
   return [stats.growth, stats.health, stats.bond].every(item => Number.isInteger(item) && item >= 0 && item <= 100)
+    && (stats.hunger === undefined || (Number.isInteger(stats.hunger) && stats.hunger >= 0 && stats.hunger <= 100))
+    && (stats.hungerUpdatedAt === undefined || (Number.isSafeInteger(stats.hungerUpdatedAt) && stats.hungerUpdatedAt >= 0))
     && [stats.lastInteractionAt, stats.lastDecayAt, stats.revision].every(item => Number.isSafeInteger(item) && item >= 0)
     && CARE_STAT_CATEGORIES.includes(stats.lastInteractionCategory)
     && Array.isArray(stats.recentInteractionIds)
     && stats.recentInteractionIds.length <= 128
     && stats.recentInteractionIds.every(item => typeof item === 'string' && item.length > 0 && item.length <= 80);
+}
+
+export function adjustHungerState(state: CompanionState, amount: number, now = Date.now()): CompanionState {
+  if (!Number.isSafeInteger(amount)) throw new Error('饥饿值变化必须是整数。');
+  const currentHunger = state.careStats.hunger ?? 100;
+  const hunger = Math.max(0, Math.min(100, currentHunger + amount));
+  if (hunger === currentHunger) return state;
+  return {
+    ...state,
+    careStats: { ...state.careStats, hunger, hungerUpdatedAt: now },
+  };
 }
 
 export function decayCareStats(stats: CareStats, now = Date.now()): CareStats {
@@ -110,7 +133,7 @@ export function recordCareStatInteraction(
   };
 }
 
-export function mergeSharedCareStats(state: CompanionState, sharedStats: CareStats): CompanionState {
+export function mergeSharedCareStats(state: CompanionState, sharedStats: SharedCareStats): CompanionState {
   const current = state.careStats;
   const useLocal = current.revision > sharedStats.revision
     || (current.revision === sharedStats.revision && (
@@ -118,19 +141,29 @@ export function mergeSharedCareStats(state: CompanionState, sharedStats: CareSta
       || (current.lastInteractionAt === sharedStats.lastInteractionAt && current.lastDecayAt > sharedStats.lastDecayAt)
     ));
   const base = useLocal ? current : sharedStats;
-  return { ...state, careStats: replayPendingCareInteractions(base, state.pendingCareStatInteractions) };
+  const hungerSource = normalizeCareStats(
+    (current.hungerUpdatedAt ?? 0) > (sharedStats.hungerUpdatedAt ?? 0) ? current : sharedStats,
+  );
+  const merged = { ...base, hunger: hungerSource.hunger, hungerUpdatedAt: hungerSource.hungerUpdatedAt };
+  return { ...state, careStats: replayPendingCareInteractions(merged, state.pendingCareStatInteractions) };
 }
 
 export function acknowledgeCareStatInteraction(
   state: CompanionState,
   interactionId: string,
-  sharedStats: CareStats,
+  sharedStats: SharedCareStats,
 ): CompanionState {
   const pending = state.pendingCareStatInteractions.filter(item => item.interactionId !== interactionId);
+  const hungerSource = normalizeCareStats(
+    (state.careStats.hungerUpdatedAt ?? 0) > (sharedStats.hungerUpdatedAt ?? 0)
+      ? state.careStats
+      : sharedStats,
+  );
+  const merged = { ...sharedStats, hunger: hungerSource.hunger, hungerUpdatedAt: hungerSource.hungerUpdatedAt };
   return {
     ...state,
     pendingCareStatInteractions: pending,
-    careStats: replayPendingCareInteractions(sharedStats, pending),
+    careStats: replayPendingCareInteractions(merged, pending),
   };
 }
 
@@ -162,8 +195,9 @@ export function favoriteGift(state: CompanionState, giftId: string): CompanionSt
 export function feedGift(state: CompanionState, giftId: string, now = Date.now()): CompanionState {
   const gift = state.gifts.find(g => g.id === giftId);
   if (!gift || gift.fedAt || !canFeedGift(gift)) return state;
-  return { ...state, gifts: state.gifts.map(g => g.id === giftId ? { ...g, fedAt: now } : g),
-    messages: [...state.messages, assistant(`唔，${state.userName ? state.userName + '，' : ''}${gift.item}收到啦，小熊猫咔嚓咔嚓吃掉啦。（它开心地嚼了嚼，蹭蹭你）`, 'event', now)] };
+  const fedState = adjustHungerState(state, 1, now);
+  return { ...fedState, gifts: fedState.gifts.map(g => g.id === giftId ? { ...g, fedAt: now } : g),
+    messages: [...fedState.messages, assistant(`唔，${fedState.userName ? fedState.userName + '，' : ''}${gift.item}收到啦，小熊猫咔嚓咔嚓吃掉啦。（它开心地嚼了嚼，蹭蹭你）`, 'event', now)] };
 }
 export const ACTIONS: PerformanceAction[] = ['bamboo', 'jump', 'somersault', 'tail'];
 export const id = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -248,7 +282,7 @@ export function readState(storage: Pick<Storage, 'getItem'>, now = Date.now()): 
   }
   let restored: CompanionState = {
     ...value,
-    careStats: value.careStats ?? initialCareStats(now),
+    careStats: normalizeCareStats(value.careStats ?? initialCareStats(now), now),
     pendingCareStatInteractions: value.pendingCareStatInteractions ?? [],
     ...(activeSpacePoliceLetter ? { spacePoliceLetter: activeSpacePoliceLetter } : {}),
     spacePoliceLetters: letters,

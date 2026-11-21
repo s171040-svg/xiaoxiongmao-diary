@@ -1,5 +1,5 @@
 .rlp-drop-zone{position:fixed;pointer-events:none;z-index:239;box-sizing:border-box}
-.rlp-drop-zone[data-dragging]{border-bottom:3px dashed #e3cf7f;background:linear-gradient(transparent 65%,#d5e99d55);border-radius:0 0 30% 30%}
+.rlp-drop-zone[data-dragging]{border:0;background:transparent}
 .rlp-leaf{position:fixed;pointer-events:none;z-index:1;image-rendering:pixelated}
 .rlp-leaf img{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
 .rlp-leaf .rlp-toy{top:30%;transform-origin:50% 0}

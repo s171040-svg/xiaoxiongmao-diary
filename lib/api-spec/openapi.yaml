@@ -408,6 +408,13 @@ components:
           type: integer
           minimum: 0
           maximum: 100
+        hunger:
+          type: integer
+          minimum: 0
+          maximum: 100
+        hungerUpdatedAt:
+          type: integer
+          minimum: 0
         lastInteractionAt:
           type: integer
           minimum: 0

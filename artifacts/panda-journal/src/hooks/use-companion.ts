@@ -2,9 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { companionChat, type CompanionResponse } from '@workspace/api-client-react';
 import { isDesktop } from '@/lib/desktop';
 import { replyFrame, replyRhythm } from '@/lib/reply-rhythm';
-import type { CareStatCategory, CareStats, ChatMessage, CompanionState, Gift, PerformanceAction, PetEffect } from '@/lib/companion-types';
+import type { CareStatCategory, ChatMessage, CompanionState, Gift, PerformanceAction, PetEffect, SharedCareStats } from '@/lib/companion-types';
 import type { JournalEntry } from '@/lib/journal-types';
-import { acknowledgeCareStatInteraction as acknowledgeCareStatInteractionInState, assistant, canFeedGift, clearPendingCareStatInteractions, contextFor, deliverSpacePoliceLetter, eatSpacePoliceLetter as eatSpacePoliceLetterInState, fileSpacePoliceLetter as fileSpacePoliceLetterInState, feedActionForGift, finishSpacePolicePoopDisposal, id, initialState, markPendingInterrupted, markSpacePoliceLetterOpened as markSpacePoliceLetterOpenedInState, mergeSharedCareStats, moveSpacePolicePoopBag, packSpacePolicePoop, placeSpacePolicePoop, disposeSpacePolicePoopBag, paySpacePoliceFine as paySpacePoliceFineInState, readState, receiveReply, recordCareStatInteraction as recordCareStatInteractionInState, recordUserMessage, performancePlan, tickCompanion, welcome, writeState, startGiftDrop, collectGift, favoriteGift, feedGift, injectTestGift, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, COMPANION_KEY, type TestGiftInput } from '@/lib/companion-store';
+import { acknowledgeCareStatInteraction as acknowledgeCareStatInteractionInState, adjustHungerState, assistant, canFeedGift, clearPendingCareStatInteractions, contextFor, deliverSpacePoliceLetter, eatSpacePoliceLetter as eatSpacePoliceLetterInState, fileSpacePoliceLetter as fileSpacePoliceLetterInState, feedActionForGift, finishSpacePolicePoopDisposal, id, initialState, markPendingInterrupted, markSpacePoliceLetterOpened as markSpacePoliceLetterOpenedInState, mergeSharedCareStats, moveSpacePolicePoopBag, packSpacePolicePoop, placeSpacePolicePoop, disposeSpacePolicePoopBag, paySpacePoliceFine as paySpacePoliceFineInState, readState, receiveReply, recordCareStatInteraction as recordCareStatInteractionInState, recordUserMessage, performancePlan, tickCompanion, welcome, writeState, startGiftDrop, collectGift, favoriteGift, feedGift, injectTestGift, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, COMPANION_KEY, type TestGiftInput } from '@/lib/companion-store';
 
 function initial() {
   try {
@@ -72,6 +72,10 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
   }, []);
   const recordCareStatInteraction = useCallback((category: CareStatCategory) => {
     try { transact(s => recordCareStatInteractionInState(s, category)); }
+    catch (e) { report(e); }
+  }, [report, transact]);
+  const adjustHunger = useCallback((amount: number, now = Date.now()) => {
+    try { transact(s => adjustHungerState(s, amount, now)); }
     catch (e) { report(e); }
   }, [report, transact]);
   const motion = useCallback((next: PetEffect) => {
@@ -425,13 +429,13 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
     setDraft: (draft: string) => { try { transact(s => ({ ...s, draft })); } catch (e) { report(e); } },
     removePhoto: () => { try { transact(s => ({ ...s, draftPhoto: undefined })); } catch (e) { report(e); } },
     removeDiary: (memoryId: string) => { try { transact(s => ({ ...s, diary: s.diary.filter(m => m.id !== memoryId) })); } catch (e) { report(e); } },
-    recordCareStatInteraction,
+    recordCareStatInteraction, adjustHunger,
     setRoomPetAnchored,
-    mergeSharedCareStats: (careStats: CareStats) => {
+    mergeSharedCareStats: (careStats: SharedCareStats) => {
       try { transact(s => mergeSharedCareStats(s, careStats)); }
       catch (e) { report(e); }
     },
-    acknowledgeCareStatInteraction: (interactionId: string, careStats: CareStats) => {
+    acknowledgeCareStatInteraction: (interactionId: string, careStats: SharedCareStats) => {
       try { transact(s => acknowledgeCareStatInteractionInState(s, interactionId, careStats)); }
       catch (e) { report(e); }
     },

@@ -25,6 +25,7 @@ import { isDesktop } from '@/lib/desktop';
 import { queryClient } from '@/lib/query-client';
 import { readRoomFurnitureLayout } from '@/lib/room-furniture-layout';
 import { normalizeRoomProps } from '@/lib/room-props';
+import { advanceHungerClock, createHungerClock } from '@/lib/hunger';
 import './landing.css';
 
 const clerkPubKey = publishableKeyFromHost(
@@ -246,6 +247,27 @@ function Room() {
   const deliverNextRef = useRef(deliverNote.mutateAsync);
   const createShareNoteRef = useRef(createShareNote.mutateAsync);
   const previousStage = useRef(companion.pet.stage);
+  useEffect(() => {
+    if (isDesktop()) return;
+    const isPetSleeping = () => document.querySelector('[data-testid="button-panda"]')
+      ?.getAttribute('data-sleeping') === 'true';
+    let clock = createHungerClock(Date.now(), isPetSleeping());
+    const advance = () => {
+      const now = Date.now();
+      const result = advanceHungerClock(clock, now, isPetSleeping());
+      clock = result.clock;
+      if (result.lostPoints > 0) companionRef.current.adjustHunger(-result.lostPoints, now);
+    };
+    const timer = window.setInterval(advance, 1000);
+    const observer = new MutationObserver(advance);
+    observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['data-sleeping'] });
+    document.addEventListener('visibilitychange', advance);
+    return () => {
+      window.clearInterval(timer);
+      observer.disconnect();
+      document.removeEventListener('visibilitychange', advance);
+    };
+  }, []);
   householdRef.current = household.data;
   companionRef.current = companion;
   mergeSharedGiftsRef.current = companion.mergeSharedGifts;

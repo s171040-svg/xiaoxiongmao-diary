@@ -207,6 +207,12 @@ async function main() {
   const injectedCard = journal.locator(".cc-gift").filter({ hasText: "测试香蕉" });
   await injectedCard.getByRole("button", { name: "收藏" }).click();
   await injectedCard.getByRole("button", { name: "取出喂食" }).click();
+  await journal.evaluate(() => {
+    const state = JSON.parse(localStorage.getItem("little-panda-companion-v1") || "{}");
+    state.careStats ??= { hunger: 100 };
+    state.careStats.hunger = 50;
+    localStorage.setItem("little-panda-companion-v1", JSON.stringify(state));
+  });
   const snackToken = journal.getByTestId("snack-feed-token");
   const snackBounds = await snackToken.boundingBox();
   const pandaBounds = await journal.locator(".ps-panda").boundingBox();
@@ -218,6 +224,7 @@ async function main() {
   await until(async () => (await read()).gifts.at(-1).fedAt, "developer food gift can be fed");
   injectedGift = (await read()).gifts.at(-1);
   assert.equal(injectedGift.favorite, true);
+  assert.equal((await read()).careStats.hunger, 51, "desktop snack feeding restores one hunger point");
   await journal.evaluate(snapshot => localStorage.setItem("little-panda-companion-v1", JSON.stringify(snapshot)), stateBeforeDevGift);
   await journal.reload();
   await journal.getByTestId("input-chat").waitFor();

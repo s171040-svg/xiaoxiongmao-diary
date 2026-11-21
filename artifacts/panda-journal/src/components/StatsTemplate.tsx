@@ -3,7 +3,7 @@ import { useAuth } from '@clerk/react';
 import { Link } from 'wouter';
 import { ArrowLeft, ArrowRight, Leaf, ShieldCheck, Sparkles } from 'lucide-react';
 import { getGetCoopHouseholdQueryKey, useGetCoopHousehold } from '@workspace/api-client-react';
-import { CARE_STAT_DECAY_INTERVAL_MS, COMPANION_KEY, decayCareStatState, decayCareStats, readState, writeState } from '@/lib/companion-store';
+import { CARE_STAT_DECAY_INTERVAL_MS, COMPANION_KEY, decayCareStatState, decayCareStats, normalizeCareStats, readState, writeState } from '@/lib/companion-store';
 import type { CareStats } from '@/lib/companion-types';
 import './StatsTemplate.css';
 import { PetCharacterPicker } from './PetCharacterPicker';
@@ -13,7 +13,7 @@ type StatMeterProps = {
   label: string;
   value: number;
   note: string;
-  tone: 'growth' | 'health' | 'bond';
+  tone: 'growth' | 'health' | 'bond' | 'hunger';
 };
 
 function StatMeter({ label, value, note, tone }: StatMeterProps) {
@@ -73,7 +73,7 @@ export function StatsTemplate() {
     };
   }, []);
   const sharedStats = household.data?.sharedState.careStats;
-  const careStats = sharedStats ? decayCareStats(sharedStats, Date.now()) : localStats;
+  const careStats = sharedStats ? decayCareStats(normalizeCareStats(sharedStats), Date.now()) : localStats;
   const sharedRecord = Boolean(sharedStats);
   const hasInteraction = Boolean(careStats && (careStats.recentInteractionIds.length || careStats.revision));
   const mood = !hasInteraction
@@ -110,7 +110,7 @@ export function StatsTemplate() {
 
         <div className="stats-demo-notice" role="note">
           <ShieldCheck size={17} />
-          <p><strong>数值变化规则</strong><span>成长随每次互动增加；健康与羁绊只在对应照料或陪伴互动时增加。连续 6 小时没有有效互动后，每满 6 小时三项各下降 1 点。</span></p>
+          <p><strong>数值变化规则</strong><span>成长、健康与羁绊按互动增加；网页中清醒时饥饿值每分钟下降 1 格，睡觉暂停，吃零食增加 1 格。桌面版不自动下降。</span></p>
           <span className="stats-demo-chip">LIVE STATS</span>
         </div>
         {storageError && !sharedRecord && <p className="stats-storage-error" role="alert">{storageError}</p>}
@@ -127,6 +127,7 @@ export function StatsTemplate() {
           <div className="stats-meters">
             <StatMeter label="成长" value={careStats?.growth ?? 0} note="每次有效互动 +1" tone="growth" />
             <StatMeter label="健康" value={careStats?.health ?? 0} note="喂食、洗澡等照料互动 +1" tone="health" />
+            <StatMeter label="饥饿值" value={careStats?.hunger ?? 100} note="网页清醒时每分钟 -1；睡觉暂停；吃零食 +1" tone="hunger" />
             <article className="stats-mood-card">
               <div className="stats-mood-heading"><span className="stats-mood-icon"><Sparkles size={16} /></span><span>此刻心情</span><span className="stats-reaction-label">最近互动反应</span></div>
               <strong>{mood.title}</strong>
@@ -171,6 +172,7 @@ export function StatsTemplate() {
             <article><span className="stats-rule-number">01</span><div><strong>成长</strong><p>每次有效照料、聊天、抚摸或玩耍，成长增加 1 点。</p></div></article>
             <article><span className="stats-rule-number">02</span><div><strong>健康与羁绊</strong><p>照料互动只增加健康；陪伴互动只增加羁绊，不会一次把所有数值都加满。</p></div></article>
             <article><span className="stats-rule-number">03</span><div><strong>闲置衰减</strong><p>每次有效互动后重新计时；连续 6 小时没有有效互动后开始衰减，此后每满 6 小时三项各减 1 点，最低为 0。</p></div></article>
+            <article><span className="stats-rule-number">04</span><div><strong>饥饿值</strong><p>网页版每清醒一分钟减少 1 格；睡觉时暂停，喂食零食增加 1 格。桌面版不自动减少。</p></div></article>
           </div>
         </section>
 

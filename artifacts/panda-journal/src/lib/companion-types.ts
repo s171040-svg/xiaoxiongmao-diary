@@ -4,12 +4,16 @@ export type CareStats = {
   growth: number;
   health: number;
   bond: number;
+  hunger: number;
+  hungerUpdatedAt: number;
   lastInteractionAt: number;
   lastDecayAt: number;
   revision: number;
   lastInteractionCategory: CareStatCategory;
   recentInteractionIds: string[];
 };
+export type SharedCareStats = Omit<CareStats, 'hunger' | 'hungerUpdatedAt'>
+  & Partial<Pick<CareStats, 'hunger' | 'hungerUpdatedAt'>>;
 export type PendingCareStatInteraction = {
   interactionId: string;
   category: CareStatCategory;

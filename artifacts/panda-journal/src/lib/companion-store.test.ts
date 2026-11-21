@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ACTIONS, initialState, idleDelay, localDay, performancePlan, contextFor, receiveReply, recordUserMessage, waitingForAnswer, tickCompanion, welcome, beginTrip, startGiftDrop, collectGift, feedGift, canFeedGift, feedActionForGift, favoriteGift, injectTestGift, markPendingInterrupted, deliverSpacePoliceLetter, eatSpacePoliceLetter, fileSpacePoliceLetter, markSpacePoliceLetterOpened, paySpacePoliceFine, placeSpacePolicePoop, packSpacePolicePoop, moveSpacePolicePoopBag, disposeSpacePolicePoopBag, finishSpacePolicePoopDisposal, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, CAPTURED_TRIP_EXTRA_MS, SPACE_POLICE_LETTER_EAT_DELAY_MS, DAY, MINUTE, COMPANION_KEY, readState, writeState } from './companion-store';
+import { ACTIONS, adjustHungerState, initialState, idleDelay, localDay, performancePlan, contextFor, receiveReply, recordUserMessage, waitingForAnswer, tickCompanion, welcome, beginTrip, startGiftDrop, collectGift, feedGift, canFeedGift, feedActionForGift, favoriteGift, injectTestGift, markPendingInterrupted, deliverSpacePoliceLetter, eatSpacePoliceLetter, fileSpacePoliceLetter, markSpacePoliceLetterOpened, paySpacePoliceFine, placeSpacePolicePoop, packSpacePolicePoop, moveSpacePolicePoopBag, disposeSpacePolicePoopBag, finishSpacePolicePoopDisposal, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, CAPTURED_TRIP_EXTRA_MS, SPACE_POLICE_LETTER_EAT_DELAY_MS, DAY, MINUTE, COMPANION_KEY, readState, writeState } from './companion-store';
 import type { CompanionState } from './companion-types';
 import {
   CARE_STAT_DECAY_INTERVAL_MS,
@@ -64,6 +64,7 @@ test('all numeric care stats decay by one at each six-hour idle boundary, never 
     [firstStep.careStats.growth, firstStep.careStats.health, firstStep.careStats.bond],
     [1, 0, 0],
   );
+  assert.equal(firstStep.careStats.hunger, 100, 'care-stat decay does not consume hunger');
   const secondStep = decayCareStatState(firstStep, now + 2 * CARE_STAT_DECAY_INTERVAL_MS);
   assert.deepEqual(
     [secondStep.careStats.growth, secondStep.careStats.health, secondStep.careStats.bond],
@@ -106,6 +107,19 @@ test('shared stats merge pending local care once and acknowledge server confirma
   );
 });
 
+test('hunger changes are bounded, timestamped, and survive shared-stat merging', () => {
+  const start = initialState(now);
+  const local = adjustHungerState(start, -8, now + 10);
+  assert.deepEqual([local.careStats.hunger, local.careStats.hungerUpdatedAt], [92, now + 10]);
+  assert.equal(adjustHungerState(local, -200, now + 20).careStats.hunger, 0);
+  assert.equal(adjustHungerState(start, 1, now + 30).careStats.hunger, 100);
+
+  const olderRemote = { ...start.careStats, hunger: 97, hungerUpdatedAt: now + 5 };
+  assert.equal(mergeSharedCareStats(local, olderRemote).careStats.hunger, 92);
+  const newerRemote = { ...start.careStats, hunger: 85, hungerUpdatedAt: now + 15 };
+  assert.equal(mergeSharedCareStats(local, newerRemote).careStats.hunger, 85);
+});
+
 test('legacy companion records receive a neutral stats baseline without losing history', () => {
   const legacy = { ...initialState(now), messages: [{ id: 'old', role: 'user', text: 'still here', createdAt: now }] } as unknown as Record<string, unknown>;
   delete legacy.careStats;
@@ -117,6 +131,16 @@ test('legacy companion records receive a neutral stats baseline without losing h
     [50, 50, 50],
   );
   assert.equal(migrated.careStats.lastInteractionAt, now + 1000);
+});
+
+test('older saved care stats gain a full hunger meter without losing other values', () => {
+  const legacy = { ...initialState(now), careStats: { ...initialState(now).careStats } } as unknown as Record<string, any>;
+  delete legacy.careStats.hunger;
+  delete legacy.careStats.hungerUpdatedAt;
+  const migrated = readState({ getItem: () => JSON.stringify(legacy) }, now + 1000);
+  assert.equal(migrated.careStats.growth, 50);
+  assert.equal(migrated.careStats.hunger, 100);
+  assert.equal(migrated.careStats.hungerUpdatedAt, now + 1000);
 });
 test('pending messages recovered after restart are distinguished from AI request failures', () => {
   const state = sample();
@@ -424,8 +448,10 @@ test('favorites persist and feeding consumes a food gift once, retaining its sto
   let state = { ...sample(), gifts: [gift] };
   state = favoriteGift(state, gift.id);
   assert.equal(state.gifts[0].favorite, true);
+  state = { ...state, careStats: { ...state.careStats, hunger: 30 } };
   state = feedGift(state, gift.id, now + 1);
   assert.equal(state.gifts[0].fedAt, now + 1);
+  assert.equal(state.careStats.hunger, 31, 'feeding one snack restores one hunger point');
   const once = state.messages.length;
   state = feedGift(state, gift.id, now + 2);
   assert.equal(state.messages.length, once); assert.equal(state.gifts[0].story, gift.story);

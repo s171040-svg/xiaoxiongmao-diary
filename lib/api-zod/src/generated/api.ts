@@ -84,6 +84,11 @@ export const getCoopHouseholdResponseSharedStateCareStatsHealthMax = 100;
 export const getCoopHouseholdResponseSharedStateCareStatsBondMin = 0;
 export const getCoopHouseholdResponseSharedStateCareStatsBondMax = 100;
 
+export const getCoopHouseholdResponseSharedStateCareStatsHungerMin = 0;
+export const getCoopHouseholdResponseSharedStateCareStatsHungerMax = 100;
+
+export const getCoopHouseholdResponseSharedStateCareStatsHungerUpdatedAtMin = 0;
+
 export const getCoopHouseholdResponseSharedStateCareStatsLastInteractionAtMin = 0;
 
 export const getCoopHouseholdResponseSharedStateCareStatsLastDecayAtMin = 0;
@@ -146,6 +151,8 @@ export const GetCoopHouseholdResponse = zod.object({
   "growth": zod.number().int().min(getCoopHouseholdResponseSharedStateCareStatsGrowthMin).max(getCoopHouseholdResponseSharedStateCareStatsGrowthMax),
   "health": zod.number().int().min(getCoopHouseholdResponseSharedStateCareStatsHealthMin).max(getCoopHouseholdResponseSharedStateCareStatsHealthMax),
   "bond": zod.number().int().min(getCoopHouseholdResponseSharedStateCareStatsBondMin).max(getCoopHouseholdResponseSharedStateCareStatsBondMax),
+  "hunger": zod.number().int().min(getCoopHouseholdResponseSharedStateCareStatsHungerMin).max(getCoopHouseholdResponseSharedStateCareStatsHungerMax).optional(),
+  "hungerUpdatedAt": zod.number().int().min(getCoopHouseholdResponseSharedStateCareStatsHungerUpdatedAtMin).optional(),
   "lastInteractionAt": zod.number().int().min(getCoopHouseholdResponseSharedStateCareStatsLastInteractionAtMin),
   "lastDecayAt": zod.number().int().min(getCoopHouseholdResponseSharedStateCareStatsLastDecayAtMin),
   "revision": zod.number().int().min(getCoopHouseholdResponseSharedStateCareStatsRevisionMin),
@@ -226,6 +233,11 @@ export const createCoopHouseholdBodySharedStateCareStatsHealthMax = 100;
 export const createCoopHouseholdBodySharedStateCareStatsBondMin = 0;
 export const createCoopHouseholdBodySharedStateCareStatsBondMax = 100;
 
+export const createCoopHouseholdBodySharedStateCareStatsHungerMin = 0;
+export const createCoopHouseholdBodySharedStateCareStatsHungerMax = 100;
+
+export const createCoopHouseholdBodySharedStateCareStatsHungerUpdatedAtMin = 0;
+
 export const createCoopHouseholdBodySharedStateCareStatsLastInteractionAtMin = 0;
 
 export const createCoopHouseholdBodySharedStateCareStatsLastDecayAtMin = 0;
@@ -273,6 +285,8 @@ export const CreateCoopHouseholdBody = zod.object({
   "growth": zod.number().int().min(createCoopHouseholdBodySharedStateCareStatsGrowthMin).max(createCoopHouseholdBodySharedStateCareStatsGrowthMax),
   "health": zod.number().int().min(createCoopHouseholdBodySharedStateCareStatsHealthMin).max(createCoopHouseholdBodySharedStateCareStatsHealthMax),
   "bond": zod.number().int().min(createCoopHouseholdBodySharedStateCareStatsBondMin).max(createCoopHouseholdBodySharedStateCareStatsBondMax),
+  "hunger": zod.number().int().min(createCoopHouseholdBodySharedStateCareStatsHungerMin).max(createCoopHouseholdBodySharedStateCareStatsHungerMax).optional(),
+  "hungerUpdatedAt": zod.number().int().min(createCoopHouseholdBodySharedStateCareStatsHungerUpdatedAtMin).optional(),
   "lastInteractionAt": zod.number().int().min(createCoopHouseholdBodySharedStateCareStatsLastInteractionAtMin),
   "lastDecayAt": zod.number().int().min(createCoopHouseholdBodySharedStateCareStatsLastDecayAtMin),
   "revision": zod.number().int().min(createCoopHouseholdBodySharedStateCareStatsRevisionMin),
@@ -330,6 +344,11 @@ export const createCoopHouseholdResponseSharedStateCareStatsHealthMax = 100;
 
 export const createCoopHouseholdResponseSharedStateCareStatsBondMin = 0;
 export const createCoopHouseholdResponseSharedStateCareStatsBondMax = 100;
+
+export const createCoopHouseholdResponseSharedStateCareStatsHungerMin = 0;
+export const createCoopHouseholdResponseSharedStateCareStatsHungerMax = 100;
+
+export const createCoopHouseholdResponseSharedStateCareStatsHungerUpdatedAtMin = 0;
 
 export const createCoopHouseholdResponseSharedStateCareStatsLastInteractionAtMin = 0;
 
@@ -393,6 +412,8 @@ export const CreateCoopHouseholdResponse = zod.object({
   "growth": zod.number().int().min(createCoopHouseholdResponseSharedStateCareStatsGrowthMin).max(createCoopHouseholdResponseSharedStateCareStatsGrowthMax),
   "health": zod.number().int().min(createCoopHouseholdResponseSharedStateCareStatsHealthMin).max(createCoopHouseholdResponseSharedStateCareStatsHealthMax),
   "bond": zod.number().int().min(createCoopHouseholdResponseSharedStateCareStatsBondMin).max(createCoopHouseholdResponseSharedStateCareStatsBondMax),
+  "hunger": zod.number().int().min(createCoopHouseholdResponseSharedStateCareStatsHungerMin).max(createCoopHouseholdResponseSharedStateCareStatsHungerMax).optional(),
+  "hungerUpdatedAt": zod.number().int().min(createCoopHouseholdResponseSharedStateCareStatsHungerUpdatedAtMin).optional(),
   "lastInteractionAt": zod.number().int().min(createCoopHouseholdResponseSharedStateCareStatsLastInteractionAtMin),
   "lastDecayAt": zod.number().int().min(createCoopHouseholdResponseSharedStateCareStatsLastDecayAtMin),
   "revision": zod.number().int().min(createCoopHouseholdResponseSharedStateCareStatsRevisionMin),
@@ -498,6 +519,11 @@ export const joinCoopHouseholdResponseSharedStateCareStatsHealthMax = 100;
 export const joinCoopHouseholdResponseSharedStateCareStatsBondMin = 0;
 export const joinCoopHouseholdResponseSharedStateCareStatsBondMax = 100;
 
+export const joinCoopHouseholdResponseSharedStateCareStatsHungerMin = 0;
+export const joinCoopHouseholdResponseSharedStateCareStatsHungerMax = 100;
+
+export const joinCoopHouseholdResponseSharedStateCareStatsHungerUpdatedAtMin = 0;
+
 export const joinCoopHouseholdResponseSharedStateCareStatsLastInteractionAtMin = 0;
 
 export const joinCoopHouseholdResponseSharedStateCareStatsLastDecayAtMin = 0;
@@ -560,6 +586,8 @@ export const JoinCoopHouseholdResponse = zod.object({
   "growth": zod.number().int().min(joinCoopHouseholdResponseSharedStateCareStatsGrowthMin).max(joinCoopHouseholdResponseSharedStateCareStatsGrowthMax),
   "health": zod.number().int().min(joinCoopHouseholdResponseSharedStateCareStatsHealthMin).max(joinCoopHouseholdResponseSharedStateCareStatsHealthMax),
   "bond": zod.number().int().min(joinCoopHouseholdResponseSharedStateCareStatsBondMin).max(joinCoopHouseholdResponseSharedStateCareStatsBondMax),
+  "hunger": zod.number().int().min(joinCoopHouseholdResponseSharedStateCareStatsHungerMin).max(joinCoopHouseholdResponseSharedStateCareStatsHungerMax).optional(),
+  "hungerUpdatedAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateCareStatsHungerUpdatedAtMin).optional(),
   "lastInteractionAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateCareStatsLastInteractionAtMin),
   "lastDecayAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateCareStatsLastDecayAtMin),
   "revision": zod.number().int().min(joinCoopHouseholdResponseSharedStateCareStatsRevisionMin),
@@ -640,6 +668,11 @@ export const updateCoopStateBodySharedStateCareStatsHealthMax = 100;
 export const updateCoopStateBodySharedStateCareStatsBondMin = 0;
 export const updateCoopStateBodySharedStateCareStatsBondMax = 100;
 
+export const updateCoopStateBodySharedStateCareStatsHungerMin = 0;
+export const updateCoopStateBodySharedStateCareStatsHungerMax = 100;
+
+export const updateCoopStateBodySharedStateCareStatsHungerUpdatedAtMin = 0;
+
 export const updateCoopStateBodySharedStateCareStatsLastInteractionAtMin = 0;
 
 export const updateCoopStateBodySharedStateCareStatsLastDecayAtMin = 0;
@@ -687,6 +720,8 @@ export const UpdateCoopStateBody = zod.object({
   "growth": zod.number().int().min(updateCoopStateBodySharedStateCareStatsGrowthMin).max(updateCoopStateBodySharedStateCareStatsGrowthMax),
   "health": zod.number().int().min(updateCoopStateBodySharedStateCareStatsHealthMin).max(updateCoopStateBodySharedStateCareStatsHealthMax),
   "bond": zod.number().int().min(updateCoopStateBodySharedStateCareStatsBondMin).max(updateCoopStateBodySharedStateCareStatsBondMax),
+  "hunger": zod.number().int().min(updateCoopStateBodySharedStateCareStatsHungerMin).max(updateCoopStateBodySharedStateCareStatsHungerMax).optional(),
+  "hungerUpdatedAt": zod.number().int().min(updateCoopStateBodySharedStateCareStatsHungerUpdatedAtMin).optional(),
   "lastInteractionAt": zod.number().int().min(updateCoopStateBodySharedStateCareStatsLastInteractionAtMin),
   "lastDecayAt": zod.number().int().min(updateCoopStateBodySharedStateCareStatsLastDecayAtMin),
   "revision": zod.number().int().min(updateCoopStateBodySharedStateCareStatsRevisionMin),
@@ -745,6 +780,11 @@ export const updateCoopStateResponseSharedStateCareStatsHealthMax = 100;
 export const updateCoopStateResponseSharedStateCareStatsBondMin = 0;
 export const updateCoopStateResponseSharedStateCareStatsBondMax = 100;
 
+export const updateCoopStateResponseSharedStateCareStatsHungerMin = 0;
+export const updateCoopStateResponseSharedStateCareStatsHungerMax = 100;
+
+export const updateCoopStateResponseSharedStateCareStatsHungerUpdatedAtMin = 0;
+
 export const updateCoopStateResponseSharedStateCareStatsLastInteractionAtMin = 0;
 
 export const updateCoopStateResponseSharedStateCareStatsLastDecayAtMin = 0;
@@ -794,6 +834,8 @@ export const UpdateCoopStateResponse = zod.object({
   "growth": zod.number().int().min(updateCoopStateResponseSharedStateCareStatsGrowthMin).max(updateCoopStateResponseSharedStateCareStatsGrowthMax),
   "health": zod.number().int().min(updateCoopStateResponseSharedStateCareStatsHealthMin).max(updateCoopStateResponseSharedStateCareStatsHealthMax),
   "bond": zod.number().int().min(updateCoopStateResponseSharedStateCareStatsBondMin).max(updateCoopStateResponseSharedStateCareStatsBondMax),
+  "hunger": zod.number().int().min(updateCoopStateResponseSharedStateCareStatsHungerMin).max(updateCoopStateResponseSharedStateCareStatsHungerMax).optional(),
+  "hungerUpdatedAt": zod.number().int().min(updateCoopStateResponseSharedStateCareStatsHungerUpdatedAtMin).optional(),
   "lastInteractionAt": zod.number().int().min(updateCoopStateResponseSharedStateCareStatsLastInteractionAtMin),
   "lastDecayAt": zod.number().int().min(updateCoopStateResponseSharedStateCareStatsLastDecayAtMin),
   "revision": zod.number().int().min(updateCoopStateResponseSharedStateCareStatsRevisionMin),
@@ -829,6 +871,11 @@ export const recordCoopCareStatInteractionResponseCareStatsHealthMax = 100;
 export const recordCoopCareStatInteractionResponseCareStatsBondMin = 0;
 export const recordCoopCareStatInteractionResponseCareStatsBondMax = 100;
 
+export const recordCoopCareStatInteractionResponseCareStatsHungerMin = 0;
+export const recordCoopCareStatInteractionResponseCareStatsHungerMax = 100;
+
+export const recordCoopCareStatInteractionResponseCareStatsHungerUpdatedAtMin = 0;
+
 export const recordCoopCareStatInteractionResponseCareStatsLastInteractionAtMin = 0;
 
 export const recordCoopCareStatInteractionResponseCareStatsLastDecayAtMin = 0;
@@ -846,6 +893,8 @@ export const RecordCoopCareStatInteractionResponse = zod.object({
   "growth": zod.number().int().min(recordCoopCareStatInteractionResponseCareStatsGrowthMin).max(recordCoopCareStatInteractionResponseCareStatsGrowthMax),
   "health": zod.number().int().min(recordCoopCareStatInteractionResponseCareStatsHealthMin).max(recordCoopCareStatInteractionResponseCareStatsHealthMax),
   "bond": zod.number().int().min(recordCoopCareStatInteractionResponseCareStatsBondMin).max(recordCoopCareStatInteractionResponseCareStatsBondMax),
+  "hunger": zod.number().int().min(recordCoopCareStatInteractionResponseCareStatsHungerMin).max(recordCoopCareStatInteractionResponseCareStatsHungerMax).optional(),
+  "hungerUpdatedAt": zod.number().int().min(recordCoopCareStatInteractionResponseCareStatsHungerUpdatedAtMin).optional(),
   "lastInteractionAt": zod.number().int().min(recordCoopCareStatInteractionResponseCareStatsLastInteractionAtMin),
   "lastDecayAt": zod.number().int().min(recordCoopCareStatInteractionResponseCareStatsLastDecayAtMin),
   "revision": zod.number().int().min(recordCoopCareStatInteractionResponseCareStatsRevisionMin),

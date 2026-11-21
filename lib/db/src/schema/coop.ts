@@ -31,6 +31,8 @@ export type CoopCareStats = {
   growth: number;
   health: number;
   bond: number;
+  hunger?: number;
+  hungerUpdatedAt?: number;
   lastInteractionAt: number;
   lastDecayAt: number;
   revision: number;

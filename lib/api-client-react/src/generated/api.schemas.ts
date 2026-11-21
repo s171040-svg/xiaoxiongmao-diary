@@ -100,6 +100,13 @@ export interface CoopCareStats {
      * @maximum 100
      */
   bond: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  hunger?: number;
+  /** @minimum 0 */
+  hungerUpdatedAt?: number;
   /** @minimum 0 */
   lastInteractionAt: number;
   /** @minimum 0 */

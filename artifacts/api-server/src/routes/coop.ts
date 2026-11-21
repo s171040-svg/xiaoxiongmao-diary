@@ -143,15 +143,43 @@ function mergeCareStats(
   current: CoopCareStats | undefined,
   incoming: CoopCareStats | undefined,
 ): CoopCareStats | undefined {
-  if (!current) return incoming;
-  if (!incoming) return current;
+  if (!current) return incoming ? normalizeCareStatsHunger(incoming) : undefined;
+  if (!incoming) return normalizeCareStatsHunger(current);
   if (incoming.revision !== current.revision) {
-    return incoming.revision > current.revision ? incoming : current;
+    const base = incoming.revision > current.revision ? incoming : current;
+    return mergeHungerFields(base, current, incoming);
   }
   if (incoming.lastInteractionAt !== current.lastInteractionAt) {
-    return incoming.lastInteractionAt > current.lastInteractionAt ? incoming : current;
+    const base = incoming.lastInteractionAt > current.lastInteractionAt ? incoming : current;
+    return mergeHungerFields(base, current, incoming);
   }
-  return incoming.lastDecayAt > current.lastDecayAt ? incoming : current;
+  const base = incoming.lastDecayAt > current.lastDecayAt ? incoming : current;
+  return mergeHungerFields(base, current, incoming);
+}
+
+function normalizeCareStatsHunger(stats: CoopCareStats): CoopCareStats {
+  return {
+    ...stats,
+    hunger: Number.isInteger(stats.hunger) && stats.hunger! >= 0 && stats.hunger! <= 100
+      ? stats.hunger!
+      : 100,
+    hungerUpdatedAt: Number.isSafeInteger(stats.hungerUpdatedAt) && stats.hungerUpdatedAt! >= 0
+      ? stats.hungerUpdatedAt!
+      : stats.lastInteractionAt,
+  };
+}
+
+function mergeHungerFields(base: CoopCareStats, current: CoopCareStats, incoming: CoopCareStats): CoopCareStats {
+  const normalizedCurrent = normalizeCareStatsHunger(current);
+  const normalizedIncoming = normalizeCareStatsHunger(incoming);
+  const hungerSource = normalizedIncoming.hungerUpdatedAt! > normalizedCurrent.hungerUpdatedAt!
+    ? normalizedIncoming
+    : normalizedCurrent;
+  return {
+    ...base,
+    hunger: hungerSource.hunger,
+    hungerUpdatedAt: hungerSource.hungerUpdatedAt,
+  };
 }
 
 function initialCareStats(now: number): CoopCareStats {
@@ -159,6 +187,8 @@ function initialCareStats(now: number): CoopCareStats {
     growth: 50,
     health: 50,
     bond: 50,
+    hunger: 100,
+    hungerUpdatedAt: now,
     lastInteractionAt: now,
     lastDecayAt: now,
     revision: 0,
@@ -474,7 +504,7 @@ router.post("/coop/stats/interactions", async (req, res): Promise<void> => {
       .for("update");
     if (!current) return undefined;
     const now = Date.now();
-    const stats = current.sharedState.careStats ?? initialCareStats(now);
+    const stats = normalizeCareStatsHunger(current.sharedState.careStats ?? initialCareStats(now));
     const updatedCareStats = applyCareStatInteraction(
       stats,
       input.data.category as CoopCareStatCategory,
