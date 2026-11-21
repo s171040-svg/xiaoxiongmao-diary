@@ -20,7 +20,7 @@ const aliases: Record<string, string> = {
   'dirty-return': 'dirty', 'dirty-flee': 'dirty-flee', 'dirty-grab': 'dirty-grab',
   'dirty-grab-lift': 'dirty-grab', 'captured-dazed': 'dizzy', dizzy: 'dizzy',
   'captured-hug': 'captured-hug', 'captured-homecoming': 'captured-hug',
-  'potion-comfort': 'sit', 'jar-peeking': 'jar', 'climb-up': 'climb',
+  'potion-comfort': 'sit', 'jar-peeking': 'jar', 'climb-up': 'climb', 'leaf-play': 'toy',
   'bored-over-dock': 'peeking', 'toy-teaser': 'toy', 'toy-laser': 'toy',
   'toy-curious': 'toy', 'toy-brake': 'toy', 'toy-wall-dizzy': 'dizzy',
   'eat-bamboo': 'eat', 'eat-banana': 'eat-banana', 'eat-carrot': 'eat-carrot',
@@ -37,7 +37,7 @@ export const XIAOBAI_LOOP_COUNTS: Record<string, number> = {
 const transitionTargets: Record<keyof typeof PIXELLAB_TRANSITION_FRAME_FILES, string> = {
   idle: 'idle', chew: 'eat', jump: 'jump', cuddle: 'lying', tail: 'idle',
   somersault: 'back-pawing', lying: 'lying', sleep: 'sleep', peeking: 'peeking',
-  'captured-homecoming': 'captured-hug', 'climb-up': 'climb',
+  'captured-homecoming': 'captured-hug', 'climb-up': 'climb', 'leaf-play': 'toy',
 };
 export const XIAOBAI_TRANSITION_GROUPS = new Set([
   'sit', 'lying', 'sleep', 'startled', 'climb', 'back-pawing', 'grab', 'peeking',
@@ -63,6 +63,10 @@ export function characterAsset(source: string, characterId: PetCharacterId): Cha
     }
   }
   const archivedTransition = file.match(/^transitions\/(lying-to-stand-repair|pixellab-walk-to-roll|roll-to-lie-pose-2|walk-to-lie(?:-pose-2)?)-(\d+)\.png$/);
+  const platformLanding = file.match(/^transitions\/platform-grab-to-idle-(\d+)\.png$/);
+  if (platformLanding) {
+    return { src: xiaobaiAsset(`transitions/to-grab/${7 - Number(platformLanding[1])}.png`), group: 'grab', explicitTransition: true };
+  }
   if (archivedTransition) {
     const group = archivedTransition[1] === 'pixellab-walk-to-roll' ? 'back-pawing' : 'lying';
     const n = Math.min(6, Math.max(1, Number(archivedTransition[2])));

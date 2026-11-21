@@ -1,4 +1,4 @@
-.rp-dock{position:fixed;z-index:11;left:50%;bottom:10px;display:flex;align-items:stretch;gap:8px;max-width:calc(100vw - 16px);padding:6px 8px 6px 6px;transform:translateX(-50%);background:#f4e5bd;border:4px solid #76552c;box-shadow:inset 0 0 0 2px #fff1ce,0 4px 0 #8e6938;image-rendering:pixelated;pointer-events:auto;user-select:none}
+.rp-dock{position:fixed;z-index:11;left:50%;bottom:10px;display:flex;align-items:stretch;gap:8px;max-width:calc(100vw - 16px);overflow-x:auto;scrollbar-width:thin;padding:6px 8px 6px 6px;transform:translateX(-50%);background:#f4e5bd;border:4px solid #76552c;box-shadow:inset 0 0 0 2px #fff1ce,0 4px 0 #8e6938;image-rendering:pixelated;pointer-events:auto;user-select:none}
 .rp-title{display:flex;align-items:center;margin:0;padding:0 8px;background:#ead4a4;color:#37533a;font:700 13px/1.2 "Noto Sans Mono CJK SC","Noto Sans CJK SC",monospace;letter-spacing:.12em;writing-mode:vertical-rl;text-orientation:upright}
 .rp-group{display:flex;gap:6px}
 .rp-divider{width:4px;background:repeating-linear-gradient(180deg,#76552c 0 4px,transparent 4px 8px)}
@@ -11,6 +11,7 @@
 .rp-slot:disabled{cursor:not-allowed;opacity:.6}
 .rp-slot:focus-visible{outline:3px solid #fff3b0;outline-offset:2px}
 .rp-icon{width:36px;height:27px;image-rendering:pixelated}
+.rp-furniture-icon{object-fit:contain}
 .rp-teaser-icon{width:18px;height:34px;object-fit:contain;transform:rotate(22deg)}
 .rp-potion-icon{width:14.5px;height:14.5px;object-fit:contain}
 @media (max-width:560px){.rp-title{display:none}.rp-slot{min-width:48px;padding:4px}.rp-icon{width:28px;height:21px}}

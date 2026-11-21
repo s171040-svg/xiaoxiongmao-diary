@@ -960,3 +960,129 @@ mtime_ms = 1795149976347
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/97f17765-d3e9-4a2c-a628-fb57be304f13/513fd4b5-dbc1-47b1-a48c-11ee6bedfc7d"
 storage_version_token = "1795150195873180"
 content_type = "image/png"
+
+[[outputs]]
+id = "cmWu5B1z-ux6lpUlt5UDd"
+uri = "file://generated-artifacts/desktop-platforms-v020/native-window-platform.png"
+type = "image"
+title = "桌宠沿窗口上沿行走"
+description = "原生窗口中的模拟平台检查截图；已验证上沿行走、支撑窗口移动和垂直下落。不是用户电脑的截图。"
+logical_id = "98890306-a332-4e22-a250-f24462967561"
+content_hash = "sha256:ec935805b25b64aa8669dfe3f91e53a81457787d35a10abc713d73f0fe9a6f2b"
+size = 5816
+mtime_ms = 1795155214606
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/98890306-a332-4e22-a250-f24462967561/26872db9-4846-427b-8035-49ace44ead8f"
+storage_version_token = "1795155873225102"
+content_type = "image/png"
+
+[[outputs]]
+id = "K7lyZutxt4lovWPVAp0U7"
+uri = "file://generated-artifacts/panda-shake-preview/final/panda-three-shakes-preview.gif"
+type = "image"
+title = "小熊猫 · 甩三次变干净"
+description = "约8秒循环动图：脏兮兮回来，三次闭眼甩毛、间隔停顿，第三次结束后恢复干净。预览缩短了等待间隔，未接入网页、桌面程序或安装包。"
+logical_id = "da8afe1a-bc22-4d58-9bd0-d5a71661bb8b"
+content_hash = "sha256:976d322e33b0ce29e3b573813fb82e930ee89aaf02f95a590d47e096cfdbbdf8"
+size = 273497
+mtime_ms = 1795156536170
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/da8afe1a-bc22-4d58-9bd0-d5a71661bb8b/aaae001a-b9e5-4ebf-98d3-9625c62f28d2"
+storage_version_token = "1795156617409349"
+content_type = "image/gif"
+
+[[outputs]]
+id = "R3L_wclOLMmNQm41cZR4Z"
+uri = "file://generated-artifacts/panda-punch/panda-punch-preview.gif"
+type = "image"
+title = "小熊猫 · 挨拳后仰再爬起"
+description = "完整25帧像素动作。此动图循环便于查看；应用中单击只播放一次。"
+logical_id = "a42847a0-9bd6-4d0f-a1f4-d4eb367adad2"
+content_hash = "sha256:6815ecc3b745eff444f9191bbb9cda156c9994fe102961178f6a4339e59136bd"
+size = 161766
+mtime_ms = 1795168578486
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/a42847a0-9bd6-4d0f-a1f4-d4eb367adad2/177de667-7b0f-4866-bc5a-0f0e732da371"
+storage_version_token = "1795169462871320"
+content_type = "image/gif"
+
+[[outputs]]
+id = "3d_-PmADLWUSgpyUFFNwS"
+uri = "file://generated-artifacts/dream-ui-check/pixel-dream-preview.png"
+type = "image"
+title = "像素云朵与随机梦境预览"
+description = "云里直接显示像素小画面，点击可放大或换一个梦。"
+logical_id = "4a58cb2f-380f-4cd1-a6eb-10fe3d7cbeb2"
+content_hash = "sha256:3b74813c86556422813d5c7d16a97697f281673dddb815062c623d8bb0d0a8ec"
+size = 28914
+mtime_ms = 1795171057721
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/4a58cb2f-380f-4cd1-a6eb-10fe3d7cbeb2/38770743-92d9-4694-b7ef-dc2747e4a58a"
+storage_version_token = "1795171096589876"
+content_type = "image/png"
+
+[[outputs]]
+id = "JhxMWOQY7n6GaMCyb71kj"
+uri = "file://generated-artifacts/chat-entry-check/panda-toolbar.png"
+type = "image"
+title = "小熊猫趴在工具栏上的实际截图"
+description = "使用小熊猫自己的棕红像素素材；趴满1分钟后恢复其他活动。"
+logical_id = "1c8f076a-88d6-4766-8114-3d217aff77f7"
+content_hash = "sha256:a10a1d273d485dc2c00285b178bb41208133ed3b95009799cd479eedd045b318"
+size = 83238
+mtime_ms = 1795173401280
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/1c8f076a-88d6-4766-8114-3d217aff77f7/0b03e9dd-5c1c-46a0-ace2-6c54a5f6f2b2"
+storage_version_token = "1795173465305953"
+content_type = "image/png"
+
+[[outputs]]
+id = "LSLsOaKiVNIKuPHwjKQz5"
+uri = "file://generated-artifacts/chat-entry-check/leaf-platform-playing.png"
+type = "image"
+title = "叶子平台实际效果"
+description = "小熊猫会在这块木平台上随机睡觉或抬爪玩叶子，长按抓下来才会离开。"
+logical_id = "7fa2eb44-9761-4bba-a654-1020e527ab66"
+content_hash = "sha256:ba9f7885ebb07991df567bf1824096d40be7cf3f3a199bc7972e7e0f80fa6aa0"
+size = 109084
+mtime_ms = 1795176324135
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/7fa2eb44-9761-4bba-a654-1020e527ab66/0d8a98a0-77a0-4c40-8617-88a90320dd2b"
+storage_version_token = "1795176365476644"
+content_type = "image/png"
+
+[[outputs]]
+id = "_WwajKbVKGiF4xSHX4QyK"
+uri = "file://generated-artifacts/xiaobai-room-preview/xiaobai-room-concept.png"
+type = "image"
+title = "小白专属房间｜概念预览"
+description = "PixelLab 普通模式生成并做局部修整：奶油白、浅木色与柔和绿色，加入小白头像和爪印装饰，保留房间架构与原有家具道具。原图400×224，按像素放大到1200×672，仅供预览，未接入应用。"
+logical_id = "1fa8d23b-86f5-4aa0-afc0-f152e0983d65"
+content_hash = "sha256:df4046051887dc4e9faf7293af3db3efd2da1e02c8175c2707adb5333e8fafa7"
+size = 177419
+mtime_ms = 1795177814098
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/1fa8d23b-86f5-4aa0-afc0-f152e0983d65/93268e14-3674-465a-9f9c-febd610253b6"
+storage_version_token = "1795177844090211"
+content_type = "image/png"
+
+[[outputs]]
+id = "AtQmJya1vte0baJ-jspAD"
+uri = "file://generated-artifacts/xiaobai-room-preview/xiaobai-room-crisp-native.png"
+type = "image"
+title = "小白房间清晰画风样张｜布局未对齐"
+description = "PixelLab 普通模式直接生成的680×384原生图，未经放大。清晰度改善，但家具和布局未完整保留，只供看画风，不是完成稿，也未接入项目。"
+logical_id = "8c535fdc-cd5e-43e2-a76d-a7b4b57b4350"
+content_hash = "sha256:f9346e495dfb4b4190541e968a7c847060e6169b0aa4cbd3b3c428dc7767e424"
+size = 100255
+mtime_ms = 1795178785774
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/8c535fdc-cd5e-43e2-a76d-a7b4b57b4350/e728fbb7-6044-400a-a94f-54b202334a56"
+storage_version_token = "1795179238627210"
+content_type = "image/png"
+
+[[outputs]]
+id = "Ht2EjfSQUy3LHyWUFq7A6"
+uri = "file://generated-artifacts/desktop-punch-v022/native-dirty-shake.png"
+type = "image"
+title = "桌面版甩毛动作运行截图"
+description = "实际 Electron 桌宠中的甩毛动作；已验证三次分别播放、第三次清洁完成。"
+logical_id = "3a974dd0-4471-41cd-8baf-6376fcab5f69"
+content_hash = "sha256:037ad22238a56060c530de9e1cf52adbb9cd57c04058d29b70d56a70c2128d58"
+size = 2772
+mtime_ms = 1795237005040
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/3a974dd0-4471-41cd-8baf-6376fcab5f69/207f08bf-f57c-450d-873e-de0ddaf4062b"
+storage_version_token = "1795237089975218"
+content_type = "image/png"

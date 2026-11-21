@@ -55,6 +55,8 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
     return { action: 'idle', stage: 'present', duration: 3000, token: 0 };
   });
   const petRef = useRef(pet);
+  const roomPetAnchored = useRef(false);
+  const setRoomPetAnchored = useCallback((anchored: boolean) => { roomPetAnchored.current = anchored; }, []);
   const timers = useRef<number[]>([]);
   const welcomeAt = useRef(0), queuedPerformance = useRef(false);
   const visible = useRef(!isDesktop() && document.visibilityState === 'visible');
@@ -309,7 +311,7 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
         try {
           const previous = readState(localStorage);
           if (busyRef.current && !(previous.trip && Date.now() >= previous.trip.returnAt)) return;
-          const result = tickCompanion(previous, Date.now());
+          const result = tickCompanion(previous, Date.now(), Math.random, { allowDeparture: !roomPetAnchored.current });
           if (result.state !== previous) {
             writeState(localStorage, result.state); current.current = result.state; setState(result.state);
           }
@@ -424,6 +426,7 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
     removePhoto: () => { try { transact(s => ({ ...s, draftPhoto: undefined })); } catch (e) { report(e); } },
     removeDiary: (memoryId: string) => { try { transact(s => ({ ...s, diary: s.diary.filter(m => m.id !== memoryId) })); } catch (e) { report(e); } },
     recordCareStatInteraction,
+    setRoomPetAnchored,
     mergeSharedCareStats: (careStats: CareStats) => {
       try { transact(s => mergeSharedCareStats(s, careStats)); }
       catch (e) { report(e); }

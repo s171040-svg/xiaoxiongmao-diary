@@ -593,7 +593,8 @@ export function beginTrip(state: CompanionState, now = Date.now(), random = Math
       ? `哎呀，小熊猫太可爱，被路过的人抱走啦！大家正在找它，小熊猫会晚一点回家哦。`
       : `诶，${state.userName ? state.userName + '，' : ''}小熊猫出去逛一圈，一会儿回来哦。（它轻轻挥挥爪子）`, 'event', now)] };
 }
-export function tickCompanion(state: CompanionState, now: number, random = Math.random): {
+export function tickCompanion(state: CompanionState, now: number, random = Math.random,
+  options: { allowDeparture?: boolean } = {}): {
   state: CompanionState; event?: 'proactive' | 'departure' | 'gift'; text?: string; capturedReturn?: boolean;
 } {
   let next = decayCareStatState(state, now);
@@ -656,7 +657,7 @@ export function tickCompanion(state: CompanionState, now: number, random = Math.
       messages: [...next.messages, assistant(text, due ? 'followup' : 'proactive', now)] };
     return { state: next, event: 'proactive', text };
   }
-  if (!next.pendingGift && now >= next.nextTripAt && now - next.lastUserAt >= MINUTE) {
+  if (options.allowDeparture !== false && !next.pendingGift && now >= next.nextTripAt && now - next.lastUserAt >= MINUTE) {
     next = beginTrip(next, now, random);
     return { state: next, event: 'departure', text: next.messages.at(-1)!.text };
   }

@@ -24,6 +24,7 @@ import { useCompanion } from '@/hooks/use-companion';
 import { isDesktop } from '@/lib/desktop';
 import { queryClient } from '@/lib/query-client';
 import { readRoomFurnitureLayout } from '@/lib/room-furniture-layout';
+import { normalizeRoomProps } from '@/lib/room-props';
 import './landing.css';
 
 const clerkPubKey = publishableKeyFromHost(
@@ -195,11 +196,11 @@ function localRoomSnapshot(
   gifts: ReturnType<typeof useCompanion>['state']['gifts'],
   careStats: ReturnType<typeof useCompanion>['state']['careStats'],
 ): CoopSharedState {
-  let placedProps: Record<string, boolean> = { bed: true, rack: true, tub: true };
+  let placedProps = normalizeRoomProps();
   let furnitureLayout: CoopSharedState['furnitureLayout'] = {};
   try {
     const value: unknown = JSON.parse(localStorage.getItem('little-panda-room-props-v1') ?? 'null');
-    if (value && typeof value === 'object' && !Array.isArray(value)) placedProps = { ...placedProps, ...value as Record<string, boolean> };
+    placedProps = normalizeRoomProps(value);
   } catch { /* keep the room's existing defaults */ }
   try { furnitureLayout = readRoomFurnitureLayout(localStorage); } catch { /* keep the room's empty saved layout */ }
   return {

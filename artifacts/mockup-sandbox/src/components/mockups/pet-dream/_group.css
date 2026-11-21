@@ -1,0 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap');
+.dream-extract{min-height:100vh;display:grid;place-items:center;background:#e8dbc0}
+.dream-extract-anchor{position:relative;width:60px;height:60px}
+.dream-extract-anchor>img{position:absolute;bottom:0;left:0;width:60px;height:60px;image-rendering:pixelated}
+.ps-dream-cloud{position:absolute;z-index:12;top:-18%;display:grid;width:34px;height:32px;place-items:center;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;color:#6f99aa;font:27px/1 "Apple Color Emoji","Segoe UI Emoji",sans-serif;cursor:pointer;pointer-events:auto;animation:ps-dream-float 2.8s ease-in-out infinite;transition:scale 140ms ease,filter 140ms ease}
+.ps-dream-cloud-right{left:calc(50% + 15px)}
+.ps-dream-cloud-left{right:calc(50% + 15px)}
+.ps-dream-cloud:hover,.ps-dream-cloud-open{scale:1.08;filter:drop-shadow(0 2px 2px #344c5540)}
+.ps-dream-popover{position:absolute;z-index:13;top:-18%;box-sizing:border-box;width:min(220px,calc(100vw - 24px));padding:11px 28px 10px 13px;border:1px solid #bfd4d8;border-radius:14px 14px 14px 5px;background:#fffdf1f2;box-shadow:0 4px 14px #243c3830;color:#43594f;pointer-events:auto;animation:ps-dream-pop 180ms ease-out both}
+.ps-dream-popover-right{left:calc(50% + 20px);transform:translateY(-100%)}
+.ps-dream-popover-left{right:calc(50% + 20px);transform:translateY(-100%)}
+.ps-dream-popover strong{display:block;margin-bottom:4px;color:#628071;font:700 12px/1.35 "Noto Sans CJK SC",sans-serif}
+.ps-dream-popover p{margin:0;font:500 13px/1.55 "Noto Sans CJK SC",sans-serif;overflow-wrap:anywhere}
+.ps-dream-close{position:absolute;top:4px;right:5px;display:grid;width:20px;height:20px;place-items:center;padding:0;border:0;border-radius:50%;background:transparent;color:#72867d;font:18px/1 sans-serif;cursor:pointer}
+.ps-dream-close:hover{background:#dcebe6;color:#3c594e}
+@keyframes ps-dream-float{0%,100%{translate:0 0}50%{translate:0 -3px}}
+@keyframes ps-dream-pop{from{opacity:0;scale:.96}to{opacity:1;scale:1}}
+@media(prefers-reduced-motion:reduce){.ps-dream-cloud{animation:none}}

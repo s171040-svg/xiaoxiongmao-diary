@@ -83,7 +83,11 @@ import {
   type RoomFurniturePoint,
 } from '@/lib/room-furniture-layout';
 import { SPACE_POLICE_LETTER_EAT_DELAY_MS } from '@/lib/companion-store';
-import { BORED_SEARCH_IDLE_MS, isBoredSearchDue } from '@/lib/room-bored-search';
+import { BORED_DOCK_REST_MS, isBoredSearchDue } from '@/lib/room-bored-search';
+import { normalizeRoomProps } from '@/lib/room-props';
+import { useLeafPlatform } from '@/hooks/use-leaf-platform';
+import { RoomLeafPlatform } from './RoomLeafPlatform';
+import { isLeafPlatformScreenPoint, LEAF_PLATFORM_POINT, PLATFORM_LANDING_FRAMES, type LeafPlatformActivity } from '@/lib/room-leaf-platform';
 import animationManifest from '@/lib/panda-animation-manifest.json';
 import { punchDuration } from '@/lib/panda-punch';
 import { usePandaPunch } from '@/hooks/use-panda-punch';
@@ -92,7 +96,6 @@ import { useRoomEyeControl } from './useRoomEyeControl';
 import './PetStage.css';
 
 const ROOM_PROPS_KEY = 'little-panda-room-props-v1';
-const DOUBLE_CLICK_WINDOW_MS = 3000;
 const REACTION_DURATION_MS = 1400;
 const CHAT_IDLE_TIMEOUT_MS = 30000;
 const DIRECTION_EPSILON = 0.0001;
@@ -218,6 +221,7 @@ const TRANSITION_ASSET_VERSIONS: Record<TransitionKey, string> = {
   peeking: 'pixellab-transition-1',
   'captured-homecoming': 'captured-homecoming-exit-1',
   'climb-up': 'stairs-back-left-walk-2',
+  'leaf-play': 'leaf-platform-1',
 };
 const PIXELLAB_TRANSITION_FRAMES = Object.fromEntries(
   Object.entries(PIXELLAB_TRANSITION_FRAME_FILES).map(([key, files]) => [
@@ -322,7 +326,7 @@ type BathBallPointer = {
   offsetY: number;
 };
 
-export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthPotion, thinking = false, motion = 'idle', debugClicks = false, showInteractionBubble = false, showArrowMarker = false, interactionBubbleText, developerPose = null, developerEvent = null, onChatModeChange, onCareInteraction, onCapturedHomecomingInteraction, pendingGift, giftDropStartedAt, onCollectPresent, giftCount = 0, onOpenGiftStorage, spacePoliceLetter, spacePoliceLetters, spacePoliceMailCount = 0, spacePoliceUnreadCount = 0, onOpenSpacePoliceLetter, onFileSpacePoliceLetter, onEatSpacePoliceLetter, onPlaceSpacePolicePoop, onPackSpacePolicePoop, onMoveSpacePolicePoopBag, onDisposeSpacePolicePoopBag, onFinishSpacePolicePoopDisposal, onOpenSpacePoliceMailbox }: {
+export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthPotion, thinking = false, motion = 'idle', debugClicks = false, showInteractionBubble = false, showArrowMarker = false, interactionBubbleText, developerPose = null, developerEvent = null, onChatModeChange, onCareInteraction, onLeafPlatformChange, onCapturedHomecomingInteraction, pendingGift, giftDropStartedAt, onCollectPresent, giftCount = 0, onOpenGiftStorage, spacePoliceLetter, spacePoliceLetters, spacePoliceMailCount = 0, spacePoliceUnreadCount = 0, onOpenSpacePoliceLetter, onFileSpacePoliceLetter, onEatSpacePoliceLetter, onPlaceSpacePolicePoop, onPackSpacePolicePoop, onMoveSpacePolicePoopBag, onDisposeSpacePolicePoopBag, onFinishSpacePolicePoopDisposal, onOpenSpacePoliceMailbox }: {
   pet: PetEffect;
   selectedSnack?: Pick<Gift, 'id' | 'emoji' | 'item'> | null;
   onFeedSnack?: (giftId: string) => void;
@@ -337,6 +341,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   developerEvent?: { event: DeveloperEvent; token: number } | null;
   onChatModeChange?: (isChat: boolean) => void;
   onCareInteraction?: (category: CareStatCategory) => void;
+  onLeafPlatformChange?: (held: boolean) => void;
   onCapturedHomecomingInteraction?: () => void;
   pendingGift?: Gift;
   giftDropStartedAt?: number;
@@ -401,6 +406,16 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const [transitionFrameSrc, setTransitionFrameSrc] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isPressPending, setIsPressPending] = useState(false);
+  const { mode: leafPlatformActivity, heldRef: leafPlatformRef, enter: holdLeafPlatform,
+    pickUp: releaseLeafPlatform } = useLeafPlatform(pet.stage === 'present' && !isDragging && !isPressPending);
+  const previousLeafActivityRef = useRef<LeafPlatformActivity | null>(null);
+  const leafPlatformArrivingRef = useRef(false);
+  const handledLeafPlatformEventRef = useRef<number | null>(null);
+  const leafPlatformHeld = leafPlatformActivity !== null;
+  useEffect(() => {
+    onLeafPlatformChange?.(leafPlatformHeld);
+    return () => onLeafPlatformChange?.(false);
+  }, [leafPlatformHeld, onLeafPlatformChange]);
   const [bathPhase, setBathPhase] = useState<BathPhase>('none');
   const [bathTransition, setBathTransition] = useState<'exiting' | null>(null);
   const [bathExitImage, setBathExitImage] = useState<string | null>(null);
@@ -459,11 +474,10 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     height: typeof window === 'undefined' ? 1 : window.innerHeight,
   }));
   const [placedProps, setPlacedProps] = useState<Record<RoomProp, boolean>>(() => {
-    const defaults = { bed: false, rack: true, tub: true };
     try {
       const raw = window.localStorage.getItem(ROOM_PROPS_KEY);
-      return raw ? { ...defaults, ...(JSON.parse(raw) as Partial<Record<RoomProp, boolean>>), bed: false } : defaults;
-    } catch { return defaults; }
+      return normalizeRoomProps(raw ? JSON.parse(raw) : undefined);
+    } catch { return normalizeRoomProps(); }
   });
   const [equippedToy, setEquippedToy] = useState<RoomToy | null>(null);
   const equippedToyRef = useRef<RoomToy | null>(null);
@@ -499,7 +513,10 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     () => activeWasteLetters.filter(letter => ['fresh', 'bagged', 'disposing'].includes(letter.poop!.phase)),
     [activeWasteLetters],
   );
-  const wasteBinVisible = showInteractionBubble;
+  const trashCanBusy = trashCanPandaPhase !== null || draggingFurnitureId === 'trashCan'
+    || activeWasteLetters.some(letter => letter.poop?.phase === 'disposing');
+  // A shared hide request waits until the local pet/disposal animation is safe.
+  const wasteBinVisible = showInteractionBubble && (placedProps.trashCan || trashCanBusy);
   const isFlyChasing = flyChaseActive && bathPhase === 'none' && interactionState === 'roaming'
     && activityState === 'roaming' && !isDragging && !pandaHanging && !hidden;
   const [nightWakeOverride, setNightWakeOverride] = useState(false);
@@ -563,8 +580,6 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const truthPotionComfortStartedRef = useRef(false);
   const truthPotionComfortRafRef = useRef(0);
   const truthPotionInvitationTimerRef = useRef(0);
-  const firstActivationAtRef = useRef<number | null>(null);
-  const clickExpiryTimerRef = useRef(0);
   const reactionTimerRef = useRef(0);
   const chatIdleTimerRef = useRef(0);
   const dragPointerRef = useRef<PandaDragPointer | null>(null);
@@ -1038,9 +1053,10 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     && (activityState === 'lying' || activityState === 'sleeping');
   const isSleeping = !startled
     && activityTransition !== 'frames-entering' && activityTransition !== 'frames-waking'
-    && (developerPose === 'sleeping'
-      || (showInteractionBubble && (activityState === 'sleeping' || (activityState === 'roaming' && motion === 'sleep' && !nightWakeOverride))));
+    && (leafPlatformHeld ? leafPlatformActivity === 'sleeping' : (developerPose === 'sleeping'
+      || (showInteractionBubble && (activityState === 'sleeping' || (activityState === 'roaming' && motion === 'sleep' && !nightWakeOverride)))));
   const boredSearchEligible = showInteractionBubble
+    && !leafPlatformHeld
     && interactionState === 'roaming' && !hidden && pet.stage === 'present'
     && activityState === 'roaming' && !roomWalking && !isSleeping
     && !developerPose && !isDragging && !isPressPending && !developerGrab
@@ -1093,6 +1109,21 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   }, [showInteractionBubble]);
 
   useEffect(() => {
+    if (!boredAtDock) return;
+    const finishDockRest = () => {
+      // Finishing a rest starts a fresh idle period, not another immediate rest.
+      lastRoomUserActivityAtRef.current = Date.now();
+      setBoredAtDock(false);
+    };
+    if (!boredSearchEligible) {
+      finishDockRest();
+      return;
+    }
+    const timer = window.setTimeout(finishDockRest, BORED_DOCK_REST_MS);
+    return () => window.clearTimeout(timer);
+  }, [boredAtDock, boredSearchEligible]);
+
+  useEffect(() => {
     if (!showBoredSearch || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       setBoredDockFrame(0);
       return undefined;
@@ -1133,6 +1164,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const isSleepingRef = useRef(isSleeping);
   isSleepingRef.current = isSleeping;
   const hoverCuddleVisible = showInteractionBubble && !equippedToy && hoverCuddleActive && pet.stage === 'present'
+    && !leafPlatformHeld
     && interactionState !== 'chat' && !isSleeping && !isDragging && !isPressPending && !developerGrab
     && !pandaHanging && !dampAfterBath && bathPhase === 'none' && !startled && dizzyPhase === 'none'
     && worldFallPhase === 'none' && !dirtyReturn && !developerPose;
@@ -1169,7 +1201,9 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     ? animationManifest.motionSprites.walk
     : pet.stage === 'performing'
       ? animationManifest.actionSprites[action]
-      : developerPose
+    : leafPlatformActivity
+      ? leafPlatformActivity === 'sleeping' ? 'sleep' : 'leaf-play'
+    : developerPose
         ? DEVELOPER_POSE_SPRITES[developerPose]
         : showInteractionBubble && activityState === 'peeking'
           ? 'peeking'
@@ -1430,6 +1464,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   }, [clearActivityTransition, pet.action, pet.actionPreview, pet.stage, pet.token, playPixelTransition, playTransitionFrames, startBambooFeeding]);
 
   const beginActivityWake = useCallback(() => {
+    if (leafPlatformRef.current) return;
     if (interactionStateRef.current === 'chat') return;
     clearActivityTransition();
     setRoomWalking(false);
@@ -1485,6 +1520,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   }, []);
 
   const triggerStartle = useCallback(() => {
+    if (leafPlatformRef.current) return;
     if (!showInteractionBubble || hidden || interactionStateRef.current === 'chat' || startledRef.current) return;
     clearActivityTransition();
     startledRef.current = true;
@@ -1534,6 +1570,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   }, [activityState, hidden, pet.stage, showInteractionBubble, triggerStartle]);
 
   const applyRoomPoint = useCallback((point: RoomPoint) => {
+    if (leafPlatformRef.current && !draggingRef.current && point !== LEAF_PLATFORM_POINT) return;
     if (showInteractionBubble && worldFallPhaseRef.current === 'falling') return;
     const previousPoint = positionRef.current;
     const reachedOutsideBoundary = showInteractionBubble && roomWalkingRef.current
@@ -1592,6 +1629,50 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     } else delete track.dataset.roomWalkable;
     if (reachedOutsideBoundary) worldFallBoundaryTriggerRef.current?.();
   }, [hangingOnClothesRack, showInteractionBubble, syncBathOcclusion, syncRackOcclusion]);
+
+  const enterLeafPlatform = useCallback((mode?: LeafPlatformActivity) => {
+    if (!showInteractionBubble || pet.stage !== 'present') return;
+    clearActivityTransition();
+    window.clearTimeout(catTreeSleepTimerRef.current);
+    window.clearTimeout(hoverCuddleTimerRef.current);
+    setHoverCuddleActive(false);
+    setEquippedToy(null);
+    equippedToyRef.current = null;
+    setToyPose(null);
+    setReacting(false);
+    setStartled(false);
+    setBoredAtDock(false);
+    sleepingInNestRef.current = false;
+    setSleepingInNest(false);
+    setSleepingOnBed(false);
+    setHangingOnRack(false);
+    setHangingOnWindowHook(false);
+    roomWalkingRef.current = false;
+    setRoomWalking(false);
+    leafPlatformArrivingRef.current = true;
+    holdLeafPlatform(mode);
+    onLeafPlatformChange?.(true);
+    updateFacing(1);
+    applyRoomPoint(LEAF_PLATFORM_POINT);
+  }, [applyRoomPoint, clearActivityTransition, holdLeafPlatform, onLeafPlatformChange, pet.stage, showInteractionBubble, updateFacing]);
+
+  useEffect(() => {
+    const previous = previousLeafActivityRef.current;
+    previousLeafActivityRef.current = leafPlatformActivity;
+    if (!leafPlatformActivity || isDragging || pet.stage !== 'present') return;
+    const key = leafPlatformActivity === 'sleeping' ? 'sleep' : 'leaf-play';
+    const settle = () => {
+      if (leafPlatformRef.current !== leafPlatformActivity) return;
+      setActivityState(leafPlatformActivity === 'sleeping' ? 'sleeping' : 'roaming');
+      playPixelTransition(key, 'entering', () => setRoomWalking(false));
+    };
+    if (leafPlatformArrivingRef.current) {
+      leafPlatformArrivingRef.current = false;
+      playTransitionFrames(PLATFORM_LANDING_FRAMES.map(pandaStaticUrl), 'entering', settle);
+    } else if (previous && previous !== leafPlatformActivity) {
+      playPixelTransition(previous === 'sleeping' ? 'sleep' : 'leaf-play', 'waking', settle);
+    } else settle();
+  }, [isDragging, leafPlatformActivity, pet.stage, playPixelTransition, playTransitionFrames]);
 
   useLayoutEffect(() => {
     if (!capturedHomecoming) {
@@ -1735,6 +1816,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   }, [applyRoomPoint, setBathPhaseNow, setDampAfterBathNow, showInteractionBubble, updateFacing]);
 
   const startTrashCanPanda = useCallback(() => {
+    if (leafPlatformRef.current) return false;
     if (!showInteractionBubble || hidden || interactionStateRef.current === 'chat' || draggingRef.current
       || sleepingOnBed || sleepingInNest || pandaHangingRef.current || bathPhaseRef.current !== 'none'
       || trashCanPandaPhaseRef.current !== null) return false;
@@ -1964,6 +2046,11 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   useEffect(() => {
     if (!import.meta.env.DEV || !developerEvent || !showInteractionBubble
       || interactionStateRef.current === 'chat') return;
+    if (leafPlatformRef.current && !developerEvent.event.startsWith('leaf-platform')) return;
+    if (developerEvent.event.startsWith('leaf-platform')) {
+      if (handledLeafPlatformEventRef.current === developerEvent.token) return;
+      handledLeafPlatformEventRef.current = developerEvent.token;
+    }
     // A preview is a one-shot request. Changing pose/callbacks must not put a
     // pet back to sleep after the user has already woken it.
     if (developerEvent.event === 'dream') {
@@ -1979,6 +2066,15 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     setRoomWalking(false);
 
     switch (developerEvent.event) {
+      case 'leaf-platform':
+        enterLeafPlatform();
+        break;
+      case 'leaf-platform-sleep':
+        enterLeafPlatform('sleeping');
+        break;
+      case 'leaf-platform-play':
+        enterLeafPlatform('playing');
+        break;
       case 'dream':
         setDreamPreviewToken(developerEvent.token);
         setActivityState('sleeping');
@@ -2101,7 +2197,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
         break;
       }
     }
-  }, [applyRoomPoint, clearActivityTransition, developerEvent, setFrame, showInteractionBubble, startBathDropToTub, startDeveloperBathRub, startFlyChase, startTrashCanPanda, triggerStartle, startPunchReaction]);
+  }, [applyRoomPoint, clearActivityTransition, developerEvent, enterLeafPlatform, setFrame, showInteractionBubble, startBathDropToTub, startDeveloperBathRub, startFlyChase, startTrashCanPanda, triggerStartle, startPunchReaction]);
 
   useEffect(() => {
     if (trashCanPandaPhase !== 'entering' && trashCanPandaPhase !== 'exiting') return undefined;
@@ -2379,6 +2475,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   }, [applyRoomPoint, bathPhase, showInteractionBubble]);
 
   const beginWorldFall = useCallback((source: 'random' | 'boundary') => {
+    if (leafPlatformRef.current) return false;
     const now = performance.now();
     const boundaryFall = source === 'boundary';
     const phase = worldFallPhaseRef.current;
@@ -2693,12 +2790,10 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     onChatModeChange?.(false);
   };
 
-  const enterChat = (source: string) => {
-    recordDebug(`enterChat 被调用；来源=${source}`);
-    window.clearTimeout(clickExpiryTimerRef.current);
+  const enterChatAfterTruthPotion = () => {
+    if (!truthPotionComfortStartedRef.current) return;
+    recordDebug('喂食药药药后进入聊天');
     window.clearTimeout(reactionTimerRef.current);
-    firstActivationAtRef.current = null;
-    clickExpiryTimerRef.current = 0;
     reactionTimerRef.current = 0;
     setReacting(false);
     clearActivityTransition();
@@ -2713,6 +2808,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   };
 
   const startTruthPotionComfort = useCallback(() => {
+    if (leafPlatformRef.current) return false;
     if (!showInteractionBubble || hidden || pet.stage !== 'present'
       || interactionStateRef.current === 'chat' || truthPotionComfortStartedRef.current
       || pandaJarTrapped || pandaHangingRef.current || draggingRef.current
@@ -2744,7 +2840,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       setFrame(0);
       setTruthPotionComfortPhase('settling');
       setTruthPotionInvitationVisible(true);
-      enterChat('truth-potion');
+      enterChatAfterTruthPotion();
       truthPotionInvitationTimerRef.current = window.setTimeout(() => {
         truthPotionInvitationTimerRef.current = 0;
         setTruthPotionInvitationVisible(false);
@@ -2776,10 +2872,11 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     };
     truthPotionComfortRafRef.current = window.requestAnimationFrame(advance);
     return true;
-  }, [applyRoomPoint, clearActivityTransition, enterChat, hidden, onDrinkTruthPotion, pandaJarTrapped, pet.stage, setFrame, showInteractionBubble, updateFacing]);
+  }, [applyRoomPoint, clearActivityTransition, enterChatAfterTruthPotion, hidden, onDrinkTruthPotion, pandaJarTrapped, pet.stage, setFrame, showInteractionBubble, updateFacing]);
   truthPotionComfortStartRef.current = startTruthPotionComfort;
 
   const handlePandaClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (leafPlatformRef.current) return;
     if (worldFallPhase !== 'none' && worldFallPhase !== 'dirty') return;
     if (capturedHomecoming) onCapturedHomecomingInteraction?.();
     if (suppressClickAfterDragRef.current) {
@@ -2800,15 +2897,12 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       return;
     }
     if (isSleeping) {
-      window.clearTimeout(clickExpiryTimerRef.current);
       window.clearTimeout(reactionTimerRef.current);
       window.clearTimeout(catTreeSleepTimerRef.current);
       catTreeSleepTimerRef.current = 0;
       if (sleepingInNestRef.current) lastCatTreeNapAtRef.current = now;
       sleepingInNestRef.current = false;
-      clickExpiryTimerRef.current = 0;
       reactionTimerRef.current = 0;
-      firstActivationAtRef.current = null;
       wakeClickIgnoreUntilRef.current = now + WAKE_CLICK_COOLDOWN_MS;
       setReacting(false);
       clearActivityTransition();
@@ -2821,20 +2915,6 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       if (!startPunchReaction()) triggerStartle();
       return;
     }
-    if (event.detail >= 2) {
-      recordDebug(`第二次点击已进入按钮处理；event.detail=${event.detail}；将调用 enterChat`);
-      enterChat('浏览器第二次点击信号');
-      return;
-    }
-    const firstActivationAt = firstActivationAtRef.current;
-    if (firstActivationAt !== null && now - firstActivationAt <= DOUBLE_CLICK_WINDOW_MS) {
-      recordDebug(`第二次点击已进入按钮处理；间隔=${Math.round(now - firstActivationAt)}ms；将调用 enterChat`);
-      enterChat('3 秒点击窗口');
-      return;
-    }
-
-    firstActivationAtRef.current = now;
-    window.clearTimeout(clickExpiryTimerRef.current);
     window.clearTimeout(reactionTimerRef.current);
     if (!startPunchReaction()) {
       setReacting(true);
@@ -2844,10 +2924,6 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
         setReacting(false);
       }, REACTION_DURATION_MS);
     }
-    clickExpiryTimerRef.current = window.setTimeout(() => {
-      if (firstActivationAtRef.current === now) firstActivationAtRef.current = null;
-      clickExpiryTimerRef.current = 0;
-    }, DOUBLE_CLICK_WINDOW_MS);
   };
 
   const handleSpacePoliceEnvelopePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
@@ -2954,6 +3030,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   };
 
   const handlePandaPointerEnter = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (leafPlatformRef.current) return;
     if (event.pointerType !== 'mouse' || !showInteractionBubble || pet.stage !== 'present'
       || interactionStateRef.current !== 'roaming' || hidden || isSleeping || isDragging || isPressPending
       || developerGrab || pandaHanging || bathPhaseRef.current !== 'none' || startledRef.current
@@ -3013,16 +3090,18 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       const activeDrag = dragPointerRef.current;
       if (!activeDrag || activeDrag.pointerId !== event.pointerId) return;
       activeDrag.grabbed = true;
+      const platformModeOnPickup = leafPlatformRef.current;
+      if (platformModeOnPickup) {
+        releaseLeafPlatform();
+        onLeafPlatformChange?.(false);
+      }
       activeDrag.grabbedAt = performance.now();
       activeDrag.motion = createGrabMotionStats(activeDrag.grabbedAt);
       activeDrag.holdTimer = 0;
       draggingRef.current = true;
       suppressClickAfterDragRef.current = true;
-      window.clearTimeout(clickExpiryTimerRef.current);
       window.clearTimeout(reactionTimerRef.current);
-      clickExpiryTimerRef.current = 0;
       reactionTimerRef.current = 0;
-      firstActivationAtRef.current = null;
       window.clearTimeout(startleTimerRef.current);
        window.clearTimeout(bathExitTimerRef.current);
        bathExitTimerRef.current = 0;
@@ -3067,6 +3146,12 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
         if (worldFallPhase !== 'none') setWorldFallPhase('none');
       }
       if (motion === 'sleep') setNightWakeOverride(true);
+      if (platformModeOnPickup) {
+        playPixelTransition(platformModeOnPickup === 'sleeping' ? 'sleep' : 'leaf-play', 'waking', () => {
+          if (!draggingRef.current) return;
+          playTransitionFrames(PLATFORM_LANDING_FRAMES.map(pandaStaticUrl), 'waking', () => {});
+        });
+      }
       setRoomWalking(false);
       const width = Math.max(1, window.innerWidth);
       const height = Math.max(1, window.innerHeight);
@@ -3151,6 +3236,9 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     const droppedIntoNest = drag.grabbed && !cancelled && showInteractionBubble
       && pandaRect !== undefined
       && isCatTreeNestScreenPoint(pandaCenterX, pandaCenterY, window.innerWidth, window.innerHeight);
+    const droppedOntoLeafPlatform = drag.grabbed && !cancelled && showInteractionBubble
+      && pandaRect !== undefined
+      && isLeafPlatformScreenPoint(pandaCenterX, pandaCenterY, window.innerWidth, window.innerHeight);
     const droppedIntoTub = drag.grabbed && !cancelled && showInteractionBubble
       && !drag.liftedFromBath && bathPhaseRef.current === 'none' && tubRect !== undefined
       && event.clientX >= tubRect.left && event.clientX <= tubRect.right
@@ -3194,7 +3282,9 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       setSleepingInNest(false);
       setRoomWalking(false);
       if (!cancelled && pandaJarTrapped && !droppedIntoJar) setPandaJarTrapped(false);
-      if (droppedIntoNest) {
+      if (droppedOntoLeafPlatform) {
+        enterLeafPlatform();
+      } else if (droppedIntoNest) {
         enterCatTreeSleep();
       } else if (droppedOntoBed && bedRect && pandaRect) {
         const width = Math.max(1, window.innerWidth);
@@ -3297,7 +3387,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
         placedProps?: Record<string, boolean>;
       }>).detail;
       if (!shared) return;
-      const layout = shared.furnitureLayout ?? {};
+      const layout = shared.furnitureLayout ?? roomFurnitureLayoutRef.current;
       const props = shared.placedProps ?? {};
       try {
         writeRoomFurnitureLayout(window.localStorage, layout);
@@ -3305,7 +3395,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       } catch (error) { console.error('Could not apply the shared room state.', error); }
       roomFurnitureLayoutRef.current = layout;
       setRoomFurnitureLayout(layout);
-      setPlacedProps(current => ({ ...current, ...props, bed: false }) as Record<RoomProp, boolean>);
+      setPlacedProps(current => normalizeRoomProps({ ...current, ...props }));
     };
     window.addEventListener('panda-coop-shared-state', receiveSharedRoom);
     return () => window.removeEventListener('panda-coop-shared-state', receiveSharedRoom);
@@ -3465,7 +3555,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   }, []);
 
   useEffect(() => {
-    if (!showInteractionBubble || !equippedToy) return undefined;
+    if (!showInteractionBubble || !equippedToy || leafPlatformHeld) return undefined;
     let raf = 0;
     let last = performance.now();
     let walking = false;
@@ -3517,7 +3607,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       roomWalkingRef.current = false;
       setRoomWalking(false);
     };
-  }, [activityState, applyRoomPoint, dampAfterBath, developerGrab, equippedToy, flyChaseActive, hidden, onCareInteraction, pet.stage, showInteractionBubble, updateFacing, worldFallPhase]);
+  }, [activityState, applyRoomPoint, dampAfterBath, developerGrab, equippedToy, flyChaseActive, hidden, leafPlatformHeld, onCareInteraction, pet.stage, showInteractionBubble, updateFacing, worldFallPhase]);
 
   useEffect(() => {
     if (equippedToy !== 'laser') return undefined;
@@ -3527,8 +3617,9 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   }, [equippedToy]);
 
   const toggleRoomProp = useCallback((prop: RoomProp) => {
+    if (prop === 'trashCan' && (trashCanBusy || trashCanPandaPhaseRef.current !== null)) return;
     setPlacedProps((current) => ({ ...current, [prop]: !current[prop] }));
-  }, []);
+  }, [trashCanBusy]);
 
   const beginToyDrag = (event: ReactPointerEvent<HTMLSpanElement>) => {
     if (equippedToy !== 'teaser' || !event.isPrimary || event.button !== 0 || !toyPointerRef.current) return;
@@ -3661,7 +3752,6 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   }, []);
 
   useEffect(() => () => {
-    window.clearTimeout(clickExpiryTimerRef.current);
     window.clearTimeout(reactionTimerRef.current);
     window.clearTimeout(chatIdleTimerRef.current);
     window.clearTimeout(startleTimerRef.current);
@@ -3743,10 +3833,10 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       }
     };
 
-    const canRoam = () => interactionState === 'roaming' && !truthPotionComfortPhase && !equippedToyRef.current && dizzyPhase === 'none' && !reacting && !startled && !developerGrab && !pandaHangingRef.current && !pandaJarTrapped && !dampAfterBath && !startledRef.current && !hidden
+    const canRoam = () => interactionState === 'roaming' && !boredAtDock && !truthPotionComfortPhase && !equippedToyRef.current && dizzyPhase === 'none' && !reacting && !startled && !developerGrab && !pandaHangingRef.current && !pandaJarTrapped && !dampAfterBath && !startledRef.current && !hidden
       && (worldFallPhase === 'none' || worldFallPhase === 'dirty') && bathPhase === 'none'
       && pet.stage !== 'performing' && pet.stage !== 'returning' && !hoverCuddleActive
-      && !developerPose && !roamingTransitionBlocked && activityState === 'roaming' && !sleepingInNest
+      && !developerPose && !roamingTransitionBlocked && activityState === 'roaming' && !sleepingInNest && !leafPlatformRef.current
       && !isDragging && !isPressPending && !draggingRef.current
       && (motion !== 'sleep' || nightWakeOverride) && !preference.matches && document.visibilityState !== 'hidden';
     const schedule = () => {
@@ -3855,6 +3945,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   }, [
     activityState,
     bathPhase,
+    boredAtDock,
+    leafPlatformHeld,
     characterId,
     dampAfterBath,
     applyRoomPoint,
@@ -4088,7 +4180,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     window.innerWidth,
     window.innerHeight,
   );
-  const giftStorageProjection = showInteractionBubble && onOpenGiftStorage
+  const giftStorageProjection = showInteractionBubble && placedProps.giftStorage && onOpenGiftStorage
     ? projectRoomPoint(getGiftStorageRoomPoint(), window.innerWidth, window.innerHeight)
     : null;
   const giftDropProjection = showInteractionBubble && pet.stage !== 'returning' && pendingGift && onCollectPresent
@@ -4102,6 +4194,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   } : undefined;
   return (
     <>
+      {showInteractionBubble && <RoomLeafPlatform width={viewportSize.width} height={viewportSize.height}
+        activity={leafPlatformActivity} dragging={isDragging} />}
       <div className="ps-room-surface" data-room-only={showInteractionBubble}
         aria-hidden="true" data-testid="room-surface">
         <div className="ps-room-backdrop" style={roomImageStyle && {
@@ -4553,7 +4647,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
             <ol>
               {debugEntries.slice(-10).reverse().map((entry, index) => <li key={`${index}-${entry}`}>{entry}</li>)}
             </ol>
-            <small>请连续点击小熊猫两次；事件捕获目标和状态变化会记录在这里。</small>
+            <small>点击和拖拽事件会记录在这里；喂食药药药后才进入聊天。</small>
           </aside>
         )}
       </div>
@@ -4585,12 +4679,14 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
           onSelectToy={(toy) => setEquippedToy((current) => current === toy ? null : toy)}
           truthPotionInRoom={Boolean(truthPotionPosition)}
           onToggleTruthPotion={toggleTruthPotion}
-          placed={placedProps}
+          placed={{ ...placedProps, trashCan: placedProps.trashCan || trashCanBusy }}
           onTogglePlaced={toggleRoomProp}
-          locked={{ tub: bathPhase !== 'none', rack: hangingOnRack, bed: sleepingOnBed }} />
+          locked={{ tub: bathPhase !== 'none', rack: hangingOnRack, bed: sleepingOnBed,
+            giftStorage: false, trashCan: trashCanBusy }} />
       )}
       {showBoredSearch && (
-        <div className="ps-bored-panda" role="status" aria-label="小熊猫无聊地趴在工具栏上找你"
+        <div className="ps-bored-panda" role="status" aria-label={`${characterId === 'xiaobai' ? '小白' : '小熊猫'}无聊地趴在工具栏上找你`}
+          data-character={characterId}
           data-testid="bored-panda-at-dock"
           style={{
             ['--bored-panda-size' as string]: `${boredPandaSize}px`,

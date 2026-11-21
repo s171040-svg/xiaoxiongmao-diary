@@ -1,7 +1,8 @@
 import './RoomPropDock.css';
+import type { RoomProp } from '@/lib/room-props';
+export type { RoomProp } from '@/lib/room-props';
 
 export type RoomToy = 'teaser' | 'laser';
-export type RoomProp = 'bed' | 'rack' | 'tub';
 
 export const PANDA_TEASER_WAND_URL = `${import.meta.env.BASE_URL}static/room/panda-cat-teaser-wand.png?v=teaser-wand-1`;
 export const TRUTH_POTION_URL = `${import.meta.env.BASE_URL}static/room/truth-potion.png?v=panda-face-icon-pixen-1`;
@@ -99,7 +100,13 @@ const TOYS: { id: RoomToy; label: string }[] = [
 const FURNITURE: { id: RoomProp; label: string }[] = [
   { id: 'tub', label: '浴缸' },
   { id: 'rack', label: '晾衣架' },
+  { id: 'giftStorage', label: '礼物收纳盒' },
+  { id: 'trashCan', label: '垃圾桶' },
 ];
+const FURNITURE_IMAGES = {
+  giftStorage: `${import.meta.env.BASE_URL}static/room/gift-storage-chest.png`,
+  trashCan: `${import.meta.env.BASE_URL}static/room/trash-can.png?v=trash-can-pixen-1`,
+};
 
 export function RoomPropDock({ equippedToy, onSelectToy, truthPotionInRoom, onToggleTruthPotion, placed, onTogglePlaced, locked }: Props) {
   return (
@@ -133,8 +140,11 @@ export function RoomPropDock({ equippedToy, onSelectToy, truthPotionInRoom, onTo
           <button key={item.id} type="button" className="rp-slot" aria-pressed={placed[item.id]}
             disabled={locked[item.id]} data-placed={placed[item.id] ? 'true' : 'false'}
             aria-label={item.label}
+            title={locked[item.id] ? '正在使用，暂时不能收起' : `${placed[item.id] ? '收起' : '放回房间：'}${item.label}`}
             onClick={() => onTogglePlaced(item.id)} data-testid={`prop-furniture-${item.id}`}>
-            <PixelIcon name={item.id} />
+            {item.id === 'giftStorage' || item.id === 'trashCan'
+              ? <img className="rp-icon rp-furniture-icon" src={FURNITURE_IMAGES[item.id]} alt="" draggable={false} />
+              : <PixelIcon name={item.id} />}
             <span>{item.label}</span>
           </button>
         ))}

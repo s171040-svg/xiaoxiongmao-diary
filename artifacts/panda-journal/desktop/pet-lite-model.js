@@ -6,6 +6,8 @@
 })(typeof window !== "undefined" ? window : globalThis, function () {
   const motions = new Set(["idle", "walk", "sleep", "grab", "lying", "stare"]);
   const quietMotions = ["lying", "stare", "sleep"];
+  const shakeFrameCount = 17, shakeFrameIntervalMs = 85;
+  const firstShakeDelayMinMs = 45000, firstShakeDelayRangeMs = 45000;
   function punchFrame(elapsed, manifest, reduced = false) {
     const config = manifest.punch;
     if (!config || elapsed < 0 || elapsed >= (reduced ? config.reducedDurationMs : config.frameCount * config.frameIntervalMs)) return null;
@@ -15,6 +17,23 @@
     const choices = quietMotions.filter(value => value !== previous);
     return { motion: choices[Math.min(choices.length - 1, Math.floor(random() * choices.length))],
       until: now + 300000 + Math.floor(random() * 300000) };
+  }
+  function dirtyReturn(now, random = Math.random) {
+    return { remainingShakes: 3,
+      nextShakeAt: now + firstShakeDelayMinMs + Math.floor(random() * firstShakeDelayRangeMs) };
+  }
+  function shakeFrame(elapsed, reduced = false) {
+    if (reduced) return null;
+    if (!Number.isFinite(elapsed) || elapsed < 0 || elapsed >= shakeFrameCount * shakeFrameIntervalMs) return null;
+    return Math.floor(elapsed / shakeFrameIntervalMs);
+  }
+  function finishShake(state, now, random = Math.random) {
+    if (!state || state.remainingShakes <= 1) return { remainingShakes: 0, nextShakeAt: 0 };
+    return { remainingShakes: state.remainingShakes - 1,
+      nextShakeAt: now + firstShakeDelayMinMs + Math.floor(random() * firstShakeDelayRangeMs) };
+  }
+  function lostWorldFall(startY, landedY, minimumDrop = 220) {
+    return Number.isFinite(startY) && Number.isFinite(landedY) && landedY - startY >= minimumDrop;
   }
   function spriteTop(source) {
     // The existing prone art has transparent space below its feet. Preserve its
@@ -67,5 +86,6 @@
     if (from === to) return [];
     return [...framesFor(from).reverse(), ...framesFor(to)];
   }
-  return { sprite, spriteTop, advance, transition, quietRest, punchFrame };
+  return { sprite, spriteTop, advance, transition, quietRest, punchFrame,
+    dirtyReturn, shakeFrame, finishShake, lostWorldFall, shakeFrameCount, shakeFrameIntervalMs };
 });

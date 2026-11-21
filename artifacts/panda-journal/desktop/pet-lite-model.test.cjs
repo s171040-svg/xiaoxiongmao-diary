@@ -104,3 +104,46 @@ test("punch is a complete one-shot animation, not a looping or CSS-only reaction
   assert.equal(model.punchFrame(0, manifest, true), manifest.punch.impactFrame);
   assert.equal(model.punchFrame(manifest.punch.reducedDurationMs, manifest, true), null);
 });
+
+test("a long desktop fall schedules three real shakes with shrinking dirt and then cleans", () => {
+  assert.equal(model.lostWorldFall(120, 760), true);
+  assert.equal(model.lostWorldFall(240, 760), true);
+  assert.equal(model.lostWorldFall(600, 760), false, "a short step to the next line is not a world fall");
+  assert.equal(model.lostWorldFall(null, 760), false, "dragging off the edge does not count as an accident");
+  let dirt = model.dirtyReturn(1000, () => 0);
+  assert.deepEqual({ ...dirt }, { remainingShakes: 3, nextShakeAt: 46000 });
+  assert.equal(model.shakeFrame(0), 0);
+  assert.equal(model.shakeFrame(model.shakeFrameIntervalMs * 16), 16);
+  assert.equal(model.shakeFrame(model.shakeFrameIntervalMs * model.shakeFrameCount), null);
+  assert.equal(model.shakeFrame(0, true), null, "reduced motion does not play the shake animation");
+  dirt = model.finishShake(dirt, 50000, () => 0);
+  assert.deepEqual({ ...dirt }, { remainingShakes: 2, nextShakeAt: 95000 });
+  dirt = model.finishShake(dirt, 100000, () => 0);
+  assert.equal(dirt.remainingShakes, 1);
+  dirt = model.finishShake(dirt, 150000, () => 0);
+  assert.deepEqual({ ...dirt }, { remainingShakes: 0, nextShakeAt: 0 });
+});
+
+test("desktop dirt overlays and all three animated cleaning passes are packaged as clear pixel PNGs", () => {
+  const root = path.join(__dirname, "../public/static/panda/desktop-shake");
+  for (let remaining = 1; remaining <= 3; remaining++) {
+    const overlay = fs.readFileSync(path.join(root, `soil-${remaining}.png`));
+    assert.equal(overlay.toString("ascii", 1, 4), "PNG");
+    assert(overlay.readUInt32BE(16) === 96 && overlay.readUInt32BE(20) === 96);
+    assert([3, 6].includes(overlay.readUInt8(25)), "soil spots have an alpha-capable pixel format");
+    const hashes = [];
+    for (let frame = 1; frame <= model.shakeFrameCount; frame++) {
+      const asset = fs.readFileSync(path.join(root, String(remaining), `${frame}.png`));
+      assert.equal(asset.toString("ascii", 1, 4), "PNG");
+      assert.equal(asset.readUInt32BE(16), 96);
+      assert.equal(asset.readUInt32BE(20), 96);
+      hashes.push(require("node:crypto").createHash("sha256").update(asset).digest("hex"));
+    }
+    assert(new Set(hashes).size >= 11, "the cleaning pass uses real, visibly different drawn poses");
+  }
+  const renderer = fs.readFileSync(path.join(__dirname, "pet-lite.js"), "utf8");
+  const html = fs.readFileSync(path.join(__dirname, "pet.html"), "utf8");
+  assert(renderer.includes("desktop-shake/${desktopDirt.remainingShakes}"));
+  assert(renderer.includes("state.quietMode") && renderer.includes("state.paused"));
+  assert(html.includes('id="panda-dirt"'), "the pet can show residual dirt between shakes");
+});

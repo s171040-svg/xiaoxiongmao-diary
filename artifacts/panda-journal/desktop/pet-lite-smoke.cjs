@@ -233,10 +233,41 @@ async function run() {
   await pet.locator("#panda").focus(); await pet.keyboard.press("Enter");
   await pet.locator("#open-journal").click();
   await until(async () => (await state()).room, "room reopens before close test");
+  await room.evaluate(() => window.pandaDesktop.syncDesktopCharacter({ characterId: "panda", ready: true, status: "ready" }));
   await application.evaluate(({ BrowserWindow }) => {
     BrowserWindow.getAllWindows().find(w => !w.webContents.getURL().includes("pet.html")).close();
   });
   await until(async () => { const s = await state(); return s.pet && !s.room; }, "closing room keeps the desktop pet alive");
+  assert.equal(await pet.locator(".pet-presence").getAttribute("data-character"), "panda");
+  await pet.emulateMedia({ reducedMotion: "no-preference" });
+  async function exerciseCleaningPass(remaining) {
+    await pet.evaluate(remainingShakes => {
+      const state = JSON.parse(localStorage.getItem("panda.desktop.dirt.v1"))
+        || { remainingShakes, nextShakeAt: 0 };
+      state.remainingShakes = remainingShakes;
+      state.nextShakeAt = Date.now() + 350;
+      localStorage.setItem("panda.desktop.dirt.v1", JSON.stringify(state));
+    }, remaining);
+    await pet.reload();
+    await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.character === "panda");
+    await pet.waitForFunction(expected => {
+      const presence = document.querySelector(".pet-presence");
+      return presence.dataset.shaking === "true"
+        && document.querySelector("#panda-sprite").src.includes(`/desktop-shake/${expected}/1.png`);
+    }, remaining, { timeout: 10000 });
+    if (remaining === 3) await pet.screenshot({ path: path.join(output, "native-dirty-shake.png") });
+    await pet.waitForFunction(expected => {
+      const presence = document.querySelector(".pet-presence");
+      const dirt = JSON.parse(localStorage.getItem("panda.desktop.dirt.v1"));
+      return presence.dataset.shaking === "false" && dirt.remainingShakes === expected - 1;
+    }, remaining, { timeout: 10000 });
+    assert.equal(await pet.locator("#panda-dirt").isHidden(), remaining === 1,
+      "residual dirt stays visible until the third complete shake");
+  }
+  for (const remaining of [3, 2, 1]) await exerciseCleaningPass(remaining);
+  assert.equal(await pet.locator("#panda-dirt").isHidden(), true, "the third shake cleans the pet");
+  assert.deepEqual(errors, []);
+  console.log("PASS desktop fall-cleaning state plays three separate shake cycles and cleans after the third.");
   }
   if (process.env.PANDA_WEB_TEST_URL) {
     await application.evaluate(({ BrowserWindow }) => {

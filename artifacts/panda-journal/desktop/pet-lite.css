@@ -16,6 +16,19 @@ html[data-lite-desktop="true"] .pet-presence[data-motion] .pet-shadow{animation:
 /* Both current sprite sets use a 96px canvas with the ground baseline at y=88. */
 html[data-lite-desktop="true"] .panda-character{position:relative;top:3.333px;width:40px;height:40px;animation:none;transform:none;filter:none}
 html[data-lite-desktop="true"] [data-facing="left"] .panda-character{transform:scaleX(-1)}
+html[data-lite-desktop="true"] .desktop-dirt-layer{position:absolute;left:0;top:3.333px;width:40px;height:40px;image-rendering:pixelated;pointer-events:none}
+html[data-lite-desktop="true"] [data-facing="left"] .desktop-dirt-layer{transform:scaleX(-1)}
+html[data-lite-desktop="true"] .desktop-shake-dust{display:none;position:absolute;inset:0;pointer-events:none}
+html[data-lite-desktop="true"] [data-shaking="true"] .desktop-shake-dust{display:block}
+html[data-lite-desktop="true"] .desktop-shake-dust i{position:absolute;left:50%;top:48%;width:2px;height:2px;background:#9b8765;image-rendering:pixelated;opacity:0;animation:desktop-dust-pop .62s steps(6,end) infinite}
+html[data-lite-desktop="true"] .desktop-shake-dust i:nth-child(1){--dx:-18px;--dy:-8px;animation-delay:-.08s}
+html[data-lite-desktop="true"] .desktop-shake-dust i:nth-child(2){--dx:18px;--dy:-11px;animation-delay:-.2s}
+html[data-lite-desktop="true"] .desktop-shake-dust i:nth-child(3){--dx:-15px;--dy:3px;animation-delay:-.34s}
+html[data-lite-desktop="true"] .desktop-shake-dust i:nth-child(4){--dx:17px;--dy:0px;animation-delay:-.44s}
+html[data-lite-desktop="true"] .desktop-shake-dust i:nth-child(5){--dx:-11px;--dy:-14px;animation-delay:-.51s}
+html[data-lite-desktop="true"] .desktop-shake-dust i:nth-child(6){--dx:12px;--dy:-16px;animation-delay:-.14s}
+@keyframes desktop-dust-pop{0%{translate:0 0;opacity:0}18%{opacity:.95}100%{translate:var(--dx) var(--dy);opacity:0}}
+@media (prefers-reduced-motion:reduce){html[data-lite-desktop="true"] .desktop-shake-dust{display:none!important}}
 html[data-lite-desktop="true"] [data-dragging="true"] .panda-button{cursor:grabbing}
 html[data-lite-desktop="true"] .pet-shadow{bottom:0;animation:none;scale:.3}
 html[data-lite-desktop="true"] [data-dragging="true"] .pet-shadow{opacity:0}

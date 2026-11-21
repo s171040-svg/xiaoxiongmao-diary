@@ -12,6 +12,7 @@ import { PetStage } from '@/components/PetStage';
 import { TopPixelIcon } from '@/components/TopPixelIcon';
 import { EmotionCheckIn } from '@/components/EmotionCheckIn';
 import './CompanionChat.css';
+import { BORED_DOCK_REST_MS } from '@/lib/room-bored-search';
 
 const DevGiftTool = import.meta.env.DEV ? lazy(() => import('@/components/DevGiftTool')) : null;
 const kindLabel: Record<MemoryKind, string> = { worry: '烦恼', idea: '点子', action: '行动' };
@@ -37,7 +38,7 @@ const devPoseOptions: { pose: DeveloperPose; label: string }[] = [
   { pose: 'lying', label: '趴着' },
   { pose: 'sleeping', label: '睡觉' },
   { pose: 'peeking', label: '趴着回头看' },
-  { pose: 'bored-searching', label: '无聊地趴在工具栏找玩家' },
+  { pose: 'bored-searching', label: '趴在工具栏找玩家（1分钟）' },
 ];
 const devEventOptions: { event: DeveloperEvent; label: string; durationMs: number; persistent?: boolean }[] = [
   { event: 'dream', label: '做梦（随机像素梦境）', durationMs: 15000, persistent: true },
@@ -59,6 +60,9 @@ const devEventOptions: { event: DeveloperEvent; label: string; durationMs: numbe
   { event: 'toy-laser', label: '激光笔：伏低扑点', durationMs: 5000 },
   { event: 'jar-peeking', label: '罐子：双爪搭沿四处张望', durationMs: 5000 },
   { event: 'trash-can', label: '垃圾桶：掉进去后屁股露出来', durationMs: 5000, persistent: true },
+  { event: 'leaf-platform', label: '叶子平台：随机睡觉或玩叶子（抓下才离开）', durationMs: 5000, persistent: true },
+  { event: 'leaf-platform-sleep', label: '叶子平台：睡觉', durationMs: 5000, persistent: true },
+  { event: 'leaf-platform-play', label: '叶子平台：抬爪玩叶子', durationMs: 5000, persistent: true },
   { event: 'truth-potion-comfort', label: '药药药：走到中间坐下倾听', durationMs: 8000, persistent: true },
 ];
 type DevTestSelection =
@@ -298,7 +302,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
         started,
         durationMs: eventOption?.durationMs ?? (selection.kind === 'action'
           ? selection.action === 'bamboo' ? 7000 : selection.action === 'captured-homecoming' ? 8000 : 3500
-          : 5000),
+          : selection.kind === 'pose' && selection.pose === 'bored-searching' ? BORED_DOCK_REST_MS : 5000),
         persistent: eventOption?.persistent,
       });
     }, 2000);
@@ -309,7 +313,8 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
   }, [c.performTestAction, scheduledDevTest]);
   useEffect(() => {
     if (!developerPose) return;
-    const timeout = window.setTimeout(() => setDeveloperPose(null), 5000);
+    const timeout = window.setTimeout(() => setDeveloperPose(null),
+      developerPose === 'bored-searching' ? BORED_DOCK_REST_MS : 5000);
     return () => window.clearTimeout(timeout);
   }, [developerPose]);
   useEffect(() => {
@@ -453,6 +458,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
         interactionBubbleText={roomOnly && roomDialogue ? narrate(removeActionAsides(roomDialogue)) : undefined}
         onChatModeChange={roomOnly ? onRoomChatModeChange : undefined}
         onCareInteraction={c.recordCareStatInteraction}
+        onLeafPlatformChange={c.setRoomPetAnchored}
          onCapturedHomecomingInteraction={roomOnly ? c.acknowledgeCapturedHomecoming : undefined}
           pendingGift={roomOnly && !window.pandaDesktop ? c.state.pendingGift : undefined}
           giftDropStartedAt={roomOnly && !window.pandaDesktop ? c.state.giftDropStartedAt : undefined}
