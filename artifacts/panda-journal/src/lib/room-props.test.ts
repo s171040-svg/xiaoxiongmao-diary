@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { readFileSync } from 'node:fs';
 import { normalizeRoomProps } from './room-props';
+
+test('the retired round bed has no room renderer or drop interaction', () => {
+  const source = readFileSync('artifacts/panda-journal/src/components/PetStage.tsx', 'utf8');
+  assert.equal(source.includes('data-testid="room-bed"'), false);
+  assert.equal(source.includes('static/room/panda-nest-bed.png'), false);
+  assert.equal(source.includes('droppedOntoBed'), false);
+});
 
 test('older rooms keep the chest and bin visible without changing existing switches', () => {
   assert.deepEqual(normalizeRoomProps({ tub: false, rack: false }), {

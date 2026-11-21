@@ -13,6 +13,23 @@ position:relative;isolation:isolate;display:flex;flex-direction:column;height:10
 .cc-top{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--panel) 82%,transparent);backdrop-filter:blur(4px)}
 .cc-title strong{display:block;font:600 17px "Noto Serif SC",serif}.cc-title span{font-size:12px;color:var(--soft)}
 .cc-actions{display:flex;gap:6px}
+.cc-toolbar-content{display:contents}
+.cc-toolbar-content[hidden]{display:none}
+.cc-app.room-only .cc-top{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:7;box-sizing:border-box;width:min(640px,calc(100vw - 24px));display:grid;grid-template-columns:1fr auto;gap:8px 14px;padding:10px 14px;overflow:visible;border:3px solid var(--px-edge,#76552c)!important;box-shadow:0 4px 0 #9f7a43,inset 0 0 0 2px #fff8e6}
+.cc-app.room-only .cc-top[data-collapsed=true]{width:fit-content;max-width:calc(100vw - 24px)}
+.cc-app.room-only .cc-title strong{font-size:15px}
+.cc-app.room-only .cc-title span{display:none}
+.cc-toolbar-toggle{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-height:32px;padding:4px 8px;border:2px solid #76552c;background:#dfbd7e;color:#354637;font:inherit;font-size:12px;cursor:pointer;-webkit-app-region:no-drag}
+.cc-app.room-only .cc-toolbar-content:not([hidden]){grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding-top:8px;border-top:1px solid #bfa679}
+.cc-app.room-only .cc-actions{display:flex;flex-wrap:wrap;gap:6px}
+.cc-app.room-only .cc-actions button{box-sizing:border-box;width:40px;height:40px;min-width:40px!important;min-height:40px!important;padding:3px!important;justify-content:center}
+.cc-app.room-only .cc-actions button .top-pixel-icon{width:26px;height:26px}
+.cc-toolbar-extras{flex:1;min-width:0}
+.room-toolbar-account{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:6px}
+.room-toolbar-account .room-coop-open,.room-toolbar-account .room-signout{box-sizing:border-box;min-height:32px;padding:5px 8px;border:1px solid #bfa679;box-shadow:none;font-size:11px;text-decoration:none;white-space:nowrap}
+.room-toolbar-account .room-account-status{display:none;padding:0;text-align:right;background:transparent}
+.room-toolbar-account .room-account-status[data-notice],.room-toolbar-account .room-account-status[role=alert]{display:block;flex-basis:100%}
+@media(max-width:600px){.cc-app.room-only .cc-top{top:8px;padding:8px 10px}.cc-app.room-only .cc-toolbar-content:not([hidden]){gap:8px}.cc-toolbar-extras{flex-basis:100%}.room-toolbar-account{justify-content:flex-start}}
 .cc-actions button,.cc-tabs button,.cc-confirm button,.cc-del,.cc-stamp button{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:99px;padding:7px 12px;font-size:13px;display:inline-flex;gap:5px;align-items:center;transition:transform .15s,background .15s}
 .cc-actions button:hover{transform:translateY(-1px);background:var(--bub)}
 .cc-app button:focus-visible,.cc-app textarea:focus-visible,.cc-dialog button:focus-visible{outline:2px solid var(--sage);outline-offset:2px}

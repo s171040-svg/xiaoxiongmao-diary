@@ -417,11 +417,11 @@ function Room() {
 
   return (
     <div className="room-page">
-      <div inert={petCharacter.isSignedIn && (!petCharacter.selection?.locked || petCharacter.isLoading || !!petCharacter.error)}>
-        <CompanionChat companion={companion} roomOnly />
-      </div>
-      {!hubOpen && <PetCharacterPicker compact onJoinHousehold={() => setHubOpen(true)} />}
-      <header className="room-account-bar">
+      <div>
+        <CompanionChat companion={companion} roomOnly
+          roomInteractionLocked={petCharacter.isSignedIn && (!petCharacter.selection?.locked || petCharacter.isLoading || !!petCharacter.error)}
+          roomToolbarExtras={
+      <nav className="room-toolbar-account" aria-label="房间与账号功能">
         {isDesktop() && <button type="button" className="room-coop-open"
           disabled={!petCharacter.isSignedIn || petCharacter.isLoading || !!petCharacter.error || !petCharacter.selection?.locked}
           title={!petCharacter.isSignedIn ? '请先在客户端登录与网页相同的账号，同步已选伙伴' : undefined}
@@ -439,13 +439,16 @@ function Room() {
           }
           setHubOpen(true);
         }}><Sparkles size={15} />共同照看</button>
-        <span className="room-account-status">
+        <span className="room-account-status" data-notice={shareStatus === 'preparing' || shareStatus === 'error' || undefined}>
           {shareStatus === 'preparing' ? '小熊猫正在整理新的心情' : shareStatus === 'error' ? '有一条心情暂时未整理成功' : household.data?.memberCount === 2 ? '两个人的小房间' : '你的私人小房间'}
         </span>
         {isSignedIn
           ? <button type="button" className="room-signout" onClick={() => void signOut({ redirectUrl: basePath || '/' })} aria-label="退出账号">退出</button>
           : <button type="button" className="room-signout" onClick={() => setLocation('/sign-in')}>登录</button>}
-      </header>
+      </nav>
+        } />
+      </div>
+      {!hubOpen && <PetCharacterPicker compact onJoinHousehold={() => setHubOpen(true)} />}
       {hubOpen && <CoopHub
         onClose={() => setHubOpen(false)}
         onHouseholdCreated={companion.clearPendingCareStatInteractions}

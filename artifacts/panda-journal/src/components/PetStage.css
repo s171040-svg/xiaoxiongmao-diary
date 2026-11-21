@@ -42,7 +42,8 @@
 .ps-room-rack-occlusion{position:fixed;z-index:240;left:68%;bottom:calc(var(--room-gap-bottom,0px) + var(--room-h,100vh) * .24);width:clamp(58px,6vw,80px);height:auto;transform:translateX(-50%);image-rendering:pixelated;pointer-events:none;user-select:none;visibility:hidden}
 .ps-room-bed{position:fixed;z-index:1;left:clamp(28px,26vw,360px);top:clamp(260px,66vh,560px);width:clamp(103px,12vw,150px);height:auto;transform:translate(-50%,-80%);image-rendering:pixelated;filter:drop-shadow(0 4px 5px #17131d40);pointer-events:auto;touch-action:none;user-select:none;cursor:grab}
 .ps-bath-station{position:fixed;z-index:2;right:clamp(14px,4vw,56px);bottom:clamp(78px,12vh,112px);display:flex;width:max-content;align-items:flex-end;gap:9px;pointer-events:auto;touch-action:none;user-select:none;cursor:grab}
-.ps-room-bathtub{position:static;display:block;width:clamp(96px,13vw,164px);height:auto;image-rendering:pixelated;filter:drop-shadow(0 3px 4px #443a2730);pointer-events:none;user-select:none}
+.ps-bath-tub-wrap{position:relative;display:block;width:clamp(96px,13vw,164px);line-height:0}
+.ps-room-bathtub{position:static;display:block;width:100%;height:auto;image-rendering:pixelated;filter:drop-shadow(0 3px 4px #443a2730);pointer-events:none;user-select:none}
 .ps-space-letter-box{position:fixed;z-index:130;left:clamp(18px,7vw,90px);bottom:clamp(82px,12vh,120px);box-sizing:border-box;display:flex;width:70px;height:62px;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:14px 5px 4px;border:2px solid #61432b;border-radius:3px;background:linear-gradient(90deg,#98683b 0 12%,#c08a50 13% 86%,#98683b 87%);box-shadow:inset 0 0 0 2px #dfbd7e,0 4px 0 #4e3523,0 6px 8px #29201938;image-rendering:pixelated;cursor:pointer;user-select:none;pointer-events:auto}
 .ps-furniture-dragging{z-index:200!important;cursor:grabbing!important;filter:drop-shadow(0 7px 8px #201a1660) brightness(1.04)}
 .ps-furniture-controlled{outline:2px dashed #f5d98d;outline-offset:3px}
@@ -163,6 +164,7 @@
 .ps-panda.ps-bath-exiting{z-index:6;cursor:grabbing;animation:none;translate:0 -14px;scale:1.04;transform-origin:50% 5%}
 .ps-panda.ps-bath-exiting .ps-body{animation:ps-bath-lift-out 380ms cubic-bezier(.2,.75,.25,1) both!important;transform-origin:50% 78%}
 .ps-bath-water-bubbles,.ps-bath-splash{position:absolute;z-index:2;inset:0;pointer-events:none}
+.ps-bath-splash-entering{z-index:5}
 .ps-bath-water-bubbles i,.ps-bath-splash i{position:absolute;display:block;box-sizing:border-box;border:1px solid #f3ffff;border-radius:50%;background:#b7e7ed;box-shadow:0 0 2px #f7ffffa8}
 .ps-bath-water-bubbles i{width:6px;height:6px;opacity:.85;animation:ps-bath-soap-bubble 1500ms ease-in-out infinite}
 .ps-bath-water-bubbles i:first-child{top:32%;left:7%;animation-delay:-420ms}
@@ -173,13 +175,18 @@
 .ps-bath-foam i:nth-child(2){top:56%;right:14%;animation-delay:-520ms}
 .ps-bath-foam i:nth-child(3){top:27%;right:24%;width:5px;height:5px;animation-delay:-360ms}
 .ps-bath-foam i:nth-child(4){top:68%;left:29%;width:5px;height:5px;animation-delay:-700ms}
-.ps-bath-splash i{width:5px;height:5px;opacity:0}
-.ps-bath-splash i:nth-child(1){left:22%;top:60%}
-.ps-bath-splash i:nth-child(2){left:48%;top:55%;width:4px;height:4px}
-.ps-bath-splash i:nth-child(3){right:19%;top:64%;width:4px;height:4px}
-.ps-bath-splash-entering i{animation:ps-bath-entry-splash 680ms ease-out both}
+.ps-bath-splash i{width:6px;height:8px;border-color:#f4ffff;background:#8bd7e0;opacity:0;filter:drop-shadow(1px 1px 0 #4e9ca6)}
+.ps-bath-splash i:nth-child(1){left:18%;top:59%;width:5px;height:7px}
+.ps-bath-splash i:nth-child(2){left:34%;top:51%;width:4px;height:6px}
+.ps-bath-splash i:nth-child(3){left:48%;top:56%;width:6px;height:8px}
+.ps-bath-splash i:nth-child(4){right:34%;top:50%;width:4px;height:6px}
+.ps-bath-splash i:nth-child(5){right:18%;top:59%;width:5px;height:7px}
+.ps-bath-splash-entering i{animation:ps-bath-entry-splash-left 680ms ease-out both}
+.ps-bath-splash-entering i:nth-child(even){animation-name:ps-bath-entry-splash-right}
 .ps-bath-splash-entering i:nth-child(2){animation-delay:80ms}
 .ps-bath-splash-entering i:nth-child(3){animation-delay:130ms}
+.ps-bath-splash-entering i:nth-child(4){animation-delay:70ms}
+.ps-bath-splash-entering i:nth-child(5){animation-delay:115ms}
 .ps-bath-splash:not(.ps-bath-splash-entering) i{animation:ps-bath-exit-splash 380ms ease-out both}
 .ps-bath-splash:not(.ps-bath-splash-entering) i:nth-child(2){animation-delay:45ms}
 .ps-bath-splash:not(.ps-bath-splash-entering) i:nth-child(3){animation-delay:80ms}
@@ -384,10 +391,11 @@
 @keyframes ps-bath-drop-travel{0%{left:var(--bath-start-x,50%);top:var(--bath-start-y,58%)}100%{left:var(--room-x,50%);top:var(--room-y,58%)}}
 @keyframes ps-dirty-flee{0%{translate:-1px -1px;rotate:-3deg}50%{translate:1px -4px;rotate:2deg}100%{translate:2px 0;rotate:-2deg}}
 @keyframes ps-fly-buzz{0%{translate:-3px 3px;rotate:-16deg}50%{translate:4px -5px;rotate:14deg}100%{translate:-3px 3px;rotate:-16deg}}
-@keyframes ps-bath-plunge{0%{transform:translateY(-22px) rotate(-6deg) scale(1.02);opacity:1}18%{transform:translateY(-14px) rotate(5deg) scale(1.01);opacity:1}36%{transform:translateY(-4px) rotate(-5deg) scale(.98);opacity:1}55%{transform:translateY(5px) rotate(4deg) scale(.95);opacity:1}76%{transform:translateY(12px) rotate(-2deg) scale(.92);opacity:1}100%{transform:translateY(16px) rotate(0) scale(.9);opacity:1}}
+@keyframes ps-bath-plunge{0%{transform:translateY(-18px) scale(1.02);opacity:1}18%{transform:translateY(-12px) scale(1.01);opacity:1}36%{transform:translateY(-4px) scale(.98);opacity:1}55%{transform:translateY(5px) scale(.95);opacity:1}76%{transform:translateY(12px) scale(.92);opacity:1}100%{transform:translateY(17px) scale(.9);opacity:1}}
 @keyframes ps-bath-scrub{0%{translate:-1px 0;rotate:-2deg;filter:brightness(.98)}50%{translate:1px -2px;rotate:2deg;filter:brightness(1.06)}100%{translate:-1px 0;rotate:-2deg;filter:brightness(.98)}}
 @keyframes ps-bath-soap-bubble{0%,100%{translate:0 2px;scale:.78;opacity:.35}45%{translate:-1px -5px;scale:1.08;opacity:1}75%{translate:2px -10px;scale:.94;opacity:.85}}
-@keyframes ps-bath-entry-splash{0%,52%{translate:0 3px;scale:.55;opacity:0}68%{translate:-1px -2px;scale:1.05;opacity:.86}82%{translate:1px -8px;scale:.9;opacity:.72}100%{translate:1px -12px;scale:.7;opacity:0}}
+@keyframes ps-bath-entry-splash-left{0%,48%{translate:0 3px;scale:.48;opacity:0}62%{opacity:1}82%{translate:-8px -8px;scale:1;opacity:.9}100%{translate:-15px -14px;scale:.78;opacity:0}}
+@keyframes ps-bath-entry-splash-right{0%,48%{translate:0 3px;scale:.48;opacity:0}62%{opacity:1}82%{translate:8px -8px;scale:1;opacity:.9}100%{translate:15px -14px;scale:.78;opacity:0}}
 @keyframes ps-bath-exit-splash{0%{translate:0 0;scale:.6;opacity:.86}48%{translate:1px 5px;scale:1;opacity:.72}100%{translate:2px 10px;scale:.78;opacity:0}}
 @keyframes ps-bath-lift-out{0%{translate:0 2px;rotate:0deg;scale:1}18%{translate:-1px -1px;rotate:-3deg;scale:.99}38%{translate:1px -4px;rotate:4deg;scale:.98}58%{translate:-1px -8px;rotate:-3deg;scale:.97}78%{translate:1px -12px;rotate:2deg;scale:.96}100%{translate:0 -16px;rotate:0deg;scale:.95}}
 @keyframes ps-bath-ball-drop{0%{transform:translateY(-20px) scale(.68) rotate(-18deg);opacity:0}18%{opacity:1}62%{transform:translateY(5px) scale(1.08) rotate(8deg)}78%{transform:translateY(-5px) scale(.97) rotate(-5deg)}100%{transform:translateY(0) scale(1) rotate(0);opacity:1}}

@@ -90,6 +90,17 @@ export const CAT_TREE_WALK_PATH: RoomPoint[] = CAT_TREE_WALK_IMAGE_PATH.map(({ x
   index === 0 ? roomFloorPointAtImagePosition(x, y) : roomPointAtImagePosition(x, y));
 export const CAT_TREE_NEST_POINT = roomPointAtImagePosition(400, 140);
 
+/** Feet stay on the lower shelf, clear of its posts and exposed edges. */
+export const LEAF_PLATFORM_WALK_BOUNDS = { left: 355, right: 432, y: 235 } as const;
+
+export function isLeafPlatformRoomPoint(point: RoomPoint): boolean {
+  const image = roomPointImagePosition(point);
+  return image.x >= LEAF_PLATFORM_WALK_BOUNDS.left - 0.01
+    && image.x <= LEAF_PLATFORM_WALK_BOUNDS.right + 0.01
+    && Math.abs(image.y - LEAF_PLATFORM_WALK_BOUNDS.y) <= 0.5
+    && (point.elevation ?? 0) > 0;
+}
+
 export function roomPointAtImagePosition(imageX: number, imageY: number): RoomPoint {
   const halfWidth = lerp(FLOOR_FAR_HALF_WIDTH, FLOOR_NEAR_HALF_WIDTH, ROOM_WALK_DEPTH);
   const xPercent = (imageX / ROOM_IMAGE_WIDTH) * 100;
@@ -450,6 +461,7 @@ export function roomWalkPathLength(path: RoomPoint[]): number {
 export function isWalkableRoomPoint(point: RoomPoint): boolean {
   if (point.u < ROOM_WALK_MIN_U || point.u > ROOM_WALK_MAX_U || point.v < ROOM_MIN || point.v > ROOM_WALK_MAX_V) return false;
   const imagePoint = roomPointImagePosition(point);
+  if (isLeafPlatformRoomPoint(point)) return true;
   if (isCatTreeWalkImagePoint(imagePoint)) return true;
   if ((point.elevation ?? 0) > 0.001) return false;
   return !ROOM_OBSTACLES.some(obstacle => pointInObstacle(point, obstacle));

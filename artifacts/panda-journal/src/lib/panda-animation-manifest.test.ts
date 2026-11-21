@@ -181,3 +181,26 @@ test('jar-peeking is a distinct animation with a complete 96px sequence and insp
   const inspector = readFileSync(resolve(sourceRoot, 'components/CompanionChat.tsx'), 'utf8');
   assert.match(inspector, /event: 'jar-peeking'.*罐子：双爪搭沿四处张望/, 'jar-peeking should be available in animation inspection');
 });
+
+test('bath entry uses a complete, transparent 96px head-shake sequence', () => {
+  assert.ok(manifestPath, 'could not locate the panda animation manifest');
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+    frameCountBySprite: Record<string, number>;
+    frameIntervalMs: Record<string, number>;
+  };
+  const assetRoot = resolve(dirname(manifestPath), '../../public/static/panda');
+  const poses = new Set<string>();
+
+  assert.equal(manifest.frameCountBySprite['bathing-entry-shake'], 8);
+  assert.equal(manifest.frameIntervalMs['bathing-entry-shake'], 130);
+  for (let frame = 0; frame <= 8; frame += 1) {
+    const image = readFileSync(resolve(assetRoot, `bathing-entry-shake/${frame}.png`));
+    assert.equal(image.subarray(0, 8).toString('hex'), '89504e470d0a1a0a', `entry frame ${frame} is a PNG`);
+    assert.equal(image.readUInt32BE(16), 96, `entry frame ${frame} keeps the 96px width`);
+    assert.equal(image.readUInt32BE(20), 96, `entry frame ${frame} keeps the 96px height`);
+    assert.equal(image[25], 6, `entry frame ${frame} retains alpha transparency`);
+    assert.ok(image.length > 1000, `entry frame ${frame} contains drawn pixel art`);
+    poses.add(image.toString('base64'));
+  }
+  assert.ok(poses.size >= 6, 'the entry and shake use visibly different poses');
+});

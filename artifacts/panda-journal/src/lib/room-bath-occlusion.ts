@@ -5,10 +5,16 @@ export interface BathSceneRect {
   height: number;
 }
 
-/** Align the base of the face above the water, independent of pet/tub size ratio. */
-export function bathPetAnchor(tub: BathSceneRect, trackHeight: number) {
+/** Align the face above the water while preserving the pet's horizontal drop path. */
+export function bathPetAnchor(
+  tub: BathSceneRect,
+  trackHeight: number,
+  preferredX = tub.left + tub.width / 2,
+  trackWidth = 0,
+) {
+  const inset = Math.min(trackWidth / 2, tub.width / 2);
   return {
-    x: tub.left + tub.width / 2,
+    x: Math.min(tub.left + tub.width - inset, Math.max(tub.left + inset, preferredX)),
     y: tub.top + tub.height * 46 / 96 + trackHeight * 0.34,
   };
 }

@@ -1,5 +1,5 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { ImagePlus, Pause, Play, RotateCw, SendHorizontal, Trash2, X } from 'lucide-react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { ChevronDown, ChevronUp, ImagePlus, Pause, Play, RotateCw, SendHorizontal, Trash2, X } from 'lucide-react';
 import type { CompanionController } from '@/hooks/use-companion';
 import { usePetCharacter, usePetNarration } from '@/hooks/use-pet-character';
 import { XIAOBAI_SHARED_ACTION_NOTE } from '@/lib/pet-character-assets';
@@ -60,9 +60,10 @@ const devEventOptions: { event: DeveloperEvent; label: string; durationMs: numbe
   { event: 'toy-laser', label: '激光笔：伏低扑点', durationMs: 5000 },
   { event: 'jar-peeking', label: '罐子：双爪搭沿四处张望', durationMs: 5000 },
   { event: 'trash-can', label: '垃圾桶：掉进去后屁股露出来', durationMs: 5000, persistent: true },
-  { event: 'leaf-platform', label: '叶子平台：随机睡觉或玩叶子（抓下才离开）', durationMs: 5000, persistent: true },
+  { event: 'leaf-platform', label: '叶子平台：随机睡觉、玩叶子或坐着发呆（抓下才离开）', durationMs: 5000, persistent: true },
   { event: 'leaf-platform-sleep', label: '叶子平台：睡觉', durationMs: 5000, persistent: true },
   { event: 'leaf-platform-play', label: '叶子平台：抬爪玩叶子', durationMs: 5000, persistent: true },
+  { event: 'leaf-platform-sit', label: '叶子平台：坐着发呆', durationMs: 5000, persistent: true },
   { event: 'truth-potion-comfort', label: '药药药：走到中间坐下倾听', durationMs: 8000, persistent: true },
 ];
 type DevTestSelection =
@@ -214,10 +215,13 @@ function Bubble({ m, canRetry, c }: { m: ChatMessage; canRetry: boolean; c: Comp
   );
 }
 
-export function CompanionChat({ companion: c, roomOnly = false }: {
+export function CompanionChat({ companion: c, roomOnly = false, roomToolbarExtras, roomInteractionLocked = false }: {
   companion: CompanionController;
   roomOnly?: boolean;
+  roomToolbarExtras?: ReactNode;
+  roomInteractionLocked?: boolean;
 }) {
+  const [toolbarCollapsed, setToolbarCollapsed] = useState(false);
   const { characterId, name: characterName } = usePetCharacter();
   const narrate = usePetNarration();
   const [panel, setPanel] = useState<'diary' | 'gifts' | null>(null);
@@ -433,9 +437,19 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
   return (
     <main className={`cc-app${window.pandaDesktop ? ' desktop' : ''}${roomOnly ? ' room-only' : ''}`}
       data-testid="companion-chat" data-room-only={roomOnly}>
-      {(!roomOnly || !roomChatOpen) && <header className="cc-top">
+      {(!roomOnly || !roomChatOpen) && <header className="cc-top" data-collapsed={roomOnly && toolbarCollapsed}>
         <div className="cc-title"><strong>小熊猫日记</strong><span>今天想聊点什么</span></div>
-        <div className="cc-actions">
+        {roomOnly && <button type="button" className="cc-toolbar-toggle"
+          aria-expanded={!toolbarCollapsed} aria-controls="room-toolbar-content"
+          aria-label={toolbarCollapsed ? '展开工具栏' : '收起工具栏'}
+          data-testid="button-toggle-room-toolbar"
+          onClick={() => setToolbarCollapsed(value => !value)}>
+          {toolbarCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+          <span>{toolbarCollapsed ? '工具栏' : '收起'}</span>
+        </button>}
+        <div id={roomOnly ? 'room-toolbar-content' : undefined} className="cc-toolbar-content"
+          hidden={roomOnly && toolbarCollapsed}>
+        <div className="cc-actions" inert={roomInteractionLocked}>
           <button type="button" onClick={() => setPanel('diary')} data-testid="button-diary" aria-label="日记本" title="日记本"><TopPixelIcon name="diary" /></button>
           {import.meta.env.DEV && c.performTestAction && (
             <button type="button" onClick={() => setDevActionOpen(true)} data-testid="button-dev-action" aria-label="动画检视" title="动画检视"><TopPixelIcon name="inspect" /></button>
@@ -447,7 +461,10 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
           )}
           {window.pandaDesktop && <button type="button" aria-label="收起聊天，回到桌面" onClick={() => window.pandaDesktop?.hideJournal()} data-testid="button-hide-chat"><X size={16} /></button>}
         </div>
+        {roomOnly && roomToolbarExtras && <div className="cc-toolbar-extras">{roomToolbarExtras}</div>}
+        </div>
       </header>}
+       <div style={{ display: 'contents' }} inert={roomInteractionLocked}>
        <PetStage pet={c.pet} thinking={c.busy && !c.replyDisplay} motion="idle"
         selectedSnack={selectedSnack ? { id: selectedSnack.id, emoji: selectedSnack.emoji, item: selectedSnack.item } : null}
         onFeedSnack={(giftId) => { c.feedGift(giftId); setSelectedSnackId(null); }}
@@ -478,6 +495,7 @@ export function CompanionChat({ companion: c, roomOnly = false }: {
           onDisposeSpacePolicePoopBag={roomOnly ? c.disposeSpacePolicePoopBagAt : undefined}
           onFinishSpacePolicePoopDisposal={roomOnly ? c.finishSpacePolicePoopDisposalForLetter : undefined}
           onOpenSpacePoliceMailbox={roomOnly ? () => setSpacePoliceMailboxOpen(true) : undefined} />
+       </div>
       {roomOnly ? (
         <>
           {roomChatOpen && <>{clearMindStatus}{roomComposer}</>}

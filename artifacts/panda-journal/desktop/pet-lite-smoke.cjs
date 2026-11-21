@@ -253,7 +253,9 @@ async function run() {
     await pet.waitForFunction(expected => {
       const presence = document.querySelector(".pet-presence");
       return presence.dataset.shaking === "true"
-        && document.querySelector("#panda-sprite").src.includes(`/desktop-shake/${expected}/1.png`);
+        && new RegExp(`/desktop-shake/${expected}/\\d+\\.png`).test(
+          document.querySelector("#panda-sprite").src,
+        );
     }, remaining, { timeout: 10000 });
     if (remaining === 3) await pet.screenshot({ path: path.join(output, "native-dirty-shake.png") });
     await pet.waitForFunction(expected => {

@@ -14,6 +14,10 @@ for (const size of [40, 78, 110]) {
   const scaledAnchor = bathPetAnchor({ left: 0, top: 0, width: 256, height: 192 }, size * 2);
   assert.equal(scaledAnchor.y, anchor.y * 2);
 }
+assert.equal(bathPetAnchor(tub, 48, 50, 20).x, 50,
+  'the plunge keeps the pet at its current horizontal position');
+assert.equal(bathPetAnchor(tub, 48, -40, 20).x, 10,
+  'the plunge stays inside the tub when released near its edge');
 const path = bathPetClipPath(track, tub);
 assert(path);
 const points = (clip: string) => [...clip.matchAll(/(-?[\d.]+)px (-?[\d.]+)px/g)]
