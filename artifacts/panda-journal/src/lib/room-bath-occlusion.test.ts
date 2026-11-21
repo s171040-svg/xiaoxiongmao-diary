@@ -6,8 +6,8 @@ const tub = { ...track };
 for (const size of [40, 78, 110]) {
   const anchor = bathPetAnchor(tub, size);
   assert.equal(anchor.x, 64);
-  // The face ends at 64% of the track; leave a 2% track-height gap above water.
-  assert(Math.abs(anchor.y - size * 0.36 - (46 - size * 0.02)) < 0.001);
+  // Submerge the chest and paws, leaving the upper face above the water.
+  assert(Math.abs(anchor.y - size * 0.42 - 46) < 0.001);
   const moved = bathPetAnchor({ ...tub, left: 20, top: 30 }, size);
   assert.equal(moved.x, anchor.x + 20);
   assert.equal(moved.y, anchor.y + 30);

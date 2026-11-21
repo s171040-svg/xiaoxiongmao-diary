@@ -1828,13 +1828,13 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     const trackRect = track?.getBoundingClientRect();
     const petRect = pandaButtonRef.current?.getBoundingClientRect() ?? trackRect;
     const currentCenterX = petRect ? petRect.left + petRect.width / 2 : tubRect.left + tubRect.width / 2;
-    if (track) {
-      track.style.setProperty('--bath-start-x', track.style.getPropertyValue('--room-x') || '50%');
-      track.style.setProperty('--bath-start-y', track.style.getPropertyValue('--room-y') || '58%');
-    }
     const width = Math.max(1, window.innerWidth);
     const height = Math.max(1, window.innerHeight);
     const bathAnchor = bathPetAnchor(tubRect, trackRect?.height ?? 0, currentCenterX, petRect?.width ?? 0);
+    if (track) {
+      track.style.setProperty('--bath-start-x', `${bathAnchor.x / width * 100}%`);
+      track.style.setProperty('--bath-start-y', `${Math.max(40, tubRect.top - 12) / height * 100}%`);
+    }
     const target = unprojectRoomPoint(
       (bathAnchor.x / width) * 100,
       (bathAnchor.y / height) * 100,
@@ -2521,20 +2521,6 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   useEffect(() => {
     if (bathPhase !== 'bathing') setBathEntryShakeFrame(null);
   }, [bathPhase]);
-
-  useLayoutEffect(() => {
-    if (!showInteractionBubble || bathPhase !== 'bathing') return;
-    const sceneRect = bathTubRef.current?.getBoundingClientRect();
-    if (!sceneRect) return;
-    const width = Math.max(1, window.innerWidth);
-    const height = Math.max(1, window.innerHeight);
-    applyRoomPoint(unprojectRoomPoint(
-      ((sceneRect.left + sceneRect.width / 2) / width) * 100,
-      ((sceneRect.top + sceneRect.height * 0.64) / height) * 100,
-      width,
-      height,
-    ));
-  }, [applyRoomPoint, bathPhase, showInteractionBubble]);
 
   const beginWorldFall = useCallback((source: 'random' | 'boundary') => {
     if (leafPlatformRef.current) return false;

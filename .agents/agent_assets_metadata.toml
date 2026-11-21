@@ -1086,3 +1086,17 @@ mtime_ms = 1795237005040
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/3a974dd0-4471-41cd-8baf-6376fcab5f69/207f08bf-f57c-450d-873e-de0ddaf4062b"
 storage_version_token = "1795237089975218"
 content_type = "image/png"
+
+[[outputs]]
+id = "cshqrDzk9sv5DyxkpMZ21"
+uri = "file://generated-artifacts/bath-entry-preview.gif"
+type = "image"
+title = "浴缸入浴与探头甩水预览"
+description = "网页房间实录：垂直落水、探头甩水，再接洗澡循环。"
+logical_id = "aba290cc-853a-4f59-935c-b6796f55d76f"
+content_hash = "sha256:e0b5cf4e39abc5e70ad113643ea3bce2a2b680fbd1dc03852fb7a2852e6c28f8"
+size = 62570
+mtime_ms = 1795248500200
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/aba290cc-853a-4f59-935c-b6796f55d76f/015d97a1-ea08-4104-a2a3-2fc00e369140"
+storage_version_token = "1795248578819668"
+content_type = "image/gif"

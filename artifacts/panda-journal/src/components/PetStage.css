@@ -160,6 +160,7 @@
 .ps-track[data-bath-occluded="true"] .ps-ground-shadow{display:none}
 .ps-panda.ps-bathing:hover,.ps-panda.ps-bathing:active{translate:0 0;scale:1}
 .ps-panda.ps-bathing .ps-body{opacity:1;animation:none!important;filter:none;translate:0;rotate:0deg;scale:1}
+.ps-stage[data-room-only="true"] .ps-body[data-sprite="bathing-entry-shake"]{width:calc(88px * var(--room-scale,.89));height:calc(88px * var(--room-scale,.89))}
 .ps-panda.ps-bathing[data-bath-rubbing="true"] .ps-body{animation:ps-bath-scrub 260ms ease-in-out infinite alternate!important;transform-origin:50% 82%}
 .ps-panda.ps-bath-exiting{z-index:6;cursor:grabbing;animation:none;translate:0 -14px;scale:1.04;transform-origin:50% 5%}
 .ps-panda.ps-bath-exiting .ps-body{animation:ps-bath-lift-out 380ms cubic-bezier(.2,.75,.25,1) both!important;transform-origin:50% 78%}

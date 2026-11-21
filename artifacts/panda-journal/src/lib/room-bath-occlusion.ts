@@ -15,7 +15,7 @@ export function bathPetAnchor(
   const inset = Math.min(trackWidth / 2, tub.width / 2);
   return {
     x: Math.min(tub.left + tub.width - inset, Math.max(tub.left + inset, preferredX)),
-    y: tub.top + tub.height * 46 / 96 + trackHeight * 0.34,
+    y: tub.top + tub.height * 46 / 96 + trackHeight * 0.42,
   };
 }
 
