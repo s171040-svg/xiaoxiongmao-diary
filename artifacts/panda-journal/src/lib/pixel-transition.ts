@@ -11,7 +11,8 @@ export type PixelTransitionKey =
   | 'captured-homecoming'
   | 'climb-up'
   | 'leaf-play'
-  | 'plush-play';
+  | 'plush-play'
+  | 'fever';
 
 export type PixelTransitionDirection = 'entering' | 'waking';
 export type PixelTransitionPhase = `frames-${PixelTransitionDirection}` | null;
@@ -41,6 +42,7 @@ export const PIXELLAB_TRANSITION_FRAME_FILES: Record<PixelTransitionKey, string[
   'climb-up': numberedFrames('transitions/walk-to-climb-up', 6),
   'leaf-play': numberedFrames('transitions/idle-to-leaf-play', 6),
   'plush-play': numberedFrames('transitions/idle-to-plush-play', 6),
+  fever: numberedFrames('transitions/idle-to-fever', 6),
 };
 
 export interface PixelTransitionScheduler {

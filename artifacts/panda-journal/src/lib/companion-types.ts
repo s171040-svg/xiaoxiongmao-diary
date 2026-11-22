@@ -16,10 +16,12 @@ export type SharedCareStats = Omit<CareStats, 'hunger' | 'hungerUpdatedAt'>
   & Partial<Pick<CareStats, 'hunger' | 'hungerUpdatedAt'>>;
 export type WorldEcologyState = {
   lastAttentionAt: number;
+  lastPetPoopAt?: number;
   fallCycle: 'first' | 'needs-clean' | 'after-clean';
   lastFallRollAt?: number;
   dirtySince?: number;
   dirtyHealthAppliedMinutes: number;
+  sick?: boolean;
   updatedAt: number;
 };
 export type FoxMerchantLetter = {
@@ -42,7 +44,7 @@ export type PerformanceAction =
   | 'captured-homecoming' | 'climb-up'
   | 'eat-banana' | 'eat-carrot' | 'eat-fish' | 'eat-candy' | 'eat-strawberry' | 'eat-cookie' | 'eat-bamboo';
 export type DeveloperPose = 'idle' | 'lying' | 'sleeping' | 'peeking' | 'bored-searching';
-export type DeveloperEvent = 'dream' | 'punch' | 'startle' | 'grab' | 'dirty-grab' | 'dizzy-drop' | 'world-fall' | 'bath-drop' | 'bath-rub' | 'dirty-bath' | 'dirty-bath-rub' | 'dirty-fly-chase' | 'toy-teaser' | 'toy-laser' | 'toy-curious' | 'toy-brake' | 'toy-wall-dizzy' | 'jar-peeking' | 'trash-can' | 'truth-potion-comfort' | 'leaf-platform' | 'leaf-platform-sleep' | 'leaf-platform-play' | 'leaf-platform-sit' | 'plush-play';
+export type DeveloperEvent = 'dream' | 'punch' | 'startle' | 'grab' | 'dirty-grab' | 'dizzy-drop' | 'world-fall' | 'bath-drop' | 'bath-rub' | 'dirty-bath' | 'dirty-bath-rub' | 'dirty-fly-chase' | 'toy-teaser' | 'toy-laser' | 'toy-curious' | 'toy-brake' | 'toy-wall-dizzy' | 'jar-peeking' | 'trash-can' | 'truth-potion-comfort' | 'leaf-platform' | 'leaf-platform-sleep' | 'leaf-platform-play' | 'leaf-platform-sit' | 'plush-play' | 'fever';
 export type ChatMessage = {
   id: string; role: 'user' | 'assistant'; text: string; createdAt: number;
   photo?: string; status?: 'pending' | 'interrupted' | 'failed' | 'sent'; failureReason?: string;
@@ -60,9 +62,11 @@ export type Gift = {
 export type SpacePoop = {
   phase: 'pending' | 'fresh' | 'bagged' | 'disposing' | 'disposed';
   x?: number; y?: number; packedAt?: number; disposedAt?: number;
+  createdAt?: number; healthAppliedMinutes?: number;
 };
 export type SpacePoliceLetter = {
   id: string; deliveredAt: number; openedAt?: number; filedAt?: number; eatenAt?: number; eatAfterAt?: number;
+  kind?: 'pet-poop';
   poop?: SpacePoop;
   finePayment?: { paidAt: number; giftId: string; emoji: string; item: string };
 };

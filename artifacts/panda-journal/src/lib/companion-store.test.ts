@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ACTIONS, adjustHungerState, initialState, idleDelay, localDay, performancePlan, contextFor, receiveReply, recordUserMessage, waitingForAnswer, tickCompanion, welcome, beginTrip, startGiftDrop, collectGift, feedGift, canFeedGift, feedActionForGift, favoriteGift, injectTestGift, markPendingInterrupted, deliverSpacePoliceLetter, eatSpacePoliceLetter, fileSpacePoliceLetter, markSpacePoliceLetterOpened, paySpacePoliceFine, placeSpacePolicePoop, packSpacePolicePoop, moveSpacePolicePoopBag, disposeSpacePolicePoopBag, finishSpacePolicePoopDisposal, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, CAPTURED_TRIP_EXTRA_MS, SPACE_POLICE_LETTER_EAT_DELAY_MS, DAY, MINUTE, COMPANION_KEY, readState, writeState, tryStartIdleWorldFall, markWorldFallReturned, markPetWashed, markPetDried, tickDirtyHealth, redeemFoxMerchantLetter, openFoxMerchantLetter, IDLE_FALL_AFTER_MS, DIRTY_HEALTH_DECAY_INTERVAL_MS } from './companion-store';
+import { ACTIONS, adjustHungerState, initialState, idleDelay, localDay, performancePlan, contextFor, receiveReply, recordUserMessage, waitingForAnswer, tickCompanion, welcome, beginTrip, startGiftDrop, collectGift, feedGift, canFeedGift, feedActionForGift, favoriteGift, injectTestGift, markPendingInterrupted, deliverSpacePoliceLetter, eatSpacePoliceLetter, fileSpacePoliceLetter, markSpacePoliceLetterOpened, paySpacePoliceFine, placeSpacePolicePoop, packSpacePolicePoop, moveSpacePolicePoopBag, disposeSpacePolicePoopBag, finishSpacePolicePoopDisposal, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, CAPTURED_TRIP_EXTRA_MS, SPACE_POLICE_LETTER_EAT_DELAY_MS, DAY, MINUTE, COMPANION_KEY, readState, writeState, tryStartIdleWorldFall, markWorldFallReturned, markPetWashed, markPetDried, tickDirtyHealth, tickPetPoop, tickPetPoopHealth, redeemFoxMerchantLetter, openFoxMerchantLetter, IDLE_FALL_AFTER_MS, DIRTY_HEALTH_DECAY_INTERVAL_MS } from './companion-store';
 import type { CompanionState } from './companion-types';
 import {
   CARE_STAT_DECAY_INTERVAL_MS,
@@ -101,8 +101,10 @@ test('dirty health loses exactly 1.5 per minute and a bath stops the loss', () =
     careStats: { ...sample().careStats, health: 10 },
     worldEcology: { ...sample().worldEcology!, fallCycle: 'needs-clean' as const, dirtySince: now, dirtyHealthAppliedMinutes: 0 },
   };
-  assert.equal(tickDirtyHealth(started, '小熊猫', now + DIRTY_HEALTH_DECAY_INTERVAL_MS - 1).state, started);
-  const afterMinute = tickDirtyHealth(started, '小熊猫', now + DIRTY_HEALTH_DECAY_INTERVAL_MS);
+  const beforeDecay = tickDirtyHealth(started, '小熊猫', now + DIRTY_HEALTH_DECAY_INTERVAL_MS - 1).state;
+  assert.equal(beforeDecay.careStats.health, 10);
+  assert.equal(beforeDecay.worldEcology?.sick, true);
+  const afterMinute = tickDirtyHealth(beforeDecay, '小熊猫', now + DIRTY_HEALTH_DECAY_INTERVAL_MS);
   assert.equal(afterMinute.state.careStats.health, 8.5);
   const washed = markPetWashed(afterMinute.state, now + DIRTY_HEALTH_DECAY_INTERVAL_MS + 1);
   assert.equal(tickDirtyHealth(washed, '小熊猫', now + 8 * MINUTE).state, washed);
@@ -112,12 +114,85 @@ test('dirty health loses exactly 1.5 per minute and a bath stops the loss', () =
   assert.equal(webTick.state.careStats.health, 8.5);
 });
 
+test('web-room pet poop is created once per minute, but not by the desktop tick', () => {
+  const state = sample();
+  const beforeDue = tickPetPoop(state, now + MINUTE - 1);
+  assert.equal(beforeDue, state);
+  const created = tickPetPoop(state, now + MINUTE);
+  assert.equal(created.spacePoliceLetters?.filter(letter => letter.kind === 'pet-poop').length, 1);
+  assert.equal(created.spacePoliceLetters?.find(letter => letter.kind === 'pet-poop')?.poop?.createdAt, now + MINUTE);
+
+  const desktopTick = tickCompanion(state, now + MINUTE);
+  assert.equal(desktopTick.state.spacePoliceLetters?.some(letter => letter.kind === 'pet-poop'), false);
+  const webTick = tickCompanion(state, now + MINUTE, Math.random, { enableWorldEcology: true });
+  assert.equal(webTick.state.spacePoliceLetters?.filter(letter => letter.kind === 'pet-poop').length, 1);
+});
+
+test('each uncleared poop begins costing one health per minute after five minutes', () => {
+  const letter = {
+    id: 'automatic-poop',
+    deliveredAt: now,
+    kind: 'pet-poop' as const,
+    poop: { phase: 'fresh' as const, createdAt: now, healthAppliedMinutes: 0 },
+  };
+  const state = { ...sample(), spacePoliceLetters: [letter] };
+  assert.equal(tickPetPoopHealth(state, '小熊猫', now + 5 * MINUTE).state.careStats.health, 50);
+  const firstLoss = tickPetPoopHealth(state, '小熊猫', now + 6 * MINUTE);
+  assert.equal(firstLoss.state.careStats.health, 49);
+  assert.equal(firstLoss.state.spacePoliceLetters?.[0]?.poop?.healthAppliedMinutes, 1);
+  const secondLoss = tickPetPoopHealth(firstLoss.state, '小熊猫', now + 7 * MINUTE);
+  assert.equal(secondLoss.state.careStats.health, 48);
+  const disposed = {
+    ...state,
+    spacePoliceLetters: [{ ...letter, poop: { ...letter.poop, phase: 'disposed' as const, disposedAt: now + 4 * MINUTE } }],
+  };
+  assert.equal(tickPetPoopHealth(disposed, '小熊猫', now + 12 * MINUTE).state.careStats.health, 50);
+});
+
+test('fever latches at health 20 while health zero keeps the fox merchant event', () => {
+  const state = { ...sample(), careStats: { ...sample().careStats, health: 20 } };
+  const fever = tickPetPoopHealth(state, '小熊猫', now);
+  assert.equal(fever.state.worldEcology?.sick, true);
+  assert.equal(fever.state.foxMerchantLetter, undefined);
+  const gifts = Array.from({ length: 5 }, (_, index) => ({
+    id: `snack-${index}`, emoji: '🍬', item: '糖果', animal: '朋友', story: '礼物', receivedAt: now,
+  }));
+  const zero = tickDirtyHealth({ ...state, careStats: { ...state.careStats, health: 0 }, gifts }, '小熊猫', now);
+  assert.equal(zero.event, 'captured');
+  assert.equal(zero.state.worldEcology?.sick, true);
+  assert.equal(redeemFoxMerchantLetter(zero.state, now + 1).worldEcology?.sick, false);
+});
+
 test('local storage accepts fractional health and preserves it across reloads', () => {
   const state = { ...sample(), careStats: { ...sample().careStats, health: 47.5 } };
   const values = new Map<string, string>();
   writeState({ setItem: (key, value) => values.set(key, value) }, state);
   const restored = readState({ getItem: key => values.get(key) ?? null }, now + 1);
   assert.equal(restored.careStats.health, 47.5);
+});
+
+test('poop age, applied penalties, timer, and fever state survive local reloads', () => {
+  const state = {
+    ...sample(),
+    spacePoliceLetters: [{
+      id: 'persisted-poop',
+      deliveredAt: now,
+      kind: 'pet-poop' as const,
+      poop: { phase: 'fresh' as const, x: 0.5, y: 0.6, createdAt: now, healthAppliedMinutes: 2 },
+    }],
+    worldEcology: { ...sample().worldEcology!, lastPetPoopAt: now - MINUTE, sick: true },
+  };
+  const values = new Map<string, string>();
+  writeState({ setItem: (key, value) => values.set(key, value) }, state);
+  const restored = readState({ getItem: key => values.get(key) ?? null }, now + 6 * MINUTE);
+  assert.equal(restored.spacePoliceLetters?.[0]?.poop?.createdAt, now);
+  assert.equal(restored.spacePoliceLetters?.[0]?.poop?.healthAppliedMinutes, 2);
+  assert.equal(restored.worldEcology?.lastPetPoopAt, now - MINUTE);
+  assert.equal(restored.worldEcology?.sick, true);
+  const resumed = tickPetPoopHealth(restored, '小熊猫', now + 8 * MINUTE);
+  assert.equal(resumed.state.spacePoliceLetters?.[0]?.poop?.healthAppliedMinutes, 3);
+  assert.equal(resumed.state.careStats.health, 49);
+  assert.equal(resumed.state.worldEcology?.sick, true);
 });
 
 test('health reaching zero either captures for five unused food gifts or resets care state', () => {
@@ -406,12 +481,14 @@ test('an unfiled space police envelope is eaten after five minutes and the lette
   assert.equal(SPACE_POLICE_LETTER_EAT_DELAY_MS, 5 * MINUTE);
   assert.equal(eaten.spacePoliceLetter?.eatenAt, eatenAt);
   assert.equal(eaten.spacePoliceLetters?.[0].eatenAt, eatenAt);
-  assert.deepEqual(eaten.spacePoliceLetters?.[0].poop, { phase: 'pending' });
+  assert.deepEqual(eaten.spacePoliceLetters?.[0].poop, { phase: 'pending', createdAt: eatenAt, healthAppliedMinutes: 0 });
   assert.match(eaten.messages.at(-1)!.text, /好奇.*吃掉.*拉肚子/);
   assert.equal(eatSpacePoliceLetter(eaten, delivered.spacePoliceLetter!.deliveredAt, eatenAt + 1), eaten);
 
   const placed = placeSpacePolicePoop(eaten, eatenAt - SPACE_POLICE_LETTER_EAT_DELAY_MS, 0.4, 0.6);
-  assert.deepEqual(placed.spacePoliceLetters?.[0].poop, { phase: 'fresh', x: 0.4, y: 0.6 });
+  assert.deepEqual(placed.spacePoliceLetters?.[0].poop, {
+    phase: 'fresh', x: 0.4, y: 0.6, createdAt: eatenAt, healthAppliedMinutes: 0,
+  });
   const bagged = packSpacePolicePoop(placed, delivered.spacePoliceLetter!.deliveredAt, eatenAt + 1000);
   assert.equal(bagged.spacePoliceLetters?.[0].poop?.phase, 'bagged');
   const moved = moveSpacePolicePoopBag(bagged, delivered.spacePoliceLetter!.deliveredAt, 0.5, 0.7);

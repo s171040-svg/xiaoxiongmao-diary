@@ -14,6 +14,10 @@ export const CARE_STAT_DECAY_INTERVAL_MS = 6 * 60 * MINUTE;
 export const IDLE_FALL_AFTER_MS = 5 * MINUTE;
 export const DIRTY_HEALTH_DECAY_INTERVAL_MS = MINUTE;
 export const DIRTY_HEALTH_DECAY_AMOUNT = 1.5;
+export const PET_POOP_INTERVAL_MS = MINUTE;
+export const PET_POOP_HEALTH_DELAY_MS = 5 * MINUTE;
+export const PET_POOP_HEALTH_DECAY_AMOUNT = 1;
+export const FEVER_HEALTH_THRESHOLD = 20;
 export const CLEAN_FALL_CHANCE = 0.1;
 export const canFeedGift = (gift: Gift) => ['🍌', '🥕', '🐟', '🍬', '🍓', '🍪', '🎋'].includes(gift.emoji);
 const FEED_ACTION_BY_EMOJI: Record<string, PerformanceAction> = {
@@ -47,8 +51,10 @@ export function initialCareStats(now = Date.now()): CareStats {
 export function initialWorldEcology(now = Date.now()): WorldEcologyState {
   return {
     lastAttentionAt: now,
+    lastPetPoopAt: now,
     fallCycle: 'first',
     dirtyHealthAppliedMinutes: 0,
+    sick: false,
     updatedAt: now,
   };
 }
@@ -336,8 +342,11 @@ function resetCareForNewPet(state: CompanionState, now: number): CompanionState 
     trip: undefined,
     careStats: initialCareStats(now),
     pendingCareStatInteractions: [],
+    spacePoliceLetters: state.spacePoliceLetters?.filter(letter => letter.kind !== 'pet-poop'),
     worldEcology: {
       ...ecology,
+      lastPetPoopAt: now,
+      sick: false,
       lastAttentionAt: now,
       fallCycle: 'first',
       dirtySince: undefined,
@@ -353,7 +362,12 @@ export function resolveHealthAtZero(
   petName: string,
   now = Date.now(),
 ): { state: CompanionState; event?: 'captured' | 'reset' } {
-  if (state.careStats.health > 0 || state.foxMerchantLetter?.status === 'captured') return { state };
+  const ecology = state.worldEcology ?? initialWorldEcology(now);
+  const sickState = state.careStats.health <= FEVER_HEALTH_THRESHOLD && !ecology.sick
+    ? { ...state, worldEcology: { ...ecology, sick: true, updatedAt: now } }
+    : state;
+  if (sickState.careStats.health > 0 || sickState.foxMerchantLetter?.status === 'captured') return { state: sickState };
+  state = sickState;
   const availableSnacks = state.gifts.filter(gift => !gift.fedAt && canFeedGift(gift)).length;
   const captured = availableSnacks >= 5;
   const letter: FoxMerchantLetter = {
@@ -424,6 +438,66 @@ export function tickDirtyHealth(
   return resolveHealthAtZero(state, petName, now);
 }
 
+/** Generate at most one stool per elapsed room tick; its timestamp survives reloads. */
+export function tickPetPoop(state: CompanionState, now = Date.now()): CompanionState {
+  if (!state.worldEcology) return state;
+  const ecology = state.worldEcology;
+  const lastPetPoopAt = ecology.lastPetPoopAt ?? ecology.lastAttentionAt;
+  if (now - lastPetPoopAt < PET_POOP_INTERVAL_MS) return state;
+  if (state.trip || state.foxMerchantLetter?.status === 'captured') {
+    return { ...state, worldEcology: { ...ecology, lastPetPoopAt: now, updatedAt: now } };
+  }
+  const existing = state.spacePoliceLetters
+    ?? (state.spacePoliceLetter ? [{ id: `legacy-space-police-${state.spacePoliceLetter.deliveredAt}`, ...state.spacePoliceLetter }] : []);
+  const poopLetter: SpacePoliceLetter = {
+    id: `pet-poop-${now}`,
+    deliveredAt: now,
+    kind: 'pet-poop',
+    poop: { phase: 'pending', createdAt: now, healthAppliedMinutes: 0 },
+  };
+  return {
+    ...state,
+    spacePoliceLetters: [...existing, poopLetter],
+    worldEcology: { ...ecology, lastPetPoopAt: now, updatedAt: now },
+  };
+}
+
+/** Each uncleared poop costs one health point per full minute after its five-minute grace period. */
+export function tickPetPoopHealth(
+  state: CompanionState,
+  petName: string,
+  now = Date.now(),
+): { state: CompanionState; event?: 'captured' | 'reset' } {
+  if (state.foxMerchantLetter?.status === 'captured') return { state };
+  const letters = state.spacePoliceLetters
+    ?? (state.spacePoliceLetter ? [{ id: `legacy-space-police-${state.spacePoliceLetter.deliveredAt}`, ...state.spacePoliceLetter }] : []);
+  let loss = 0;
+  const nextLetters = letters.map(letter => {
+    const poop = letter.poop;
+    if (!poop || poop.phase === 'disposed' || poop.createdAt === undefined) return letter;
+    const eligibleMinutes = Math.floor(Math.max(0, now - poop.createdAt - PET_POOP_HEALTH_DELAY_MS) / MINUTE);
+    const steps = Math.max(0, eligibleMinutes - (poop.healthAppliedMinutes ?? 0));
+    if (!steps) return letter;
+    loss += steps;
+    return { ...letter, poop: { ...poop, healthAppliedMinutes: (poop.healthAppliedMinutes ?? 0) + steps } };
+  });
+  if (!loss) return resolveHealthAtZero(state, petName, now);
+  const updated: CompanionState = {
+    ...state,
+    spacePoliceLetters: nextLetters,
+    ...(state.spacePoliceLetter ? {
+      spacePoliceLetter: nextLetters.find(letter => letter.deliveredAt === state.spacePoliceLetter?.deliveredAt)
+        ?? state.spacePoliceLetter,
+    } : {}),
+    careStats: {
+      ...state.careStats,
+      health: Math.max(0, Math.round((state.careStats.health - PET_POOP_HEALTH_DECAY_AMOUNT * loss) * 10) / 10),
+      revision: state.careStats.revision + loss,
+    },
+  };
+  return resolveHealthAtZero(updated, petName, now);
+}
+
 export function openFoxMerchantLetter(state: CompanionState, now = Date.now()): CompanionState {
   const letter = state.foxMerchantLetter;
   if (!letter || letter.openedAt !== undefined) return state;
@@ -448,6 +522,8 @@ export function redeemFoxMerchantLetter(state: CompanionState, now = Date.now())
     careStats: { ...state.careStats, health: 50, revision: state.careStats.revision + 1 },
     worldEcology: {
       ...ecology,
+      lastPetPoopAt: now,
+      sick: false,
       lastAttentionAt: now,
       fallCycle: 'first',
       dirtySince: undefined,
@@ -501,9 +577,13 @@ export function readState(storage: Pick<Storage, 'getItem'>, now = Date.now()): 
     || (poop.phase !== 'pending' && (!Number.isFinite(poop.x) || !Number.isFinite(poop.y)
       || poop.x! < 0 || poop.x! > 1 || poop.y! < 0 || poop.y! > 1))
     || (poop.packedAt !== undefined && !Number.isFinite(poop.packedAt))
-    || (poop.disposedAt !== undefined && !Number.isFinite(poop.disposedAt));
+    || (poop.disposedAt !== undefined && !Number.isFinite(poop.disposedAt))
+    || (poop.createdAt !== undefined && !Number.isFinite(poop.createdAt))
+    || (poop.healthAppliedMinutes !== undefined
+      && (!Number.isInteger(poop.healthAppliedMinutes) || poop.healthAppliedMinutes < 0));
   const invalidSpacePoliceLetter = (letter: SpacePoliceLetter) => !letter || typeof letter.id !== 'string'
     || !Number.isFinite(letter.deliveredAt)
+    || (letter.kind !== undefined && letter.kind !== 'pet-poop')
     || (letter.openedAt !== undefined && !Number.isFinite(letter.openedAt))
     || (letter.filedAt !== undefined && !Number.isFinite(letter.filedAt))
     || (letter.eatenAt !== undefined && !Number.isFinite(letter.eatenAt))
@@ -522,6 +602,8 @@ export function readState(storage: Pick<Storage, 'getItem'>, now = Date.now()): 
     || (letter.resolvedAt !== undefined && !Number.isFinite(letter.resolvedAt));
   const invalidWorldEcology = (ecology: WorldEcologyState) => !ecology
     || !Number.isFinite(ecology.lastAttentionAt)
+    || (ecology.lastPetPoopAt !== undefined && !Number.isFinite(ecology.lastPetPoopAt))
+    || (ecology.sick !== undefined && typeof ecology.sick !== 'boolean')
     || !['first', 'needs-clean', 'after-clean'].includes(ecology.fallCycle)
     || (ecology.lastFallRollAt !== undefined && !Number.isFinite(ecology.lastFallRollAt))
     || (ecology.dirtySince !== undefined && !Number.isFinite(ecology.dirtySince))
@@ -660,11 +742,11 @@ export function eatSpacePoliceLetter(state: CompanionState, deliveredAt: number,
     || activeLetter.filedAt !== undefined || activeLetter.eatenAt !== undefined) return state;
   const letters = state.spacePoliceLetters ?? [];
   const archived = letters.some(letter => letter.deliveredAt === deliveredAt)
-    ? letters.map(letter => letter.deliveredAt === deliveredAt ? { ...letter, eatenAt: now, poop: { phase: 'pending' as const } } : letter)
-    : [...letters, { id: `legacy-space-police-${deliveredAt}`, deliveredAt, eatenAt: now, eatAfterAt: activeLetter.eatAfterAt, poop: { phase: 'pending' as const } }];
+      ? letters.map(letter => letter.deliveredAt === deliveredAt ? { ...letter, eatenAt: now, poop: { phase: 'pending' as const, createdAt: now, healthAppliedMinutes: 0 } } : letter)
+    : [...letters, { id: `legacy-space-police-${deliveredAt}`, deliveredAt, eatenAt: now, eatAfterAt: activeLetter.eatAfterAt, poop: { phase: 'pending' as const, createdAt: now, healthAppliedMinutes: 0 } }];
   return {
     ...state,
-    spacePoliceLetter: { ...activeLetter, eatenAt: now, poop: { phase: 'pending' } },
+    spacePoliceLetter: { ...activeLetter, eatenAt: now, poop: { phase: 'pending', createdAt: now, healthAppliedMinutes: 0 } },
     spacePoliceLetters: archived,
     messages: [...state.messages, assistant('唔……小熊猫太好奇，把信封吃掉了。肚子咕噜咕噜的，拉肚子了。', 'event', now)],
   };
@@ -692,10 +774,11 @@ function updateSpacePolicePoop(
   };
 }
 const clampRoomRatio = (value: number) => Math.max(0.02, Math.min(0.98, value));
-export function placeSpacePolicePoop(state: CompanionState, deliveredAt: number, x: number, y: number): CompanionState {
+export function placeSpacePolicePoop(state: CompanionState, deliveredAt: number, x: number, y: number, now = Date.now()): CompanionState {
   if (!Number.isFinite(x) || !Number.isFinite(y)) return state;
   return updateSpacePolicePoop(state, deliveredAt, poop => poop.phase === 'pending'
-    ? { phase: 'fresh', x: clampRoomRatio(x), y: clampRoomRatio(y) }
+    ? { ...poop, phase: 'fresh', x: clampRoomRatio(x), y: clampRoomRatio(y),
+      createdAt: poop.createdAt ?? now, healthAppliedMinutes: poop.healthAppliedMinutes ?? 0 }
     : poop);
 }
 export function packSpacePolicePoop(state: CompanionState, deliveredAt: number, now = Date.now()): CompanionState {
@@ -932,6 +1015,11 @@ export function tickCompanion(state: CompanionState, now: number, random = Math.
 } {
   let next = decayCareStatState(state, now);
   if (options.enableWorldEcology) {
+    next = tickPetPoop(next, now);
+    const poopHealth = tickPetPoopHealth(next, options.petName ?? '小熊猫', now);
+    next = poopHealth.state;
+    if (poopHealth.event) return { state: next, worldEvent: poopHealth.event };
+    if (next.foxMerchantLetter?.status === 'captured') return { state: next };
     const result = tickDirtyHealth(next, options.petName ?? '小熊猫', now);
     next = result.state;
     if (result.event) return { state: next, worldEvent: result.event };
@@ -996,7 +1084,8 @@ export function tickCompanion(state: CompanionState, now: number, random = Math.
       messages: [...next.messages, assistant(text, due ? 'followup' : 'proactive', now)] };
     return { state: next, event: 'proactive', text };
   }
-  if (options.allowDeparture !== false && !next.pendingGift && now >= next.nextTripAt && now - next.lastUserAt >= MINUTE) {
+  if (options.allowDeparture !== false && (!options.enableWorldEcology || !next.worldEcology?.sick) && !next.pendingGift
+    && now >= next.nextTripAt && now - next.lastUserAt >= MINUTE) {
     next = beginTrip(next, now, random);
     return { state: next, event: 'departure', text: next.messages.at(-1)!.text };
   }

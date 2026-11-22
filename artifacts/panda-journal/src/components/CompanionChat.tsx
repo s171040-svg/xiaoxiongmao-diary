@@ -43,6 +43,7 @@ const devPoseOptions: { pose: DeveloperPose; label: string }[] = [
 ];
 const devEventOptions: { event: DeveloperEvent; label: string; durationMs: number; persistent?: boolean }[] = [
   { event: 'plush-play', label: '坐着玩熊猫玩偶（循环1分钟）', durationMs: PLUSH_PLAY_DURATION_MS },
+  { event: 'fever', label: '发烧：趴地筋疲力尽', durationMs: 5000, persistent: true },
   { event: 'dream', label: '做梦（随机像素梦境）', durationMs: 15000, persistent: true },
   { event: 'punch', label: '挨一拳：后仰倒地再爬起', durationMs: 2000 },
   { event: 'startle', label: '被吓一跳', durationMs: 1150 },
@@ -252,7 +253,9 @@ export function CompanionChat({ companion: c, roomOnly = false, roomToolbarExtra
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const msgs = c.state.messages;
-  const spacePoliceLetters = [...(c.state.spacePoliceLetters ?? [])].sort((a, b) => b.deliveredAt - a.deliveredAt);
+  const spacePoliceLetters = [...(c.state.spacePoliceLetters ?? [])]
+    .filter(letter => letter.kind !== 'pet-poop')
+    .sort((a, b) => b.deliveredAt - a.deliveredAt);
   const spacePoliceUnreadCount = spacePoliceLetters.filter(letter => letter.openedAt === undefined).length;
   const foxMerchantLetter = c.state.foxMerchantLetter;
   const availableFoxSnacks = c.state.gifts.filter(gift => !gift.fedAt && canFeedGift(gift)).length;
@@ -265,7 +268,7 @@ export function CompanionChat({ companion: c, roomOnly = false, roomToolbarExtra
     setRoomChatOpen(isChat);
   }, []);
   const openSpacePoliceLetter = useCallback((letterId?: string) => {
-    const letters = c.state.spacePoliceLetters ?? [];
+    const letters = (c.state.spacePoliceLetters ?? []).filter(letter => letter.kind !== 'pet-poop');
     const activeLetter = c.state.spacePoliceLetter;
     const letter = letterId
       ? letters.find(entry => entry.id === letterId)

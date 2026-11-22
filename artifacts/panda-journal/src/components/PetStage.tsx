@@ -224,6 +224,7 @@ const TRANSITION_ASSET_VERSIONS: Record<TransitionKey, string> = {
   'climb-up': 'stairs-back-left-walk-2',
   'leaf-play': 'leaf-platform-1',
   'plush-play': 'plush-play-1',
+  fever: 'fever-pixel-1',
 };
 const PIXELLAB_TRANSITION_FRAMES = Object.fromEntries(
   Object.entries(PIXELLAB_TRANSITION_FRAME_FILES).map(([key, files]) => [
@@ -513,6 +514,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const [flyChaseSide, setFlyChaseSide] = useState<'left' | 'right'>('left');
   const worldAway = showInteractionBubble && worldFallPhase === 'away';
   const dirtyReturn = showInteractionBubble && (worldFallPhase === 'returning' || worldFallPhase === 'dirty');
+  const feverish = showInteractionBubble && (worldEcology?.sick === true || developerEvent?.event === 'fever');
+  const previousFeverishRef = useRef(false);
   const dirtyGrab = dirtyReturn && (isDragging || developerGrab || pandaHanging);
   const roomWasteLetters = useMemo(() => spacePoliceLetters ?? (spacePoliceLetter?.poop
     ? [{ id: `legacy-space-police-${spacePoliceLetter.deliveredAt}`, ...spacePoliceLetter }]
@@ -1202,6 +1205,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     ? 'dizzy'
     : showInteractionBubble && (isDragging || developerGrab || pandaHanging)
     ? 'grab'
+    : feverish
+    ? 'fever'
     : startled && showInteractionBubble
     ? animationManifest.motionSprites.idle
     : showInteractionBubble && toyPose && pet.stage === 'present' && activityState === 'roaming'
@@ -1425,6 +1430,15 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     if (interactionStateRef.current === 'chat') return;
     playPixelTransition(DEVELOPER_POSE_TRANSITION_KEY[previousPose], 'waking', () => setRoomWalking(false));
   }, [clearActivityTransition, developerPose, playPixelTransition]);
+
+  useEffect(() => {
+    if (!showInteractionBubble || feverish === previousFeverishRef.current) return;
+    previousFeverishRef.current = feverish;
+    clearActivityTransition();
+    setActivityState('roaming');
+    setRoomWalking(false);
+    playPixelTransition('fever', feverish ? 'entering' : 'waking', () => setRoomWalking(false));
+  }, [clearActivityTransition, feverish, playPixelTransition, showInteractionBubble]);
 
   useLayoutEffect(() => {
     const previous = previousPetStageRef.current;
@@ -2132,6 +2146,9 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
         setActivityState('plush-play');
         playPixelTransition('plush-play', 'entering', () => setRoomWalking(false));
         break;
+      case 'fever':
+        setRoomWalking(false);
+        break;
       case 'leaf-platform-sleep':
         enterLeafPlatform('sleeping');
         break;
@@ -2580,7 +2597,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     if (!showInteractionBubble || hidden || developerEvent || pandaJarTrapped
       || worldFallPhase !== 'none' || pet.stage !== 'present') return undefined;
     const timer = window.setInterval(() => {
-      const canFallNow = document.visibilityState === 'visible'
+      const canFallNow = !feverish && document.visibilityState === 'visible'
         && interactionStateRef.current === 'roaming'
         && activityStateRef.current === 'roaming'
         && bathPhaseRef.current === 'none'
@@ -2598,10 +2615,10 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       beginWorldFall('idle');
     }, 1000);
     return () => window.clearInterval(timer);
-  }, [beginWorldFall, developerEvent, hidden, isCuddling, onTryIdleWorldFall, pandaJarTrapped, pet.stage, reacting, showInteractionBubble, startled, worldFallPhase]);
+  }, [beginWorldFall, developerEvent, feverish, hidden, isCuddling, onTryIdleWorldFall, pandaJarTrapped, pet.stage, reacting, showInteractionBubble, startled, worldFallPhase]);
 
   useEffect(() => {
-    if (!showInteractionBubble || !roomWalking || !onPlaceSpacePolicePoop) return undefined;
+    if (!showInteractionBubble || !onPlaceSpacePolicePoop) return undefined;
     const pending = activeWasteLetters.find(letter => letter.poop?.phase === 'pending');
     if (!pending) return undefined;
     const timer = window.setTimeout(() => {
@@ -2614,7 +2631,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       );
     }, 900);
     return () => window.clearTimeout(timer);
-  }, [activeWasteLetters, onPlaceSpacePolicePoop, roomWalking, showInteractionBubble]);
+  }, [activeWasteLetters, onPlaceSpacePolicePoop, showInteractionBubble]);
 
   useEffect(() => {
     const timers = activeWasteLetters
@@ -3910,7 +3927,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       }
     };
 
-    const canRoam = () => interactionState === 'roaming' && !boredAtDock && !truthPotionComfortPhase && !equippedToyRef.current && dizzyPhase === 'none' && !reacting && !startled && !developerGrab && !pandaHangingRef.current && !pandaJarTrapped && !dampAfterBath && !startledRef.current && !hidden
+    const canRoam = () => interactionState === 'roaming' && !feverish && !boredAtDock && !truthPotionComfortPhase && !equippedToyRef.current && dizzyPhase === 'none' && !reacting && !startled && !developerGrab && !pandaHangingRef.current && !pandaJarTrapped && !dampAfterBath && !startledRef.current && !hidden
       && (worldFallPhase === 'none' || worldFallPhase === 'dirty') && bathPhase === 'none'
       && pet.stage !== 'performing' && pet.stage !== 'returning' && !hoverCuddleActive
       && !developerPose && !roamingTransitionBlocked && activityState === 'roaming' && !sleepingInNest && !leafPlatformRef.current
@@ -4039,6 +4056,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     maybeEnterRest,
     motion,
     developerPose,
+    feverish,
     roamingTransitionBlocked,
     nightWakeOverride,
     pet.stage,
@@ -4563,6 +4581,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
               {!worldAway && (
       <button ref={pandaButtonRef} type="button" className={`ps-panda ps-${hangingOnRack ? 'idle' : isCuddling ? 'cuddle' : pet.stage === 'performing' ? action : basePoseClass}${showBoredSearch ? ' ps-bored-hidden' : ''}${showInteractionBubble && roomWalking && !hangingOnRack ? ' ps-walking' : ''}${showInteractionBubble && activityTransition ? ` ps-transition-${activityTransition}` : ''}${pixelTransitionDirection ? ' ps-pixel-transition' : ''}${interactionState === 'chat' ? ' ps-chatting' : ''}${(showInteractionBubble && activityState === 'lying' || developerPose === 'lying') ? ' ps-lying' : ''}${(showInteractionBubble && activityState === 'peeking' || developerPose === 'peeking') ? ' ps-peeking' : ''}${isSleeping ? ' ps-sleeping' : ''}${developerPose === 'idle' ? ' ps-dev-idle' : ''}${startled ? ' ps-startled' : ''}${isPressPending ? ' ps-pressing' : ''}${reacting ? ' ps-reacting' : ''}${isDragging || developerGrab ? ' ps-dragging' : ''}${hangingOnRack ? ' ps-hanging' : ''}${dirtyGrab ? ' ps-dirty-grabbing' : ''}${showInteractionBubble && dizzyPhase !== 'none' ? ' ps-dizzy' : ''}${worldFallPhase === 'falling' ? ' ps-world-falling' : ''}${bathPhase === 'falling' ? ' ps-bath-dropping' : ''}${bathPhase === 'bathing' ? ' ps-bathing' : ''}${showInteractionBubble && bathTransition === 'exiting' ? ' ps-bath-exiting' : ''}${dirtyReturn ? ' ps-world-dirty' : ''}${isFlyChasing ? ' ps-fly-flee' : ''}`}
                 data-damp-after-bath={dampAfterBath && bathPhase === 'none' ? 'true' : undefined}
+                data-sick={feverish ? 'true' : undefined}
                  data-character={characterId}
                 data-jar-trapped={pandaJarTrapped ? 'true' : undefined}
                  data-truth-potion-comfort={truthPotionComfortPhase ?? undefined}
@@ -4573,7 +4592,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
               onPointerMove={handlePandaPointerMove}
               onPointerUp={handlePandaPointerUp}
               onPointerCancel={handlePandaPointerCancel}
-                aria-label={pandaJarTrapped ? '小熊猫双爪搭在罐沿上，好奇地四处张望；长按并拖出罐口才能抱出来' : capturedHomecoming ? '小熊猫从时空旋涡被送回，旁边有空间警察来信' : hangingOnWindowHook ? '小熊猫挂在圆窗小钩子上；长按可以把它抱下来' : hangingOnRack ? '小熊猫挂在晾衣架上；长按可以把它抱下来' : isFlyChasing ? '脏兮兮的小熊猫被苍蝇追着跑' : bathPhase === 'falling' ? '小熊猫掉进浴缸了' : bathPhase === 'bathing' ? '小熊猫正在洗澡；长按可以提起' : worldFallPhase === 'falling' ? '小熊猫掉出房间了' : dirtyReturn ? '小熊猫灰头土脸地哭着回来了' : dizzyPhase === 'falling' ? '小熊猫松手后掉到地上' : dizzyPhase === 'dazed' ? '小熊猫坐在地上眩晕了一会儿' : isDragging ? '正在拎起小熊猫；拖动到目标位置后松手' : isPressPending ? '按住小熊猫即可拎起' : startled ? '小熊猫被吓了一跳' : isSleeping ? '小熊猫正在睡觉；点击叫醒' : interactionState === 'chat' ? '小熊猫正在聊天；点击房间空白处退出' : '点击小熊猫和它互动'}
+                 aria-label={pandaJarTrapped ? '小熊猫双爪搭在罐沿上，好奇地四处张望；长按并拖出罐口才能抱出来' : capturedHomecoming ? '小熊猫从时空旋涡被送回，旁边有空间警察来信' : hangingOnWindowHook ? '小熊猫挂在圆窗小钩子上；长按可以把它抱下来' : hangingOnRack ? '小熊猫挂在晾衣架上；长按可以把它抱下来' : isFlyChasing ? '脏兮兮的小熊猫被苍蝇追着跑' : bathPhase === 'falling' ? '小熊猫掉进浴缸了' : bathPhase === 'bathing' ? '小熊猫正在洗澡；长按可以提起' : worldFallPhase === 'falling' ? '小熊猫掉出房间了' : dirtyReturn ? '小熊猫灰头土脸地哭着回来了' : dizzyPhase === 'falling' ? '小熊猫松手后掉到地上' : dizzyPhase === 'dazed' ? '小熊猫坐在地上眩晕了一会儿' : isDragging ? '正在拎起小熊猫；拖动到目标位置后松手' : isPressPending ? '按住小熊猫即可拎起' : feverish ? '小熊猫发烧了，筋疲力尽地躺在地上' : startled ? '小熊猫被吓了一跳' : isSleeping ? '小熊猫正在睡觉；点击叫醒' : interactionState === 'chat' ? '小熊猫正在聊天；点击房间空白处退出' : '点击小熊猫和它互动'}
                   data-testid="button-panda" data-cuddling={isCuddling ? 'true' : undefined} data-sprite={sprite} data-hanging-on-rack={hangingOnRack && !hangingOnWindowHook ? 'true' : undefined} data-hanging-on-window-hook={hangingOnWindowHook ? 'true' : undefined} data-bath-state={showInteractionBubble ? bathPhase : undefined} data-bath-transition={showInteractionBubble ? bathTransition ?? (bathPhase === 'falling' ? 'entering' : undefined) : undefined} data-bath-ball-on-panda={bathBallPlaced ? 'true' : undefined} data-bath-rubbing={showInteractionBubble && bathPhase === 'bathing' ? (bathRubbing ? 'true' : 'false') : undefined} data-sleeping={isSleeping ? 'true' : undefined} data-sleeping-on-bed={sleepingOnBed ? 'true' : 'false'} data-sleeping-in-nest={sleepingInNest ? 'true' : 'false'} data-reacting={reacting ? 'true' : undefined} data-startled={startled ? 'true' : undefined} data-dizzy-state={showInteractionBubble ? dizzyPhase : undefined} data-facing={facing}
                  data-bamboo-phase={action === 'bamboo' ? bambooPhase : undefined}
                 data-snack-feeding={snackDropDragging ? 'true' : undefined}
