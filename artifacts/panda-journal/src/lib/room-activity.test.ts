@@ -5,6 +5,7 @@ import {
   isMouseBehindOnTurn,
   isNearSleepZone,
   scheduleActivityReset,
+  PLUSH_PLAY_DURATION_MS,
 } from './room-activity';
 
 const sleepingZonePoint = { u: 0.2, v: 0.18 };
@@ -18,6 +19,13 @@ assert.equal(chooseRestActivity(ordinaryPoint, () => 0.23), null);
 assert.equal(chooseRestActivity(ordinaryPoint, () => 0.31), null);
 assert.equal(chooseRestActivity(ordinaryPoint, () => 0.35), 'peeking');
 assert.equal(chooseRestActivity(ordinaryPoint, () => 0.41), null);
+assert.equal(chooseRestActivity(ordinaryPoint, () => 0.46), 'plush-play');
+assert.equal(chooseRestActivity(ordinaryPoint, () => 0.53999), 'plush-play');
+assert.equal(chooseRestActivity(ordinaryPoint, () => 0.54), null);
+assert.equal(chooseRestActivity(sleepingZonePoint, () => 0.5), 'sleeping');
+assert.equal(PLUSH_PLAY_DURATION_MS, 60_000);
+assert.equal(getRestDurationMs('plush-play', () => 0), 60_000);
+assert.equal(getRestDurationMs('plush-play', () => 0.99999), 60_000);
 assert.equal(chooseRestActivity(sleepingZonePoint, () => 0.8), null);
 assert.equal(chooseRestActivity(sleepingZonePoint, () => 0.9), 'peeking');
 assert.equal(getRestDurationMs('lying', () => 0), 330000);

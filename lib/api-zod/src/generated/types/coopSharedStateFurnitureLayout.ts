@@ -12,4 +12,5 @@ export type CoopSharedStateFurnitureLayout = {
   rack?: CoopRoomPoint;
   mailbox?: CoopRoomPoint;
   bathStation?: CoopRoomPoint;
+  trashCan?: CoopRoomPoint;
 };

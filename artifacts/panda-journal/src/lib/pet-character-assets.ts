@@ -4,7 +4,9 @@ import type { PetCharacterId } from '@/hooks/use-pet-character';
 
 const base = () => `${import.meta.env.BASE_URL}static/xiaobai/`;
 export const xiaobaiAsset = (path: string) => {
-  const version = path === 'jar.png' || path.startsWith('loops/jar/') || path.startsWith('transitions/to-jar/')
+  const version = path === 'eat-carrot.png' || path.startsWith('loops/eat-carrot/')
+    ? 'xiaobai-carrot-four-paws'
+    : path === 'jar.png' || path.startsWith('loops/jar/') || path.startsWith('transitions/to-jar/')
     ? 'xiaobai-jar-clear-2'
     : path === 'grab.png' || path.startsWith('transitions/to-grab/')
       ? 'xiaobai-scruff-cute-3' : 'xiaobai-1';
@@ -22,6 +24,7 @@ const aliases: Record<string, string> = {
   'captured-hug': 'captured-hug', 'captured-homecoming': 'captured-hug',
   'potion-comfort': 'sit', 'jar-peeking': 'jar', 'climb-up': 'climb', 'leaf-play': 'toy',
   'bored-over-dock': 'peeking', 'toy-teaser': 'toy', 'toy-laser': 'toy',
+  'plush-play': 'plush-play',
   'toy-curious': 'toy', 'toy-brake': 'toy', 'toy-wall-dizzy': 'dizzy',
   'eat-bamboo': 'eat', 'eat-banana': 'eat-banana', 'eat-carrot': 'eat-carrot',
   'eat-fish': 'eat-fish', 'eat-strawberry': 'eat-strawberry', 'eat-cookie': 'eat-cookie',
@@ -33,15 +36,18 @@ export const XIAOBAI_LOOP_COUNTS: Record<string, number> = {
   tail: 8, cuddle: 8, peeking: 4,
   'eat-banana': 8, 'eat-carrot': 8, 'eat-fish': 8, 'eat-strawberry': 8,
   'eat-cookie': 8,
+  'plush-play': 8,
 };
 const transitionTargets: Record<keyof typeof PIXELLAB_TRANSITION_FRAME_FILES, string> = {
   idle: 'idle', chew: 'eat', jump: 'jump', cuddle: 'lying', tail: 'idle',
   somersault: 'back-pawing', lying: 'lying', sleep: 'sleep', peeking: 'peeking',
   'captured-homecoming': 'captured-hug', 'climb-up': 'climb', 'leaf-play': 'toy',
+  'plush-play': 'plush-play',
 };
 export const XIAOBAI_TRANSITION_GROUPS = new Set([
   'sit', 'lying', 'sleep', 'startled', 'climb', 'back-pawing', 'grab', 'peeking',
   'eat', 'bath', 'dirty', 'wet', 'jar', 'captured-hug', 'dirty-grab', 'idle', 'toy',
+  'plush-play',
 ]);
 export type CharacterAsset = { src: string; group: string | null; explicitTransition?: boolean };
 const sourceFrameCounts = animationManifest.frameCountBySprite as Record<string, number>;

@@ -18,7 +18,7 @@ export function useCharacterBody(source: string, externalTransition: boolean) {
   useEffect(() => {
     setLoopFrame(0);
     if (characterId !== 'xiaobai' || !asset.group || asset.group === 'cuddle' || !XIAOBAI_LOOP_COUNTS[asset.group]) return;
-    const interval = ({ idle: 420, sleep: 520, lying: 420, peeking: 320, walk: 140, climb: 120 } as Record<string, number>)[asset.group] ?? 140;
+    const interval = ({ idle: 420, sleep: 520, lying: 420, peeking: 320, walk: 140, climb: 120, 'plush-play': 240 } as Record<string, number>)[asset.group] ?? 140;
     const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') setLoopFrame(frame => frame + 1);
     }, interval);

@@ -15,6 +15,43 @@ tags:
   - name: co-op
     description: Private two-player panda households and emotion-only messages
 paths:
+  /pet/save:
+    get:
+      operationId: getPetSave
+      tags: [co-op]
+      summary: Read private account gameplay save
+      responses:
+        "200":
+          description: Private save and optimistic revision
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PetSaveRecord"
+        "401":
+          description: Sign in required
+    put:
+      operationId: updatePetSave
+      tags: [co-op]
+      summary: Save private gameplay progress without chat or diary
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PetSaveInput"
+      responses:
+        "200":
+          description: Saved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PetSaveRecord"
+        "400":
+          description: Invalid save
+        "401":
+          description: Sign in required
+        "409":
+          description: A newer save exists
   /pet/character:
     get:
       operationId: getPetCharacter
@@ -32,7 +69,7 @@ paths:
     post:
       operationId: choosePetCharacter
       tags: [co-op]
-      summary: Choose once, also binding both household members
+      summary: Choose one permanent pet for this account
       requestBody:
         required: true
         content:
@@ -305,6 +342,37 @@ paths:
           description: AI analysis unavailable
 components:
   schemas:
+    PetSaveSnapshot:
+      type: object
+      required: [room, pet]
+      properties:
+        room:
+          $ref: "#/components/schemas/CoopSharedState"
+        pet:
+          type: object
+          additionalProperties: {}
+    PetSaveInput:
+      type: object
+      required: [snapshot, revision]
+      properties:
+        snapshot:
+          $ref: "#/components/schemas/PetSaveSnapshot"
+        revision:
+          type: integer
+          minimum: 0
+    PetSaveRecord:
+      type: object
+      required: [snapshot, revision]
+      properties:
+        snapshot:
+          anyOf:
+            - $ref: "#/components/schemas/PetSaveSnapshot"
+            - type: "null"
+        revision:
+          type: integer
+          minimum: 0
+        migrated:
+          type: boolean
     PetCharacterInput:
       type: object
       required: [characterId]
@@ -381,6 +449,8 @@ components:
             mailbox:
               $ref: "#/components/schemas/CoopRoomPoint"
             bathStation:
+              $ref: "#/components/schemas/CoopRoomPoint"
+            trashCan:
               $ref: "#/components/schemas/CoopRoomPoint"
           additionalProperties: false
         placedProps:

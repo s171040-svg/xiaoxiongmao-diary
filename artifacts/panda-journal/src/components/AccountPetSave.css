@@ -1,0 +1,4 @@
+.account-save-loading{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#f7f2e5;color:#35463a;padding:24px;text-align:center}
+.account-save-loading h1{font-size:24px}
+.account-save-loading button,.account-save-retry{border:1px solid #9b865b;background:#fff7df;color:#654d2b;padding:6px 10px;cursor:pointer}
+.room-account-status[data-error=true]{color:#a53e31;max-width:260px}

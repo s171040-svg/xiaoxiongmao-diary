@@ -38,7 +38,9 @@ import type {
   JournalClassification,
   JournalClassificationInput,
   PetCharacterInput,
-  PetCharacterSelection
+  PetCharacterSelection,
+  PetSaveInput,
+  PetSaveRecord
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -67,6 +69,171 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetPetSaveUrl = () => {
+
+
+
+
+  return `/api/pet/save`
+}
+
+/**
+ * @summary Read private account gameplay save
+ */
+export const getPetSave = async ( options?: Parameters<typeof customFetch>[1]): Promise<PetSaveRecord> => {
+
+  return customFetch<PetSaveRecord>(getGetPetSaveUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPetSaveQueryKey = () => {
+    return [
+    `/api/pet/save`
+    ] as const;
+    }
+
+
+export const getGetPetSaveQueryOptions = <TData = Awaited<ReturnType<typeof getPetSave>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPetSave>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPetSaveQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPetSave>>> = ({ signal }) => getPetSave({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPetSave>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPetSaveQueryResult = NonNullable<Awaited<ReturnType<typeof getPetSave>>>
+export type GetPetSaveQueryError = ErrorType<void>
+
+
+/**
+ * @summary Read private account gameplay save
+ */
+
+export function useGetPetSave<TData = Awaited<ReturnType<typeof getPetSave>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPetSave>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPetSaveQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdatePetSaveUrl = () => {
+
+
+
+
+  return `/api/pet/save`
+}
+
+/**
+ * @summary Save private gameplay progress without chat or diary
+ */
+export const updatePetSave = async (petSaveInput: PetSaveInput, options?: Parameters<typeof customFetch>[1]): Promise<PetSaveRecord> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<PetSaveRecord>(getUpdatePetSaveUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(petSaveInput)
+  }
+);}
+
+
+
+
+
+export const getUpdatePetSaveMutationKey = () => ['updatePetSave'] as const;
+
+export const getUpdatePetSaveMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePetSave>>, TError,UpdatePetSaveMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePetSave>>, TError,UpdatePetSaveMutationVariables, TContext> => {
+
+const mutationKey = getUpdatePetSaveMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePetSave>>, UpdatePetSaveMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  updatePetSave(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePetSaveMutationResult = NonNullable<Awaited<ReturnType<typeof updatePetSave>>>
+    export type UpdatePetSaveMutationBody = BodyType<PetSaveInput>
+    export type UpdatePetSaveMutationError = ErrorType<void>
+    export type UpdatePetSaveMutationVariables = {data: BodyType<PetSaveInput>}
+
+    /**
+ * @summary Save private gameplay progress without chat or diary
+ */
+export const useUpdatePetSave = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePetSave>>, TError,UpdatePetSaveMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePetSave>>,
+        TError,
+        UpdatePetSaveMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdatePetSaveMutationOptions(options));
+    }
 
 export const getGetPetCharacterUrl = () => {
 
@@ -154,7 +321,7 @@ export const getChoosePetCharacterUrl = () => {
 }
 
 /**
- * @summary Choose once, also binding both household members
+ * @summary Choose one permanent pet for this account
  */
 export const choosePetCharacter = async (petCharacterInput: PetCharacterInput, options?: Parameters<typeof customFetch>[1]): Promise<PetCharacterSelection> => {
 
@@ -220,7 +387,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type ChoosePetCharacterMutationVariables = {data: BodyType<PetCharacterInput>}
 
     /**
- * @summary Choose once, also binding both household members
+ * @summary Choose one permanent pet for this account
  */
 export const useChoosePetCharacter = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof choosePetCharacter>>, TError,ChoosePetCharacterMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}

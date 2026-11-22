@@ -1100,3 +1100,45 @@ mtime_ms = 1795248500200
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/aba290cc-853a-4f59-935c-b6796f55d76f/015d97a1-ea08-4104-a2a3-2fc00e369140"
 storage_version_token = "1795248578819668"
 content_type = "image/gif"
+
+[[outputs]]
+id = "OzaX9a0D0a6CFbm466KX_"
+uri = "file://generated-artifacts/xiaobai-carrot/%E5%B0%8F%E7%99%BD%E5%90%83%E8%83%A1%E8%90%9D%E5%8D%9C%E4%BF%AE%E6%AD%A3%E7%89%88.gif"
+type = "image"
+title = "小白吃胡萝卜 · 修正版"
+description = "改为坐姿进食：两只前爪抱胡萝卜，两只后脚着地，保留白色球尾巴。8 帧动画已替换网页素材。"
+logical_id = "28a64425-ae5f-41ae-8b58-6e45cd0cab3c"
+content_hash = "sha256:5ace21f444c6558ac15a35fcbb72d8ca6fd4389028a368b78a4673de4682e571"
+size = 49777
+mtime_ms = 1795354760064
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/28a64425-ae5f-41ae-8b58-6e45cd0cab3c/7fa7ebc8-b340-4105-b284-7f5685e67b1a"
+storage_version_token = "1795354860446293"
+content_type = "image/gif"
+
+[[outputs]]
+id = "Qmv_Jrl0J3onSeFLe_ZMD"
+uri = "file://generated-artifacts/plush-play/panda-%E7%8E%A9%E7%86%8A%E7%8C%AB%E7%8E%A9%E5%81%B6.gif"
+type = "image"
+title = "小熊猫 · 坐着玩熊猫玩偶"
+description = "坐下、轻抱和抬起黑白熊猫玩偶，再起身的短循环预览。网页中待机随机触发，每次 60 秒。"
+logical_id = "2827046f-0a79-4a82-8908-dbe8c7ebb09d"
+content_hash = "sha256:ea3ee5ea5a4e88fd44efdcc9e256c1534f42106b0459d691a4d2b393c2382c64"
+size = 294090
+mtime_ms = 1795357200777
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/2827046f-0a79-4a82-8908-dbe8c7ebb09d/c9479362-e608-4f0b-b5f7-b63b9e1ef218"
+storage_version_token = "1795357395653804"
+content_type = "image/gif"
+
+[[outputs]]
+id = "svN2tuLpfW5X4a4IF_OjC"
+uri = "file://generated-artifacts/plush-play/xiaobai-%E7%8E%A9%E7%86%8A%E7%8C%AB%E7%8E%A9%E5%81%B6.gif"
+type = "image"
+title = "小白 · 坐着玩熊猫玩偶"
+description = "小白独立绘制的抱玩偶、轻拍和抬起循环，保留白色球尾。网页中每次 60 秒，可拖动打断。"
+logical_id = "7642ec62-f63c-4b48-93d8-b05d4910c1d0"
+content_hash = "sha256:2d2b0b17967720f1c5b968e65470bb66593d9b7af791e910b792ae7033f5e266"
+size = 200733
+mtime_ms = 1795357202933
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/7642ec62-f63c-4b48-93d8-b05d4910c1d0/5f1e3ce0-a7b7-47b1-ad58-1fa78d795440"
+storage_version_token = "1795357396949975"
+content_type = "image/gif"

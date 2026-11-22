@@ -1,6 +1,7 @@
 import type { RoomPoint } from './room-plane';
 
-export type RoomActivityState = 'roaming' | 'lying' | 'sleeping' | 'daydreaming' | 'peeking';
+export type RoomActivityState = 'roaming' | 'lying' | 'sleeping' | 'daydreaming' | 'peeking' | 'plush-play';
+export const PLUSH_PLAY_DURATION_MS = 60_000;
 export type RestActivityState = Exclude<RoomActivityState, 'roaming'>;
 export type ScreenPoint = { x: number; y: number };
 export type RoomFacing = 'left' | 'right';
@@ -42,6 +43,7 @@ export function chooseRestActivity(
   if (roll < sleepChance + 0.2) return 'daydreaming';
   if (roll < sleepChance + 0.32) return null;
   if (roll < sleepChance + 0.38) return 'peeking';
+  if (roll >= 0.46 && roll < 0.54) return 'plush-play';
   return null;
 }
 
@@ -49,6 +51,7 @@ export function getRestDurationMs(
   activity: RestActivityState,
   random: () => number = Math.random,
 ): number {
+  if (activity === 'plush-play') return PLUSH_PLAY_DURATION_MS;
   if (activity === 'daydreaming' || activity === 'lying' || activity === 'sleeping') {
     return 5 * 60 * 1000 + 30_000 + Math.floor(random() * 120_000);
   }

@@ -13,6 +13,8 @@
     "build": "vite build --config vite.config.ts",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "hunger:test": "pnpm --filter @workspace/api-server exec esbuild ../panda-journal/src/lib/hunger.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/panda-hunger-unit.cjs && node /tmp/panda-hunger-unit.cjs",
+    "account-save:test": "pnpm --filter @workspace/api-server exec esbuild ../panda-journal/src/lib/account-pet-save.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/panda-account-save-unit.cjs && node /tmp/panda-account-save-unit.cjs",
+    "plush:test": "pnpm --filter @workspace/api-server exec esbuild ../panda-journal/src/lib/plush-play.test.ts --bundle --platform=node --format=cjs --define:import.meta.env.BASE_URL='\"/\"' --outfile=/tmp/panda-plush-unit.cjs && node /tmp/panda-plush-unit.cjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

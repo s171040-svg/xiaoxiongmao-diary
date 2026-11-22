@@ -63,7 +63,7 @@ export type CoopFoxMerchantLetter = {
 export type CoopSharedState = {
   gifts: CoopGift[];
   furnitureLayout: Partial<
-    Record<"bed" | "rack" | "mailbox" | "bathStation", CoopRoomPoint>
+    Record<"bed" | "rack" | "mailbox" | "bathStation" | "trashCan", CoopRoomPoint>
   >;
   placedProps: Record<string, boolean>;
   careStats?: CoopCareStats;

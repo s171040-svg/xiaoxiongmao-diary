@@ -223,6 +223,7 @@ const TRANSITION_ASSET_VERSIONS: Record<TransitionKey, string> = {
   'captured-homecoming': 'captured-homecoming-exit-1',
   'climb-up': 'stairs-back-left-walk-2',
   'leaf-play': 'leaf-platform-1',
+  'plush-play': 'plush-play-1',
 };
 const PIXELLAB_TRANSITION_FRAMES = Object.fromEntries(
   Object.entries(PIXELLAB_TRANSITION_FRAME_FILES).map(([key, files]) => [
@@ -398,6 +399,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const previousDreamRef = useRef<PetDream['id'] | undefined>(undefined);
   const [dreamPreviewToken, setDreamPreviewToken] = useState<number | null>(null);
   const handledDreamPreviewRef = useRef<number | null>(null);
+  const handledPlushPreviewRef = useRef<number | null>(null);
   const [hangingOnRack, setHangingOnRack] = useState(false);
   const [hangingOnWindowHook, setHangingOnWindowHook] = useState(false);
   const hangingOnClothesRack = hangingOnRack && !hangingOnWindowHook;
@@ -1218,6 +1220,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       ? roomWalking ? 'walk' : leafPlatformActivity === 'sleeping' ? 'sleep' : leafPlatformActivity === 'playing' ? 'leaf-play' : 'idle'
     : developerPose
         ? DEVELOPER_POSE_SPRITES[developerPose]
+        : showInteractionBubble && activityState === 'plush-play'
+          ? 'plush-play'
         : showInteractionBubble && activityState === 'peeking'
           ? 'peeking'
         : showInteractionBubble && activityState === 'lying'
@@ -1506,8 +1510,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       });
       return;
     }
-    if (activityState === 'peeking') {
-      playPixelTransition('peeking', 'waking', () => {
+    if (activityState === 'peeking' || activityState === 'plush-play') {
+      playPixelTransition(activityState, 'waking', () => {
         setActivityState('roaming');
         setRoomWalking(false);
       });
@@ -2108,6 +2112,10 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       if (handledDreamPreviewRef.current === developerEvent.token) return;
       handledDreamPreviewRef.current = developerEvent.token;
     }
+    if (developerEvent.event === 'plush-play') {
+      if (handledPlushPreviewRef.current === developerEvent.token) return;
+      handledPlushPreviewRef.current = developerEvent.token;
+    }
     window.clearTimeout(developerEventTimerRef.current);
     developerEventTimerRef.current = 0;
     setDeveloperGrab(false);
@@ -2119,6 +2127,10 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     switch (developerEvent.event) {
       case 'leaf-platform':
         enterLeafPlatform();
+        break;
+      case 'plush-play':
+        setActivityState('plush-play');
+        playPixelTransition('plush-play', 'entering', () => setRoomWalking(false));
         break;
       case 'leaf-platform-sleep':
         enterLeafPlatform('sleeping');
@@ -2615,6 +2627,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     if (!showInteractionBubble || dampAfterBath) return false;
     const nextActivity = chooseRestActivity(point);
     if (!nextActivity) return false;
+    if (nextActivity === 'plush-play' && dirtyReturn) return false;
     clearActivityTransition();
     setActivityTransition('settling');
     setRoomWalking(true);
@@ -2634,8 +2647,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
         playPixelTransition('idle', 'entering', () => setRoomWalking(false));
         return;
       }
-      if (nextActivity === 'peeking') {
-        playPixelTransition('peeking', 'entering', () => setRoomWalking(false));
+      if (nextActivity === 'peeking' || nextActivity === 'plush-play') {
+        playPixelTransition(nextActivity, 'entering', () => setRoomWalking(false));
         return;
       }
       setActivityTransition('entering');
@@ -2645,7 +2658,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       }, ACTIVITY_POSE_MS);
     }, ACTIVITY_SETTLE_MS);
     return true;
-  }, [clearActivityTransition, dampAfterBath, playPixelTransition, showInteractionBubble]);
+  }, [clearActivityTransition, dampAfterBath, dirtyReturn, playPixelTransition, showInteractionBubble]);
 
   const wakeFromCatTreeNest = useCallback(() => {
     window.clearTimeout(catTreeSleepTimerRef.current);
@@ -4373,9 +4386,15 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
         {showInteractionBubble && (
           <button ref={windowDryingHookRef} type="button"
             className="ps-window-drying-hook"
-            aria-label="圆窗边的晾晒小钩子，可挂湿润的小熊猫或浴球"
+            aria-label={narrate('圆窗边的晾晒小钩子，可挂湿润的小熊猫或浴球')}
+            data-drop-hint={isDragging || bathBallDragging ? 'true' : undefined}
             data-testid="window-drying-hook">
             <i aria-hidden="true" />
+            {(isDragging || bathBallDragging) && (
+              <span className="ps-hook-drop-hint" aria-hidden="true" data-testid="window-hook-drag-hint">
+                <span>挂钩在这里</span><b>↓</b>
+              </span>
+            )}
           </button>
         )}
         {showInteractionBubble && placedProps.rack && (
@@ -4828,14 +4847,14 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
               && interactionState === 'roaming' && activityState === 'roaming' && !developerPose
               && !isSleeping && !isDragging && !hangingOnRack && dirtyPleaText && (
                 <span className="ps-thinking ps-room-chat-bubble ps-world-dirty-plea" role="status" aria-live="polite"
-                  data-testid="panda-dirty-plea">{dirtyPleaText}</span>
+                  data-testid="panda-dirty-plea">{narrate(dirtyPleaText)}</span>
             )}
             {showInteractionBubble && showArrowMarker && !worldAway && (
               <span className="ps-arrow-marker" aria-hidden="true" data-testid="panda-arrow-marker">▼</span>
             )}
             {showInteractionBubble && !dampAfterBath && !capturedHomecoming && worldFallPhase === 'none' && !isSleeping && !startled && !isDragging && !hangingOnRack && interactionBubbleText && (
               <span className="ps-thinking ps-room-chat-bubble" role="status" aria-live="polite"
-                data-testid="panda-chat-bubble">{interactionBubbleText}</span>
+                data-testid="panda-chat-bubble">{narrate(interactionBubbleText)}</span>
             )}
           </div>
         </div>

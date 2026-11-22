@@ -13,6 +13,7 @@ import { TopPixelIcon } from '@/components/TopPixelIcon';
 import { EmotionCheckIn } from '@/components/EmotionCheckIn';
 import './CompanionChat.css';
 import { BORED_DOCK_REST_MS } from '@/lib/room-bored-search';
+import { PLUSH_PLAY_DURATION_MS } from '@/lib/room-activity';
 
 const DevGiftTool = import.meta.env.DEV ? lazy(() => import('@/components/DevGiftTool')) : null;
 const kindLabel: Record<MemoryKind, string> = { worry: '烦恼', idea: '点子', action: '行动' };
@@ -41,6 +42,7 @@ const devPoseOptions: { pose: DeveloperPose; label: string }[] = [
   { pose: 'bored-searching', label: '趴在工具栏找玩家（1分钟）' },
 ];
 const devEventOptions: { event: DeveloperEvent; label: string; durationMs: number; persistent?: boolean }[] = [
+  { event: 'plush-play', label: '坐着玩熊猫玩偶（循环1分钟）', durationMs: PLUSH_PLAY_DURATION_MS },
   { event: 'dream', label: '做梦（随机像素梦境）', durationMs: 15000, persistent: true },
   { event: 'punch', label: '挨一拳：后仰倒地再爬起', durationMs: 2000 },
   { event: 'startle', label: '被吓一跳', durationMs: 1150 },
@@ -113,7 +115,7 @@ function Diary({ c, onClose }: {
   const diary = [...c.state.diary].sort((a, b) => b.createdAt - a.createdAt);
   const old: JournalEntry[] = [...c.legacyEntries].sort((a, b) => b.createdAt - a.createdAt);
   return (
-    <Modal title="日记本" sub="小熊猫从聊天里自动记下的心事，只保存在本机。共同照看时，它只会带走低细节的情绪摘要。"
+    <Modal title="日记本" sub="小熊猫从聊天里自动记下的心事，只保存在当前账号的本机记录中，不向其他玩家分享。"
       onClose={onClose} testid="dialog-diary">
       <div className="cc-tabs" role="tablist">
         <button role="tab" aria-selected={tab === 'new'} className={tab === 'new' ? 'on' : ''} onClick={() => setTab('new')} type="button">自动记录 {diary.length}</button>
@@ -223,7 +225,7 @@ export function CompanionChat({ companion: c, roomOnly = false, roomToolbarExtra
 }) {
   const isWebRoom = roomOnly && !window.pandaDesktop;
   const [toolbarCollapsed, setToolbarCollapsed] = useState(false);
-  const { characterId, name: characterName } = usePetCharacter();
+  const { characterId, name: characterName, developerCharacterId, accountCharacterId, setDeveloperCharacter } = usePetCharacter();
   const narrate = usePetNarration();
   const [panel, setPanel] = useState<'diary' | 'gifts' | null>(null);
   const [selectedSnackId, setSelectedSnackId] = useState<string | null>(null);
@@ -643,6 +645,23 @@ export function CompanionChat({ companion: c, roomOnly = false, roomToolbarExtra
       {import.meta.env.DEV && devActionOpen && c.performTestAction && (
         <Modal title="动画检视" sub="选一个动作指令，小熊猫将在 2 秒后执行。倒数时换选其他动作会重新计时。"
           onClose={() => setDevActionOpen(false)} testid="dialog-dev-action">
+          <h3 className="cc-dev-action-section-title">切换测试宠物</h3>
+          <div className="cc-dev-action-grid" role="group" aria-label="开发者切换宠物">
+            {(['panda', 'xiaobai'] as const).map(id => (
+              <button type="button" key={id} aria-pressed={characterId === id}
+                data-testid={`button-dev-character-${id}`}
+                onClick={() => {
+                  setScheduledDevTest(null); setDeveloperPose(null); setDeveloperEvent(null); setDevActionResult(null);
+                  setDeveloperCharacter(id);
+                }}>{id === 'panda' ? '小熊猫' : '小白'}{characterId === id ? ' · 当前' : ''}</button>
+            ))}
+            <button type="button" data-testid="button-dev-character-reset" disabled={developerCharacterId === null}
+              onClick={() => {
+                setScheduledDevTest(null); setDeveloperPose(null); setDeveloperEvent(null); setDevActionResult(null);
+                setDeveloperCharacter(null);
+              }}>恢复账号角色</button>
+          </div>
+          <p className="cc-dev-action-help">仅当前页面测试，不修改账号绑定，不消耗转化液。刷新后恢复账号角色：{accountCharacterId === 'xiaobai' ? '小白' : '小熊猫'}。</p>
           <p data-testid="character-action-coverage">当前角色：{characterName}。{characterId === 'xiaobai' ? XIAOBAI_SHARED_ACTION_NOTE : '使用原版小熊猫动作。'}</p>
           <h3 className="cc-dev-action-section-title">动态动作</h3>
           <div className="cc-dev-action-grid">

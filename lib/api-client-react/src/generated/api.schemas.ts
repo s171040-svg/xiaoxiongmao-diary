@@ -5,48 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-export type PetCharacterInputCharacterId = typeof PetCharacterInputCharacterId[keyof typeof PetCharacterInputCharacterId];
-
-
-export const PetCharacterInputCharacterId = {
-  panda: 'panda',
-  xiaobai: 'xiaobai',
-} as const;
-
-export interface PetCharacterInput {
-  characterId: PetCharacterInputCharacterId;
-}
-
-/**
- * @nullable
- */
-export type PetCharacterSelectionCharacterId = typeof PetCharacterSelectionCharacterId[keyof typeof PetCharacterSelectionCharacterId] | null;
-
-
-export const PetCharacterSelectionCharacterId = {
-  panda: 'panda',
-  xiaobai: 'xiaobai',
-} as const;
-
-export interface PetCharacterSelection {
-  /** @nullable */
-  characterId: PetCharacterSelectionCharacterId;
-  locked: boolean;
-  shared: boolean;
-}
-
-export interface CoopRoomPoint {
-  /**
-     * @minimum 0
-     * @maximum 1
-     */
-  x: number;
-  /**
-     * @minimum 0
-     * @maximum 1
-     */
-  y: number;
-}
+export type PetSaveSnapshotPet = {[key: string]: unknown};
 
 export interface CoopGift {
   /** @maxLength 120 */
@@ -66,14 +25,18 @@ export interface CoopGift {
   fedAt?: number;
 }
 
-export type CoopSharedStateFurnitureLayout = {
-  bed?: CoopRoomPoint;
-  rack?: CoopRoomPoint;
-  mailbox?: CoopRoomPoint;
-  bathStation?: CoopRoomPoint;
-};
-
-export type CoopSharedStatePlacedProps = {[key: string]: boolean};
+export interface CoopRoomPoint {
+  /**
+     * @minimum 0
+     * @maximum 1
+     */
+  x: number;
+  /**
+     * @minimum 0
+     * @maximum 1
+     */
+  y: number;
+}
 
 export type CoopCareStatCategory = typeof CoopCareStatCategory[keyof typeof CoopCareStatCategory];
 
@@ -172,6 +135,16 @@ export interface CoopFoxMerchantLetter {
   resolvedAt?: number;
 }
 
+export type CoopSharedStateFurnitureLayout = {
+  bed?: CoopRoomPoint;
+  rack?: CoopRoomPoint;
+  mailbox?: CoopRoomPoint;
+  bathStation?: CoopRoomPoint;
+  trashCan?: CoopRoomPoint;
+};
+
+export type CoopSharedStatePlacedProps = {[key: string]: boolean};
+
 export interface CoopSharedState {
   /** @maxItems 300 */
   gifts: CoopGift[];
@@ -180,6 +153,54 @@ export interface CoopSharedState {
   careStats?: CoopCareStats;
   worldEcology?: CoopWorldEcologyState;
   foxMerchantLetter?: CoopFoxMerchantLetter;
+}
+
+export interface PetSaveSnapshot {
+  room: CoopSharedState;
+  pet: PetSaveSnapshotPet;
+}
+
+export interface PetSaveInput {
+  snapshot: PetSaveSnapshot;
+  /** @minimum 0 */
+  revision: number;
+}
+
+export interface PetSaveRecord {
+  snapshot: PetSaveSnapshot | null;
+  /** @minimum 0 */
+  revision: number;
+  migrated?: boolean;
+}
+
+export type PetCharacterInputCharacterId = typeof PetCharacterInputCharacterId[keyof typeof PetCharacterInputCharacterId];
+
+
+export const PetCharacterInputCharacterId = {
+  panda: 'panda',
+  xiaobai: 'xiaobai',
+} as const;
+
+export interface PetCharacterInput {
+  characterId: PetCharacterInputCharacterId;
+}
+
+/**
+ * @nullable
+ */
+export type PetCharacterSelectionCharacterId = typeof PetCharacterSelectionCharacterId[keyof typeof PetCharacterSelectionCharacterId] | null;
+
+
+export const PetCharacterSelectionCharacterId = {
+  panda: 'panda',
+  xiaobai: 'xiaobai',
+} as const;
+
+export interface PetCharacterSelection {
+  /** @nullable */
+  characterId: PetCharacterSelectionCharacterId;
+  locked: boolean;
+  shared: boolean;
 }
 
 export interface CoopCareStatInteractionInput {

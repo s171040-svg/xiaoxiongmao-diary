@@ -47,3 +47,7 @@ export * from './petCharacterInput';
 export * from './petCharacterInputCharacterId';
 export * from './petCharacterSelection';
 export * from './petCharacterSelectionCharacterId';
+export * from './petSaveInput';
+export * from './petSaveRecord';
+export * from './petSaveSnapshot';
+export * from './petSaveSnapshotPet';
