@@ -13,6 +13,8 @@ import {
   useRecordCoopCareStatInteraction,
   useUpdateCoopState,
   type CoopCareStats,
+  type CoopWorldEcologyState,
+  type CoopFoxMerchantLetter,
   type CoopSharedState,
 } from '@workspace/api-client-react';
 import { CompanionChat } from '@/components/CompanionChat';
@@ -196,6 +198,8 @@ function Landing() {
 function localRoomSnapshot(
   gifts: ReturnType<typeof useCompanion>['state']['gifts'],
   careStats: ReturnType<typeof useCompanion>['state']['careStats'],
+  worldEcology: NonNullable<ReturnType<typeof useCompanion>['state']['worldEcology']>,
+  foxMerchantLetter: ReturnType<typeof useCompanion>['state']['foxMerchantLetter'],
 ): CoopSharedState {
   let placedProps = normalizeRoomProps();
   let furnitureLayout: CoopSharedState['furnitureLayout'] = {};
@@ -209,12 +213,18 @@ function localRoomSnapshot(
     furnitureLayout,
     placedProps,
     careStats,
+    worldEcology,
+    ...(foxMerchantLetter ? { foxMerchantLetter } : {}),
   };
 }
 
 function Room() {
   const petCharacter = usePetCharacter();
-  const companion = useCompanion({ allowRandomPerformanceFall: false });
+  const companion = useCompanion({
+    allowRandomPerformanceFall: false,
+    enableRoomEcology: !isDesktop(),
+    petName: petCharacter.name,
+  });
   const [desktopError, setDesktopError] = useState('');
   const client = useQueryClient();
   const { isSignedIn } = useAuth();
@@ -239,6 +249,8 @@ function Room() {
   const seenDiaryIds = useRef<Set<string> | null>(null);
   const mergeSharedGiftsRef = useRef(companion.mergeSharedGifts);
   const mergeSharedCareStatsRef = useRef(companion.mergeSharedCareStats);
+  const mergeSharedWorldEcologyRef = useRef(companion.mergeSharedWorldEcology);
+  const mergeSharedFoxLetterRef = useRef(companion.mergeSharedFoxMerchantLetter);
   const acknowledgeCareStatInteractionRef = useRef(companion.acknowledgeCareStatInteraction);
   const companionRef = useRef(companion);
   const processingCareInteractions = useRef(new Set<string>());
@@ -272,6 +284,8 @@ function Room() {
   companionRef.current = companion;
   mergeSharedGiftsRef.current = companion.mergeSharedGifts;
   mergeSharedCareStatsRef.current = companion.mergeSharedCareStats;
+  mergeSharedWorldEcologyRef.current = companion.mergeSharedWorldEcology;
+  mergeSharedFoxLetterRef.current = companion.mergeSharedFoxMerchantLetter;
   acknowledgeCareStatInteractionRef.current = companion.acknowledgeCareStatInteraction;
   updateSharedStateRef.current = updateCoopState.mutateAsync;
   recordSharedCareInteractionRef.current = recordSharedCareInteraction.mutateAsync;
@@ -285,6 +299,12 @@ function Room() {
     mergeSharedGiftsRef.current(household.data.sharedState.gifts);
     if (household.data.sharedState.careStats) {
       mergeSharedCareStatsRef.current(household.data.sharedState.careStats as CoopCareStats);
+    }
+    if (household.data.sharedState.worldEcology) {
+      mergeSharedWorldEcologyRef.current(household.data.sharedState.worldEcology as CoopWorldEcologyState);
+    }
+    if (household.data.sharedState.foxMerchantLetter) {
+      mergeSharedFoxLetterRef.current(household.data.sharedState.foxMerchantLetter as CoopFoxMerchantLetter);
     }
     const { furnitureLayout, placedProps } = household.data.sharedState;
     window.dispatchEvent(new CustomEvent('panda-coop-shared-state', { detail: { furnitureLayout, placedProps } }));
@@ -328,13 +348,27 @@ function Room() {
   }, [pendingCareInteractionsFingerprint, household.data?.householdId, client]);
 
   const localCareStatsFingerprint = JSON.stringify(companion.state.careStats);
+  const localWorldEcologyFingerprint = JSON.stringify(companion.state.worldEcology ?? null);
+  const localFoxLetterFingerprint = JSON.stringify(companion.state.foxMerchantLetter ?? null);
   const sharedCareStatsFingerprint = JSON.stringify(household.data?.sharedState.careStats ?? null);
+  const sharedWorldEcologyFingerprint = JSON.stringify(household.data?.sharedState.worldEcology ?? null);
+  const sharedFoxLetterFingerprint = JSON.stringify(household.data?.sharedState.foxMerchantLetter ?? null);
   useEffect(() => {
     const activeHousehold = householdRef.current;
     if (!activeHousehold || companionRef.current.state.pendingCareStatInteractions.length) return;
-    const careStats = companionRef.current.state.careStats;
-    if (JSON.stringify(activeHousehold.sharedState.careStats ?? null) === JSON.stringify(careStats)) return;
-    const sharedState: CoopSharedState = { ...activeHousehold.sharedState, careStats };
+    const currentState = companionRef.current.state;
+    const careStats = currentState.careStats;
+    const worldEcology = currentState.worldEcology;
+    const foxMerchantLetter = currentState.foxMerchantLetter;
+    if (JSON.stringify(activeHousehold.sharedState.careStats ?? null) === JSON.stringify(careStats)
+      && JSON.stringify(activeHousehold.sharedState.worldEcology ?? null) === JSON.stringify(worldEcology ?? null)
+      && JSON.stringify(activeHousehold.sharedState.foxMerchantLetter ?? null) === JSON.stringify(foxMerchantLetter ?? null)) return;
+    const sharedState: CoopSharedState = {
+      ...activeHousehold.sharedState,
+      careStats,
+      ...(worldEcology ? { worldEcology } : {}),
+      ...(foxMerchantLetter ? { foxMerchantLetter } : {}),
+    };
     const fingerprint = JSON.stringify(sharedState);
     if (fingerprint === lastSubmittedSharedState.current) return;
     lastSubmittedSharedState.current = fingerprint;
@@ -344,7 +378,11 @@ function Room() {
           old ? { ...old, sharedState: updated.sharedState } : old);
       })
       .catch(() => { lastSubmittedSharedState.current = ''; });
-  }, [localCareStatsFingerprint, sharedCareStatsFingerprint, pendingCareInteractionsFingerprint, client]);
+  }, [
+    localCareStatsFingerprint, localWorldEcologyFingerprint, localFoxLetterFingerprint,
+    sharedCareStatsFingerprint, sharedWorldEcologyFingerprint, sharedFoxLetterFingerprint,
+    pendingCareInteractionsFingerprint, client,
+  ]);
 
   const localGiftFingerprint = JSON.stringify(companion.state.gifts);
   const sharedGiftFingerprint = JSON.stringify(household.data?.sharedState.gifts ?? []);
@@ -474,7 +512,12 @@ function Room() {
       {hubOpen && <CoopHub
         onClose={() => setHubOpen(false)}
         onHouseholdCreated={companion.clearPendingCareStatInteractions}
-        sharedSnapshot={localRoomSnapshot(companion.state.gifts, companion.state.careStats)}
+        sharedSnapshot={localRoomSnapshot(
+          companion.state.gifts,
+          companion.state.careStats,
+          companion.state.worldEcology!,
+          companion.state.foxMerchantLetter,
+        )}
       />}
     </div>
   );

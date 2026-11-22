@@ -389,6 +389,60 @@ components:
             type: boolean
         careStats:
           $ref: "#/components/schemas/CoopCareStats"
+        worldEcology:
+          $ref: "#/components/schemas/CoopWorldEcologyState"
+        foxMerchantLetter:
+          $ref: "#/components/schemas/CoopFoxMerchantLetter"
+    CoopWorldEcologyState:
+      type: object
+      required: [lastAttentionAt, fallCycle, dirtyHealthAppliedMinutes, updatedAt]
+      properties:
+        lastAttentionAt:
+          type: integer
+          minimum: 0
+        fallCycle:
+          type: string
+          enum: [first, needs-clean, after-clean]
+        lastFallRollAt:
+          type: integer
+          minimum: 0
+        dirtySince:
+          type: integer
+          minimum: 0
+        dirtyHealthAppliedMinutes:
+          type: integer
+          minimum: 0
+        updatedAt:
+          type: integer
+          minimum: 0
+    CoopFoxMerchantLetter:
+      type: object
+      required: [id, sentAt, petName, foxName, status, snacksAtCapture]
+      properties:
+        id:
+          type: string
+          maxLength: 120
+        sentAt:
+          type: integer
+          minimum: 0
+        petName:
+          type: string
+          maxLength: 40
+        foxName:
+          type: string
+          maxLength: 80
+        status:
+          type: string
+          enum: [captured, reset, rescued]
+        snacksAtCapture:
+          type: integer
+          minimum: 0
+        openedAt:
+          type: integer
+          minimum: 0
+        resolvedAt:
+          type: integer
+          minimum: 0
     CoopCareStatCategory:
       type: string
       enum: [health, bond, growth]
@@ -401,7 +455,7 @@ components:
           minimum: 0
           maximum: 100
         health:
-          type: integer
+          type: number
           minimum: 0
           maximum: 100
         bond:

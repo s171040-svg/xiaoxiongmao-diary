@@ -6,7 +6,7 @@ import { PetDepartureNotice } from './PetDepartureNotice';
 import { useCharacterAsset, useCharacterBody } from '@/hooks/use-character-art';
 import { usePetCharacter, usePetNarration } from '@/hooks/use-pet-character';
 import { advanceToy, createShakeDetector, createToyRuntime, shakeToy, toyVisual, TOY_ART_VERSION, type ToyPhase, type ToySprite } from '@/lib/room-toy-interaction';
-import { createPlantFallTracker, isBehindLeftRoomPlants, LEFT_ROOM_PLANTS, LEFT_ROOM_PLANT_Z_INDEX, rollLeftPlantFall } from '@/lib/room-plant-interaction';
+import { LEFT_ROOM_PLANTS, LEFT_ROOM_PLANT_Z_INDEX } from '@/lib/room-plant-interaction';
 import { getBathBallSpawnPosition } from '@/lib/bath-ball-position';
 import { bathPetAnchor, bathPetClipPath } from '@/lib/room-bath-occlusion';
 import { getGiftDropRoomPoint, getGiftStorageRoomPoint } from '@/lib/gift-drop-position';
@@ -24,7 +24,7 @@ import {
   type BathBallDryingState,
 } from '@/lib/bath-ball-drying';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
-import type { CareStatCategory, DeveloperEvent, DeveloperPose, Gift, PerformanceAction, PetEffect, SpacePoliceLetter } from '@/lib/companion-types';
+import type { CareStatCategory, DeveloperEvent, DeveloperPose, FoxMerchantLetter, Gift, PerformanceAction, PetEffect, SpacePoliceLetter, WorldEcologyState } from '@/lib/companion-types';
 import {
   blendRoomPoint,
   CAT_TREE_NEST_POINT,
@@ -126,9 +126,6 @@ const WORLD_FALL_ANIMATION_MS = 1100;
 const WORLD_FALL_MESSAGE_MS = 1800;
 const WORLD_AWAY_MS = 5000;
 const WORLD_RETURN_MS = 2500;
-const WORLD_FALL_COOLDOWN_MS = 120000;
-const WORLD_FALL_RANDOM_MIN_MS = 8 * 60 * 1000;
-const WORLD_FALL_RANDOM_MAX_MS = 18 * 60 * 1000;
 const DAMP_RACK_DRY_MS = 5000;
 const HOVER_CUDDLE_DURATION_MS = 3600;
 const HOVER_CUDDLE_COOLDOWN_MS = 5000;
@@ -330,7 +327,7 @@ type BathBallPointer = {
   offsetY: number;
 };
 
-export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthPotion, thinking = false, motion = 'idle', debugClicks = false, showInteractionBubble = false, showArrowMarker = false, interactionBubbleText, developerPose = null, developerEvent = null, onChatModeChange, onCareInteraction, onLeafPlatformChange, onCapturedHomecomingInteraction, pendingGift, giftDropStartedAt, onCollectPresent, giftCount = 0, onOpenGiftStorage, spacePoliceLetter, spacePoliceLetters, spacePoliceMailCount = 0, spacePoliceUnreadCount = 0, onOpenSpacePoliceLetter, onFileSpacePoliceLetter, onEatSpacePoliceLetter, onPlaceSpacePolicePoop, onPackSpacePolicePoop, onMoveSpacePolicePoopBag, onDisposeSpacePolicePoopBag, onFinishSpacePolicePoopDisposal, onOpenSpacePoliceMailbox }: {
+export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthPotion, thinking = false, motion = 'idle', debugClicks = false, showInteractionBubble = false, showArrowMarker = false, interactionBubbleText, developerPose = null, developerEvent = null, onChatModeChange, onCareInteraction, onPlayerAttention, worldEcology, foxMerchantLetter, onTryIdleWorldFall, onWorldFallReturned, onPetWashed, onPetDried, onLeafPlatformChange, onCapturedHomecomingInteraction, pendingGift, giftDropStartedAt, onCollectPresent, giftCount = 0, onOpenGiftStorage, spacePoliceLetter, spacePoliceLetters, spacePoliceMailCount = 0, spacePoliceUnreadCount = 0, onOpenSpacePoliceLetter, onFileSpacePoliceLetter, onEatSpacePoliceLetter, onPlaceSpacePolicePoop, onPackSpacePolicePoop, onMoveSpacePolicePoopBag, onDisposeSpacePolicePoopBag, onFinishSpacePolicePoopDisposal, onOpenSpacePoliceMailbox }: {
   pet: PetEffect;
   selectedSnack?: Pick<Gift, 'id' | 'emoji' | 'item'> | null;
   onFeedSnack?: (giftId: string) => void;
@@ -345,6 +342,13 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   developerEvent?: { event: DeveloperEvent; token: number } | null;
   onChatModeChange?: (isChat: boolean) => void;
   onCareInteraction?: (category: CareStatCategory) => void;
+  onPlayerAttention?: () => void;
+  worldEcology?: WorldEcologyState;
+  foxMerchantLetter?: FoxMerchantLetter;
+  onTryIdleWorldFall?: () => boolean;
+  onWorldFallReturned?: () => 'dirty' | 'captured' | 'reset' | undefined;
+  onPetWashed?: () => void;
+  onPetDried?: () => void;
   onLeafPlatformChange?: (held: boolean) => void;
   onCapturedHomecomingInteraction?: () => void;
   pendingGift?: Gift;
@@ -440,7 +444,8 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const [startled, setStartled] = useState(false);
   const [developerGrab, setDeveloperGrab] = useState(false);
   const [dizzyPhase, setDizzyPhase] = useState<'none' | 'falling' | 'dazed'>('none');
-  const [worldFallPhase, setWorldFallPhase] = useState<WorldFallPhase>('none');
+  const [worldFallPhase, setWorldFallPhase] = useState<WorldFallPhase>(() =>
+    worldEcology?.dirtySince !== undefined ? 'dirty' : 'none');
   const worldFallPhaseRef = useRef(worldFallPhase);
   worldFallPhaseRef.current = worldFallPhase;
   const worldFallBoundaryTriggerRef = useRef<(() => boolean) | null>(null);
@@ -671,6 +676,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
 
   const handleSnackPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (!selectedSnack || !snackDropPosition) return;
+    onPlayerAttention?.();
     event.preventDefault();
     event.stopPropagation();
     snackDropPointerRef.current = {
@@ -702,6 +708,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       && event.clientX >= panda.left - 22 && event.clientX <= panda.right + 22
       && event.clientY >= panda.top - 22 && event.clientY <= panda.bottom + 22;
     if (selectedSnack && droppedOnPanda) {
+      onPlayerAttention?.();
       onFeedSnack?.(selectedSnack.id);
       setSnackDropPosition(null);
       return;
@@ -2316,11 +2323,26 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
         setWorldFallPhase('returning');
       }, WORLD_AWAY_MS);
     } else if (worldFallPhase === 'returning') {
-      timer = window.setTimeout(() => setWorldFallPhase('dirty'), WORLD_RETURN_MS);
+      timer = window.setTimeout(() => {
+        const outcome = onWorldFallReturned?.();
+        setWorldFallPhase(outcome === undefined || outcome === 'dirty' ? 'dirty' : 'none');
+      }, WORLD_RETURN_MS);
     }
 
     return () => window.clearTimeout(timer);
-  }, [applyRoomPoint, showInteractionBubble, worldFallPhase]);
+  }, [applyRoomPoint, onWorldFallReturned, showInteractionBubble, worldFallPhase]);
+
+  useEffect(() => {
+    if (showInteractionBubble && worldEcology?.dirtySince !== undefined && worldFallPhaseRef.current === 'none') {
+      setWorldFallPhase('dirty');
+    }
+  }, [showInteractionBubble, worldEcology?.dirtySince]);
+
+  useEffect(() => {
+    if (showInteractionBubble && bathPhase !== 'none' && worldFallPhaseRef.current === 'dirty') {
+      onPetWashed?.();
+    }
+  }, [bathPhase, onPetWashed, showInteractionBubble, worldEcology?.dirtySince]);
 
   useEffect(() => {
     window.clearTimeout(dirtyFlyTimerRef.current);
@@ -2522,19 +2544,17 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     if (bathPhase !== 'bathing') setBathEntryShakeFrame(null);
   }, [bathPhase]);
 
-  const beginWorldFall = useCallback((source: 'random' | 'boundary') => {
+  const beginWorldFall = useCallback((source: 'idle' | 'boundary') => {
     if (leafPlatformRef.current) return false;
-    const now = performance.now();
-    const boundaryFall = source === 'boundary';
+    if (source !== 'idle') return false;
     const phase = worldFallPhaseRef.current;
-    if (!showInteractionBubble || pandaJarTrapped || (phase !== 'none' && !(boundaryFall && phase === 'dirty'))
+    if (!showInteractionBubble || pandaJarTrapped || phase !== 'none'
       || bathPhaseRef.current !== 'none' || pandaHangingRef.current || draggingRef.current || hidden
       || pet.stage !== 'present'
       || document.visibilityState !== 'visible'
-      || now - lastWorldFallAtRef.current < WORLD_FALL_COOLDOWN_MS
-      || (!boundaryFall && (dampAfterBath || interactionStateRef.current !== 'roaming'
-        || activityStateRef.current !== 'roaming' || developerPose || isCuddling || reacting || startled))) return false;
-    lastWorldFallAtRef.current = now;
+      || dampAfterBath || interactionStateRef.current !== 'roaming'
+      || activityStateRef.current !== 'roaming' || developerPose || isCuddling || reacting || startled) return false;
+    lastWorldFallAtRef.current = performance.now();
     worldFallPhaseRef.current = 'falling';
     roomWalkingRef.current = false;
     setRoomWalking(false);
@@ -2542,37 +2562,31 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     setWorldFallPhase('falling');
     return true;
   }, [dampAfterBath, developerPose, hidden, isCuddling, pandaJarTrapped, pet.stage, reacting, showInteractionBubble, startled]);
-  worldFallBoundaryTriggerRef.current = () => beginWorldFall('boundary');
+  worldFallBoundaryTriggerRef.current = () => false;
 
   useEffect(() => {
-    if (!showInteractionBubble || hidden || developerEvent || pandaJarTrapped || worldFallPhase !== 'none') return undefined;
-    const tracker = createPlantFallTracker();
+    if (!showInteractionBubble || hidden || developerEvent || pandaJarTrapped
+      || worldFallPhase !== 'none' || pet.stage !== 'present') return undefined;
     const timer = window.setInterval(() => {
-      if (document.visibilityState !== 'visible') return;
-      const behind = isBehindLeftRoomPlants(positionRef.current, window.innerWidth, window.innerHeight);
-      if (rollLeftPlantFall(tracker, behind, performance.now())) beginWorldFall('random');
-    }, 250);
+      const canFallNow = document.visibilityState === 'visible'
+        && interactionStateRef.current === 'roaming'
+        && activityStateRef.current === 'roaming'
+        && bathPhaseRef.current === 'none'
+        && !pandaHangingRef.current
+        && !draggingRef.current
+        && !hidden
+        && !dampAfterBathRef.current
+        && !developerPoseRef.current
+        && !isCuddling
+        && !reacting
+        && !startledRef.current
+        && !pandaJarTrapped
+        && !leafPlatformRef.current;
+      if (!canFallNow || !onTryIdleWorldFall?.()) return;
+      beginWorldFall('idle');
+    }, 1000);
     return () => window.clearInterval(timer);
-  }, [beginWorldFall, developerEvent, hidden, pandaJarTrapped, showInteractionBubble, worldFallPhase]);
-
-  useEffect(() => {
-    if (!showInteractionBubble || hidden || developerEvent || pandaJarTrapped || worldFallPhase !== 'none') return undefined;
-    let timer = 0;
-    let cancelled = false;
-    const scheduleNextFall = () => {
-      const delay = WORLD_FALL_RANDOM_MIN_MS
-        + Math.random() * (WORLD_FALL_RANDOM_MAX_MS - WORLD_FALL_RANDOM_MIN_MS);
-      timer = window.setTimeout(() => {
-        if (cancelled) return;
-        if (!beginWorldFall('random')) scheduleNextFall();
-      }, delay);
-    };
-    scheduleNextFall();
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [beginWorldFall, developerEvent, hidden, pandaJarTrapped, showInteractionBubble, worldFallPhase]);
+  }, [beginWorldFall, developerEvent, hidden, isCuddling, onTryIdleWorldFall, pandaJarTrapped, pet.stage, reacting, showInteractionBubble, startled, worldFallPhase]);
 
   useEffect(() => {
     if (!showInteractionBubble || !roomWalking || !onPlaceSpacePolicePoop) return undefined;
@@ -2933,6 +2947,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       return;
     }
     if (startledRef.current || dizzyPhase !== 'none') return;
+    onPlayerAttention?.();
     recordDebug(`熊猫按钮 onClick 已触发；detail=${event.detail}；当前状态=${interactionStateRef.current}`);
     if (interactionStateRef.current === 'chat') return;
     if (activityTransition === 'settling') {
@@ -3100,6 +3115,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     if (!showInteractionBubble || interactionStateRef.current === 'chat' || !event.isPrimary
       || dizzyPhase !== 'none' || (worldFallPhase !== 'none' && worldFallPhase !== 'dirty') || bathPhaseRef.current === 'falling'
       || (event.pointerType === 'mouse' && event.button !== 0)) return;
+    onPlayerAttention?.();
     if (hoverCuddleActive) {
       window.clearTimeout(hoverCuddleTimerRef.current);
       hoverCuddleTimerRef.current = 0;
@@ -3165,6 +3181,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       setIsDragging(true);
       if (pandaHangingRef.current && dampAfterBathRef.current && dampDryingReadyRef.current) {
         setDampAfterBathNow(false);
+        onPetDried?.();
       }
       setHangingOnRack(false);
       setHangingOnWindowHook(false);
@@ -4685,6 +4702,11 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
           </button>
         )}
         {pet.stage === 'fallen' && <p className="ps-away" role="status">{narrate('呜哇——！小熊猫掉出去啦，马上回来。')}</p>}
+        {pet.stage === 'away' && pet.token === 0 && foxMerchantLetter?.status === 'captured' && (
+          <p className="ps-away" role="status" data-testid="fox-captured-notice">
+            被狐贩子用糖拐跑了！打开上方“狐贩子来信”查看怎样换回{foxMerchantLetter.petName}。
+          </p>
+        )}
         {import.meta.env.DEV && debugClicks && interactionState !== 'chat' && (
           <aside className="ps-debug-panel" data-testid="panda-click-debug" aria-label="小熊猫点击诊断">
             <strong>临时点击诊断</strong>
@@ -4711,6 +4733,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault();
+              onPlayerAttention?.();
               onFeedSnack?.(selectedSnack.id);
               setSnackDropPosition(null);
             }

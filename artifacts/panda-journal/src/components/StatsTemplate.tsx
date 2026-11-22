@@ -17,9 +17,10 @@ type StatMeterProps = {
 };
 
 function StatMeter({ label, value, note, tone }: StatMeterProps) {
+  const displayValue = Number.isInteger(value) ? value : value.toFixed(1);
   return (
     <article className={`stats-meter stats-meter-${tone}`}>
-      <div className="stats-meter-top"><span>{label}</span><strong>{value}<small> / 100</small></strong></div>
+      <div className="stats-meter-top"><span>{label}</span><strong>{displayValue}<small> / 100</small></strong></div>
       <div className="stats-meter-track" role="meter" aria-label={`${label}当前值`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={value}><i style={{ width: `${value}%` }} /></div>
       <p>{note}</p>
     </article>
@@ -110,7 +111,7 @@ export function StatsTemplate() {
 
         <div className="stats-demo-notice" role="note">
           <ShieldCheck size={17} />
-          <p><strong>数值变化规则</strong><span>成长、健康与羁绊按互动增加；网页中清醒时饥饿值每分钟下降 1 格，睡觉暂停，吃零食增加 1 格。桌面版不自动下降。</span></p>
+          <p><strong>数值变化规则</strong><span>成长、健康与羁绊按互动增加；网页房间闲置 6 小时后每 6 小时各降 1 点。掉出世界后处于脏污状态时，每分钟健康值下降 1.5，进入浴缸清洗后停止。网页中清醒时饥饿值每分钟下降 1 格，睡觉暂停；桌面版不自动下降。</span></p>
           <span className="stats-demo-chip">LIVE STATS</span>
         </div>
         {storageError && !sharedRecord && <p className="stats-storage-error" role="alert">{storageError}</p>}
@@ -126,7 +127,7 @@ export function StatsTemplate() {
           </div>
           <div className="stats-meters">
             <StatMeter label="成长" value={careStats?.growth ?? 0} note="每次有效互动 +1" tone="growth" />
-            <StatMeter label="健康" value={careStats?.health ?? 0} note="喂食、洗澡等照料互动 +1" tone="health" />
+            <StatMeter label="健康" value={careStats?.health ?? 0} note="照料互动 +1；脏污时每分钟 −1.5" tone="health" />
             <StatMeter label="饥饿值" value={careStats?.hunger ?? 100} note="网页清醒时每分钟 -1；睡觉暂停；吃零食 +1" tone="hunger" />
             <article className="stats-mood-card">
               <div className="stats-mood-heading"><span className="stats-mood-icon"><Sparkles size={16} /></span><span>此刻心情</span><span className="stats-reaction-label">最近互动反应</span></div>

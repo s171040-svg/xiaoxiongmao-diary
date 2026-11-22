@@ -125,6 +125,14 @@ function mergeSharedState(
     gifts.set(gift.id, { ...gifts.get(gift.id), ...gift });
   }
   const careStats = mergeCareStats(current.careStats, incoming.careStats);
+  const worldEcology = !current.worldEcology
+    ? incoming.worldEcology
+    : !incoming.worldEcology
+      ? current.worldEcology
+      : incoming.worldEcology.updatedAt > current.worldEcology.updatedAt
+        ? incoming.worldEcology
+        : current.worldEcology;
+  const foxMerchantLetter = mergeFoxMerchantLetter(current.foxMerchantLetter, incoming.foxMerchantLetter);
   return {
     gifts: [...gifts.values()].slice(-300),
     furnitureLayout: {
@@ -136,6 +144,28 @@ function mergeSharedState(
       ...incoming.placedProps,
     },
     ...(careStats ? { careStats } : {}),
+    ...(worldEcology ? { worldEcology } : {}),
+    ...(foxMerchantLetter ? { foxMerchantLetter } : {}),
+  };
+}
+
+function mergeFoxMerchantLetter(
+  current: CoopSharedState["foxMerchantLetter"],
+  incoming: CoopSharedState["foxMerchantLetter"],
+): CoopSharedState["foxMerchantLetter"] {
+  if (!current) return incoming;
+  if (!incoming) return current;
+  if (incoming.sentAt > current.sentAt) return incoming;
+  if (incoming.sentAt < current.sentAt) return current;
+  const statusOrder = { captured: 0, reset: 1, rescued: 2 } as const;
+  const latest = statusOrder[incoming.status] > statusOrder[current.status] ? incoming : current;
+  const openedAt = Math.max(current.openedAt ?? 0, incoming.openedAt ?? 0) || undefined;
+  return {
+    ...latest,
+    ...(openedAt !== undefined ? { openedAt } : {}),
+    ...(current.resolvedAt !== undefined || incoming.resolvedAt !== undefined
+      ? { resolvedAt: Math.max(current.resolvedAt ?? 0, incoming.resolvedAt ?? 0) }
+      : {}),
   };
 }
 

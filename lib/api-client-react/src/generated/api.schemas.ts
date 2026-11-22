@@ -122,12 +122,64 @@ export interface CoopCareStats {
   recentInteractionIds: string[];
 }
 
+export type CoopWorldEcologyStateFallCycle = typeof CoopWorldEcologyStateFallCycle[keyof typeof CoopWorldEcologyStateFallCycle];
+
+
+export const CoopWorldEcologyStateFallCycle = {
+  first: 'first',
+  'needs-clean': 'needs-clean',
+  'after-clean': 'after-clean',
+} as const;
+
+export interface CoopWorldEcologyState {
+  /** @minimum 0 */
+  lastAttentionAt: number;
+  fallCycle: CoopWorldEcologyStateFallCycle;
+  /** @minimum 0 */
+  lastFallRollAt?: number;
+  /** @minimum 0 */
+  dirtySince?: number;
+  /** @minimum 0 */
+  dirtyHealthAppliedMinutes: number;
+  /** @minimum 0 */
+  updatedAt: number;
+}
+
+export type CoopFoxMerchantLetterStatus = typeof CoopFoxMerchantLetterStatus[keyof typeof CoopFoxMerchantLetterStatus];
+
+
+export const CoopFoxMerchantLetterStatus = {
+  captured: 'captured',
+  reset: 'reset',
+  rescued: 'rescued',
+} as const;
+
+export interface CoopFoxMerchantLetter {
+  /** @maxLength 120 */
+  id: string;
+  /** @minimum 0 */
+  sentAt: number;
+  /** @maxLength 40 */
+  petName: string;
+  /** @maxLength 80 */
+  foxName: string;
+  status: CoopFoxMerchantLetterStatus;
+  /** @minimum 0 */
+  snacksAtCapture: number;
+  /** @minimum 0 */
+  openedAt?: number;
+  /** @minimum 0 */
+  resolvedAt?: number;
+}
+
 export interface CoopSharedState {
   /** @maxItems 300 */
   gifts: CoopGift[];
   furnitureLayout: CoopSharedStateFurnitureLayout;
   placedProps: CoopSharedStatePlacedProps;
   careStats?: CoopCareStats;
+  worldEcology?: CoopWorldEcologyState;
+  foxMerchantLetter?: CoopFoxMerchantLetter;
 }
 
 export interface CoopCareStatInteractionInput {

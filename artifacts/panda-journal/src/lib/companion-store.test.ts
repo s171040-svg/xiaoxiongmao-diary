@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ACTIONS, adjustHungerState, initialState, idleDelay, localDay, performancePlan, contextFor, receiveReply, recordUserMessage, waitingForAnswer, tickCompanion, welcome, beginTrip, startGiftDrop, collectGift, feedGift, canFeedGift, feedActionForGift, favoriteGift, injectTestGift, markPendingInterrupted, deliverSpacePoliceLetter, eatSpacePoliceLetter, fileSpacePoliceLetter, markSpacePoliceLetterOpened, paySpacePoliceFine, placeSpacePolicePoop, packSpacePolicePoop, moveSpacePolicePoopBag, disposeSpacePolicePoopBag, finishSpacePolicePoopDisposal, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, CAPTURED_TRIP_EXTRA_MS, SPACE_POLICE_LETTER_EAT_DELAY_MS, DAY, MINUTE, COMPANION_KEY, readState, writeState } from './companion-store';
+import { ACTIONS, adjustHungerState, initialState, idleDelay, localDay, performancePlan, contextFor, receiveReply, recordUserMessage, waitingForAnswer, tickCompanion, welcome, beginTrip, startGiftDrop, collectGift, feedGift, canFeedGift, feedActionForGift, favoriteGift, injectTestGift, markPendingInterrupted, deliverSpacePoliceLetter, eatSpacePoliceLetter, fileSpacePoliceLetter, markSpacePoliceLetterOpened, paySpacePoliceFine, placeSpacePolicePoop, packSpacePolicePoop, moveSpacePolicePoopBag, disposeSpacePolicePoopBag, finishSpacePolicePoopDisposal, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, CAPTURED_TRIP_EXTRA_MS, SPACE_POLICE_LETTER_EAT_DELAY_MS, DAY, MINUTE, COMPANION_KEY, readState, writeState, tryStartIdleWorldFall, markWorldFallReturned, markPetWashed, markPetDried, tickDirtyHealth, redeemFoxMerchantLetter, openFoxMerchantLetter, IDLE_FALL_AFTER_MS, DIRTY_HEALTH_DECAY_INTERVAL_MS } from './companion-store';
 import type { CompanionState } from './companion-types';
 import {
   CARE_STAT_DECAY_INTERVAL_MS,
@@ -70,6 +70,99 @@ test('all numeric care stats decay by one at each six-hour idle boundary, never 
     [secondStep.careStats.growth, secondStep.careStats.health, secondStep.careStats.bond],
     [0, 0, 0],
   );
+});
+
+test('world fall requires more than five idle minutes and repeats only after clean drying', () => {
+  const start = sample();
+  assert.equal(tryStartIdleWorldFall(start, now + IDLE_FALL_AFTER_MS, () => 0).shouldFall, false);
+  const first = tryStartIdleWorldFall(start, now + IDLE_FALL_AFTER_MS + 1, () => 0);
+  assert.equal(first.shouldFall, true);
+  assert.equal(first.state.worldEcology?.fallCycle, 'needs-clean');
+  const returned = markWorldFallReturned(first.state, now + IDLE_FALL_AFTER_MS + 5000);
+  assert.equal(returned.careStats.health, 47, 'returning from the fall costs three health');
+  assert.equal(returned.worldEcology?.dirtySince, now + IDLE_FALL_AFTER_MS + 5000);
+  assert.equal(tryStartIdleWorldFall(returned, now + IDLE_FALL_AFTER_MS + 10 * MINUTE, () => 0).shouldFall, false);
+
+  const washed = markPetWashed(returned, now + 12 * MINUTE);
+  assert.equal(washed.worldEcology?.dirtySince, undefined);
+  const dried = markPetDried(washed, now + 13 * MINUTE);
+  assert.equal(dried.worldEcology?.fallCycle, 'after-clean');
+  assert.equal(tryStartIdleWorldFall(dried, now + 18 * MINUTE, () => 0).shouldFall, false);
+  const failedRoll = tryStartIdleWorldFall(dried, now + 18 * MINUTE + 1, () => 0.99);
+  assert.equal(failedRoll.shouldFall, false);
+  assert.equal(tryStartIdleWorldFall(failedRoll.state, now + 18 * MINUTE + 50_000, () => 0).shouldFall, false);
+  const nextMinute = tryStartIdleWorldFall(failedRoll.state, now + 19 * MINUTE + 2, () => 0);
+  assert.equal(nextMinute.shouldFall, true);
+});
+
+test('dirty health loses exactly 1.5 per minute and a bath stops the loss', () => {
+  const started = {
+    ...sample(),
+    careStats: { ...sample().careStats, health: 10 },
+    worldEcology: { ...sample().worldEcology!, fallCycle: 'needs-clean' as const, dirtySince: now, dirtyHealthAppliedMinutes: 0 },
+  };
+  assert.equal(tickDirtyHealth(started, '小熊猫', now + DIRTY_HEALTH_DECAY_INTERVAL_MS - 1).state, started);
+  const afterMinute = tickDirtyHealth(started, '小熊猫', now + DIRTY_HEALTH_DECAY_INTERVAL_MS);
+  assert.equal(afterMinute.state.careStats.health, 8.5);
+  const washed = markPetWashed(afterMinute.state, now + DIRTY_HEALTH_DECAY_INTERVAL_MS + 1);
+  assert.equal(tickDirtyHealth(washed, '小熊猫', now + 8 * MINUTE).state, washed);
+  const desktopTick = tickCompanion(started, now + MINUTE);
+  assert.equal(desktopTick.state.careStats.health, 10);
+  const webTick = tickCompanion(started, now + MINUTE, Math.random, { enableWorldEcology: true, petName: '小熊猫' });
+  assert.equal(webTick.state.careStats.health, 8.5);
+});
+
+test('local storage accepts fractional health and preserves it across reloads', () => {
+  const state = { ...sample(), careStats: { ...sample().careStats, health: 47.5 } };
+  const values = new Map<string, string>();
+  writeState({ setItem: (key, value) => values.set(key, value) }, state);
+  const restored = readState({ getItem: key => values.get(key) ?? null }, now + 1);
+  assert.equal(restored.careStats.health, 47.5);
+});
+
+test('health reaching zero either captures for five unused food gifts or resets care state', () => {
+  const gifts = Array.from({ length: 5 }, (_, index) => ({
+    id: `food-${index}`, emoji: '🍬', item: '糖果', animal: '朋友', story: '礼物', receivedAt: now,
+  }));
+  const state = {
+    ...sample(),
+    careStats: { ...sample().careStats, health: 1 },
+    gifts,
+    worldEcology: { ...sample().worldEcology!, fallCycle: 'needs-clean' as const, dirtySince: now, dirtyHealthAppliedMinutes: 0 },
+  };
+  const captured = tickDirtyHealth(state, '小白', now + MINUTE);
+  assert.equal(captured.event, 'captured');
+  assert.equal(captured.state.foxMerchantLetter?.status, 'captured');
+  assert.equal(captured.state.foxMerchantLetter?.foxName, '小白专属狐贩子');
+  const opened = openFoxMerchantLetter(captured.state, now + MINUTE + 1);
+  assert.equal(opened.foxMerchantLetter?.openedAt, now + MINUTE + 1);
+  const rescued = redeemFoxMerchantLetter(opened, now + MINUTE + 2);
+  assert.equal(rescued.foxMerchantLetter?.status, 'rescued');
+  assert.equal(rescued.gifts.filter(gift => gift.fedAt).length, 5);
+  assert.equal(rescued.careStats.health, 50);
+
+  const short = {
+    ...state,
+    gifts: gifts.slice(0, 3),
+    diary: [{ id: 'keep-diary', kind: 'idea' as const, text: '仍保留', createdAt: now, sourceMessageId: 'user1' }],
+  };
+  const reset = tickDirtyHealth(short, '小熊猫', now + MINUTE);
+  assert.equal(reset.event, 'reset');
+  assert.equal(reset.state.foxMerchantLetter?.status, 'reset');
+  assert.equal(reset.state.careStats.health, 50);
+  assert.equal(reset.state.careStats.growth, 50);
+  assert.equal(reset.state.diary[0]?.id, 'keep-diary');
+  assert.equal(reset.state.gifts.length, 3);
+
+  const nearZero = {
+    ...state,
+    careStats: { ...state.careStats, health: 2 },
+    worldEcology: { ...state.worldEcology!, fallCycle: 'needs-clean' as const },
+  };
+  const capturedOnReturn = markWorldFallReturned(nearZero, now + 2 * MINUTE, '小白');
+  assert.equal(capturedOnReturn.careStats.health, 0);
+  assert.equal(capturedOnReturn.foxMerchantLetter?.status, 'captured');
+  assert.equal(capturedOnReturn.foxMerchantLetter?.petName, '小白');
 });
 
 test('shared stats merge pending local care once and acknowledge server confirmation', () => {

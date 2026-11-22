@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { ChevronDown, ChevronUp, ImagePlus, Pause, Play, RotateCw, SendHorizontal, Trash2, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, ImagePlus, Mail, Pause, Play, RotateCw, SendHorizontal, Trash2, X } from 'lucide-react';
 import type { CompanionController } from '@/hooks/use-companion';
 import { usePetCharacter, usePetNarration } from '@/hooks/use-pet-character';
 import { XIAOBAI_SHARED_ACTION_NOTE } from '@/lib/pet-character-assets';
@@ -221,6 +221,7 @@ export function CompanionChat({ companion: c, roomOnly = false, roomToolbarExtra
   roomToolbarExtras?: ReactNode;
   roomInteractionLocked?: boolean;
 }) {
+  const isWebRoom = roomOnly && !window.pandaDesktop;
   const [toolbarCollapsed, setToolbarCollapsed] = useState(false);
   const { characterId, name: characterName } = usePetCharacter();
   const narrate = usePetNarration();
@@ -244,12 +245,15 @@ export function CompanionChat({ companion: c, roomOnly = false, roomToolbarExtra
   const [spacePoliceMailboxOpen, setSpacePoliceMailboxOpen] = useState(false);
   const [spacePoliceLetterOpen, setSpacePoliceLetterOpen] = useState<SpacePoliceLetter | null>(null);
   const [spacePoliceFineGiftId, setSpacePoliceFineGiftId] = useState<string | null>(null);
+  const [foxMerchantLetterOpen, setFoxMerchantLetterOpen] = useState(false);
   const [voice, setVoice] = useState<{ m: string; e: boolean } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const msgs = c.state.messages;
   const spacePoliceLetters = [...(c.state.spacePoliceLetters ?? [])].sort((a, b) => b.deliveredAt - a.deliveredAt);
   const spacePoliceUnreadCount = spacePoliceLetters.filter(letter => letter.openedAt === undefined).length;
+  const foxMerchantLetter = c.state.foxMerchantLetter;
+  const availableFoxSnacks = c.state.gifts.filter(gift => !gift.fedAt && canFeedGift(gift)).length;
   const policeFineGifts = [...c.state.gifts].sort((a, b) => b.receivedAt - a.receivedAt);
   const liveMessagesRef = useRef(msgs);
   liveMessagesRef.current = msgs;
@@ -455,6 +459,16 @@ export function CompanionChat({ companion: c, roomOnly = false, roomToolbarExtra
             <button type="button" onClick={() => setDevActionOpen(true)} data-testid="button-dev-action" aria-label="动画检视" title="动画检视"><TopPixelIcon name="inspect" /></button>
           )}
           {roomOnly && <button type="button" onClick={() => setPandaArrowShown(shown => !shown)} aria-pressed={pandaArrowShown} data-testid="button-panda-arrow" aria-label="箭头标记" title="在小熊猫头上显示红色箭头"><TopPixelIcon name="arrow" /></button>}
+          {isWebRoom && foxMerchantLetter && (
+            <button type="button" className="cc-fox-letter-button"
+              onClick={() => { c.openFoxLetter(); setFoxMerchantLetterOpen(true); }}
+              data-testid="button-fox-merchant-letter"
+              aria-label={foxMerchantLetter.openedAt === undefined ? '有新的狐贩子来信' : '查看狐贩子来信'}
+              title="狐贩子来信">
+              <Mail size={18} />
+              {foxMerchantLetter.openedAt === undefined && <span className="cc-fox-letter-badge" aria-hidden="true">!</span>}
+            </button>
+          )}
           <button type="button" onClick={() => setPanel('gifts')} data-testid="button-gifts" aria-label="礼物收纳盒" title="礼物收纳盒"><TopPixelIcon name="gift" /></button>
           {import.meta.env.DEV && DevGiftTool && c.addTestGift && (
             <button type="button" onClick={() => setDevGiftOpen(true)} data-testid="button-dev-gift" aria-label="测试礼物" title="测试礼物"><TopPixelIcon name="tool" /></button>
@@ -475,6 +489,13 @@ export function CompanionChat({ companion: c, roomOnly = false, roomToolbarExtra
         interactionBubbleText={roomOnly && roomDialogue ? narrate(removeActionAsides(roomDialogue)) : undefined}
         onChatModeChange={roomOnly ? onRoomChatModeChange : undefined}
         onCareInteraction={c.recordCareStatInteraction}
+        onPlayerAttention={roomOnly && !window.pandaDesktop ? c.recordPetAttention : undefined}
+        worldEcology={roomOnly && !window.pandaDesktop ? c.state.worldEcology : undefined}
+        foxMerchantLetter={isWebRoom ? foxMerchantLetter : undefined}
+        onTryIdleWorldFall={roomOnly && !window.pandaDesktop ? c.tryIdleWorldFall : undefined}
+        onWorldFallReturned={roomOnly && !window.pandaDesktop ? c.markWorldFallReturned : undefined}
+        onPetWashed={roomOnly && !window.pandaDesktop ? c.markPetWashed : undefined}
+        onPetDried={roomOnly && !window.pandaDesktop ? c.markPetDried : undefined}
         onLeafPlatformChange={c.setRoomPetAnchored}
          onCapturedHomecomingInteraction={roomOnly ? c.acknowledgeCapturedHomecoming : undefined}
           pendingGift={roomOnly && !window.pandaDesktop ? c.state.pendingGift : undefined}
@@ -515,6 +536,38 @@ export function CompanionChat({ companion: c, roomOnly = false, roomToolbarExtra
       {panel === 'diary' && <Diary c={c} onClose={() => setPanel(null)} />}
       {panel === 'gifts' && <Gifts c={c} onClose={() => setPanel(null)}
         onChooseSnack={(giftId) => { setSelectedSnackId(giftId); setPanel(null); }} />}
+      {isWebRoom && foxMerchantLetterOpen && foxMerchantLetter && (
+        <Modal title="被狐贩子用糖拐跑了！"
+          sub={`${foxMerchantLetter.foxName} · ${fmt.format(foxMerchantLetter.sentAt)}`}
+          onClose={() => setFoxMerchantLetterOpen(false)} testid="dialog-fox-merchant-letter">
+          <article className="cc-space-police-letter cc-fox-merchant-letter" data-testid="fox-merchant-letter">
+            <header>
+              <span className="cc-police-stamp" aria-hidden="true">狐</span>
+              <div><strong>{foxMerchantLetter.foxName}</strong><small>给{foxMerchantLetter.petName}的看管通知</small></div>
+            </header>
+            {foxMerchantLetter.status === 'captured' ? (
+              <>
+                <p><strong>被狐贩子用糖拐跑了！</strong>“不给我五颗糖，我就不还给你。拿 5 份未喂食的食物礼物来换回{foxMerchantLetter.petName}。”</p>
+                <section className="cc-police-payment" data-testid="fox-merchant-rescue">
+                  <div className="cc-police-payment-heading"><strong>可用食物零食</strong><span>{availableFoxSnacks} / 5</span></div>
+                  <p>只有未喂食的食物礼物可以交换；纪念品和已经喂掉的礼物不计入。</p>
+                  <button type="button" className="cc-police-pay-button"
+                    disabled={availableFoxSnacks < 5}
+                    onClick={() => {
+                      if (c.redeemFoxLetter()) setFoxMerchantLetterOpen(false);
+                    }}
+                    data-testid="button-rescue-from-fox">交出 5 份零食，换回{foxMerchantLetter.petName}</button>
+                </section>
+              </>
+            ) : foxMerchantLetter.status === 'reset' ? (
+              <p>健康值归零时，收纳盒里只有 {foxMerchantLetter.snacksAtCapture} 份未喂食的食物礼物，不足 5 份。养成状态已回到初始值，可以重新养一只；日记、礼物和房间摆设都保留。</p>
+            ) : (
+              <p>已经交出 5 份零食，{foxMerchantLetter.petName}回家啦。它的成长和羁绊保留，健康值恢复到 50。</p>
+            )}
+            <footer>——{foxMerchantLetter.foxName}</footer>
+          </article>
+        </Modal>
+      )}
       {roomOnly && spacePoliceMailboxOpen && (
         <Modal title="时空警察来信箱" sub="小熊猫收到的时空巡逻队来信，都收在这里。"
           onClose={() => setSpacePoliceMailboxOpen(false)} testid="dialog-space-police-mailbox">

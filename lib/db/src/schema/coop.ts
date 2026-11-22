@@ -40,6 +40,26 @@ export type CoopCareStats = {
   recentInteractionIds: string[];
 };
 
+export type CoopWorldEcologyState = {
+  lastAttentionAt: number;
+  fallCycle: "first" | "needs-clean" | "after-clean";
+  lastFallRollAt?: number;
+  dirtySince?: number;
+  dirtyHealthAppliedMinutes: number;
+  updatedAt: number;
+};
+
+export type CoopFoxMerchantLetter = {
+  id: string;
+  sentAt: number;
+  petName: string;
+  foxName: string;
+  status: "captured" | "reset" | "rescued";
+  snacksAtCapture: number;
+  openedAt?: number;
+  resolvedAt?: number;
+};
+
 export type CoopSharedState = {
   gifts: CoopGift[];
   furnitureLayout: Partial<
@@ -47,6 +67,8 @@ export type CoopSharedState = {
   >;
   placedProps: Record<string, boolean>;
   careStats?: CoopCareStats;
+  worldEcology?: CoopWorldEcologyState;
+  foxMerchantLetter?: CoopFoxMerchantLetter;
 };
 
 export const coopNoteStatus = pgEnum("panda_coop_note_status", [

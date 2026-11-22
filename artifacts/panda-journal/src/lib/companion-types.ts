@@ -14,6 +14,24 @@ export type CareStats = {
 };
 export type SharedCareStats = Omit<CareStats, 'hunger' | 'hungerUpdatedAt'>
   & Partial<Pick<CareStats, 'hunger' | 'hungerUpdatedAt'>>;
+export type WorldEcologyState = {
+  lastAttentionAt: number;
+  fallCycle: 'first' | 'needs-clean' | 'after-clean';
+  lastFallRollAt?: number;
+  dirtySince?: number;
+  dirtyHealthAppliedMinutes: number;
+  updatedAt: number;
+};
+export type FoxMerchantLetter = {
+  id: string;
+  sentAt: number;
+  petName: string;
+  foxName: string;
+  status: 'captured' | 'reset' | 'rescued';
+  snacksAtCapture: number;
+  openedAt?: number;
+  resolvedAt?: number;
+};
 export type PendingCareStatInteraction = {
   interactionId: string;
   category: CareStatCategory;
@@ -56,6 +74,8 @@ export type PetEffect = {
 export type CompanionState = {
   version: 1; messages: ChatMessage[]; diary: DiaryMemory[]; gifts: Gift[];
   careStats: CareStats; pendingCareStatInteractions: PendingCareStatInteraction[];
+  worldEcology?: WorldEcologyState;
+  foxMerchantLetter?: FoxMerchantLetter;
   userName: string; draft: string; draftPhoto?: string; lastUserAt: number;
   nextIdleAt: number; proactiveDay: string; proactiveCount: number;
   nextTripAt: number;

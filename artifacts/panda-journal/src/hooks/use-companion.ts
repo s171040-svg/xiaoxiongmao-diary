@@ -2,9 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { companionChat, type CompanionResponse } from '@workspace/api-client-react';
 import { isDesktop } from '@/lib/desktop';
 import { replyFrame, replyRhythm } from '@/lib/reply-rhythm';
-import type { CareStatCategory, ChatMessage, CompanionState, Gift, PerformanceAction, PetEffect, SharedCareStats } from '@/lib/companion-types';
+import type { CareStatCategory, ChatMessage, CompanionState, Gift, PerformanceAction, PetEffect, SharedCareStats, WorldEcologyState, FoxMerchantLetter } from '@/lib/companion-types';
 import type { JournalEntry } from '@/lib/journal-types';
-import { acknowledgeCareStatInteraction as acknowledgeCareStatInteractionInState, adjustHungerState, assistant, canFeedGift, clearPendingCareStatInteractions, contextFor, deliverSpacePoliceLetter, eatSpacePoliceLetter as eatSpacePoliceLetterInState, fileSpacePoliceLetter as fileSpacePoliceLetterInState, feedActionForGift, finishSpacePolicePoopDisposal, id, initialState, markPendingInterrupted, markSpacePoliceLetterOpened as markSpacePoliceLetterOpenedInState, mergeSharedCareStats, moveSpacePolicePoopBag, packSpacePolicePoop, placeSpacePolicePoop, disposeSpacePolicePoopBag, paySpacePoliceFine as paySpacePoliceFineInState, readState, receiveReply, recordCareStatInteraction as recordCareStatInteractionInState, recordUserMessage, performancePlan, tickCompanion, welcome, writeState, startGiftDrop, collectGift, favoriteGift, feedGift, injectTestGift, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, COMPANION_KEY, type TestGiftInput } from '@/lib/companion-store';
+import { acknowledgeCareStatInteraction as acknowledgeCareStatInteractionInState, adjustHungerState, assistant, canFeedGift, clearPendingCareStatInteractions, contextFor, deliverSpacePoliceLetter, eatSpacePoliceLetter as eatSpacePoliceLetterInState, fileSpacePoliceLetter as fileSpacePoliceLetterInState, feedActionForGift, finishSpacePolicePoopDisposal, id, initialState, markPendingInterrupted, markSpacePoliceLetterOpened as markSpacePoliceLetterOpenedInState, mergeSharedCareStats, mergeSharedWorldEcology, mergeSharedFoxMerchantLetter, moveSpacePolicePoopBag, packSpacePolicePoop, placeSpacePolicePoop, disposeSpacePolicePoopBag, paySpacePoliceFine as paySpacePoliceFineInState, readState, receiveReply, recordCareStatInteraction as recordCareStatInteractionInState, recordPetAttentionState, recordUserMessage, performancePlan, tickCompanion, tryStartIdleWorldFall, markWorldFallReturned as markWorldFallReturnedInState, markPetWashed as markPetWashedInState, markPetDried as markPetDriedInState, openFoxMerchantLetter as openFoxMerchantLetterInState, redeemFoxMerchantLetter as redeemFoxMerchantLetterInState, welcome, writeState, startGiftDrop, collectGift, favoriteGift, feedGift, injectTestGift, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, COMPANION_KEY, type TestGiftInput } from '@/lib/companion-store';
 
 function initial() {
   try {
@@ -31,7 +31,11 @@ function photoData(file: File): Promise<string> {
     image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('照片暂时无法读取。')); }; image.src = url;
   });
 }
-export function useCompanion({ allowRandomPerformanceFall = true }: { allowRandomPerformanceFall?: boolean } = {}) {
+export function useCompanion({
+  allowRandomPerformanceFall = true,
+  enableRoomEcology = false,
+  petName = '小熊猫',
+}: { allowRandomPerformanceFall?: boolean; enableRoomEcology?: boolean; petName?: string } = {}) {
   const [loaded] = useState(initial);
   const [state, setState] = useState(loaded.state);
   const current = useRef(state);
@@ -47,6 +51,7 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
   const [legacyEntries] = useState(legacy);
   const [pet, setPet] = useState<PetEffect>(() => {
     if (state.trip) return { action: 'idle', stage: 'away', duration: 3000, token: 0 };
+    if (enableRoomEcology && state.foxMerchantLetter?.status === 'captured') return { action: 'idle', stage: 'away', duration: 3000, token: 0 };
     if (state.returnEvent?.kind === 'captured'
       && (state.returnEvent.awaitingInteraction || state.returnEvent.until > Date.now())) {
       return { action: 'captured-homecoming', stage: 'performing',
@@ -70,14 +75,6 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
     const next = change(readState(localStorage));
     writeState(localStorage, next); current.current = next; setState(next); return next;
   }, []);
-  const recordCareStatInteraction = useCallback((category: CareStatCategory) => {
-    try { transact(s => recordCareStatInteractionInState(s, category)); }
-    catch (e) { report(e); }
-  }, [report, transact]);
-  const adjustHunger = useCallback((amount: number, now = Date.now()) => {
-    try { transact(s => adjustHungerState(s, amount, now)); }
-    catch (e) { report(e); }
-  }, [report, transact]);
   const motion = useCallback((next: PetEffect) => {
     petRef.current = next;
     setPet(next);
@@ -86,6 +83,89 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
       : next;
     window.pandaDesktop?.companionMotion(desktopEffect);
   }, []);
+  const recordCareStatInteraction = useCallback((category: CareStatCategory) => {
+    try {
+      transact(s => {
+        const next = recordCareStatInteractionInState(s, category);
+        return enableRoomEcology ? recordPetAttentionState(next, Date.now()) : next;
+      });
+    }
+    catch (e) { report(e); }
+  }, [enableRoomEcology, report, transact]);
+  const recordPetAttention = useCallback((now = Date.now()) => {
+    if (!enableRoomEcology) return;
+    try { transact(s => recordPetAttentionState(s, now)); }
+    catch (e) { report(e); }
+  }, [enableRoomEcology, report, transact]);
+  const tryIdleWorldFall = useCallback((random = Math.random) => {
+    if (!enableRoomEcology) return false;
+    let shouldFall = false;
+    try {
+      transact(s => {
+        const result = tryStartIdleWorldFall(s, Date.now(), random);
+        shouldFall = result.shouldFall;
+        return result.state;
+      });
+    } catch (e) { report(e); }
+    return shouldFall;
+  }, [enableRoomEcology, report, transact]);
+  const markWorldFallReturned = useCallback((now = Date.now()): 'dirty' | 'captured' | 'reset' | undefined => {
+    if (!enableRoomEcology) return undefined;
+    try {
+      const next = transact(s => markWorldFallReturnedInState(s, now, petName));
+      if (next.foxMerchantLetter?.status === 'captured') {
+        queuedPerformance.current = false;
+        motion({ action: 'idle', stage: 'away', duration: 3000, token: 0 });
+        return 'captured';
+      }
+      if (next.foxMerchantLetter?.status === 'reset') return 'reset';
+      return 'dirty';
+    }
+    catch (e) { report(e); return undefined; }
+  }, [enableRoomEcology, motion, petName, report, transact]);
+  const markPetWashed = useCallback((now = Date.now()) => {
+    if (!enableRoomEcology) return;
+    try { transact(s => markPetWashedInState(s, now)); }
+    catch (e) { report(e); }
+  }, [enableRoomEcology, report, transact]);
+  const markPetDried = useCallback((now = Date.now()) => {
+    if (!enableRoomEcology) return;
+    try { transact(s => markPetDriedInState(s, now)); }
+    catch (e) { report(e); }
+  }, [enableRoomEcology, report, transact]);
+  const openFoxLetter = useCallback(() => {
+    try { transact(s => openFoxMerchantLetterInState(s)); }
+    catch (e) { report(e); }
+  }, [report, transact]);
+  const adjustHunger = useCallback((amount: number, now = Date.now()) => {
+    try { transact(s => adjustHungerState(s, amount, now)); }
+    catch (e) { report(e); }
+  }, [report, transact]);
+  const redeemFoxLetter = useCallback(() => {
+    const before = current.current;
+    try {
+      const next = transact(s => redeemFoxMerchantLetterInState(s));
+      if (before.foxMerchantLetter?.status !== 'captured'
+        || next.foxMerchantLetter?.status !== 'rescued') return false;
+      queuedPerformance.current = false;
+      motion({ action: 'idle', stage: 'present', duration: 3000, token: Date.now() });
+      return true;
+    } catch (e) { report(e); return false; }
+  }, [motion, report, transact]);
+  const mergeFoxLetterFromShared = useCallback((letter: FoxMerchantLetter) => {
+    const wasCaptured = current.current.foxMerchantLetter?.status === 'captured';
+    try {
+      const next = transact(s => mergeSharedFoxMerchantLetter(s, letter));
+      if (!enableRoomEcology) return;
+      const isCaptured = next.foxMerchantLetter?.status === 'captured';
+      if (!wasCaptured && isCaptured) {
+        queuedPerformance.current = false;
+        motion({ action: 'idle', stage: 'away', duration: 3000, token: 0 });
+      } else if (wasCaptured && !isCaptured) {
+        motion({ action: 'idle', stage: 'present', duration: 3000, token: Date.now() });
+      }
+    } catch (e) { report(e); }
+  }, [enableRoomEcology, motion, report, transact]);
   const notify = useCallback((text: string) => { window.pandaDesktop?.notifyMessage(text); }, []);
   const append = useCallback((text: string, kind: ChatMessage['kind'] = 'event') => {
     transact(s => ({ ...s, messages: [...s.messages, assistant(text, kind)] })); notify(text);
@@ -315,9 +395,21 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
         try {
           const previous = readState(localStorage);
           if (busyRef.current && !(previous.trip && Date.now() >= previous.trip.returnAt)) return;
-          const result = tickCompanion(previous, Date.now(), Math.random, { allowDeparture: !roomPetAnchored.current });
+          const result = tickCompanion(previous, Date.now(), Math.random, {
+            allowDeparture: !roomPetAnchored.current && previous.foxMerchantLetter?.status !== 'captured',
+            enableWorldEcology: enableRoomEcology,
+            petName,
+          });
           if (result.state !== previous) {
             writeState(localStorage, result.state); current.current = result.state; setState(result.state);
+          }
+          if (result.worldEvent === 'captured') {
+            queuedPerformance.current = false;
+            motion({ action: 'idle', stage: 'away', duration: 3000, token: 0 });
+          }
+          if (result.worldEvent === 'reset') {
+            notify(result.state.messages.at(-1)?.text ?? '养成状态已重置，可以重新养一只。');
+            motion({ action: 'idle', stage: 'present', duration: 3000, token: Date.now() });
           }
           if (result.text) notify(result.text);
           if (result.event === 'departure') motion({ ...petRef.current, stage: 'away', token: Date.now(), carrying: undefined });
@@ -343,7 +435,7 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
       clearInterval(timer); document.removeEventListener('visibilitychange', change); window.removeEventListener('storage', sync);
       off?.(); offGreeting?.();
     };
-  }, [greet, loaded.error, motion, notify, report, later, transact]);
+  }, [enableRoomEcology, petName, greet, loaded.error, motion, notify, report, later, transact]);
   useEffect(() => {
     alive.current = true;
     return () => { alive.current = false; timers.current.forEach(clearTimeout); };
@@ -397,7 +489,10 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
     const message: ChatMessage = { id: id(), role: 'user', text, photo: current.current.draftPhoto, createdAt: Date.now(), status: 'pending', kind: 'chat',
       clearMindMode: clearMindMode || undefined };
     try {
-      transact(s => recordCareStatInteractionInState(recordUserMessage(s, message), 'bond', message.createdAt));
+      transact(s => {
+        const next = recordCareStatInteractionInState(recordUserMessage(s, message), 'bond', message.createdAt);
+        return enableRoomEcology ? recordPetAttentionState(next, message.createdAt) : next;
+      });
     } catch (e) { report(e); return; }
     await requestReply(message.id, clearMindMode);
   }
@@ -429,12 +524,18 @@ export function useCompanion({ allowRandomPerformanceFall = true }: { allowRando
     setDraft: (draft: string) => { try { transact(s => ({ ...s, draft })); } catch (e) { report(e); } },
     removePhoto: () => { try { transact(s => ({ ...s, draftPhoto: undefined })); } catch (e) { report(e); } },
     removeDiary: (memoryId: string) => { try { transact(s => ({ ...s, diary: s.diary.filter(m => m.id !== memoryId) })); } catch (e) { report(e); } },
-    recordCareStatInteraction, adjustHunger,
+    recordCareStatInteraction, recordPetAttention, tryIdleWorldFall, markWorldFallReturned, markPetWashed, markPetDried,
+    openFoxLetter, redeemFoxLetter, adjustHunger,
     setRoomPetAnchored,
     mergeSharedCareStats: (careStats: SharedCareStats) => {
       try { transact(s => mergeSharedCareStats(s, careStats)); }
       catch (e) { report(e); }
     },
+    mergeSharedWorldEcology: (worldEcology: WorldEcologyState) => {
+      try { transact(s => mergeSharedWorldEcology(s, worldEcology)); }
+      catch (e) { report(e); }
+    },
+    mergeSharedFoxMerchantLetter: mergeFoxLetterFromShared,
     acknowledgeCareStatInteraction: (interactionId: string, careStats: SharedCareStats) => {
       try { transact(s => acknowledgeCareStatInteractionInState(s, interactionId, careStats)); }
       catch (e) { report(e); }

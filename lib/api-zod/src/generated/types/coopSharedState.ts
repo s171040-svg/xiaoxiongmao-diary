@@ -6,9 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CoopCareStats } from './coopCareStats';
+import type { CoopFoxMerchantLetter } from './coopFoxMerchantLetter';
 import type { CoopGift } from './coopGift';
 import type { CoopSharedStateFurnitureLayout } from './coopSharedStateFurnitureLayout';
 import type { CoopSharedStatePlacedProps } from './coopSharedStatePlacedProps';
+import type { CoopWorldEcologyState } from './coopWorldEcologyState';
 
 export interface CoopSharedState {
   /** @maxItems 300 */
@@ -16,4 +18,6 @@ export interface CoopSharedState {
   furnitureLayout: CoopSharedStateFurnitureLayout;
   placedProps: CoopSharedStatePlacedProps;
   careStats?: CoopCareStats;
+  worldEcology?: CoopWorldEcologyState;
+  foxMerchantLetter?: CoopFoxMerchantLetter;
 }
