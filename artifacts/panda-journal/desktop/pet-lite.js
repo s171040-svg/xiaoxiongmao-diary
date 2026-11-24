@@ -8,6 +8,7 @@
   const biteCanvas = document.getElementById("background-bite"), biteContext = biteCanvas.getContext("2d");
   const presence = document.querySelector(".pet-presence");
   const bubble = document.getElementById("speech"), copy = document.getElementById("speech-copy");
+  const dockGreeting = document.getElementById("dock-greeting");
   const dirt = document.getElementById("panda-dirt");
   const home = document.getElementById("open-journal"), stay = document.getElementById("dismiss-prompt");
   const actions = document.getElementById("speech-actions");
@@ -26,6 +27,7 @@
   let promptOpen = false, restMenuOpen = false, disposed = false;
   let nextBiteAt = Infinity, bitePending = null, backgroundBite = null;
   let nextEdgeAt = Infinity, edgeClimb = null, edgeFrame = null;
+  let nextDockAt = Infinity, dockGreetingFrom = Infinity;
   let transitionFrames = [], transitionStartedAt = 0;
   const dirtStorageKey = "panda.desktop.dirt.v1";
   let desktopDirt = loadDirt();
@@ -52,6 +54,8 @@
   function render() {
     presence.style.left = `${point.x}px`; presence.style.top = `${point.y}px`;
     const now = performance.now();
+    dockGreeting.hidden = motion !== "dock-prone" || now < dockGreetingFrom
+      || now - dockGreetingFrom >= model.dockGreetingMs;
     const punchFrame = punchStarted === null ? null
       : model.punchFrame(now - punchStarted, manifest, preference.matches);
     const landing = landingStarted === null ? null
@@ -101,7 +105,7 @@
         else dirt.removeAttribute("src");
       }
       dirt.hidden = !dirtyLevel || motion === "shake" || state.characterId !== "panda";
-      const clipped = (landing || edgeFrame) && !dirt.hidden;
+      const clipped = (landing || edgeFrame || motion === "dock-prone") && !dirt.hidden;
       // Keep stains inside the active silhouette during a pose change.
       dirt.style.top = clipped ? image.style.top : "";
       dirt.style.left = clipped ? image.style.left : "";
@@ -118,6 +122,16 @@
   }
   function settledMotion() {
     return state.restPose ?? (state.quietMode && quietRest ? quietRest.motion : "idle");
+  }
+  function dockRestReady(now) {
+    return state.characterId === "panda" && support?.ownerId === "taskbar" && now >= nextDockAt;
+  }
+  function startDockRest(now) {
+    nextDockAt = model.nextDockRestAt(now);
+    setMotion("dock-prone");
+    const entryMs = transitionFrames.length * 75;
+    dockGreetingFrom = transitionStartedAt + entryMs;
+    nextWalk = model.dockRestUntil(transitionStartedAt, entryMs);
   }
   function touchDown(now) {
     // Grab stays on screen until gravity finds a real support; only the contact
@@ -282,7 +296,11 @@
     const entering = value.identityReady && value.mode === "desktop" &&
       (!state.identityReady || state.mode !== "desktop" || changed);
     state = value;
-    if (entering) nextEdgeAt = model.nextEdgeClimbAt(performance.now(), undefined, true);
+    if (entering) {
+      const now = performance.now();
+      nextEdgeAt = model.nextEdgeClimbAt(now, undefined, true);
+      nextDockAt = model.nextDockRestAt(now, undefined, true);
+    }
     if (changed || state.mode !== "desktop" || !state.identityReady) landingStarted = null;
     if (biteEnabled) nextBiteAt = biteModel.nextAt(performance.now(), undefined, true);
     if (quietChanged || poseChanged || !canBite(true, (bitePending ?? backgroundBite)?.manual)) cancelBite();
@@ -316,7 +334,8 @@
   });
   void bridge.desktopPetState().then(applyState);
   // Cache one-shot sprites so their short poses are ready on the first play.
-  for (const source of [...model.landingSources, ...biteModel.spriteSources, ...model.edgeClimbSources]) new Image().src = source;
+  for (const source of [...model.landingSources, ...biteModel.spriteSources, ...model.edgeClimbSources,
+    ...model.dockSources]) new Image().src = source;
   fetch("../src/lib/panda-animation-manifest.json").then(r => {
     if (!r.ok) throw new Error("Animation manifest missing");
     return r.json();
@@ -398,7 +417,7 @@
     }
     const canClean = physical && support && state.characterId === "panda" && desktopDirt.remainingShakes > 0
       && !state.quietMode && !state.paused && !state.restPose && !promptOpen && !restMenuOpen
-      && !bitePending && !backgroundBite && landingStarted === null && punchStarted === null;
+      && !bitePending && !backgroundBite && landingStarted === null && punchStarted === null && motion !== "dock-prone";
     const canShake = canClean && !preference.matches;
     const cleaningNow = Date.now();
     if (canClean && preference.matches && motion === "shake" && shakeStartedAt !== null) {
@@ -420,7 +439,8 @@
       && !bitePending && !backgroundBite;
     if (active) {
       if (!destination && now >= nextWalk) {
-        const route = state.characterId === "panda" && now >= nextEdgeAt ? geometry.edgeRoute(point, support) : null;
+        const route = state.characterId === "panda" && now >= nextEdgeAt && !dockRestReady(now)
+          ? geometry.edgeRoute(point, support) : null;
         if (route) {
           destination = { x: route.x, y: route.groundY, edgeRoute: route };
           nextEdgeAt = model.nextEdgeClimbAt(now);
@@ -441,7 +461,8 @@
             point = { x: route.x, y: route.groundY };
             presence.dataset.facing = route.side;
             startEdgeClimb(route);
-          } else if (state.characterId === "panda") {
+          } else if (dockRestReady(now)) startDockRest(now);
+          else if (state.characterId === "panda") {
             const rest = model.companionRest(now);
             nextWalk = rest.until;
             setMotion(rest.motion);
@@ -456,7 +477,7 @@
     }
     const interval = motion === "shake" ? model.shakeFrameIntervalMs
       : motion === "walk" ? state.characterId === "xiaobai" ? 140 : 180
-      : motion === "sleep" ? 520 : 420;
+      : motion === "sleep" ? 520 : motion === "dock-prone" ? 560 : 420;
     if (now - lastFrame >= interval && !preference.matches && !state.quietMode) {
       if (motion !== "shake") frame++;
       lastFrame = now;

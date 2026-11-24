@@ -1170,3 +1170,17 @@ mtime_ms = 1795523614462
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/d4e3a05b-5daf-4a59-8637-f51da61bb64e/fac0ee93-1a03-42af-b80b-7d0ba5b0f62e"
 storage_version_token = "1795523645530293"
 content_type = "image/gif"
+
+[[outputs]]
+id = "sJGraR0CNNwlqyACfCS79"
+uri = "file://generated-artifacts/panda-desktop-dock-greeting.png"
+type = "image"
+title = "小熊猫：我想你咧"
+description = "桌宠实拍：小熊猫趴在任务栏上沿，短暂冒出一句「我想你咧」。"
+logical_id = "d46ee060-9730-4200-8a15-ee4627c8a28b"
+content_hash = "sha256:6ce9cad7a178ffde3a6093b56bf914b3e6b90282063d13a4da8475bbd52c79a9"
+size = 8986
+mtime_ms = 1795524373666
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/d46ee060-9730-4200-8a15-ee4627c8a28b/2d22b974-ed34-430b-981d-49d77e3f7803"
+storage_version_token = "1795524405365760"
+content_type = "image/png"

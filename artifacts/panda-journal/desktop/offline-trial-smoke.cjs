@@ -244,6 +244,45 @@ async function main() {
     await pet.waitForTimeout(2100);
     assert.deepEqual(await position(), { x: climbStart.x, y: taskbar.y }, "a due climb is suppressed in quiet mode");
     console.log("PASS automatic seated and sleeping breaks, one full vertical edge outing, and no climbing during quiet mode");
+
+    await pet.evaluate(() => {
+      const model = window.PandaDesktopPet;
+      model.nextDockRestAt = (now, _rng, first) => now + (first ? 0 : 120000);
+      // Shorten the hold here; the unit test checks the real 60-second value.
+      model.dockRestUntil = (now, entryMs) => now + entryMs + 6000;
+      model.nextEdgeClimbAt = () => Infinity;
+    });
+    await companionState({ mode: "room" });
+    await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.mode === "room");
+    await companionState({ quietMode: true });
+    await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.quiet === "true");
+    await pet.waitForTimeout(2400);
+    const greeting = pet.locator("#dock-greeting");
+    assert(await greeting.isHidden(), "a due greeting never interrupts quiet mode");
+    await companionState();
+    await greeting.waitFor({ state: "visible" });
+    assert.equal(await greeting.textContent(), "我想你咧");
+    assert.equal(await greeting.evaluate(el => getComputedStyle(el).pointerEvents), "none");
+    assert.equal(await greeting.evaluate(el => el.closest(".pet-hit-area")), null);
+    assert(await pet.locator("#speech").isHidden(), "the greeting cannot open a clickable prompt");
+    const dockStart = await position();
+    await pet.waitForFunction(() => {
+      const el = document.querySelector(".pet-presence"), sprite = document.querySelector("#panda-sprite");
+      return el.dataset.platform === "taskbar" && el.dataset.motion === "dock-prone"
+        && /\/bored-over-dock\/[1-4]\.png$/.test(sprite.src) && sprite.complete;
+    });
+    assert.deepEqual(await position(), dockStart);
+    if (process.env.PANDA_DOCK_PREVIEW_PATH) {
+      const width = await pet.evaluate(() => innerWidth);
+      await pet.screenshot({ path: process.env.PANDA_DOCK_PREVIEW_PATH, omitBackground: true,
+        clip: { x: Math.max(0, Math.min(width - 144, Math.floor(dockStart.x - 72))),
+          y: Math.floor(dockStart.y - 96), width: 144, height: 96 } });
+    }
+    await greeting.waitFor({ state: "hidden" });
+    assert.equal(await presence.getAttribute("data-motion"), "dock-prone", "the pet stays after the text fades");
+    await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.motion === "walk");
+    assert(await greeting.isHidden());
+    console.log("PASS taskbar peek uses the original art, shows an unobtrusive greeting once, and returns to walking");
   } finally {
     await application?.close();
     fs.rmSync(profile, { recursive: true, force: true });

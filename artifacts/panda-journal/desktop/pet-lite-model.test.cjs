@@ -86,6 +86,23 @@ test("in automatic mode the panda chooses lasting sitting and sleeping breaks", 
   assert(model.nextEdgeClimbAt(100, () => 0) >= 155100);
 });
 
+test("taskbar company reuses the five original peek frames, with one minute at rest", () => {
+  const frames = Array.from({ length: 8 }, (_, i) => model.sprite("panda", "dock-prone", i, manifest));
+  assert.deepEqual([...new Set(frames)], Array.from(model.dockSources));
+  const pixels = model.dockSources.map(source => {
+    assert.match(source, /bored-over-dock\//);
+    assert.equal(model.spriteTop(source), 10, "the paws stay at the taskbar without cropping");
+    return require("node:crypto").createHash("sha256").update(fs.readFileSync(path.resolve(__dirname, source))).digest("hex");
+  });
+  assert.equal(new Set(pixels).size, 5);
+  const entrance = model.transition("panda", "walk", "dock-prone");
+  assert.equal(new Set(entrance).size, 5);
+  assert.deepEqual(Array.from(model.transition("panda", "dock-prone", "walk")), Array.from(entrance).reverse());
+  assert.equal(model.dockRestUntil(1000, 375), 61375);
+  assert(model.nextDockRestAt(0, () => 0) > model.dockRestUntil(0, 375));
+  assert(model.dockGreetingMs < 6000);
+});
+
 test("the edge climb uses real mount and loop poses, pauses at the top, and returns to the same ledge", () => {
   const route = { side: "left", x: 20, topY: 504, groundY: 650 };
   const mount = Array.from({ length: 6 }, (_, i) => model.edgeClimbAt(route, 76 * i));

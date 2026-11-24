@@ -4,8 +4,11 @@
   if (typeof module === "object" && module.exports) module.exports = api;
   if (root) root.PandaDesktopPet = api;
 })(typeof window !== "undefined" ? window : globalThis, function () {
-  const motions = new Set(["idle", "walk", "sleep", "grab", "lying", "stare"]);
+  const motions = new Set(["idle", "walk", "sleep", "grab", "lying", "stare", "dock-prone"]);
   const quietMotions = ["lying", "stare", "sleep"];
+  const dockSources = Array.from({ length: 5 }, (_, i) => `../public/static/panda/bored-over-dock/${i}.png`);
+  const dockLoop = [0, 0, 1, 2, 3, 4, 0, 0];
+  const dockGreetingMs = 4300;
   const shakeFrameCount = 17, shakeFrameIntervalMs = 85;
   const firstShakeDelayMinMs = 45000, firstShakeDelayRangeMs = 45000;
   function punchFrame(elapsed, manifest, reduced = false) {
@@ -40,7 +43,8 @@
     // scale but align each actual pose (including transitions) to the platform.
     // The older sleep loop is 80px, not 96px; its feet end at row 64.
     if (/\/panda\/(?:sleep\.png|frames\/sleep-\d+\.png)/.test(source)) return (80 - 64) * 40 / 80;
-    const bottom = source.includes("/panda/peeking.png") ? 74
+    const bottom = source.includes("/panda/bored-over-dock/") ? 72
+      : source.includes("/panda/peeking.png") ? 74
       : source.includes("pixellab-walk-to-peeking-")
         ? [86, 80, 75, 73, 72][Number(source.match(/peeking-(\d+)/)[1]) - 1]
         : source.includes("/desktop-bite/jaw-") ? 80
@@ -53,11 +57,13 @@
       throw new Error("Unknown desktop character or motion");
     }
     if (character === "xiaobai") {
+      if (motion === "dock-prone") throw new Error("This taskbar pose is only used by the red panda");
       if (motion === "grab") return "../public/static/xiaobai/grab.png?v=xiaobai-scruff-cute-3";
       if (motion === "stare") return "../public/static/xiaobai/transitions/to-idle/6.png";
       const count = motion === "walk" ? 8 : 4;
       return `../public/static/xiaobai/loops/${motion}/${1 + frame % count}.png`;
     }
+    if (motion === "dock-prone") return dockSources[dockLoop[frame % dockLoop.length]];
     if (motion === "grab") return "../public/static/panda/grab.png";
     if (motion === "lying") return "../public/static/panda/peeking.png";
     if (motion === "stare") return "../public/static/panda/transitions/pixellab-walk-to-idle-5.png";
@@ -78,8 +84,8 @@
         return Array.from({ length: 6 }, (_, i) =>
           `../public/static/xiaobai/transitions/to-${motion === "stare" ? "idle" : motion}/${i + 1}.png${motion === "grab" ? "?v=xiaobai-scruff-cute-3" : ""}`);
       }
-      if (character === "panda" && ["lying", "stare"].includes(motion)) return Array.from({ length: 5 }, (_, i) =>
-        `../public/static/panda/transitions/pixellab-walk-to-${motion === "lying" ? "peeking" : "idle"}-${i + 1}.png`);
+      if (character === "panda" && ["lying", "stare", "dock-prone"].includes(motion)) return Array.from({ length: 5 }, (_, i) =>
+        `../public/static/panda/transitions/pixellab-walk-to-${motion === "stare" ? "idle" : "peeking"}-${i + 1}.png`);
       if (character === "panda" && motion === "sleep") return Array.from({ length: 7 }, (_, i) =>
         `../public/static/panda/transitions/pixellab-walk-to-sleep-${i + 1}.png`);
       return [];
@@ -144,7 +150,14 @@
     if (choice < .88) return { motion: "stare", until: now + 43000 + random() * 37000 };
     return { motion: "idle", until: now + 4500 + random() * 5500 };
   }
+  function nextDockRestAt(now, random = Math.random, first = false) {
+    return now + (first ? 42000 + random() * 33000 : 160000 + random() * 95000);
+  }
+  function dockRestUntil(now, entryMs) {
+    return now + entryMs + 60000;
+  }
   return { sprite, spriteTop, advance, transition, quietRest, punchFrame,
     dirtyReturn, shakeFrame, finishShake, lostWorldFall, shakeFrameCount, shakeFrameIntervalMs,
-    landingFrame, landingSources, edgeClimbAt, edgeClimbSources, nextEdgeClimbAt, companionRest };
+    landingFrame, landingSources, edgeClimbAt, edgeClimbSources, nextEdgeClimbAt, companionRest,
+    dockSources, dockGreetingMs, nextDockRestAt, dockRestUntil };
 });
