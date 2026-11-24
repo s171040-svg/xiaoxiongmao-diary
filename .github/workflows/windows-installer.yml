@@ -57,3 +57,30 @@ jobs:
             generated-artifacts/windows-installer/BUILD-INFO.json
           if-no-files-found: error
           retention-days: 30
+
+  publish-portable-test:
+    name: Publish public portable test download
+    if: github.ref == 'refs/heads/desktop-walking-test-20261124'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Windows build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: xiaoxiongmao-journal-windows-x64
+          path: generated-artifacts/windows-installer
+
+      - name: Publish portable executable as a prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create desktop-test-v0.2.3-20261124 \
+            generated-artifacts/windows-installer/小熊猫日记-Portable-0.2.3-x64.exe \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --latest=false \
+            --title "小熊猫日记 Windows 便携测试版 0.2.3" \
+            --notes "Windows x64 免安装测试版。首次运行需联网登录当前测试房间；这是未签名的测试程序，Windows 可能提示未知发布者。"
