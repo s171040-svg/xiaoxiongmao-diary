@@ -158,6 +158,12 @@ async function run() {
   assert.equal((await position()).y, 240);
   assert(Math.abs((await position()).x - beforeClose.x) < .1, "lands on the nearest platform directly below");
   assert.equal(await pet.locator(".pet-presence").getAttribute("data-quiet"), "true");
+  const lowerContact = await position();
+  await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.landing === "prone");
+  await pet.screenshot({ path: path.join(output, "native-lower-platform-prone.png") });
+  await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.landing === "rise");
+  assert.deepEqual(await position(), lowerContact, "the recovery does not slide along the ledge");
+  await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.motion === "lying");
   assert.equal(await pet.locator(".pet-presence").getAttribute("data-motion"), "lying",
     "window closing never cancels quiet mode or the resting pose");
   await pet.screenshot({ path: path.join(output, "native-lower-platform.png") });

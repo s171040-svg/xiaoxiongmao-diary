@@ -83,7 +83,20 @@ async function main() {
     await pet.mouse.down();
     await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.dragging === "true");
     await pet.mouse.move(startX - 35, bounds.y - 65, { steps: 6 });
+    assert.equal(await pet.locator("#panda-sprite").getAttribute("data-sprite"), "grab");
     await pet.mouse.up();
+    await pet.waitForFunction(() => {
+      const el = document.querySelector(".pet-presence");
+      return el.dataset.falling === "true" && el.dataset.motion === "grab" && !el.dataset.landing;
+    });
+    for (const phase of ["prone", "rise"]) {
+      await pet.waitForFunction(phase => {
+        const el = document.querySelector(".pet-presence");
+        const sprite = document.querySelector("#panda-sprite");
+        return el.dataset.platform === "taskbar" && el.dataset.landing === phase
+          && sprite.dataset.sprite === "landing" && sprite.complete && sprite.naturalWidth === 96;
+      }, phase);
+    }
     await pet.waitForFunction(() => {
       const el = document.querySelector(".pet-presence");
       return el.dataset.platform === "taskbar" && el.dataset.motion === "lying";
@@ -95,7 +108,7 @@ async function main() {
     await pet.waitForTimeout(550); // Past the synthetic click suppression window.
     await choosePose("auto", "趴着");
     await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.motion === "walk");
-    console.log("PASS all three click-selected poses, drag-and-drop retaining pose, and resume walking");
+    console.log("PASS drag/fall keeps the grab frame, then plays prone and rise on the taskbar and restores the selected rest");
 
     if (process.platform !== "win32") {
       // The native one-pixel reader is exercised independently on Windows CI.

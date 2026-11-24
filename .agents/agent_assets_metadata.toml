@@ -1142,3 +1142,17 @@ mtime_ms = 1795357202933
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/7642ec62-f63c-4b48-93d8-b05d4910c1d0/5f1e3ce0-a7b7-47b1-ad58-1fa78d795440"
 storage_version_token = "1795357396949975"
 content_type = "image/gif"
+
+[[outputs]]
+id = "yGnPItfiVxdqPwGH2Fi-O"
+uri = "file://generated-artifacts/panda-desktop-landing.gif"
+type = "image"
+title = "桌宠落地动画预览"
+description = "保留提起和垂直下落，碰到任务栏后先趴下，再用前爪撑起来。"
+logical_id = "67e91dff-5221-4e72-a6b9-4e901f884ac1"
+content_hash = "sha256:268fb801903d74aaff1e9753da0d694a722b73a2e10cf58ec109240688ad22bf"
+size = 45492
+mtime_ms = 1795520152898
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/67e91dff-5221-4e72-a6b9-4e901f884ac1/ff1203b5-a6d1-4dd6-bc25-3c79f73ea970"
+storage_version_token = "1795520205346000"
+content_type = "image/gif"

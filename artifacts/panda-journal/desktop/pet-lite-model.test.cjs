@@ -87,6 +87,32 @@ test("quiet prone poses preserve their scale and align with the same floor", () 
   }
 });
 
+test("both desktop characters crouch, pause flat, and push back up once on the foot line", () => {
+  for (const character of ["panda", "xiaobai"]) {
+    const lower = Array.from({ length: 5 }, (_, i) => model.landingFrame(character, i * 44));
+    const rise = Array.from({ length: 5 }, (_, i) => model.landingFrame(character, 480 + i * 83));
+    assert(lower.every(frame => frame.phase === "crouch"));
+    assert(rise.every(frame => frame.phase === "rise"));
+    assert.deepEqual(rise.map(frame => frame.source), lower.map(frame => frame.source).reverse());
+    const prone = model.landingFrame(character, 220);
+    assert.equal(prone.phase, "prone");
+    assert.equal(prone.source, model.sprite(character, "lying", 0, manifest));
+    assert.equal(model.landingFrame(character, 479), prone, "the flat pose is held between impact and recovery");
+    const hashes = [prone, ...lower].map(({ source }) => {
+      assert(source.includes(`/${character}/`), "always uses the selected pet art");
+      assert(Number.isFinite(model.spriteTop(source)));
+      const png = fs.readFileSync(path.resolve(__dirname, source));
+      assert.equal(png.readUInt32BE(16), 96);
+      assert.equal(png.readUInt32BE(20), 96);
+      return require("node:crypto").createHash("sha256").update(png).digest("hex");
+    });
+    assert.equal(new Set(hashes).size, 6, "five real intermediate poses plus the fully prone sprite");
+    assert.equal(model.landingFrame(character, 895), null);
+    assert.equal(model.landingFrame(character, 0, true), null, "respects reduced motion");
+    assert.equal(model.landingFrame(character, -.1), lower[0], "sub-frame clock skew does not skip the landing");
+  }
+});
+
 test("punch is a complete one-shot animation, not a looping or CSS-only reaction", () => {
   const hashes = [];
   for (let frame = 0; frame < manifest.punch.frameCount; frame++) {

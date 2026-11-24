@@ -87,6 +87,28 @@
     if (from === to) return [];
     return [...framesFor(from).reverse(), ...framesFor(to)];
   }
+  // Stay on the same foot line: fast weight transfer, a readable beat flat on
+  // the ledge, then the same drawn poses played more slowly as the paws push up.
+  const landingSequences = Object.fromEntries(["panda", "xiaobai"].map(character => {
+    const lower = transition(character, "idle", "lying").slice(0, 5);
+    const prone = sprite(character, "lying", 0, {});
+    return [character, [
+      ...lower.map(source => ({ source, phase: "crouch", ms: 44 })),
+      { source: prone, phase: "prone", ms: 260 },
+      ...lower.slice().reverse().map(source => ({ source, phase: "rise", ms: 83 })),
+    ]];
+  }));
+  function landingFrame(character, elapsed, reduced = false) {
+    if (reduced || !Number.isFinite(elapsed)) return null;
+    let remaining = Math.max(0, elapsed); // The next RAF timestamp may be just before the release.
+    for (const frame of landingSequences[character] ?? []) {
+      if (remaining < frame.ms) return frame;
+      remaining -= frame.ms;
+    }
+    return null;
+  }
+  const landingSources = [...new Set(Object.values(landingSequences).flat().map(frame => frame.source))];
   return { sprite, spriteTop, advance, transition, quietRest, punchFrame,
-    dirtyReturn, shakeFrame, finishShake, lostWorldFall, shakeFrameCount, shakeFrameIntervalMs };
+    dirtyReturn, shakeFrame, finishShake, lostWorldFall, shakeFrameCount, shakeFrameIntervalMs,
+    landingFrame, landingSources };
 });
