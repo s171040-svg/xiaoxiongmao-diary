@@ -20,6 +20,11 @@ test("background bites wait for an occasional walk and never interrupt quiet, re
   for (const args of [[false, false, false], [true, true, false], [true, false, true]]) {
     assert.equal(bite.canStart(auto, ...args), false);
   }
+  const resting = { ...auto, backgroundBite: false, restPose: "sleep" };
+  assert.equal(bite.canStart(resting, false, false, false), false);
+  assert.equal(bite.canStart(resting, false, false, false, true), true);
+  assert.equal(bite.canStart(resting, false, true, false, true), false);
+  assert.equal(bite.canStart({ ...resting, identityStatus: "ready" }, false, false, false, true), false);
   assert.equal(bite.nextAt(1000, () => 0, true), 19000);
   assert.equal(bite.nextAt(1000, () => 0), 39000);
   assert.equal(bite.nextAt(1000, () => 0.5), 56500);

@@ -41,6 +41,8 @@ const nativeGiftWindowsEnabled = false; // Gifts stay in the room in the quiet f
 let desktopPetState = { mode: "desktop", characterId: "panda", identityReady: offlineTrial, identityStatus: offlineTrial ? "offline-trial" : "loading", paused: false, quietMode: false, ...(offlineTrial ? { restPose: null, backgroundBite: fullDesktopMode } : {}) };
 let petDragging = false;
 let nextPixelRead = 0;
+let manualBiteUntil = 0;
+let pixelReadInFlight = false;
 function publishPetState() {
   sendPet("desktop-pet:state", desktopPetState);
   if (journalWindow && !journalWindow.isDestroyed()) journalWindow.webContents.send("desktop-pet:state", desktopPetState);
@@ -320,17 +322,25 @@ ipcMain.handle("desktop-pet:platforms", event => {
   if (!trusted(event, petWindow)) throw new Error("无效的平台请求");
   return platformSnapshot();
 });
-ipcMain.handle("desktop-pet:background-color", (event, left) => {
-  if (!offlineTrial || !fullDesktopMode || !desktopPetState.backgroundBite || !trusted(event, petWindow)
-    || !petWindow.isVisible() || !desktopPetState.identityReady || petDragging || desktopPetState.quietMode
-    || desktopPetState.paused || desktopPetState.restPose || typeof left !== "boolean"
-    || hitRegions.length !== 1 || Date.now() < nextPixelRead) return null;
+ipcMain.handle("desktop-pet:background-color", async (event, left, manual) => {
+  if (!offlineTrial || !fullDesktopMode || !trusted(event, petWindow) || !petWindow.isVisible()
+    || !desktopPetState.identityReady || petDragging || pixelReadInFlight || typeof left !== "boolean"
+    || hitRegions.length !== 1) return null;
+  const now = Date.now();
+  if (manual === true) {
+    // Only the explicitly selected native menu item can grant a one-off read.
+    if (now >= manualBiteUntil) return null;
+    manualBiteUntil = 0;
+  } else if (!desktopPetState.backgroundBite || desktopPetState.quietMode || desktopPetState.paused
+    || desktopPetState.restPose || now < nextPixelRead) return null;
   const pet = hitRegions[0], overlay = petWindow.getBounds();
   const display = screen.getDisplayMatching(overlay);
   const point = samplePoint(pet, overlay, display.bounds, left, Math.abs(pet.y + pet.height - overlay.height) <= 1);
   if (!point) return null;
-  nextPixelRead = Date.now() + 15000;
-  return readPixel(screen.dipToScreenPoint(point));
+  nextPixelRead = now + 15000;
+  pixelReadInFlight = true;
+  try { return await readPixel(screen.dipToScreenPoint(point)); }
+  finally { pixelReadInFlight = false; }
 });
 ipcMain.on("desktop-pet:character", (event, value) => {
   if (!trusted(event, journalWindow) || !value || !["panda", "xiaobai"].includes(value.characterId)
@@ -521,6 +531,14 @@ else {
         if (offlineTrial) desktopPetState.restPose = null;
         desktopPetState.paused = item.checked; publishPetState();
       } },
+      ...(offlineTrial ? [{
+        id: "bite-now", label: "立即咬屏幕（开发测试）", enabled: fullDesktopMode,
+        click: () => {
+          if (!petWindow?.isVisible() || petDragging) return;
+          manualBiteUntil = Date.now() + 1500;
+          sendPet("desktop-pet:bite-now");
+        },
+      }] : []),
       ...(offlineTrial && fullDesktopMode ? [{
         id: "background-bite", label: "随机咬背景（本机取色）", type: "checkbox", checked: true,
         click: item => { desktopPetState.backgroundBite = item.checked; publishPetState(); tray?.setContextMenu(menu); },

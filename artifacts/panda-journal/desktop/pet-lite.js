@@ -107,27 +107,30 @@
     nextWalk = performance.now() + 500;
     return true;
   }
-  function canBite(walking) {
+  function canBite(walking, manual = false) {
     return Boolean(biteContext && support) && biteModel.canStart(state, walking,
       Boolean(held || press || promptOpen || restMenuOpen || punchStarted !== null || motion === "shake"
-        || document.visibilityState === "hidden"), preference.matches);
+        || document.visibilityState === "hidden"), preference.matches, manual);
   }
-  async function tryBite(now) {
-    const request = { left: presence.dataset.facing === "left" };
+  async function tryBite(now, manual = false) {
+    const request = { left: presence.dataset.facing === "left", manual };
     bitePending = request;
     nextBiteAt = biteModel.nextAt(now);
-    destination = null; setMotion("idle"); publishRegions();
+    destination = null; setMotion(settledMotion()); publishRegions();
     let color;
-    try { color = await bridge.backgroundColor(request.left); }
+    try { color = await bridge.backgroundColor(request.left, request.manual); }
     catch { color = null; }
     if (bitePending !== request) return;
     bitePending = null;
     nextWalk = performance.now() + 500;
-    if (!canBite(true) || !biteModel.validColor(color)) return;
+    if (!canBite(true, request.manual) || !biteModel.validColor(color)) return;
     transitionFrames = [];
     backgroundBite = { ...request, color, started: performance.now() };
     render();
   }
+  unsubs.push(bridge.onBiteNow(() => {
+    if (!bitePending && !backgroundBite && canBite(false, true)) void tryBite(performance.now(), true);
+  }));
   function closePrompt() {
     promptOpen = false; bubble.hidden = true;
     nextWalk = performance.now() + 2000; publishRegions();
@@ -225,7 +228,7 @@
     const biteEnabled = value.backgroundBite === true && state.backgroundBite !== true;
     state = value;
     if (biteEnabled) nextBiteAt = biteModel.nextAt(performance.now(), undefined, true);
-    if (!canBite(true)) cancelBite();
+    if (quietChanged || poseChanged || !canBite(true, (bitePending ?? backgroundBite)?.manual)) cancelBite();
     if (state.identityStatus === "offline-trial") actor.setAttribute("aria-label", "点击选择睡觉、坐着或趴着；长按可拖动；右键打开桌宠设置");
     if (changed || quietChanged || poseChanged || state.mode !== "desktop" || state.paused) punchStarted = null;
     if (changed && value.characterId !== "panda") shakeStartedAt = null;
@@ -293,7 +296,8 @@
       } else if (moved) needsRender = true;
     }
     if (bitePending || backgroundBite) {
-      if (!canBite(true) || (backgroundBite && now - backgroundBite.started >= biteModel.duration)) {
+      if (!canBite(true, (bitePending ?? backgroundBite).manual)
+        || (backgroundBite && now - backgroundBite.started >= biteModel.duration)) {
         if (cancelBite()) needsRender = true;
       } else if (backgroundBite) needsRender = true;
     } else if (physical && destination && now >= nextBiteAt && canBite(motion === "walk")) {

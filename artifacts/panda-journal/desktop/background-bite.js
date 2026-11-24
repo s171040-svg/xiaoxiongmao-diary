@@ -11,10 +11,10 @@
   const validColor = color => typeof color === "string" && /^#[0-9a-f]{6}$/i.test(color);
   const nextAt = (now, random = Math.random, first = false) =>
     now + (first ? 18000 + random() * 14000 : 38000 + random() * 35000);
-  const canStart = (state, walking, interacting, reduced) =>
-    state.identityStatus === "offline-trial" && state.backgroundBite === true && state.identityReady
-    && state.mode === "desktop" && !state.quietMode && !state.restPose && !state.paused
-    && walking && !interacting && !reduced;
+  const canStart = (state, walking, interacting, reduced, manual = false) =>
+    state.identityStatus === "offline-trial" && state.identityReady && state.mode === "desktop"
+    && !interacting && !reduced
+    && (manual || (state.backgroundBite === true && !state.quietMode && !state.restPose && !state.paused && walking));
   function spriteAt(elapsed) {
     return `../public/static/panda/frames/eat-bamboo-${frames[Math.min(frames.length - 1, Math.max(0, Math.floor(elapsed / 125)))]}.png`;
   }

@@ -105,7 +105,8 @@ async function main() {
       await application.evaluate(({ BrowserWindow, ipcMain }) => {
         ipcMain.removeHandler("desktop-pet:background-color");
         const colors = ["#ad397b", "#1483bd"];
-        ipcMain.handle("desktop-pet:background-color", () => colors.shift());
+        ipcMain.handle("desktop-pet:background-color", (_event, _left, manual) =>
+          manual ? "#b8843d" : colors.shift());
         BrowserWindow.getAllWindows()[0].webContents.send("desktop-pet:state", {
           mode: "desktop", characterId: "panda", identityReady: true,
           identityStatus: "offline-trial", paused: false, quietMode: false, restPose: null, backgroundBite: true,
@@ -131,6 +132,22 @@ async function main() {
       await canvas.waitFor({ state: "hidden" });
       await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.motion === "sleep");
       console.log("PASS desktop bite animates sampled colors, never captures clicks, and stops for manual rest");
+      await actor.click({ button: "right" });
+      await application.evaluate(() => {
+        const menu = globalThis.__restPopup?.menu;
+        const bite = menu?.getMenuItemById("bite-now");
+        if (!bite || bite.label !== "立即咬屏幕（开发测试）"
+          || !menu.getMenuItemById("quiet-mode")
+          || !menu.items.some(item => item.label === "退出桌宠")) {
+          throw new Error("Right click did not show the expected desktop controls");
+        }
+        bite.click(bite);
+        globalThis.__restPopup = null;
+      });
+      await waitColor([184, 132, 61]);
+      await canvas.waitFor({ state: "hidden" });
+      assert.equal(await presence.getAttribute("data-motion"), "sleep");
+      console.log("PASS right-click one-shot bite ignores the random toggle and returns to the selected pose");
     }
   } finally {
     await application?.close();
