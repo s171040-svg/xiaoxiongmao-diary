@@ -21,7 +21,7 @@
   let manifest = { frameCount: 4 }, point = { x: innerWidth * .65, y: support.y };
   let destination = null, frame = 0, lastFrame = 0, previous = performance.now();
   let motion = "idle", nextWalk = performance.now() + 1800, press = null, held = false, suppressClickUntil = 0;
-  let promptOpen = false, disposed = false;
+  let promptOpen = false, restMenuOpen = false, disposed = false;
   let transitionFrames = [], transitionStartedAt = 0;
   const dirtStorageKey = "panda.desktop.dirt.v1";
   let desktopDirt = loadDirt();
@@ -91,7 +91,7 @@
     motion = value; frame = 0; lastFrame = performance.now(); render();
   }
   function settledMotion() {
-    return state.quietMode && quietRest ? quietRest.motion : "idle";
+    return state.restPose ?? (state.quietMode && quietRest ? quietRest.motion : "idle");
   }
   function closePrompt() {
     promptOpen = false; bubble.hidden = true;
@@ -105,8 +105,18 @@
     copy.textContent = "要回家吗？"; actions.hidden = false; bubble.hidden = false;
     render(); publishRegions();
   }
-  actor.addEventListener("click", event => {
+  actor.addEventListener("click", async event => {
     if (event.detail !== 0 && performance.now() < suppressClickUntil) return;
+    if (state.identityStatus === "offline-trial") {
+      if (held || !state.identityReady || restMenuOpen) return;
+      restMenuOpen = true;
+      destination = null;
+      if (support && motion !== "shake") setMotion(settledMotion());
+      try { await bridge.openRestMenu(); }
+      catch (error) { console.error("桌宠休息菜单未能打开：", error.message); }
+      finally { restMenuOpen = false; nextWalk = performance.now() + 500; }
+      return;
+    }
     if (state.characterId !== "panda") { showPrompt(); return; }
     if (held || !support || !state.identityReady || punchStarted !== null || motion === "shake" || !manifest.punch) return;
     destination = null; closePrompt(); setMotion("idle");
@@ -173,14 +183,16 @@
     if (!value || !["panda", "xiaobai"].includes(value.characterId)) return;
     const changed = state.characterId !== value.characterId;
     const quietChanged = Boolean(state.quietMode) !== Boolean(value.quietMode);
+    const poseChanged = state.restPose !== value.restPose;
     state = value;
-    if (changed || quietChanged || state.mode !== "desktop" || state.paused) punchStarted = null;
+    if (state.identityStatus === "offline-trial") actor.setAttribute("aria-label", "点击选择睡觉、坐着或趴着；长按可拖动；右键打开桌宠设置");
+    if (changed || quietChanged || poseChanged || state.mode !== "desktop" || state.paused) punchStarted = null;
     if (changed && value.characterId !== "panda") shakeStartedAt = null;
     if (state.quietMode && (!quietRest || quietChanged)) quietRest = model.quietRest(null, performance.now());
     if (!state.quietMode) quietRest = null;
     if (changed) transitionFrames = [];
     if (state.mode !== "desktop" || !state.identityReady) endDrag();
-    if (changed || quietChanged || state.paused || state.mode !== "desktop") {
+    if (changed || quietChanged || poseChanged || state.paused || state.mode !== "desktop") {
       destination = null; closePrompt();
       if (!held) setMotion(support ? settledMotion() : "grab");
       if (quietChanged && !state.quietMode) nextWalk = performance.now() + 200;
@@ -244,13 +256,13 @@
         punchStarted = null; setMotion(support ? settledMotion() : "grab"); nextWalk = now + 1500;
       }
     }
-    if (physical && support && state.quietMode && !promptOpen && punchStarted === null) {
+    if (physical && support && state.quietMode && !promptOpen && !restMenuOpen && punchStarted === null) {
       destination = null;
       if (!quietRest || now >= quietRest.until) quietRest = model.quietRest(quietRest?.motion, now);
       setMotion(quietRest.motion);
     }
     const canClean = physical && support && state.characterId === "panda" && desktopDirt.remainingShakes > 0
-      && !state.quietMode && !state.paused && !promptOpen && punchStarted === null;
+      && !state.quietMode && !state.paused && !state.restPose && !promptOpen && !restMenuOpen && punchStarted === null;
     const canShake = canClean && !preference.matches;
     const cleaningNow = Date.now();
     if (canClean && preference.matches && motion === "shake" && shakeStartedAt !== null) {
@@ -268,7 +280,7 @@
       destination = null; shakeStartedAt = now; setMotion("shake"); render(); needsRender = true;
     }
     const active = physical && support && punchStarted === null && motion !== "shake"
-      && !state.quietMode && !state.paused && !preference.matches && !promptOpen;
+      && !state.quietMode && !state.paused && !state.restPose && !preference.matches && !promptOpen && !restMenuOpen;
     if (active) {
       if (!destination && now >= nextWalk) {
         destination = geometry.walkTarget(point, support);
@@ -286,7 +298,7 @@
           setMotion(Math.random() < .2 ? "sleep" : "idle");
         }
       }
-    } else if (!state.quietMode && support && !held && !promptOpen && (state.paused || preference.matches)) {
+    } else if (!state.quietMode && !state.restPose && support && !held && !promptOpen && (state.paused || preference.matches)) {
       destination = null; setMotion("idle");
     }
     const interval = motion === "shake" ? model.shakeFrameIntervalMs

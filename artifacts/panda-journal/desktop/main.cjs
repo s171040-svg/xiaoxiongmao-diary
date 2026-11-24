@@ -37,7 +37,7 @@ const fullDesktopMode = process.platform === "win32" && !process.env.REPL_ID;
 const useInlineGift = process.platform === "linux" && Boolean(process.env.REPL_ID);
 const desktopVersion = metadata.version;
 const nativeGiftWindowsEnabled = false; // Gifts stay in the room in the quiet first version.
-let desktopPetState = { mode: "desktop", characterId: "panda", identityReady: offlineTrial, identityStatus: offlineTrial ? "offline-trial" : "loading", paused: false, quietMode: false };
+let desktopPetState = { mode: "desktop", characterId: "panda", identityReady: offlineTrial, identityStatus: offlineTrial ? "offline-trial" : "loading", paused: false, quietMode: false, ...(offlineTrial ? { restPose: null } : {}) };
 let petDragging = false;
 function publishPetState() {
   sendPet("desktop-pet:state", desktopPetState);
@@ -268,7 +268,7 @@ function updatePet() {
   });
   // Cursor polling also works on Linux, where forward:true is unsupported.
   setIgnored(!overPet);
-  if (desktopPetState.quietMode || desktopPetState.paused) { roam = null; return; }
+  if (desktopPetState.quietMode || desktopPetState.paused || desktopPetState.restPose) { roam = null; return; }
   if (["fallen", "away"].includes(companionEffect.stage)) return;
   if (["returning", "performing"].includes(companionEffect.stage)) return;
   const journalVisible = Boolean(journalWindow?.isVisible() && !journalWindow.isMinimized());
@@ -463,6 +463,17 @@ else {
       // Keep the companion clock alive without displaying the chat page.
       openJournal(false);
     }
+    function refreshWalkingMenu() {
+      const quietItem = menu.getMenuItemById("quiet-mode");
+      quietItem.label = desktopPetState.quietMode ? "取消安静模式" : "安静模式";
+      quietItem.checked = desktopPetState.quietMode;
+      const pauseItem = menu.getMenuItemById("pause-walking");
+      pauseItem.checked = desktopPetState.paused;
+      pauseItem.enabled = !desktopPetState.quietMode;
+      roam = null;
+      publishPetState();
+      tray?.setContextMenu(menu);
+    }
     const menu = Menu.buildFromTemplate([
       { label: offlineTrial ? "小熊猫 · 离线桌面试玩" : `小熊猫日记 v${desktopVersion} · 横线平台桌宠`, enabled: false },
       { type: "separator" },
@@ -489,22 +500,39 @@ else {
       { id: "quiet-mode", label: "安静模式", type: "checkbox", click: () => {
         desktopPetState.quietMode = !desktopPetState.quietMode;
         desktopPetState.paused = false;
-        const quietItem = menu.getMenuItemById("quiet-mode");
-        quietItem.label = desktopPetState.quietMode ? "取消安静模式" : "安静模式";
-        quietItem.checked = desktopPetState.quietMode;
-        const pauseItem = menu.getMenuItemById("pause-walking");
-        pauseItem.checked = false; pauseItem.enabled = !desktopPetState.quietMode;
-        roam = null;
-        publishPetState();
-        if (tray) tray.setContextMenu(menu);
+        if (offlineTrial) desktopPetState.restPose = null;
+        refreshWalkingMenu();
       } },
       { id: "pause-walking", label: "暂停走动", type: "checkbox", click: item => {
+        if (offlineTrial) desktopPetState.restPose = null;
         desktopPetState.paused = item.checked; publishPetState();
       } },
       { label: "隐藏桌宠", click: () => petWindow?.hide() },
       { type: "separator" },
       { label: "退出桌宠", click: () => app.quit() },
     ]);
+    if (offlineTrial) {
+      ipcMain.handle("desktop-pet:rest-menu", event => {
+        if (!trusted(event, petWindow) || !petWindow.isVisible() || petDragging) return;
+        const poseItems = [
+          { id: "sleep", label: "睡觉" },
+          { id: "stare", label: "坐着" },
+          { id: "lying", label: "趴着" },
+          { id: "auto", label: "恢复走动" },
+        ];
+        const active = desktopPetState.restPose ?? (!desktopPetState.quietMode && !desktopPetState.paused ? "auto" : null);
+        const restMenu = Menu.buildFromTemplate(poseItems.map(({ id, label }) => ({
+          id, label, type: "checkbox", checked: id === active,
+          click: () => {
+            desktopPetState.restPose = id === "auto" ? null : id;
+            desktopPetState.quietMode = false;
+            desktopPetState.paused = false;
+            refreshWalkingMenu();
+          },
+        })));
+        return new Promise(resolve => restMenu.popup({ window: petWindow, callback: resolve }));
+      });
+    }
     petWindow.webContents.on("context-menu", () => menu.popup({ window: petWindow }));
     try {
       // A self-contained monochrome tray icon; no third-party skin assets.
@@ -518,7 +546,7 @@ else {
       console.warn("系统托盘不可用，可右键小熊猫打开日记或退出。");
     }
     tick = setInterval(() => { updatePet(); updateGiftHit(); }, 80);
-    console.info(`平台桌宠 v${desktopVersion} 已启动（任务栏与窗口上沿）；单击小熊猫播放挨拳动作，长按可拖动，右键可回家。`);
+    console.info(`平台桌宠 v${desktopVersion} 已启动（任务栏与窗口上沿）；${offlineTrial ? "单击选择休息姿势，长按可拖动。" : "单击小熊猫播放挨拳动作，长按可拖动，右键可回家。"}`);
   }).catch((error) => {
     console.error("桌宠启动失败：", error.message);
     if (offlineTrial) dialog.showErrorBox("离线桌宠未能启动", "无法打开桌宠窗口。请确认使用的是 Windows 64 位测试文件。");
