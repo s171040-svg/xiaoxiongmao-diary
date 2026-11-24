@@ -7,6 +7,7 @@ html[data-lite-desktop="true"] .pet-orbit,
 html[data-lite-desktop="true"] .pet-gift-card{display:none!important}
 html[data-lite-desktop="true"] .pet-presence{width:40px;height:40px;transform:translate(-50%,-100%);isolation:isolate}
 html[data-lite-desktop="true"] .pet-presence[hidden]{display:none}
+html[data-lite-desktop="true"] .pet-presence[data-edge-fall]:not([data-edge-fall=""]) .pet-hit-area{pointer-events:none}
 html[data-lite-desktop="true"] .panda-button{width:40px;height:40px;scale:1;transform:none;animation:none;touch-action:none}
 html[data-lite-desktop="true"] .panda-button:hover,
 html[data-lite-desktop="true"] .panda-button:active{scale:1;transform:none}

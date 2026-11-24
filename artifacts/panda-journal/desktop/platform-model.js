@@ -76,9 +76,13 @@
     return { side: left ? "left" : "right", x: left ? support.left : support.right,
       groundY: support.y, topY: Math.max(48, support.y - 146) };
   }
+  function reachedEdge(point, support) {
+    const route = edgeRoute(point, support);
+    return route && Math.abs(point.x - route.x) <= .5 ? route : null;
+  }
   function constrain(point, width, height) {
     const base = ground(width, height);
     return { x: clamp(point.x, base.left, base.right), y: clamp(point.y, Math.min(petHeight, height), height) };
   }
-  return { ground, platforms, supportAt, track, landingBelow, fall, walkTarget, edgeRoute, constrain };
+  return { ground, platforms, supportAt, track, landingBelow, fall, walkTarget, edgeRoute, reachedEdge, constrain };
 });

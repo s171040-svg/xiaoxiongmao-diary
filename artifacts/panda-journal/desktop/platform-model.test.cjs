@@ -54,6 +54,13 @@ test("edge climbs approach the nearest screen side from the taskbar only", () =>
   assert.equal(model.edgeRoute({ x: 20, y: 100 }, model.ground(200, 100)), null);
   assert.equal(model.edgeRoute({ x: 20, y: 140 }, model.ground(200, 140)).topY, 48);
 });
+test("only the two actual taskbar ends are screen fall triggers", () => {
+  const [taskbar, ledge] = surfaces([win("side-window", 0, 120, 500)]);
+  assert.equal(model.reachedEdge({ x: 20, y: 720 }, taskbar).side, "left");
+  assert.equal(model.reachedEdge({ x: 980, y: 720 }, taskbar).side, "right");
+  assert.equal(model.reachedEdge({ x: 30, y: 720 }, taskbar), null);
+  assert.equal(model.reachedEdge({ x: 20, y: 120 }, ledge), null);
+});
 test("closed windows cause a strictly vertical fall onto the nearest lower top", () => {
   const lines = surfaces([win("lower", 100, 240, 600), win("lowest", 100, 400, 600, 200, 2)]);
   let point = { x: 250, y: 100 }, velocity = 0, support = null;

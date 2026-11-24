@@ -9,7 +9,7 @@ const manifest = require("../src/lib/panda-animation-manifest.json");
 
 test("both pets resolve only existing first-version transparent PNG assets", () => {
   for (const character of ["panda", "xiaobai"]) {
-    for (const motion of ["idle", "walk", "sleep", "grab", "lying", "stare"]) {
+    for (const motion of ["idle", "walk", "sleep", "grab", "lying", "stare", "plush-play"]) {
       for (let frame = 0; frame < 40; frame++) {
         const asset = model.sprite(character, motion, frame, manifest);
         const png = fs.readFileSync(path.resolve(__dirname, asset.split("?")[0]));
@@ -56,6 +56,8 @@ test("rest and lift transitions reuse real existing intermediate images", () => 
     ["panda", "idle", "lying"], ["panda", "lying", "stare"],
     ["panda", "stare", "sleep"], ["panda", "sleep", "lying"],
     ["xiaobai", "lying", "stare"], ["xiaobai", "stare", "sleep"],
+    ["panda", "walk", "plush-play"], ["panda", "plush-play", "walk"],
+    ["xiaobai", "walk", "plush-play"], ["xiaobai", "plush-play", "walk"],
   ]) {
     const frames = model.transition(character, from, to);
     assert(frames.length >= 5);
@@ -63,6 +65,20 @@ test("rest and lift transitions reuse real existing intermediate images", () => 
       .update(fs.readFileSync(path.resolve(__dirname, file.split("?")[0]))).digest("hex"));
     assert(new Set(hashes).size >= 5, "not padded by repeating the same image");
   }
+});
+
+test("desktop panda and Xiaobai play the existing seated toy animation with ready-to-use frames", () => {
+  for (const [character, frameCount] of [["panda", 7], ["xiaobai", 8]]) {
+    const frames = Array.from({ length: frameCount + 1 }, (_, i) =>
+      model.sprite(character, "plush-play", i, manifest));
+    assert.equal(new Set(frames).size, character === "panda" ? frameCount + 1 : frameCount);
+    for (const source of frames) {
+      const file = path.resolve(__dirname, source);
+      assert(fs.existsSync(file), `missing ${character} seated-toy frame: ${source}`);
+      assert(fs.statSync(file).size > 0, `empty ${character} seated-toy frame: ${source}`);
+    }
+  }
+  assert(model.plushSources.every(source => fs.existsSync(path.resolve(__dirname, source))));
 });
 
 test("quiet rests choose only three calm poses, lasting five to ten minutes", () => {
@@ -76,17 +92,18 @@ test("quiet rests choose only three calm poses, lasting five to ten minutes", ()
   assert.deepEqual([...selected].sort(), ["lying", "sleep", "stare"]);
 });
 
-test("in automatic mode the panda chooses lasting sitting and sleeping breaks", () => {
-  assert.equal(model.companionRest(100, () => .5).motion, "stare");
-  assert(model.companionRest(100, () => .5).until >= 43100);
-  assert.equal(model.companionRest(100, () => 0).motion, "sleep");
-  assert(model.companionRest(100, () => .25).until >= 85100);
-  assert.equal(model.companionRest(100, () => .95).motion, "idle");
+test("all automatic companion poses, including plush play and taskbar search, last three minutes", () => {
+  for (const [roll, motion] of [[0, "stare"], [.25, "sleep"], [.5, "plush-play"], [.75, "idle"]]) {
+    const rest = model.companionRest(100, () => roll);
+    assert.equal(rest.motion, motion);
+    assert.equal(rest.until, 100 + 180_000);
+  }
+  assert.equal(model.AUTO_REST_DURATION_MS, 180_000);
   assert(model.nextEdgeClimbAt(100, () => 0, true) >= 55100);
   assert(model.nextEdgeClimbAt(100, () => 0) >= 155100);
 });
 
-test("taskbar company reuses the five original peek frames, with one minute at rest", () => {
+test("taskbar company reuses the five original peek frames and now also lasts three minutes", () => {
   const frames = Array.from({ length: 8 }, (_, i) => model.sprite("panda", "dock-prone", i, manifest));
   assert.deepEqual([...new Set(frames)], Array.from(model.dockSources));
   const pixels = model.dockSources.map(source => {
@@ -98,8 +115,10 @@ test("taskbar company reuses the five original peek frames, with one minute at r
   const entrance = model.transition("panda", "walk", "dock-prone");
   assert.equal(new Set(entrance).size, 5);
   assert.deepEqual(Array.from(model.transition("panda", "dock-prone", "walk")), Array.from(entrance).reverse());
-  assert.equal(model.dockRestUntil(1000, 375), 61375);
-  assert(model.nextDockRestAt(0, () => 0) > model.dockRestUntil(0, 375));
+  assert.equal(model.dockRestUntil(1000, 375), 181375);
+  const restEnd = model.dockRestUntil(1000, 375);
+  assert.equal(model.nextDockRestAt(restEnd, () => 0), restEnd + 160000,
+    "the next taskbar greeting is scheduled after the three-minute rest ends");
   assert(model.dockGreetingMs < 6000);
 });
 
@@ -132,6 +151,26 @@ test("the edge climb uses real mount and loop poses, pauses at the top, and retu
   });
   assert.equal(new Set(hashes.slice(0, 6)).size, 6);
   assert(new Set(hashes.slice(6)).size >= 6, "alternate real paw strokes rather than sliding a still picture");
+});
+
+test("a clean red panda can step off either screen edge and returns on the same side", () => {
+  assert.equal(model.shouldFallAtEdge(0, () => .249), true);
+  assert.equal(model.shouldFallAtEdge(0, () => .25), false);
+  assert.equal(model.shouldFallAtEdge(1, () => 0), false);
+  for (const [side, x, sign] of [["left", 20, -1], ["right", 980, 1]]) {
+    const start = { side, x, groundY: 720 };
+    const exit = model.edgeFallAt(start, 300), drop = model.edgeFallAt(start, 750);
+    assert.equal(exit.phase, "exit");
+    assert.equal(exit.point.y, 720, "the feet stay on the taskbar before the drop");
+    assert((exit.point.x - x) * sign > 0);
+    assert.equal(drop.phase, "drop");
+    assert(drop.point.y >= 760 && (drop.point.x - x) * sign > 40, "the sprite clears the visible edge");
+    assert.equal(model.edgeFallAt(start, 1000).phase, "away");
+    const returning = model.edgeFallAt(start, 1500);
+    assert.equal(returning.phase, "return");
+    assert.equal(returning.point.x, x - 14 * sign);
+    assert(returning.point.y < 0);
+  }
 });
 
 test("quiet prone poses preserve their scale and align with the same floor", () => {

@@ -4,11 +4,20 @@
   if (typeof module === "object" && module.exports) module.exports = api;
   if (root) root.PandaDesktopPet = api;
 })(typeof window !== "undefined" ? window : globalThis, function () {
-  const motions = new Set(["idle", "walk", "sleep", "grab", "lying", "stare", "dock-prone"]);
+  const motions = new Set(["idle", "walk", "sleep", "grab", "lying", "stare", "dock-prone", "plush-play"]);
   const quietMotions = ["lying", "stare", "sleep"];
+  const AUTO_REST_DURATION_MS = 180000;
   const dockSources = Array.from({ length: 5 }, (_, i) => `../public/static/panda/bored-over-dock/${i}.png`);
   const dockLoop = [0, 0, 1, 2, 3, 4, 0, 0];
   const dockGreetingMs = 4300;
+  const plushSources = [
+    "../public/static/panda/plush-play.png",
+    ...Array.from({ length: 7 }, (_, i) => `../public/static/panda/frames/plush-play-${i + 1}.png`),
+    ...Array.from({ length: 6 }, (_, i) => `../public/static/panda/transitions/idle-to-plush-play-${i + 1}.png`),
+    "../public/static/xiaobai/plush-play.png",
+    ...Array.from({ length: 8 }, (_, i) => `../public/static/xiaobai/loops/plush-play/${i + 1}.png`),
+    ...Array.from({ length: 6 }, (_, i) => `../public/static/xiaobai/transitions/to-plush-play/${i + 1}.png`),
+  ];
   const shakeFrameCount = 17, shakeFrameIntervalMs = 85;
   const firstShakeDelayMinMs = 45000, firstShakeDelayRangeMs = 45000;
   function punchFrame(elapsed, manifest, reduced = false) {
@@ -60,10 +69,15 @@
       if (motion === "dock-prone") throw new Error("This taskbar pose is only used by the red panda");
       if (motion === "grab") return "../public/static/xiaobai/grab.png?v=xiaobai-scruff-cute-3";
       if (motion === "stare") return "../public/static/xiaobai/transitions/to-idle/6.png";
-      const count = motion === "walk" ? 8 : 4;
+      const count = motion === "walk" ? 8 : motion === "plush-play" ? 8 : 4;
       return `../public/static/xiaobai/loops/${motion}/${1 + frame % count}.png`;
     }
     if (motion === "dock-prone") return dockSources[dockLoop[frame % dockLoop.length]];
+    if (motion === "plush-play") {
+      const count = manifest.frameCountBySprite?.[motion] ?? 7;
+      return frame === 0 ? "../public/static/panda/plush-play.png"
+        : `../public/static/panda/frames/plush-play-${1 + (frame - 1) % count}.png`;
+    }
     if (motion === "grab") return "../public/static/panda/grab.png";
     if (motion === "lying") return "../public/static/panda/peeking.png";
     if (motion === "stare") return "../public/static/panda/transitions/pixellab-walk-to-idle-5.png";
@@ -80,10 +94,12 @@
   }
   function transition(character, from, to) {
     const framesFor = motion => {
-      if (character === "xiaobai" && ["sleep", "grab", "lying", "stare"].includes(motion)) {
+      if (character === "xiaobai" && ["sleep", "grab", "lying", "stare", "plush-play"].includes(motion)) {
         return Array.from({ length: 6 }, (_, i) =>
           `../public/static/xiaobai/transitions/to-${motion === "stare" ? "idle" : motion}/${i + 1}.png${motion === "grab" ? "?v=xiaobai-scruff-cute-3" : ""}`);
       }
+      if (character === "panda" && motion === "plush-play") return Array.from({ length: 6 }, (_, i) =>
+        `../public/static/panda/transitions/idle-to-plush-play-${i + 1}.png`);
       if (character === "panda" && ["lying", "stare", "dock-prone"].includes(motion)) return Array.from({ length: 5 }, (_, i) =>
         `../public/static/panda/transitions/pixellab-walk-to-${motion === "stare" ? "idle" : "peeking"}-${i + 1}.png`);
       if (character === "panda" && motion === "sleep") return Array.from({ length: 7 }, (_, i) =>
@@ -144,20 +160,37 @@
   function nextEdgeClimbAt(now, random = Math.random, first = false) {
     return now + (first ? 55000 + random() * 35000 : 155000 + random() * 85000);
   }
+  function shouldFallAtEdge(remainingShakes, random = Math.random) {
+    return remainingShakes === 0 && random() < .25;
+  }
+  function edgeFallAt(route, elapsed) {
+    const outward = route.side === "left" ? -1 : 1;
+    const exit = 440, drop = 330, away = 650;
+    if (elapsed < exit) {
+      return { phase: "exit", point: { x: route.x + outward * 14 * Math.max(0, elapsed) / exit, y: route.groundY } };
+    }
+    if (elapsed < exit + drop) {
+      const t = (elapsed - exit) / drop;
+      return { phase: "drop", point: { x: route.x + outward * (14 + 33 * t), y: route.groundY + 56 * t * t } };
+    }
+    if (elapsed < exit + drop + away) return { phase: "away" };
+    return { phase: "return", point: { x: route.x - outward * 14, y: -2 } };
+  }
   function companionRest(now, random = Math.random) {
     const choice = random();
-    if (choice < .26) return { motion: "sleep", until: now + 85000 + random() * 55000 };
-    if (choice < .88) return { motion: "stare", until: now + 43000 + random() * 37000 };
-    return { motion: "idle", until: now + 4500 + random() * 5500 };
+    const motion = choice < .25 ? "stare" : choice < .5 ? "sleep"
+      : choice < .75 ? "plush-play" : "idle";
+    return { motion, until: now + AUTO_REST_DURATION_MS };
   }
   function nextDockRestAt(now, random = Math.random, first = false) {
     return now + (first ? 42000 + random() * 33000 : 160000 + random() * 95000);
   }
   function dockRestUntil(now, entryMs) {
-    return now + entryMs + 60000;
+    return now + entryMs + AUTO_REST_DURATION_MS;
   }
   return { sprite, spriteTop, advance, transition, quietRest, punchFrame,
     dirtyReturn, shakeFrame, finishShake, lostWorldFall, shakeFrameCount, shakeFrameIntervalMs,
     landingFrame, landingSources, edgeClimbAt, edgeClimbSources, nextEdgeClimbAt, companionRest,
-    dockSources, dockGreetingMs, nextDockRestAt, dockRestUntil };
+    shouldFallAtEdge, edgeFallAt, dockSources, dockGreetingMs, nextDockRestAt, dockRestUntil,
+    AUTO_REST_DURATION_MS, plushSources };
 });

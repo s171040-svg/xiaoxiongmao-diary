@@ -27,6 +27,7 @@
   let promptOpen = false, restMenuOpen = false, disposed = false;
   let nextBiteAt = Infinity, bitePending = null, backgroundBite = null;
   let nextEdgeAt = Infinity, edgeClimb = null, edgeFrame = null;
+  let edgeFall = null;
   let nextDockAt = Infinity, dockGreetingFrom = Infinity;
   let transitionFrames = [], transitionStartedAt = 0;
   const dirtStorageKey = "panda.desktop.dirt.v1";
@@ -52,6 +53,7 @@
     saveDirt();
   }
   function render() {
+    presence.hidden = !state.identityReady || state.mode !== "desktop" || edgeFall?.phase === "away";
     presence.style.left = `${point.x}px`; presence.style.top = `${point.y}px`;
     const now = performance.now();
     dockGreeting.hidden = motion !== "dock-prone" || now < dockGreetingFrom
@@ -63,6 +65,7 @@
     presence.dataset.motion = edgeFrame ? "edge-climb" : landing ? "landing" : punchFrame === null ? motion : "punch";
     presence.dataset.landing = landing?.phase ?? "";
     presence.dataset.edgeClimb = edgeFrame?.phase ?? "";
+    presence.dataset.edgeFall = edgeFall?.phase ?? "";
     presence.dataset.character = state.characterId;
     presence.dataset.dragging = String(held);
     presence.dataset.paused = String(state.paused);
@@ -124,14 +127,15 @@
     return state.restPose ?? (state.quietMode && quietRest ? quietRest.motion : "idle");
   }
   function dockRestReady(now) {
-    return state.characterId === "panda" && support?.ownerId === "taskbar" && now >= nextDockAt;
+    return state.characterId === "panda" && desktopDirt.remainingShakes === 0
+      && support?.ownerId === "taskbar" && now >= nextDockAt;
   }
   function startDockRest(now) {
-    nextDockAt = model.nextDockRestAt(now);
     setMotion("dock-prone");
     const entryMs = transitionFrames.length * 75;
     dockGreetingFrom = transitionStartedAt + entryMs;
     nextWalk = model.dockRestUntil(transitionStartedAt, entryMs);
+    nextDockAt = model.nextDockRestAt(nextWalk);
   }
   function touchDown(now) {
     // Grab stays on screen until gravity finds a real support; only the contact
@@ -145,6 +149,24 @@
     edgeFrame = model.edgeClimbAt(route, 0);
     destination = null; support = null; velocity = 0; fallOriginY = null;
     transitionFrames = [];
+  }
+  function startEdgeFall(route, now) {
+    edgeFall = { route, elapsed: 0, phase: "exit" };
+    support = null; velocity = 0; fallOriginY = null;
+    nextEdgeAt = model.nextEdgeClimbAt(now);
+    bridge.setIgnoreMouseEvents(true);
+    render(); publishRegions();
+  }
+  function cancelEdgeFall() {
+    if (!edgeFall) return false;
+    const side = edgeFall.route.side;
+    edgeFall = null;
+    support = surfaces[0]; velocity = 0;
+    point = { x: side === "left" ? support.left : support.right, y: support.y };
+    nextWalk = performance.now() + 1500;
+    setMotion(settledMotion(), false);
+    render(); publishRegions();
+    return true;
   }
   function cancelEdgeClimb() {
     if (!edgeClimb && !destination?.edgeRoute) return false;
@@ -198,6 +220,7 @@
     render(); publishRegions();
   }
   actor.addEventListener("click", async event => {
+    if (edgeFall) return;
     if (event.detail !== 0 && performance.now() < suppressClickUntil) return;
     if (state.identityStatus === "offline-trial") {
       if (held || !state.identityReady || restMenuOpen) return;
@@ -237,7 +260,7 @@
     render();
   }
   actor.addEventListener("pointerdown", e => {
-    if (e.button !== 0 || !e.isPrimary) return;
+    if (edgeFall || e.button !== 0 || !e.isPrimary) return;
     if (cancelBite()) render();
     actor.setPointerCapture(e.pointerId);
     press = { id: e.pointerId, offsetX: e.clientX - point.x, offsetY: e.clientY - point.y,
@@ -275,7 +298,9 @@
   actor.addEventListener("lostpointercapture", endDrag);
   window.addEventListener("blur", () => endDrag());
   function publishRegions() {
-    if (!state.identityReady || state.mode !== "desktop") { bridge.setHitRegions([]); return; }
+    if (!state.identityReady || state.mode !== "desktop" || edgeFall) {
+      bridge.setHitRegions([]); return;
+    }
     const elements = [actor, ...(!bubble.hidden ? [bubble] : [])];
     bridge.setHitRegions(elements.map(el => {
       const r = el.getBoundingClientRect();
@@ -283,7 +308,7 @@
     }));
   }
   document.addEventListener("pointermove", e => {
-    if (held) return;
+    if (held || edgeFall) return;
     const el = document.elementFromPoint(e.clientX, e.clientY);
     bridge.setIgnoreMouseEvents(!el?.closest(".pet-hit-area"));
   }, { passive: true });
@@ -309,7 +334,9 @@
     if (changed && value.characterId !== "panda") shakeStartedAt = null;
     if (state.quietMode && (!quietRest || quietChanged)) quietRest = model.quietRest(null, performance.now());
     if (!state.quietMode) quietRest = null;
-    if (changed || state.quietMode || state.restPose || state.paused || state.mode !== "desktop" || !state.identityReady) cancelEdgeClimb();
+    if (changed || state.quietMode || state.restPose || state.paused || state.mode !== "desktop" || !state.identityReady) {
+      cancelEdgeClimb(); cancelEdgeFall();
+    }
     if (changed) transitionFrames = [];
     if (state.mode !== "desktop" || !state.identityReady) endDrag();
     if (changed || quietChanged || poseChanged || state.paused || state.mode !== "desktop") {
@@ -317,7 +344,6 @@
       if (!held && landingStarted === null) setMotion(support ? settledMotion() : "grab");
       if (quietChanged && !state.quietMode) nextWalk = performance.now() + 200;
     }
-    presence.hidden = !state.identityReady || state.mode !== "desktop";
     render(); publishRegions();
   }
   unsubs.push(bridge.onDesktopPetState(applyState));
@@ -335,7 +361,7 @@
   void bridge.desktopPetState().then(applyState);
   // Cache one-shot sprites so their short poses are ready on the first play.
   for (const source of [...model.landingSources, ...biteModel.spriteSources, ...model.edgeClimbSources,
-    ...model.dockSources]) new Image().src = source;
+    ...model.dockSources, ...model.plushSources]) new Image().src = source;
   fetch("../src/lib/panda-animation-manifest.json").then(r => {
     if (!r.ok) throw new Error("Animation manifest missing");
     return r.json();
@@ -348,15 +374,38 @@
     let needsRender = transitionFrames.length > 0;
     const physical = state.mode === "desktop" && state.identityReady
       && document.visibilityState !== "hidden" && !held && !press;
-    if (preference.matches && cancelEdgeClimb()) needsRender = true;
-    if (physical && edgeClimb) {
+    if (preference.matches) {
+      if (cancelEdgeClimb()) needsRender = true;
+      if (cancelEdgeFall()) needsRender = true;
+    }
+    if (physical && edgeFall) {
+      if (edgeFall.phase !== "return") {
+        edgeFall.elapsed += Math.max(0, Math.min(delta, .05)) * 1000;
+        const step = model.edgeFallAt(edgeFall.route, edgeFall.elapsed);
+        edgeFall.phase = step.phase;
+        if (step.point) point = step.point;
+        if (step.phase === "return") presence.dataset.facing = edgeFall.route.side === "left" ? "right" : "left";
+        if (step.phase !== "exit") setMotion("grab", false);
+      } else {
+        const falling = geometry.fall(point, velocity, delta, surfaces);
+        point = falling.point; velocity = falling.velocity; support = falling.support;
+        if (support) {
+          edgeFall = null;
+          makeDirty(Date.now());
+          touchDown(now);
+          nextWalk = now + 1800;
+          publishRegions();
+        }
+      }
+      needsRender = true;
+    } else if (physical && edgeClimb) {
       const { route } = edgeClimb;
       edgeClimb.elapsed += Math.max(0, Math.min(delta, .05)) * 1000;
       edgeFrame = model.edgeClimbAt(route, edgeClimb.elapsed);
       point = { x: route.x, y: edgeFrame?.y ?? route.groundY };
       if (!edgeFrame) {
         edgeClimb = null; support = geometry.supportAt(point, surfaces);
-        nextWalk = now + 43000;
+        nextWalk = now + model.AUTO_REST_DURATION_MS;
         setMotion(support ? "stare" : "grab");
       }
       needsRender = true;
@@ -457,18 +506,19 @@
         if (step.arrived) {
           const route = destination.edgeRoute;
           destination = null;
-          if (route) {
+          const edge = state.characterId === "panda" ? geometry.reachedEdge(point, support) : null;
+          if (edge && model.shouldFallAtEdge(desktopDirt.remainingShakes)) {
+            presence.dataset.facing = edge.side;
+            startEdgeFall(edge, now);
+          } else if (route) {
             point = { x: route.x, y: route.groundY };
             presence.dataset.facing = route.side;
             startEdgeClimb(route);
           } else if (dockRestReady(now)) startDockRest(now);
-          else if (state.characterId === "panda") {
+          else {
             const rest = model.companionRest(now);
             nextWalk = rest.until;
             setMotion(rest.motion);
-          } else {
-            nextWalk = now + 4500 + Math.random() * 5500;
-            setMotion(Math.random() < .2 ? "sleep" : "idle");
           }
         }
       }
@@ -477,7 +527,8 @@
     }
     const interval = motion === "shake" ? model.shakeFrameIntervalMs
       : motion === "walk" ? state.characterId === "xiaobai" ? 140 : 180
-      : motion === "sleep" ? 520 : motion === "dock-prone" ? 560 : 420;
+      : motion === "sleep" ? 520 : motion === "dock-prone" ? 560
+        : motion === "plush-play" ? 240 : 420;
     if (now - lastFrame >= interval && !preference.matches && !state.quietMode) {
       if (motion !== "shake") frame++;
       lastFrame = now;
@@ -493,7 +544,7 @@
   window.addEventListener("resize", () => {
     cancelBite(); surfaces = geometry.platforms(windows, innerWidth, innerHeight);
     point = geometry.constrain(point, innerWidth, innerHeight);
-    cancelEdgeClimb(); destination = null; render(); publishRegions();
+    cancelEdgeClimb(); cancelEdgeFall(); destination = null; render(); publishRegions();
   });
   const hitTimer = setInterval(publishRegions, 100);
   window.addEventListener("beforeunload", () => {

@@ -43,6 +43,10 @@ async function main() {
     console.log("PASS offline trial launches and shows Panda without opening the account room");
 
     await pet.emulateMedia({ reducedMotion: "no-preference" });
+    await pet.evaluate(() => {
+      // The rest of this smoke keeps the ordinary climb, then forces a fall.
+      window.PandaDesktopPet.shouldFallAtEdge = () => false;
+    });
     await application.evaluate(({ Menu }) => {
       Menu.prototype.popup = function (options) { globalThis.__restPopup = { menu: this, close: options.callback }; };
     });
@@ -178,14 +182,18 @@ async function main() {
     const position = () => presence.evaluate(el => ({ x: parseFloat(el.style.left), y: parseFloat(el.style.top) }));
     await pet.evaluate(() => {
       const model = window.PandaDesktopPet, rest = model.companionRest;
-      const choices = [.5, 0];
+      const choices = [0, .25, .5];
       model.companionRest = now => ({ ...rest(now, () => choices.shift() ?? 0), until: now + 1400 });
     });
     await companionState({ restPose: "stare" });
     await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.motion === "stare");
     await companionState();
     await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.motion === "walk");
-    for (const [motion, pattern] of [["stare", /walk-to-idle-5\.png$/], ["sleep", /\/(?:frames\/)?sleep(?:-\d+)?\.png$/]]) {
+    for (const [motion, pattern] of [
+      ["stare", /walk-to-idle-5\.png$/],
+      ["sleep", /\/(?:frames\/)?sleep(?:-\d+)?\.png$/],
+      ["plush-play", /\/(?:frames\/plush-play-\d+|xiaobai\/loops\/plush-play\/\d+)\.png$/],
+    ]) {
       await pet.waitForFunction(({ motion, pattern }) => {
         const el = document.querySelector("#panda-sprite");
         return el.dataset.sprite === motion && new RegExp(pattern).test(el.src) && el.complete && el.naturalWidth > 0;
@@ -193,6 +201,9 @@ async function main() {
       const parked = await position();
       await pet.waitForTimeout(180);
       assert.deepEqual(await position(), parked, `${motion} is an actual stationary break`);
+      if (motion === "plush-play" && process.env.PANDA_PLUSH_PREVIEW_PATH) {
+        await pet.screenshot({ path: process.env.PANDA_PLUSH_PREVIEW_PATH, omitBackground: true });
+      }
     }
 
     // Put the pet near the left edge, then make only the outing timer due.
@@ -248,7 +259,7 @@ async function main() {
     await pet.evaluate(() => {
       const model = window.PandaDesktopPet;
       model.nextDockRestAt = (now, _rng, first) => now + (first ? 0 : 120000);
-      // Shorten the hold here; the unit test checks the real 60-second value.
+      // Shorten the hold here; unit tests check the real 3-minute value.
       model.dockRestUntil = (now, entryMs) => now + entryMs + 6000;
       model.nextEdgeClimbAt = () => Infinity;
     });
@@ -283,6 +294,62 @@ async function main() {
     await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.motion === "walk");
     assert(await greeting.isHidden());
     console.log("PASS taskbar peek uses the original art, shows an unobtrusive greeting once, and returns to walking");
+
+    await pet.evaluate(() => {
+      const model = window.PandaDesktopPet;
+      model.shouldFallAtEdge = remaining => remaining === 0;
+      model.nextEdgeClimbAt = (now, _rng, first) => first ? now : Infinity;
+      model.nextDockRestAt = () => Infinity;
+      // Accelerate the wait, not the actual sprite animation or cleaning count.
+      const { dirtyReturn, finishShake } = model;
+      model.dirtyReturn = now => ({ ...dirtyReturn(now), nextShakeAt: now + 1100 });
+      model.finishShake = (state, now) => {
+        const next = finishShake(state, now);
+        return { ...next, nextShakeAt: next.remainingShakes ? now + 380 : 0 };
+      };
+    });
+    await companionState({ mode: "room" });
+    await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.mode === "room");
+    await companionState({ quietMode: true });
+    await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.quiet === "true");
+    await pet.waitForTimeout(1200);
+    assert.equal(await presence.getAttribute("data-edge-fall"), "", "quiet mode never starts a screen fall");
+    await companionState();
+    await pet.waitForFunction(() => {
+      const el = document.querySelector(".pet-presence");
+      return el.dataset.edgeFall === "exit"
+        && getComputedStyle(document.querySelector("#panda")).pointerEvents === "none";
+    });
+    const exit = await position();
+    await pet.waitForFunction(() => {
+      const el = document.querySelector(".pet-presence");
+      return el.dataset.edgeFall === "away" && el.hidden && el.dataset.dirtLevel === "0";
+    });
+    await pet.waitForFunction(() => {
+      const el = document.querySelector(".pet-presence");
+      return el.dataset.edgeFall === "return" && !el.hidden && parseFloat(el.style.top) > 44;
+    });
+    const returning = await position();
+    const width = await pet.evaluate(() => innerWidth);
+    assert.equal(exit.x < width / 2, returning.x < width / 2, "panda returns on the side it left");
+    await pet.waitForFunction(() => {
+      const el = document.querySelector(".pet-presence");
+      return el.dataset.platform === "taskbar" && !el.dataset.edgeFall && el.dataset.dirtLevel === "3";
+    });
+    assert.equal((await position()).x, returning.x, "the return drop is vertical");
+    for (const remaining of [3, 2, 1]) {
+      await pet.waitForFunction(remaining => {
+        const el = document.querySelector(".pet-presence"), sprite = document.querySelector("#panda-sprite");
+        return el.dataset.shaking === "true" && +el.dataset.dirtLevel === remaining
+          && sprite.src.includes(`/desktop-shake/${remaining}/`) && sprite.complete && sprite.naturalWidth === 96;
+      }, remaining);
+    }
+    await pet.waitForFunction(() => {
+      const el = document.querySelector(".pet-presence");
+      return el.dataset.dirtLevel === "0" && el.dataset.shaking === "false"
+        && document.querySelector("#panda-dirt").hidden;
+    });
+    console.log("PASS walking off the edge, brief disappearance, same-side return, and three automatic shakes");
   } finally {
     await application?.close();
     fs.rmSync(profile, { recursive: true, force: true });
