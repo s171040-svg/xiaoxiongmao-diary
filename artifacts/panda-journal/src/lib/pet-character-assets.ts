@@ -31,6 +31,7 @@ const aliases: Record<string, string> = {
   'eat-bamboo': 'eat', 'eat-banana': 'eat-banana', 'eat-carrot': 'eat-carrot',
   'eat-fish': 'eat-fish', 'eat-strawberry': 'eat-strawberry', 'eat-cookie': 'eat-cookie',
   'eat-candy': 'eat',
+  'take-vitamin': 'eat',
 };
 export const XIAOBAI_LOOP_COUNTS: Record<string, number> = {
   idle: 4, walk: 8, sleep: 4, lying: 4, climb: 8, 'back-pawing': 8,

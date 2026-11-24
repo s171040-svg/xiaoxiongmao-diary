@@ -7,6 +7,13 @@
  */
 export type PetSaveSnapshotPet = {[key: string]: unknown};
 
+export type CoopGiftKind = typeof CoopGiftKind[keyof typeof CoopGiftKind];
+
+
+export const CoopGiftKind = {
+  vitamin: 'vitamin',
+} as const;
+
 export interface CoopGift {
   /** @maxLength 120 */
   id: string;
@@ -23,6 +30,7 @@ export interface CoopGift {
   favorite?: boolean;
   /** @minimum 0 */
   fedAt?: number;
+  kind?: CoopGiftKind;
 }
 
 export interface CoopRoomPoint {
@@ -97,6 +105,14 @@ export const CoopWorldEcologyStateFallCycle = {
 export interface CoopWorldEcologyState {
   /** @minimum 0 */
   lastAttentionAt: number;
+  /** @minimum 0 */
+  lastPetPoopAt?: number;
+  sick?: boolean;
+  /**
+     * @minimum 0
+     * @maximum 3
+     */
+  vitaminsFed?: number;
   fallCycle: CoopWorldEcologyStateFallCycle;
   /** @minimum 0 */
   lastFallRollAt?: number;

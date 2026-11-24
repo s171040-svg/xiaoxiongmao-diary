@@ -21,6 +21,7 @@ export * from './coopDeliveryResponse';
 export * from './coopFoxMerchantLetter';
 export * from './coopFoxMerchantLetterStatus';
 export * from './coopGift';
+export * from './coopGiftKind';
 export * from './coopHouseholdInput';
 export * from './coopHouseholdResponse';
 export * from './coopHouseholdResponseMemberCount';

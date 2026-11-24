@@ -27,7 +27,7 @@
 .ps-thinking{position:absolute;z-index:4;left:calc(50% + 34px);top:14px;padding:3px 10px;border-radius:14px;background:var(--bub,#fff);color:var(--sage,#527459);font:500 15px/1.5 "Noto Sans CJK SC",sans-serif}
 .ps-room-chat-bubble{top:auto;bottom:calc(100% + 8px);left:50%;box-sizing:border-box;width:max-content;max-width:min(320px,calc(100vw - 28px));transform:translateX(-50%);padding:9px 13px;border:1px solid color-mix(in srgb,var(--sage,#527459) 24%,transparent);border-radius:16px;box-shadow:0 4px 16px #1e302a24;white-space:pre-wrap;overflow-wrap:anywhere;text-align:center;line-height:1.55}
 .ps-track{position:absolute;left:var(--room-x,50%);top:var(--room-y,53%);width:calc(92px * var(--room-scale,.89));height:calc(92px * var(--room-scale,.89));display:grid;place-items:end center;transform:translate(-50%,-100%);pointer-events:none}
-.ps-stage[data-dragging=true] .ps-track{left:var(--panda-drag-x,var(--room-x,50%));top:var(--panda-drag-y,var(--room-y,53%))}
+.ps-stage[data-dragging=true] .ps-track{left:0;top:0;translate:var(--panda-drag-x,var(--room-x,50%)) var(--panda-drag-y,var(--room-y,53%));will-change:translate}
 .ps-room-interactive-jar{position:fixed;display:block;transform:translate(-50%,-100%);background:transparent;pointer-events:none}
 .ps-panda[data-jar-trapped=true]{z-index:8;cursor:grab}
 .ps-panda[data-jar-trapped=true]:hover,.ps-panda[data-jar-trapped=true]:active{translate:0;scale:1}
@@ -101,11 +101,12 @@
 .ps-room-trash-can[data-disposing=true]{animation:ps-trash-can-wiggle 360ms steps(2,end) 2}
 .ps-room-waste{position:fixed;z-index:130;display:grid;width:48px;height:48px;padding:0;place-items:center;translate:-50% -50%;border:0;border-radius:50%;background:transparent;cursor:grab;pointer-events:auto;touch-action:none;user-select:none}
 .ps-room-waste-fresh{animation:ps-waste-wiggle 2.8s ease-in-out infinite}
-.ps-room-waste-poop{display:block;width:27px;height:24px;background:radial-gradient(ellipse at 50% 99%,#754333 0 42%,transparent 44%),radial-gradient(ellipse at 34% 74%,#936044 0 33%,transparent 35%),radial-gradient(ellipse at 66% 74%,#936044 0 34%,transparent 36%),radial-gradient(ellipse at 50% 47%,#a87450 0 20%,transparent 22%);filter:drop-shadow(0 2px 2px #39281e66);pointer-events:none}
+.ps-room-waste-poop{display:block;width:32px;height:28px;image-rendering:pixelated;filter:drop-shadow(0 2px 2px #39281e66);pointer-events:none}
 .ps-room-waste-bag{position:relative;display:block;width:26px;height:29px;border:2px solid #242124;border-radius:5px 5px 8px 8px;background:linear-gradient(90deg,#111114 0 20%,#29282a 21% 70%,#141315 71%);box-shadow:0 3px 4px #17121752;pointer-events:none}
 .ps-room-waste-bag::before{position:absolute;top:-6px;left:5px;width:12px;height:7px;border:2px solid #242124;border-bottom:0;border-radius:6px 6px 0 0;content:""}
 .ps-room-waste-bag::after{position:absolute;top:5px;left:5px;width:3px;height:16px;border-radius:3px;background:#ffffff2c;content:""}
 .ps-room-waste-bag i{position:absolute;top:2px;right:3px;width:5px;height:3px;background:#0b0b0d;transform:rotate(24deg)}
+.ps-room-waste-hint{position:absolute;z-index:2;left:50%;bottom:calc(100% + 6px);width:max-content;max-width:calc(100vw - 24px);transform:translateX(-50%);padding:5px 8px;border:1px solid #8b7857;border-radius:7px;background:#fff8e8;color:#654f36;box-shadow:1px 2px 0 #57452a55;font:600 11px/1.3 "Noto Sans CJK SC",sans-serif;white-space:nowrap;pointer-events:none}
 .ps-room-waste-dragging{z-index:130;cursor:grabbing;filter:drop-shadow(0 7px 6px #18151c70)}
 .ps-room-waste-disposing{z-index:130;pointer-events:none;animation:ps-waste-into-bin 720ms cubic-bezier(.55,.08,.82,.36) both}
 .ps-room-waste-wrap{position:absolute;z-index:1;display:block;width:32px;height:34px;pointer-events:none}

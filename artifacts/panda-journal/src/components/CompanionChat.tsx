@@ -5,7 +5,7 @@ import { usePetCharacter, usePetNarration } from '@/hooks/use-pet-character';
 import { XIAOBAI_SHARED_ACTION_NOTE } from '@/lib/pet-character-assets';
 import type { ChatMessage, DeveloperEvent, DeveloperPose, Gift, MemoryKind, PerformanceAction, SpacePoliceLetter } from '@/lib/companion-types';
 import type { JournalEntry } from '@/lib/journal-types';
-import { canFeedGift } from '@/lib/companion-store';
+import { canFeedGift, isVitaminGift } from '@/lib/companion-store';
 import { splitReply } from '@/lib/reply-rhythm';
 import { VoiceButton } from '@/components/VoiceButton';
 import { PetStage } from '@/components/PetStage';
@@ -148,29 +148,64 @@ function Diary({ c, onClose }: {
   );
 }
 
-function Gifts({ c, onClose, onChooseSnack }: {
+function Gifts({ c, onClose, onChooseSnack, medicalTreatment = false, petName = '小熊猫', onExchangeSnacksForVitamin }: {
   c: CompanionController;
   onClose: () => void;
   onChooseSnack: (giftId: string) => void;
+  medicalTreatment?: boolean;
+  petName?: string;
+  onExchangeSnacksForVitamin?: () => boolean;
 }) {
   const narrate = usePetNarration();
   const gifts = [...c.state.gifts].sort((a, b) => b.receivedAt - a.receivedAt);
-  const snacks = gifts.filter(canFeedGift);
-  const keepsakes = gifts.filter(gift => !canFeedGift(gift));
-  const [tab, setTab] = useState<'snacks' | 'keepsakes'>('snacks');
-  const visibleGifts = tab === 'snacks' ? snacks : keepsakes;
+  const snacks = gifts.filter(gift => !isVitaminGift(gift) && canFeedGift(gift));
+  const vitamins = gifts.filter(isVitaminGift);
+  const keepsakes = gifts.filter(gift => !isVitaminGift(gift) && !canFeedGift(gift));
+  const sick = medicalTreatment && c.state.worldEcology?.sick === true;
+  const availableSnacks = snacks.filter(gift => !gift.fedAt);
+  const availableVitamins = vitamins.filter(gift => !gift.fedAt);
+  const vitaminsFed = medicalTreatment ? c.state.worldEcology?.vitaminsFed ?? 0 : 0;
+  const [tab, setTab] = useState<'snacks' | 'vitamins' | 'keepsakes'>('snacks');
+  const visibleGifts = tab === 'snacks' ? snacks : tab === 'vitamins' ? vitamins : keepsakes;
+  const vitaminTabVisible = medicalTreatment && (sick || vitamins.length > 0);
   return (
-    <Modal title="礼物收纳盒" sub="小熊猫带回来的零食和纪念品都会收在这里。零食可以取出来喂它，纪念品可以收藏。" onClose={onClose} testid="dialog-gifts">
+    <Modal title="礼物收纳盒" sub={`${petName}带回来的零食和纪念品都会收在这里。零食可以取出来喂它，纪念品可以收藏。`} onClose={onClose} testid="dialog-gifts">
       <div className="cc-gift-tabs" role="tablist" aria-label="礼物收纳盒分类">
         <button type="button" role="tab" aria-selected={tab === 'snacks'} aria-pressed={tab === 'snacks'}
           data-testid="snack-box-tab-food" onClick={() => setTab('snacks')}>
           零食 · {snacks.length}
         </button>
+        {vitaminTabVisible && <button type="button" role="tab" aria-selected={tab === 'vitamins'} aria-pressed={tab === 'vitamins'}
+          data-testid="snack-box-tab-vitamins" onClick={() => setTab('vitamins')}>
+          维生素 · {vitamins.length}
+        </button>}
         <button type="button" role="tab" aria-selected={tab === 'keepsakes'} aria-pressed={tab === 'keepsakes'}
           data-testid="snack-box-tab-keepsakes" onClick={() => setTab('keepsakes')}>
           纪念品 · {keepsakes.length}
         </button>
       </div>
+      {sick && (
+        <section className="cc-vitamin-care" data-testid="vitamin-treatment">
+          <div className="cc-vitamin-care-heading">
+            <strong>{petName}发烧了</strong>
+            <span>已喂 {vitaminsFed}/3 颗</span>
+          </div>
+          <p>喂下三颗不同的维生素就能退烧，健康会恢复到 50。现在有 {availableVitamins.length} 颗未喂维生素。</p>
+          {availableVitamins.length === 0 && (
+            <button type="button" disabled={availableSnacks.length < 3}
+              onClick={() => {
+                if (onExchangeSnacksForVitamin?.()) setTab('vitamins');
+              }}
+              data-testid="button-exchange-snacks-for-vitamin">
+              {availableSnacks.length >= 3
+                ? '用 3 份零食换 1 颗维生素'
+                : `还需要 ${3 - availableSnacks.length} 份未喂零食才能兑换`}
+            </button>
+          )}
+          {availableVitamins.length === 0 && availableSnacks.length >= 3
+            && <small>兑换会消耗三份未喂过的普通零食；纪念品和维生素不算零食。</small>}
+        </section>
+      )}
       {visibleGifts.length ? visibleGifts.map((g) => (
         <article className="cc-card cc-gift" key={g.id}>
           <span className="cc-gemoji" aria-hidden="true">{g.emoji}</span>
@@ -180,14 +215,19 @@ function Gifts({ c, onClose, onChooseSnack }: {
               <button type="button" onClick={() => c.favoriteGift(g.id)} aria-pressed={Boolean(g.favorite)}>{g.favorite ? '已收藏 · 取消' : '收藏'}</button>
               {tab === 'snacks' && <button type="button" disabled={Boolean(g.fedAt)}
                 data-testid={`snack-pick-${g.id}`} onClick={() => onChooseSnack(g.id)}>
-                {g.fedAt ? '已经吃掉' : '取出喂食'}
+                {g.fedAt ? '已使用' : '取出喂食'}
+              </button>}
+              {tab === 'vitamins' && <button type="button" disabled={!sick || Boolean(g.fedAt)}
+                data-testid={`vitamin-pick-${g.id}`} onClick={() => onChooseSnack(g.id)}>
+                {g.fedAt ? '已经喂过' : sick ? '取出治疗' : '生病时可喂'}
               </button>}
               {tab === 'keepsakes' && <small>纪念小物，留着收藏</small>}
             </div>
           </div>
         </article>)) : <p className="cc-empty">{narrate(tab === 'snacks'
-          ? '收纳盒里还没有零食。打开小熊猫带回来的礼物后，它们会收在这里。'
-          : '还没有纪念品。小熊猫偶尔会带回一些森林里的小发现。')}</p>}
+          ? `收纳盒里还没有零食。打开${petName}带回来的礼物后，它们会收在这里。`
+          : tab === 'vitamins' ? '还没有维生素。生病时可以用三份未喂零食兑换一颗。'
+            : `还没有纪念品。${petName}偶尔会带回一些森林里的小发现。`)}</p>}
     </Modal>
   );
 }
@@ -231,7 +271,8 @@ export function CompanionChat({ companion: c, roomOnly = false, roomToolbarExtra
   const [panel, setPanel] = useState<'diary' | 'gifts' | null>(null);
   const [selectedSnackId, setSelectedSnackId] = useState<string | null>(null);
   const selectedSnack = selectedSnackId
-    ? c.state.gifts.find(gift => gift.id === selectedSnackId && !gift.fedAt && canFeedGift(gift))
+    ? c.state.gifts.find(gift => gift.id === selectedSnackId && !gift.fedAt
+      && (canFeedGift(gift) || (isWebRoom && c.state.worldEcology?.sick === true && isVitaminGift(gift))))
     : undefined;
   const [devGiftOpen, setDevGiftOpen] = useState(false);
   const [devActionOpen, setDevActionOpen] = useState(false);
@@ -485,7 +526,7 @@ export function CompanionChat({ companion: c, roomOnly = false, roomToolbarExtra
       </header>}
        <div style={{ display: 'contents' }} inert={roomInteractionLocked}>
        <PetStage pet={c.pet} thinking={c.busy && !c.replyDisplay} motion="idle"
-        selectedSnack={selectedSnack ? { id: selectedSnack.id, emoji: selectedSnack.emoji, item: selectedSnack.item } : null}
+        selectedSnack={selectedSnack ? { id: selectedSnack.id, emoji: selectedSnack.emoji, item: selectedSnack.item, kind: selectedSnack.kind } : null}
         onFeedSnack={(giftId) => { c.feedGift(giftId); setSelectedSnackId(null); }}
         developerPose={import.meta.env.DEV ? developerPose : null}
         developerEvent={import.meta.env.DEV && roomOnly ? developerEvent : null}
@@ -540,7 +581,9 @@ export function CompanionChat({ companion: c, roomOnly = false, roomToolbarExtra
       )}
       {panel === 'diary' && <Diary c={c} onClose={() => setPanel(null)} />}
       {panel === 'gifts' && <Gifts c={c} onClose={() => setPanel(null)}
-        onChooseSnack={(giftId) => { setSelectedSnackId(giftId); setPanel(null); }} />}
+        onChooseSnack={(giftId) => { setSelectedSnackId(giftId); setPanel(null); }}
+        medicalTreatment={isWebRoom} petName={characterName}
+        onExchangeSnacksForVitamin={isWebRoom ? c.exchangeSnacksForVitamin : undefined} />}
       {isWebRoom && foxMerchantLetterOpen && foxMerchantLetter && (
         <Modal title="被狐贩子用糖拐跑了！"
           sub={`${foxMerchantLetter.foxName} · ${fmt.format(foxMerchantLetter.sentAt)}`}

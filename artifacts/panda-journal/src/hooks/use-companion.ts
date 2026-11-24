@@ -4,7 +4,7 @@ import { isDesktop } from '@/lib/desktop';
 import { replyFrame, replyRhythm } from '@/lib/reply-rhythm';
 import type { CareStatCategory, ChatMessage, CompanionState, Gift, PerformanceAction, PetEffect, SharedCareStats, WorldEcologyState, FoxMerchantLetter } from '@/lib/companion-types';
 import type { JournalEntry } from '@/lib/journal-types';
-import { acknowledgeCareStatInteraction as acknowledgeCareStatInteractionInState, adjustHungerState, assistant, canFeedGift, clearPendingCareStatInteractions, contextFor, deliverSpacePoliceLetter, eatSpacePoliceLetter as eatSpacePoliceLetterInState, fileSpacePoliceLetter as fileSpacePoliceLetterInState, feedActionForGift, finishSpacePolicePoopDisposal, id, initialState, markPendingInterrupted, markSpacePoliceLetterOpened as markSpacePoliceLetterOpenedInState, mergeSharedCareStats, mergeSharedWorldEcology, mergeSharedFoxMerchantLetter, moveSpacePolicePoopBag, packSpacePolicePoop, placeSpacePolicePoop, disposeSpacePolicePoopBag, paySpacePoliceFine as paySpacePoliceFineInState, readState, receiveReply, recordCareStatInteraction as recordCareStatInteractionInState, recordPetAttentionState, recordUserMessage, performancePlan, tickCompanion, tryStartIdleWorldFall, markWorldFallReturned as markWorldFallReturnedInState, markPetWashed as markPetWashedInState, markPetDried as markPetDriedInState, openFoxMerchantLetter as openFoxMerchantLetterInState, redeemFoxMerchantLetter as redeemFoxMerchantLetterInState, welcome, writeState, startGiftDrop, collectGift, favoriteGift, feedGift, injectTestGift, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, COMPANION_KEY, type TestGiftInput } from '@/lib/companion-store';
+import { acknowledgeCareStatInteraction as acknowledgeCareStatInteractionInState, adjustHungerState, assistant, canFeedGift, clearPendingCareStatInteractions, contextFor, deliverSpacePoliceLetter, eatSpacePoliceLetter as eatSpacePoliceLetterInState, fileSpacePoliceLetter as fileSpacePoliceLetterInState, feedActionForGift, feedVitaminGift, exchangeSnacksForVitamin as exchangeSnacksForVitaminInState, isVitaminGift, finishSpacePolicePoopDisposal, id, initialState, markPendingInterrupted, markSpacePoliceLetterOpened as markSpacePoliceLetterOpenedInState, mergeSharedCareStats, mergeSharedWorldEcology, mergeSharedFoxMerchantLetter, moveSpacePolicePoopBag, packSpacePolicePoop, placeSpacePolicePoop, disposeSpacePolicePoopBag, paySpacePoliceFine as paySpacePoliceFineInState, readState, receiveReply, recordCareStatInteraction as recordCareStatInteractionInState, recordPetAttentionState, recordUserMessage, performancePlan, tickCompanion, tryStartIdleWorldFall, markWorldFallReturned as markWorldFallReturnedInState, markPetWashed as markPetWashedInState, markPetDried as markPetDriedInState, openFoxMerchantLetter as openFoxMerchantLetterInState, redeemFoxMerchantLetter as redeemFoxMerchantLetterInState, welcome, writeState, startGiftDrop, collectGift, favoriteGift, feedGift, injectTestGift, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, COMPANION_KEY, type TestGiftInput } from '@/lib/companion-store';
 
 function initial() {
   try {
@@ -559,8 +559,11 @@ export function useCompanion({
         const before = current.current;
         const gift = before.gifts.find(item => item.id === giftId);
         const action = gift ? feedActionForGift(gift) : undefined;
+        const vitamin = gift ? isVitaminGift(gift) : false;
+        const now = Date.now();
         const next = transact(s => {
-          const fed = feedGift(s, giftId);
+          if (vitamin) return enableRoomEcology ? feedVitaminGift(s, giftId, petName, now) : s;
+          const fed = feedGift(s, giftId, now);
           return fed === s ? fed : recordCareStatInteractionInState(fed, 'health');
         });
         if (next.messages.length !== before.messages.length) {
@@ -572,6 +575,17 @@ export function useCompanion({
           }
         }
       } catch (e) { report(e); }
+    },
+    exchangeSnacksForVitamin: () => {
+      if (!enableRoomEcology) return false;
+      try {
+        const before = current.current;
+        const next = transact(s => exchangeSnacksForVitaminInState(s, petName));
+        const exchanged = next.gifts.length > before.gifts.length
+          && next.gifts.at(-1)?.kind === 'vitamin';
+        if (exchanged) setStatus(`已经为${petName}换好一颗维生素，打开维生素页取出来喂它吧。`);
+        return exchanged;
+      } catch (e) { report(e); return false; }
     },
     ...(import.meta.env.DEV ? { addTestGift, performTestAction } : {}),
   };

@@ -22,6 +22,7 @@ export type WorldEcologyState = {
   dirtySince?: number;
   dirtyHealthAppliedMinutes: number;
   sick?: boolean;
+  vitaminsFed?: number;
   updatedAt: number;
 };
 export type FoxMerchantLetter = {
@@ -42,7 +43,8 @@ export type PendingCareStatInteraction = {
 export type PerformanceAction =
   | 'bamboo' | 'roll' | 'jump' | 'spin' | 'somersault' | 'tail' | 'tumble' | 'cuddle'
   | 'captured-homecoming' | 'climb-up'
-  | 'eat-banana' | 'eat-carrot' | 'eat-fish' | 'eat-candy' | 'eat-strawberry' | 'eat-cookie' | 'eat-bamboo';
+  | 'eat-banana' | 'eat-carrot' | 'eat-fish' | 'eat-candy' | 'eat-strawberry' | 'eat-cookie' | 'eat-bamboo'
+  | 'take-vitamin';
 export type DeveloperPose = 'idle' | 'lying' | 'sleeping' | 'peeking' | 'bored-searching';
 export type DeveloperEvent = 'dream' | 'punch' | 'startle' | 'grab' | 'dirty-grab' | 'dizzy-drop' | 'world-fall' | 'bath-drop' | 'bath-rub' | 'dirty-bath' | 'dirty-bath-rub' | 'dirty-fly-chase' | 'toy-teaser' | 'toy-laser' | 'toy-curious' | 'toy-brake' | 'toy-wall-dizzy' | 'jar-peeking' | 'trash-can' | 'truth-potion-comfort' | 'leaf-platform' | 'leaf-platform-sleep' | 'leaf-platform-play' | 'leaf-platform-sit' | 'plush-play' | 'fever';
 export type ChatMessage = {
@@ -58,6 +60,7 @@ export type DiaryMemory = {
 export type Gift = {
   id: string; emoji: string; item: string; animal: string; story: string; receivedAt: number;
   favorite?: boolean; fedAt?: number;
+  kind?: 'vitamin';
 };
 export type SpacePoop = {
   phase: 'pending' | 'fresh' | 'bagged' | 'disposing' | 'disposed';

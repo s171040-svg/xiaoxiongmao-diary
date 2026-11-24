@@ -430,6 +430,9 @@ components:
         fedAt:
           type: integer
           minimum: 0
+        kind:
+          type: string
+          enum: [vitamin]
     CoopSharedState:
       type: object
       required: [gifts, furnitureLayout, placedProps]
@@ -470,6 +473,15 @@ components:
         lastAttentionAt:
           type: integer
           minimum: 0
+        lastPetPoopAt:
+          type: integer
+          minimum: 0
+        sick:
+          type: boolean
+        vitaminsFed:
+          type: integer
+          minimum: 0
+          maximum: 3
         fallCycle:
           type: string
           enum: [first, needs-clean, after-clean]

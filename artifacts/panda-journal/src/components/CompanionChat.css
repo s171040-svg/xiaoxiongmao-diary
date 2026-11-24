@@ -5,6 +5,13 @@
 .cc-gift-tabs{display:flex;gap:8px;margin:0 0 12px}
 .cc-gift-tabs button{border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink);padding:7px 13px;font:inherit;font-size:13px;cursor:pointer}
 .cc-gift-tabs button[aria-selected=true]{border-color:var(--sage);background:var(--bub);color:var(--sageD);font-weight:700}
+.cc-vitamin-care{margin:0 0 14px;padding:12px 14px;border:1px solid #d9a19a;border-radius:14px;background:#fff1ec;color:#704947}
+.cc-vitamin-care-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.cc-vitamin-care-heading strong{font-size:15px}.cc-vitamin-care-heading span{font-size:13px;font-weight:700}
+.cc-vitamin-care p{margin:7px 0;font-size:13px;line-height:1.55}
+.cc-vitamin-care button{border:1px solid #c9877d;border-radius:999px;background:#fffaf5;color:#704947;padding:7px 12px;font:inherit;font-size:13px;cursor:pointer}
+.cc-vitamin-care button:disabled{opacity:.6;cursor:default}
+.cc-vitamin-care small{display:block;margin-top:6px;font-size:11px;opacity:.8}
 .cc-app.desktop .cc-top{-webkit-app-region:drag}
 .cc-app.desktop .cc-top button{-webkit-app-region:no-drag}
 .cc-app{--bg:#f0ecdd;--panel:#faf7ec;--ink:#2c4438;--soft:#6e826f;--sage:#5b8a6e;--sageD:#40694f;--bub:#e3ecd9;--me:#5b8a6e;--meInk:#fbf8ee;--line:#d7d6c3;--warn:#a65d53;

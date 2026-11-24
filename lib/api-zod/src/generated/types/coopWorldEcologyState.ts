@@ -10,6 +10,14 @@ import type { CoopWorldEcologyStateFallCycle } from './coopWorldEcologyStateFall
 export interface CoopWorldEcologyState {
   /** @minimum 0 */
   lastAttentionAt: number;
+  /** @minimum 0 */
+  lastPetPoopAt?: number;
+  sick?: boolean;
+  /**
+     * @minimum 0
+     * @maximum 3
+     */
+  vitaminsFed?: number;
   fallCycle: CoopWorldEcologyStateFallCycle;
   /** @minimum 0 */
   lastFallRollAt?: number;

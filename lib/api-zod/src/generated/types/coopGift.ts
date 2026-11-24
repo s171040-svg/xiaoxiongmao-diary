@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CoopGiftKind } from './coopGiftKind';
 
 export interface CoopGift {
   /** @maxLength 120 */
@@ -22,4 +23,5 @@ export interface CoopGift {
   favorite?: boolean;
   /** @minimum 0 */
   fedAt?: number;
+  kind?: CoopGiftKind;
 }

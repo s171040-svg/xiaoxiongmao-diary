@@ -19,7 +19,9 @@ export const PET_POOP_HEALTH_DELAY_MS = 5 * MINUTE;
 export const PET_POOP_HEALTH_DECAY_AMOUNT = 1;
 export const FEVER_HEALTH_THRESHOLD = 20;
 export const CLEAN_FALL_CHANCE = 0.1;
-export const canFeedGift = (gift: Gift) => ['🍌', '🥕', '🐟', '🍬', '🍓', '🍪', '🎋'].includes(gift.emoji);
+export const isVitaminGift = (gift: Gift) => gift.kind === 'vitamin';
+export const canFeedGift = (gift: Gift) => !isVitaminGift(gift)
+  && ['🍌', '🥕', '🐟', '🍬', '🍓', '🍪', '🎋'].includes(gift.emoji);
 const FEED_ACTION_BY_EMOJI: Record<string, PerformanceAction> = {
   '🍌': 'eat-banana',
   '🥕': 'eat-carrot',
@@ -30,7 +32,7 @@ const FEED_ACTION_BY_EMOJI: Record<string, PerformanceAction> = {
   '🎋': 'eat-bamboo',
 };
 export const feedActionForGift = (gift: Gift): PerformanceAction | undefined =>
-  canFeedGift(gift) ? FEED_ACTION_BY_EMOJI[gift.emoji] : undefined;
+  isVitaminGift(gift) ? 'take-vitamin' : canFeedGift(gift) ? FEED_ACTION_BY_EMOJI[gift.emoji] : undefined;
 const CARE_STAT_CATEGORIES: CareStatCategory[] = ['health', 'bond', 'growth'];
 
 export function initialCareStats(now = Date.now()): CareStats {
@@ -55,6 +57,7 @@ export function initialWorldEcology(now = Date.now()): WorldEcologyState {
     fallCycle: 'first',
     dirtyHealthAppliedMinutes: 0,
     sick: false,
+    vitaminsFed: 0,
     updatedAt: now,
   };
 }
@@ -347,6 +350,7 @@ function resetCareForNewPet(state: CompanionState, now: number): CompanionState 
       ...ecology,
       lastPetPoopAt: now,
       sick: false,
+      vitaminsFed: 0,
       lastAttentionAt: now,
       fallCycle: 'first',
       dirtySince: undefined,
@@ -364,7 +368,7 @@ export function resolveHealthAtZero(
 ): { state: CompanionState; event?: 'captured' | 'reset' } {
   const ecology = state.worldEcology ?? initialWorldEcology(now);
   const sickState = state.careStats.health <= FEVER_HEALTH_THRESHOLD && !ecology.sick
-    ? { ...state, worldEcology: { ...ecology, sick: true, updatedAt: now } }
+    ? { ...state, worldEcology: { ...ecology, sick: true, vitaminsFed: 0, updatedAt: now } }
     : state;
   if (sickState.careStats.health > 0 || sickState.foxMerchantLetter?.status === 'captured') return { state: sickState };
   state = sickState;
@@ -524,6 +528,7 @@ export function redeemFoxMerchantLetter(state: CompanionState, now = Date.now())
       ...ecology,
       lastPetPoopAt: now,
       sick: false,
+      vitaminsFed: 0,
       lastAttentionAt: now,
       fallCycle: 'first',
       dirtySince: undefined,
@@ -556,6 +561,64 @@ export function feedGift(state: CompanionState, giftId: string, now = Date.now()
   const fedState = adjustHungerState(state, 1, now);
   return { ...fedState, gifts: fedState.gifts.map(g => g.id === giftId ? { ...g, fedAt: now } : g),
     messages: [...fedState.messages, assistant(`唔，${fedState.userName ? fedState.userName + '，' : ''}${gift.item}收到啦，小熊猫咔嚓咔嚓吃掉啦。（它开心地嚼了嚼，蹭蹭你）`, 'event', now)] };
+}
+export function feedVitaminGift(
+  state: CompanionState,
+  giftId: string,
+  petName = '小熊猫',
+  now = Date.now(),
+): CompanionState {
+  const gift = state.gifts.find(item => item.id === giftId);
+  const ecology = state.worldEcology;
+  if (!gift || !isVitaminGift(gift) || gift.fedAt !== undefined || ecology?.sick !== true
+    || state.foxMerchantLetter?.status === 'captured') return state;
+  const vitaminsFed = Math.min(3, (ecology.vitaminsFed ?? 0) + 1);
+  const cured = vitaminsFed >= 3;
+  const next = {
+    ...state,
+    gifts: state.gifts.map(item => item.id === giftId ? { ...item, fedAt: now } : item),
+    worldEcology: { ...ecology, sick: !cured, vitaminsFed, updatedAt: now },
+    ...(cured ? {
+      careStats: { ...state.careStats, health: 50, revision: state.careStats.revision + 1 },
+    } : {}),
+  };
+  const text = cured
+    ? `${petName}乖乖喝下第三颗维生素，烧终于退啦！健康恢复到 50，又可以精神满满地活动啦。`
+    : `${petName}喝下了一颗维生素，已经 ${vitaminsFed}/3 颗啦。小护士说再乖乖喝几颗，发烧就会退掉。`;
+  return { ...next, messages: [...next.messages, assistant(text, 'event', now)] };
+}
+export function exchangeSnacksForVitamin(
+  state: CompanionState,
+  petName = '小熊猫',
+  now = Date.now(),
+  makeId: () => string = id,
+): CompanionState {
+  if (state.worldEcology?.sick !== true || state.foxMerchantLetter?.status === 'captured'
+    || state.gifts.some(gift => isVitaminGift(gift) && gift.fedAt === undefined)) return state;
+  const snacks = state.gifts.filter(gift => !gift.fedAt && canFeedGift(gift));
+  if (snacks.length < 3) return state;
+  const vitaminId = makeId();
+  if (!vitaminId || state.gifts.some(gift => gift.id === vitaminId)
+    || state.pendingGift?.id === vitaminId || state.trip?.gift.id === vitaminId) {
+    throw new Error('维生素编号重复了，请再试一次。');
+  }
+  const consumed = new Set(snacks.slice(0, 3).map(gift => gift.id));
+  const vitamin: Gift = {
+    id: vitaminId,
+    kind: 'vitamin',
+    emoji: '💊',
+    item: '维生素',
+    animal: '医院小护士',
+    story: `${petName}把三份还没喂过的零食带到医院，小护士笑着帮忙换成一颗维生素，还叮嘱它要按时吃药、快点好起来。`,
+    receivedAt: now,
+  };
+  return {
+    ...state,
+    gifts: [
+      ...state.gifts.map(gift => consumed.has(gift.id) ? { ...gift, fedAt: now } : gift),
+      vitamin,
+    ],
+  };
 }
 export const ACTIONS: PerformanceAction[] = ['bamboo', 'jump', 'somersault', 'tail'];
 export const id = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -608,6 +671,8 @@ export function readState(storage: Pick<Storage, 'getItem'>, now = Date.now()): 
     || (ecology.lastFallRollAt !== undefined && !Number.isFinite(ecology.lastFallRollAt))
     || (ecology.dirtySince !== undefined && !Number.isFinite(ecology.dirtySince))
     || !Number.isInteger(ecology.dirtyHealthAppliedMinutes) || ecology.dirtyHealthAppliedMinutes < 0
+    || (ecology.vitaminsFed !== undefined && (!Number.isInteger(ecology.vitaminsFed)
+      || ecology.vitaminsFed < 0 || ecology.vitaminsFed > 3))
     || !Number.isFinite(ecology.updatedAt);
   if (value.version !== 1 || !Array.isArray(value.messages) || !Array.isArray(value.diary) || !Array.isArray(value.gifts)
     || typeof value.userName !== 'string' || typeof value.draft !== 'string'
@@ -989,24 +1054,42 @@ const souvenirs = [
     '小熊猫看松鼠玩木陀螺看得入迷，松鼠就把自己新做的一只送给它，让它带回来给你。',
   ] },
 ];
-export function beginTrip(state: CompanionState, now = Date.now(), random = Math.random): CompanionState {
-  const pick = souvenirs[Math.min(souvenirs.length - 1, Math.floor(random() * souvenirs.length))];
+const vitaminSouvenir = {
+  kind: 'vitamin' as const,
+  emoji: '💊',
+  item: '维生素',
+  animal: '医院小护士',
+  stories: [
+    '我路过医院时，小护士看见我蔫蔫的，笑着送给我一颗维生素：“乖乖带回家，记得按时吃哦！”我把它抱好，带回来啦。',
+  ],
+};
+export function beginTrip(
+  state: CompanionState,
+  now = Date.now(),
+  random = Math.random,
+  options: { enableWorldEcology?: boolean; petName?: string } = {},
+): CompanionState {
+  const petName = options.petName ?? '小熊猫';
+  const giftPool = options.enableWorldEcology ? [...souvenirs, vitaminSouvenir] : souvenirs;
+  const pick = giftPool[Math.min(giftPool.length - 1, Math.floor(random() * giftPool.length))];
   const recentGiftStories = state.recentGiftStories ?? [];
   const unusedStories = pick.stories.filter(story => !recentGiftStories.includes(story));
   const storyChoices = unusedStories.length ? unusedStories : pick.stories;
   const story = storyChoices[Math.min(storyChoices.length - 1, Math.floor(random() * storyChoices.length))];
-  const personalizedStory = state.userName ? story.replaceAll('给你', `给${state.userName}`) : story;
+  const namedStory = story.replaceAll('小熊猫', petName);
+  const personalizedStory = state.userName ? namedStory.replaceAll('给你', `给${state.userName}`) : namedStory;
   const captured = random() >= 1 - CAPTURED_TRIP_CHANCE;
   const returnAt = now + 30_000 + random() * 90_000 + (captured ? CAPTURED_TRIP_EXTRA_MS : 0);
   const gift: Omit<Gift, 'receivedAt'> = {
-    id: id(), emoji: pick.emoji, item: pick.item, animal: pick.animal,
+    id: id(), ...(pick === vitaminSouvenir ? { kind: 'vitamin' as const } : {}),
+    emoji: pick.emoji, item: pick.item, animal: pick.animal,
     story: `${state.userName ? `${state.userName}，` : ''}${personalizedStory}` };
   const { returnEvent: _returnEvent, ...stateWithoutReturnEvent } = state;
   return { ...stateWithoutReturnEvent, recentGiftStories: [...recentGiftStories, story].slice(-12),
     trip: { id: gift.id, gift, returnAt, captured },
     messages: [...state.messages, assistant(captured
-      ? `哎呀，小熊猫太可爱，被路过的人抱走啦！大家正在找它，小熊猫会晚一点回家哦。`
-      : `诶，${state.userName ? state.userName + '，' : ''}小熊猫出去逛一圈，一会儿回来哦。（它轻轻挥挥爪子）`, 'event', now)] };
+      ? `哎呀，${petName}太可爱，被路过的人抱走啦！大家正在找它，${petName}会晚一点回家哦。`
+      : `诶，${state.userName ? state.userName + '，' : ''}${petName}出去逛一圈，一会儿回来哦。（它轻轻挥挥爪子）`, 'event', now)] };
 }
 export function tickCompanion(state: CompanionState, now: number, random = Math.random,
   options: { allowDeparture?: boolean; enableWorldEcology?: boolean; petName?: string } = {}): {
@@ -1034,7 +1117,7 @@ export function tickCompanion(state: CompanionState, now: number, random = Math.
     const gift: Gift = { ...next.trip.gift, receivedAt: now };
     const capturedReturn = next.trip.captured === true;
     const text = capturedReturn
-      ? `小熊猫终于被找回来啦……它还呆呆的，脑袋里好像只剩下“好可爱”这几个字。${gift.story}`
+      ? `${options.petName ?? '小熊猫'}终于被找回来啦……它还呆呆的，脑袋里好像只剩下“好可爱”这几个字。${gift.story}`
       : gift.story;
     const { returnEvent: _previousReturnEvent, ...stateWithoutReturnEvent } = next;
     const returnedState: CompanionState = { ...stateWithoutReturnEvent, trip: undefined, nextTripAt: now + tripDelay(random),
@@ -1086,7 +1169,7 @@ export function tickCompanion(state: CompanionState, now: number, random = Math.
   }
   if (options.allowDeparture !== false && (!options.enableWorldEcology || !next.worldEcology?.sick) && !next.pendingGift
     && now >= next.nextTripAt && now - next.lastUserAt >= MINUTE) {
-    next = beginTrip(next, now, random);
+    next = beginTrip(next, now, random, options);
     return { state: next, event: 'departure', text: next.messages.at(-1)!.text };
   }
   return { state: next };

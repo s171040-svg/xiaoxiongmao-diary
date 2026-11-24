@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ACTIONS, adjustHungerState, initialState, idleDelay, localDay, performancePlan, contextFor, receiveReply, recordUserMessage, waitingForAnswer, tickCompanion, welcome, beginTrip, startGiftDrop, collectGift, feedGift, canFeedGift, feedActionForGift, favoriteGift, injectTestGift, markPendingInterrupted, deliverSpacePoliceLetter, eatSpacePoliceLetter, fileSpacePoliceLetter, markSpacePoliceLetterOpened, paySpacePoliceFine, placeSpacePolicePoop, packSpacePolicePoop, moveSpacePolicePoopBag, disposeSpacePolicePoopBag, finishSpacePolicePoopDisposal, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, CAPTURED_TRIP_EXTRA_MS, SPACE_POLICE_LETTER_EAT_DELAY_MS, DAY, MINUTE, COMPANION_KEY, readState, writeState, tryStartIdleWorldFall, markWorldFallReturned, markPetWashed, markPetDried, tickDirtyHealth, tickPetPoop, tickPetPoopHealth, redeemFoxMerchantLetter, openFoxMerchantLetter, IDLE_FALL_AFTER_MS, DIRTY_HEALTH_DECAY_INTERVAL_MS } from './companion-store';
+import { ACTIONS, adjustHungerState, initialState, idleDelay, localDay, performancePlan, contextFor, receiveReply, recordUserMessage, waitingForAnswer, tickCompanion, welcome, beginTrip, startGiftDrop, collectGift, feedGift, feedVitaminGift, exchangeSnacksForVitamin, isVitaminGift, canFeedGift, feedActionForGift, favoriteGift, injectTestGift, markPendingInterrupted, deliverSpacePoliceLetter, eatSpacePoliceLetter, fileSpacePoliceLetter, markSpacePoliceLetterOpened, paySpacePoliceFine, placeSpacePolicePoop, packSpacePolicePoop, moveSpacePolicePoopBag, disposeSpacePolicePoopBag, finishSpacePolicePoopDisposal, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, CAPTURED_TRIP_EXTRA_MS, SPACE_POLICE_LETTER_EAT_DELAY_MS, DAY, MINUTE, COMPANION_KEY, readState, writeState, tryStartIdleWorldFall, markWorldFallReturned, markPetWashed, markPetDried, tickDirtyHealth, tickPetPoop, tickPetPoopHealth, redeemFoxMerchantLetter, openFoxMerchantLetter, IDLE_FALL_AFTER_MS, DIRTY_HEALTH_DECAY_INTERVAL_MS } from './companion-store';
 import type { CompanionState } from './companion-types';
 import {
   CARE_STAT_DECAY_INTERVAL_MS,
@@ -193,6 +193,38 @@ test('poop age, applied penalties, timer, and fever state survive local reloads'
   assert.equal(resumed.state.spacePoliceLetters?.[0]?.poop?.healthAppliedMinutes, 3);
   assert.equal(resumed.state.careStats.health, 49);
   assert.equal(resumed.state.worldEcology?.sick, true);
+});
+
+test('vitamin gifts, fed count and cure result survive local reloads', () => {
+  const values = new Map<string, string>();
+  const storage = {
+    setItem: (key: string, value: string) => values.set(key, value),
+    getItem: (key: string) => values.get(key) ?? null,
+  };
+  let state = {
+    ...sample(),
+    careStats: { ...sample().careStats, health: 17 },
+    worldEcology: { ...sample().worldEcology!, sick: true, vitaminsFed: 0 },
+    gifts: Array.from({ length: 3 }, (_, index) => ({
+      id: `saved-vitamin-${index}`, kind: 'vitamin' as const, emoji: '💊',
+      item: '维生素', animal: '医院小护士', story: '小护士送来的维生素', receivedAt: now + index,
+    })),
+  };
+  state = feedVitaminGift(state, state.gifts[0].id, '小白', now + 1);
+  writeState(storage, state);
+  let restored = readState(storage);
+  assert.equal(restored.worldEcology?.sick, true);
+  assert.equal(restored.worldEcology?.vitaminsFed, 1);
+  assert.equal(restored.gifts[0].fedAt, now + 1);
+
+  state = feedVitaminGift(restored, restored.gifts[1].id, '小白', now + 2);
+  state = feedVitaminGift(state, state.gifts[2].id, '小白', now + 3);
+  writeState(storage, state);
+  restored = readState(storage);
+  assert.equal(restored.worldEcology?.sick, false);
+  assert.equal(restored.worldEcology?.vitaminsFed, 3);
+  assert.equal(restored.careStats.health, 50);
+  assert.deepEqual(restored.gifts.map(gift => gift.fedAt), [now + 1, now + 2, now + 3]);
 });
 
 test('health reaching zero either captures for five unused food gifts or resets care state', () => {
@@ -647,6 +679,102 @@ test('new food gifts can be fed while the new toys stay collectible', () => {
     const state = feedGift({ ...sample(), gifts: [{ ...gift, animal: '朋友', story: '带回来的礼物', receivedAt: now }] }, gift.id, now + 1);
     assert.equal(state.gifts[0].fedAt, undefined);
   }
+});
+test('vitamin travel gift is available only in the web room and uses the nurse story', () => {
+  const webValues = [0.99, 0, 0, 0];
+  const webTrip = beginTrip(sample(), now, () => webValues.shift() ?? 0, {
+    enableWorldEcology: true,
+    petName: '小白',
+  });
+  assert.equal(webTrip.trip?.gift.kind, 'vitamin');
+  assert.equal(webTrip.trip?.gift.item, '维生素');
+  assert.equal(webTrip.trip?.gift.animal, '医院小护士');
+  assert.match(webTrip.trip!.gift.story, /医院|小护士|维生素/);
+  assert.equal(canFeedGift(webTrip.trip!.gift), false);
+  assert.equal(feedActionForGift(webTrip.trip!.gift), 'take-vitamin');
+
+  const desktopValues = [0.99, 0, 0, 0];
+  const desktopTrip = beginTrip(sample(), now, () => desktopValues.shift() ?? 0);
+  assert.notEqual(desktopTrip.trip?.gift.kind, 'vitamin');
+});
+test('three un-fed regular snacks exchange for exactly one vitamin while sick', () => {
+  const snacks = Array.from({ length: 3 }, (_, index) => ({
+    id: `exchange-snack-${index}`, emoji: '🍬', item: '糖果', animal: '朋友',
+    story: '普通零食', receivedAt: now,
+  }));
+  const keepsake = {
+    id: 'exchange-keepsake', emoji: '🌰', item: '松果纪念品', animal: '松鼠',
+    story: '纪念品', receivedAt: now,
+  };
+  const sick = {
+    ...sample(),
+    worldEcology: { ...sample().worldEcology!, sick: true, vitaminsFed: 0 },
+    gifts: [...snacks, keepsake],
+  };
+  const tooFewSnacks = { ...sick, gifts: snacks.slice(0, 2) };
+  assert.equal(exchangeSnacksForVitamin(tooFewSnacks, '小白', now), tooFewSnacks);
+  const exchanged = exchangeSnacksForVitamin(sick, '小白', now + 1, () => 'vitamin-from-trade');
+  const vitamin = exchanged.gifts.find(isVitaminGift);
+  assert.ok(vitamin);
+  assert.equal(vitamin.item, '维生素');
+  assert.equal(vitamin.animal, '医院小护士');
+  assert.equal(vitamin.story.includes('小白'), true);
+  assert.deepEqual(exchanged.gifts.filter(gift => gift.id.startsWith('exchange-snack-')).map(gift => gift.fedAt), [now + 1, now + 1, now + 1]);
+  assert.equal(exchanged.gifts.find(gift => gift.id === keepsake.id)?.fedAt, undefined);
+  assert.equal(canFeedGift(vitamin), false);
+  assert.equal(feedGift(exchanged, vitamin.id, now + 2), exchanged);
+  assert.equal(exchangeSnacksForVitamin(exchanged, '小白', now + 2), exchanged, 'cannot exchange again while an unused vitamin is available');
+
+  const fourSnacksAndVitamin = {
+    ...sick,
+    careStats: { ...sick.careStats, health: 0 },
+    gifts: [...Array.from({ length: 4 }, (_, index) => ({ ...snacks[0], id: `fox-snack-${index}` })), vitamin],
+  };
+  const healthZero = tickPetPoopHealth(fourSnacksAndVitamin, '小白', now).state;
+  assert.equal(healthZero.foxMerchantLetter?.status, 'reset', 'a vitamin does not count toward five-snack rescue');
+  assert.equal(healthZero.foxMerchantLetter?.snacksAtCapture, 4);
+});
+test('three different vitamins cure fever once and restore health to exactly 50', () => {
+  const vitamins = Array.from({ length: 3 }, (_, index) => ({
+    id: `vitamin-${index}`, kind: 'vitamin' as const, emoji: '💊', item: '维生素',
+    animal: '医院小护士', story: '小护士送来的维生素', receivedAt: now + index,
+  }));
+  let state = {
+    ...sample(),
+    careStats: { ...sample().careStats, health: 17 },
+    worldEcology: { ...sample().worldEcology!, sick: true, vitaminsFed: 0 },
+    gifts: vitamins,
+  };
+  state = feedVitaminGift(state, vitamins[0].id, '小白', now + 1);
+  assert.equal(state.worldEcology?.sick, true);
+  assert.equal(state.worldEcology?.vitaminsFed, 1);
+  assert.equal(state.careStats.health, 17);
+  assert.equal(state.gifts[0].fedAt, now + 1);
+  const duplicate = feedVitaminGift(state, vitamins[0].id, '小白', now + 2);
+  assert.equal(duplicate, state, 'the same vitamin cannot count twice');
+
+  state = feedVitaminGift(state, vitamins[1].id, '小白', now + 3);
+  assert.equal(state.worldEcology?.vitaminsFed, 2);
+  assert.equal(state.worldEcology?.sick, true);
+  state = feedVitaminGift(state, vitamins[2].id, '小白', now + 4);
+  assert.equal(state.worldEcology?.sick, false);
+  assert.equal(state.worldEcology?.vitaminsFed, 3);
+  assert.equal(state.careStats.health, 50);
+  assert.match(state.messages.at(-1)!.text, /小白.*退啦.*50/);
+  assert.equal(feedVitaminGift(state, vitamins[2].id, '小白', now + 5), state);
+});
+test('vitamins cannot be consumed when healthy or while the fox merchant holds the pet', () => {
+  const vitamin = { id: 'inactive-vitamin', kind: 'vitamin' as const, emoji: '💊',
+    item: '维生素', animal: '医院小护士', story: '礼物', receivedAt: now };
+  const healthy = { ...sample(), gifts: [vitamin] };
+  assert.equal(feedVitaminGift(healthy, vitamin.id, '小熊猫', now), healthy);
+  const captured = {
+    ...healthy,
+    worldEcology: { ...healthy.worldEcology!, sick: true, vitaminsFed: 0 },
+    foxMerchantLetter: { id: 'fox-held', sentAt: now, petName: '小熊猫', foxName: '狐贩子',
+      status: 'captured' as const, snacksAtCapture: 5 },
+  };
+  assert.equal(feedVitaminGift(captured, vitamin.id, '小熊猫', now), captured);
 });
 test('developer gift injection appends a unique persisted gift that can be favorited and fed', () => {
   const existing = { id: 'existing', emoji: '🌸', item: '花瓣', animal: '蝴蝶', story: '原来的故事', receivedAt: now };

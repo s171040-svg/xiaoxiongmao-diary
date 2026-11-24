@@ -114,6 +114,7 @@ const SPACE_POLICE_ENVELOPE_HOLD_MS = 420;
 const SPACE_POLICE_ENVELOPE_STORE_MS = 190;
 const ROOM_WASTE_HOLD_MS = 520;
 const ROOM_WASTE_PACK_MS = 880;
+const ROOM_WASTE_DRAG_THRESHOLD_PX = 6;
 const ROOM_WASTE_DISPOSE_MS = 720;
 const WAKE_CLICK_COOLDOWN_MS = 500;
 const STARTLE_DURATION_MS = 720;
@@ -209,6 +210,12 @@ type RoomWastePointer = {
   deliveredAt: number;
   kind: 'pack' | 'drag';
   holdTimer: number;
+  startX: number;
+  startY: number;
+  offsetX: number;
+  offsetY: number;
+  dragging: boolean;
+  completed: boolean;
 };
 const TRANSITION_ASSET_VERSIONS: Record<TransitionKey, string> = {
   idle: 'pixellab-transition-1',
@@ -241,6 +248,7 @@ const ACTION_TRANSITION_KEY: Record<PerformanceAction, TransitionKey> = {
   'eat-strawberry': 'chew',
   'eat-cookie': 'chew',
   'eat-bamboo': 'chew',
+  'take-vitamin': 'chew',
   roll: 'idle',
   jump: 'jump',
   spin: 'idle',
@@ -331,7 +339,7 @@ type BathBallPointer = {
 
 export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthPotion, thinking = false, motion = 'idle', debugClicks = false, showInteractionBubble = false, showArrowMarker = false, interactionBubbleText, developerPose = null, developerEvent = null, onChatModeChange, onCareInteraction, onPlayerAttention, worldEcology, foxMerchantLetter, onTryIdleWorldFall, onWorldFallReturned, onPetWashed, onPetDried, onLeafPlatformChange, onCapturedHomecomingInteraction, pendingGift, giftDropStartedAt, onCollectPresent, giftCount = 0, onOpenGiftStorage, spacePoliceLetter, spacePoliceLetters, spacePoliceMailCount = 0, spacePoliceUnreadCount = 0, onOpenSpacePoliceLetter, onFileSpacePoliceLetter, onEatSpacePoliceLetter, onPlaceSpacePolicePoop, onPackSpacePolicePoop, onMoveSpacePolicePoopBag, onDisposeSpacePolicePoopBag, onFinishSpacePolicePoopDisposal, onOpenSpacePoliceMailbox }: {
   pet: PetEffect;
-  selectedSnack?: Pick<Gift, 'id' | 'emoji' | 'item'> | null;
+  selectedSnack?: Pick<Gift, 'id' | 'emoji' | 'item' | 'kind'> | null;
   onFeedSnack?: (giftId: string) => void;
   onDrinkTruthPotion?: () => void;
   thinking?: boolean;
@@ -406,7 +414,6 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const hangingOnClothesRack = hangingOnRack && !hangingOnWindowHook;
   const pandaHanging = hangingOnRack || hangingOnWindowHook;
   const [pandaJarTrapped, setPandaJarTrapped] = useState(false);
-  const [pandaDragScreenPosition, setPandaDragScreenPosition] = useState<ScreenPosition | null>(null);
   const bambooJarRoomPoint = roomPointAtImagePosition(258, 226);
   const bambooJarTargetRoomPoint = roomPointAtImagePosition(258, 250);
   const [dirtyGrabLiftComplete, setDirtyGrabLiftComplete] = useState(false);
@@ -456,6 +463,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const [packingPoopDeliveredAt, setPackingPoopDeliveredAt] = useState<number | null>(null);
   const [draggingPoopDeliveredAt, setDraggingPoopDeliveredAt] = useState<number | null>(null);
   const [poopDragPosition, setPoopDragPosition] = useState<RoomWastePoint | null>(null);
+  const [roomWasteHint, setRoomWasteHint] = useState<{ deliveredAt: number; action: 'pack' | 'dispose' } | null>(null);
   const [snackDropPosition, setSnackDropPosition] = useState<ScreenPosition | null>(null);
   const [snackDropDragging, setSnackDropDragging] = useState(false);
   const [truthPotionPosition, setTruthPotionPosition] = useState<ScreenPosition | null>(null);
@@ -529,7 +537,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     [activeWasteLetters],
   );
   const trashCanBusy = trashCanPandaPhase !== null || draggingFurnitureId === 'trashCan'
-    || activeWasteLetters.some(letter => letter.poop?.phase === 'disposing');
+    || activeWasteLetters.some(letter => letter.poop?.phase === 'bagged' || letter.poop?.phase === 'disposing');
   // A shared hide request waits until the local pet/disposal animation is safe.
   const wasteBinVisible = showInteractionBubble && (placedProps.trashCan || trashCanBusy);
   const isFlyChasing = flyChaseActive && bathPhase === 'none' && interactionState === 'roaming'
@@ -603,6 +611,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const spacePoliceEnvelopeStoreTimerRef = useRef(0);
   const poopPackStartTimerRef = useRef(0);
   const poopPackFinishTimerRef = useRef(0);
+  const roomWasteHintTimerRef = useRef(0);
   const packingPoopRef = useRef<number | null>(null);
   const roomWastePointerRef = useRef<RoomWastePointer | null>(null);
   const furniturePointerRef = useRef<FurniturePointer | null>(null);
@@ -628,6 +637,17 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const [facing, setFacing] = useState<'left' | 'right'>('right');
   const facingRef = useRef<'left' | 'right'>('right');
   const trackRef = useRef<HTMLDivElement>(null);
+  const updatePandaDragStyle = (position: ScreenPosition | null) => {
+    const track = trackRef.current;
+    if (!track) return;
+    if (position) {
+      track.style.setProperty('--panda-drag-x', `${position.x}px`);
+      track.style.setProperty('--panda-drag-y', `${position.y}px`);
+    } else {
+      track.style.removeProperty('--panda-drag-x');
+      track.style.removeProperty('--panda-drag-y');
+    }
+  };
   const bubbleAnchorRef = useRef<HTMLDivElement>(null);
   const positionRef = useRef<RoomPoint>({ u: 0.5, v: 0.58 });
   const mousePositionRef = useRef<{ x: number; y: number } | null>(null);
@@ -900,9 +920,14 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
   const syncRackOcclusion = useCallback(() => {
     const foregroundRack = rackOcclusionRef.current;
     if (!foregroundRack) return;
+    if (draggingRef.current) {
+      if (foregroundRack.style.visibility !== 'hidden') foregroundRack.style.visibility = 'hidden';
+      if (foregroundRack.dataset.visible !== 'false') foregroundRack.dataset.visible = 'false';
+      return;
+    }
     const pandaRect = pandaButtonRef.current?.getBoundingClientRect();
     const rackRect = clothesRackRef.current?.getBoundingClientRect();
-    const shouldCoverPanda = showInteractionBubble && !draggingRef.current
+    const shouldCoverPanda = showInteractionBubble
       && pandaRect !== undefined && rackRect !== undefined
       && shouldRackOccludePanda(pandaRect, rackRect, hangingOnClothesRack);
     foregroundRack.style.visibility = shouldCoverPanda ? 'visible' : 'hidden';
@@ -1205,7 +1230,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     ? 'dizzy'
     : showInteractionBubble && (isDragging || developerGrab || pandaHanging)
     ? 'grab'
-    : feverish
+    : feverish && !(pet.stage === 'performing' && pet.action === 'take-vitamin')
     ? 'fever'
     : startled && showInteractionBubble
     ? animationManifest.motionSprites.idle
@@ -3250,7 +3275,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       setRoomWalking(false);
       const width = Math.max(1, window.innerWidth);
       const height = Math.max(1, window.innerHeight);
-      setPandaDragScreenPosition(clampPandaDragScreenPosition(
+       updatePandaDragStyle(clampPandaDragScreenPosition(
         activeDrag.currentX + activeDrag.offsetX,
         activeDrag.currentY + activeDrag.offsetY,
         width,
@@ -3288,7 +3313,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     event.preventDefault();
     const width = Math.max(1, window.innerWidth);
     const height = Math.max(1, window.innerHeight);
-    setPandaDragScreenPosition(clampPandaDragScreenPosition(
+    updatePandaDragStyle(clampPandaDragScreenPosition(
       event.clientX + drag.offsetX,
       event.clientY + drag.offsetY,
       width,
@@ -3359,7 +3384,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       && (pandaImageX < 0 || pandaImageX > ROOM_IMAGE_WIDTH || pandaImageY < 0 || pandaImageY > ROOM_IMAGE_HEIGHT);
     if (drag.holdTimer) window.clearTimeout(drag.holdTimer);
     dragPointerRef.current = null;
-    setPandaDragScreenPosition(null);
+    updatePandaDragStyle(null);
     setIsPressPending(false);
     if (drag.grabbed) {
       const now = performance.now();
@@ -3858,6 +3883,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     window.clearTimeout(dirtyPleaHideTimerRef.current);
     window.clearTimeout(poopPackStartTimerRef.current);
     window.clearTimeout(poopPackFinishTimerRef.current);
+    window.clearTimeout(roomWasteHintTimerRef.current);
     if (dragPointerRef.current) window.clearTimeout(dragPointerRef.current.holdTimer);
   }, []);
 
@@ -4167,24 +4193,46 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     applyRoomPoint(point);
   }, [applyRoomPoint, dirtyGrab, facing, image, isDragging, showInteractionBubble]);
 
+  const hideRoomWasteHint = useCallback(() => {
+    window.clearTimeout(roomWasteHintTimerRef.current);
+    roomWasteHintTimerRef.current = 0;
+    setRoomWasteHint(null);
+  }, []);
+
+  const showRoomWasteHint = useCallback((deliveredAt: number, action: 'pack' | 'dispose') => {
+    window.clearTimeout(roomWasteHintTimerRef.current);
+    setRoomWasteHint({ deliveredAt, action });
+    roomWasteHintTimerRef.current = window.setTimeout(() => {
+      roomWasteHintTimerRef.current = 0;
+      setRoomWasteHint(current => current?.deliveredAt === deliveredAt ? null : current);
+    }, 3200);
+  }, []);
+
   const beginRoomWastePointer = useCallback((
     deliveredAt: number,
     phase: NonNullable<SpacePoliceLetter['poop']>['phase'],
     event: ReactPointerEvent<HTMLButtonElement>,
   ) => {
     if (phase !== 'fresh' && phase !== 'bagged') return;
+    if (phase === 'fresh' && packingPoopRef.current !== null) return;
     event.preventDefault();
     event.stopPropagation();
     try { event.currentTarget.setPointerCapture(event.pointerId); } catch { /* pointer may already be captured */ }
+    const rect = event.currentTarget.getBoundingClientRect();
     const pointer: RoomWastePointer = {
       pointerId: event.pointerId,
       deliveredAt,
       kind: phase === 'fresh' ? 'pack' : 'drag',
       holdTimer: 0,
+      startX: event.clientX,
+      startY: event.clientY,
+      offsetX: event.clientX - (rect.left + rect.width / 2),
+      offsetY: event.clientY - (rect.top + rect.height / 2),
+      dragging: false,
+      completed: false,
     };
     roomWastePointerRef.current = pointer;
     if (phase === 'fresh') {
-      if (packingPoopRef.current !== null) return;
       pointer.holdTimer = window.setTimeout(() => {
         poopPackStartTimerRef.current = 0;
         packingPoopRef.current = deliveredAt;
@@ -4193,29 +4241,32 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
           poopPackFinishTimerRef.current = 0;
           packingPoopRef.current = null;
           setPackingPoopDeliveredAt(null);
+          pointer.completed = true;
+          hideRoomWasteHint();
           onPackSpacePolicePoop?.(deliveredAt);
         }, ROOM_WASTE_PACK_MS);
       }, ROOM_WASTE_HOLD_MS);
       poopPackStartTimerRef.current = pointer.holdTimer;
-    } else {
-      setDraggingPoopDeliveredAt(deliveredAt);
-      setPoopDragPosition({
-        x: event.clientX / Math.max(1, window.innerWidth),
-        y: event.clientY / Math.max(1, window.innerHeight),
-      });
     }
-  }, [onPackSpacePolicePoop]);
+  }, [hideRoomWasteHint, onPackSpacePolicePoop]);
 
   const moveRoomWastePointer = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
     const pointer = roomWastePointerRef.current;
     if (!pointer || pointer.pointerId !== event.pointerId || pointer.kind !== 'drag') return;
+    if (!pointer.dragging
+      && Math.hypot(event.clientX - pointer.startX, event.clientY - pointer.startY) < ROOM_WASTE_DRAG_THRESHOLD_PX) return;
+    if (!pointer.dragging) {
+      pointer.dragging = true;
+      hideRoomWasteHint();
+      setDraggingPoopDeliveredAt(pointer.deliveredAt);
+    }
     event.preventDefault();
     event.stopPropagation();
     setPoopDragPosition({
-      x: Math.max(0.02, Math.min(0.98, event.clientX / Math.max(1, window.innerWidth))),
-      y: Math.max(0.02, Math.min(0.98, event.clientY / Math.max(1, window.innerHeight))),
+      x: Math.max(0.02, Math.min(0.98, (event.clientX - pointer.offsetX) / Math.max(1, window.innerWidth))),
+      y: Math.max(0.02, Math.min(0.98, (event.clientY - pointer.offsetY) / Math.max(1, window.innerHeight))),
     });
-  }, []);
+  }, [hideRoomWasteHint]);
 
   const finishRoomWastePointer = useCallback((event: ReactPointerEvent<HTMLButtonElement>, cancelled = false) => {
     const pointer = roomWastePointerRef.current;
@@ -4227,19 +4278,38 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
       if (packingPoopRef.current !== pointer.deliveredAt) {
         window.clearTimeout(pointer.holdTimer);
         if (poopPackStartTimerRef.current === pointer.holdTimer) poopPackStartTimerRef.current = 0;
+        if (!cancelled && !pointer.completed) showRoomWasteHint(pointer.deliveredAt, 'pack');
       }
+      return;
+    }
+    const movedEnough = Math.hypot(event.clientX - pointer.startX, event.clientY - pointer.startY)
+      >= ROOM_WASTE_DRAG_THRESHOLD_PX;
+    if (!pointer.dragging && !movedEnough) {
+      if (!cancelled) showRoomWasteHint(pointer.deliveredAt, 'dispose');
       return;
     }
     const x = cancelled && poopDragPosition
       ? poopDragPosition.x
-      : Math.max(0.02, Math.min(0.98, event.clientX / Math.max(1, window.innerWidth)));
+      : Math.max(0.02, Math.min(0.98, (event.clientX - pointer.offsetX) / Math.max(1, window.innerWidth)));
     const y = cancelled && poopDragPosition
       ? poopDragPosition.y
-      : Math.max(0.02, Math.min(0.98, event.clientY / Math.max(1, window.innerHeight)));
+      : Math.max(0.02, Math.min(0.98, (event.clientY - pointer.offsetY) / Math.max(1, window.innerHeight)));
     const binRect = wasteBinRef.current?.getBoundingClientRect();
-    const droppedIntoBin = !cancelled && binRect
+    const itemCenterX = x * Math.max(1, window.innerWidth);
+    const itemCenterY = y * Math.max(1, window.innerHeight);
+    const itemHalfSize = 24;
+    const overlapWidth = binRect
+      ? Math.max(0, Math.min(itemCenterX + itemHalfSize, binRect.right) - Math.max(itemCenterX - itemHalfSize, binRect.left))
+      : 0;
+    const overlapHeight = binRect
+      ? Math.max(0, Math.min(itemCenterY + itemHalfSize, binRect.bottom) - Math.max(itemCenterY - itemHalfSize, binRect.top))
+      : 0;
+    const pointerInsideBin = binRect
       && event.clientX >= binRect.left && event.clientX <= binRect.right
       && event.clientY >= binRect.top && event.clientY <= binRect.bottom;
+    const droppedIntoBin = !cancelled && binRect
+      && (pointerInsideBin
+        || (overlapWidth * overlapHeight) >= (itemHalfSize * 2) ** 2 * 0.2);
     if (droppedIntoBin && binRect) {
       onDisposeSpacePolicePoopBag?.(
         pointer.deliveredAt,
@@ -4251,7 +4321,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
     }
     setDraggingPoopDeliveredAt(null);
     setPoopDragPosition(null);
-  }, [onDisposeSpacePolicePoopBag, onMoveSpacePolicePoopBag, poopDragPosition]);
+  }, [onDisposeSpacePolicePoopBag, onMoveSpacePolicePoopBag, poopDragPosition, showRoomWasteHint]);
 
   const roomBackgroundImage = `url("${import.meta.env.BASE_URL}static/room/room-background-pixellab.png?v=bamboo-room-1")`;
   const roomBackgroundSize = `min(100vw, ${(ROOM_IMAGE_WIDTH / ROOM_IMAGE_HEIGHT) * 100}vh) auto`;
@@ -4317,8 +4387,6 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
          data-damp-drying-ready={dampDryingReady ? 'true' : undefined}
           style={{
             ['--ps-dur' as string]: `${seconds}s`,
-            ['--panda-drag-x' as string]: pandaDragScreenPosition ? `${pandaDragScreenPosition.x}px` : undefined,
-            ['--panda-drag-y' as string]: pandaDragScreenPosition ? `${pandaDragScreenPosition.y}px` : undefined,
           }}>
         {showInteractionBubble && trashCanPandaPhase && trashCanPandaAnchor && trashCanPandaImage && (
           <img className="ps-room-trash-panda"
@@ -4405,10 +4473,10 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
           <button ref={windowDryingHookRef} type="button"
             className="ps-window-drying-hook"
             aria-label={narrate('圆窗边的晾晒小钩子，可挂湿润的小熊猫或浴球')}
-            data-drop-hint={isDragging || bathBallDragging ? 'true' : undefined}
+            data-drop-hint={bathBallDragging ? 'true' : undefined}
             data-testid="window-drying-hook">
             <i aria-hidden="true" />
-            {(isDragging || bathBallDragging) && (
+            {bathBallDragging && (
               <span className="ps-hook-drop-hint" aria-hidden="true" data-testid="window-hook-drag-hint">
                 <span>挂钩在这里</span><b>↓</b>
               </span>
@@ -4514,6 +4582,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
           const point = dragPoint ?? { x: poop.x ?? 0.5, y: poop.y ?? 0.65 };
           const isPacking = packingPoopDeliveredAt === letter.deliveredAt;
           const isDraggingBag = draggingPoopDeliveredAt === letter.deliveredAt;
+          const visibleHint = roomWasteHint?.deliveredAt === letter.deliveredAt ? roomWasteHint.action : null;
           return (
             <button key={letter.deliveredAt} type="button"
               className={`ps-room-waste ps-room-waste-${poop.phase}${isPacking ? ' ps-room-waste-packing' : ''}${isDraggingBag ? ' ps-room-waste-dragging' : ''}`}
@@ -4521,7 +4590,6 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
               aria-label={poop.phase === 'fresh'
                 ? '长按把大便打包成黑色袋子'
                 : poop.phase === 'disposing' ? '垃圾桶正在处理黑色袋子' : '拖动黑色袋子到垃圾桶里'}
-              title={poop.phase === 'fresh' ? '长按打包' : poop.phase === 'bagged' ? '拖进垃圾桶' : undefined}
               disabled={poop.phase === 'disposing'}
               onPointerDown={event => beginRoomWastePointer(letter.deliveredAt, poop.phase, event)}
               onPointerMove={moveRoomWastePointer}
@@ -4530,9 +4598,24 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
               data-testid={`room-waste-${letter.deliveredAt}`}
               data-waste-phase={poop.phase}>
               {poop.phase === 'fresh'
-                ? <span className="ps-room-waste-poop" aria-hidden="true" />
+                ? (
+                  <svg className="ps-room-waste-poop" viewBox="0 0 36 30" aria-hidden="true"
+                    shapeRendering="crispEdges" focusable="false">
+                    <path fill="#39251d" d="M5 25v-4H2v-6h4v-5h5V6h5V3h5V0h5v4h4v5h4v6h3v7h-4v4h-4v2H8v-2H5z" />
+                    <path fill="#865638" d="M8 24v-4H5v-4h4v-5h5V7h5V4h3v3h3v4h4v5h3v4h-3v3h-4v2H9v-2z" />
+                    <path fill="#a8754e" d="M13 15h4v3h-4zM17 10h4v3h-4zM23 15h5v3h-5zM9 20h4v3H9z" />
+                    <path fill="#d7ac77" d="M21 4h3v3h-3v2h-3V6h3z" />
+                    <path fill="#efc98e" d="M21 4h2v2h-2zM27 12h2v2h-2z" />
+                  </svg>
+                )
                 : <span className="ps-room-waste-bag" aria-hidden="true"><i /></span>}
               {isPacking && <span className="ps-room-waste-wrap" aria-hidden="true"><i /></span>}
+              {visibleHint && (
+                <span className="ps-room-waste-hint" role="status" aria-live="polite"
+                  data-testid="room-waste-hint">
+                  {visibleHint === 'pack' ? '长按把大便包起来' : '拖动垃圾袋到垃圾桶清理'}
+                </span>
+              )}
             </button>
           );
         })}
@@ -4763,7 +4846,7 @@ export function PetStage({ pet, selectedSnack = null, onFeedSnack, onDrinkTruthP
           style={{ left: snackDropPosition.x, top: snackDropPosition.y }}
           data-dragging={snackDropDragging ? 'true' : undefined}
           data-testid="snack-feed-token"
-          aria-label={`零食${selectedSnack.emoji}；拖到小熊猫身上喂它`}
+          aria-label={`${selectedSnack.kind === 'vitamin' ? '维生素' : '零食'}${selectedSnack.emoji}；拖到小熊猫身上${selectedSnack.kind === 'vitamin' ? '治疗' : '喂它'}`}
           onPointerDown={handleSnackPointerDown}
           onPointerMove={handleSnackPointerMove}
           onPointerUp={handleSnackPointerUp}

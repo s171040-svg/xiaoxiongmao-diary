@@ -86,6 +86,7 @@
     "eat-strawberry": "eat-strawberry",
     "eat-cookie": "eat-cookie",
     "eat-bamboo": "eat-bamboo",
+    "take-vitamin": "chew",
     "roll": "idle",
     "jump": "jump",
     "spin": "idle",

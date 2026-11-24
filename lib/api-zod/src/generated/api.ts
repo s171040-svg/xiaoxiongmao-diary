@@ -83,6 +83,11 @@ export const getPetSaveResponseSnapshotOneRoomCareStatsRecentInteractionIdsMax =
 
 export const getPetSaveResponseSnapshotOneRoomWorldEcologyLastAttentionAtMin = 0;
 
+export const getPetSaveResponseSnapshotOneRoomWorldEcologyLastPetPoopAtMin = 0;
+
+export const getPetSaveResponseSnapshotOneRoomWorldEcologyVitaminsFedMin = 0;
+export const getPetSaveResponseSnapshotOneRoomWorldEcologyVitaminsFedMax = 3;
+
 export const getPetSaveResponseSnapshotOneRoomWorldEcologyLastFallRollAtMin = 0;
 
 export const getPetSaveResponseSnapshotOneRoomWorldEcologyDirtySinceMin = 0;
@@ -120,7 +125,8 @@ export const GetPetSaveResponse = zod.object({
   "story": zod.string().max(getPetSaveResponseSnapshotOneRoomGiftsItemStoryMax),
   "receivedAt": zod.number().int().min(getPetSaveResponseSnapshotOneRoomGiftsItemReceivedAtMin),
   "favorite": zod.boolean().optional(),
-  "fedAt": zod.number().int().min(getPetSaveResponseSnapshotOneRoomGiftsItemFedAtMin).optional()
+  "fedAt": zod.number().int().min(getPetSaveResponseSnapshotOneRoomGiftsItemFedAtMin).optional(),
+  "kind": zod.enum(['vitamin']).optional()
 })).max(getPetSaveResponseSnapshotOneRoomGiftsMax),
   "furnitureLayout": zod.object({
   "bed": zod.object({
@@ -159,6 +165,9 @@ export const GetPetSaveResponse = zod.object({
 }).optional(),
   "worldEcology": zod.object({
   "lastAttentionAt": zod.number().int().min(getPetSaveResponseSnapshotOneRoomWorldEcologyLastAttentionAtMin),
+  "lastPetPoopAt": zod.number().int().min(getPetSaveResponseSnapshotOneRoomWorldEcologyLastPetPoopAtMin).optional(),
+  "sick": zod.boolean().optional(),
+  "vitaminsFed": zod.number().int().min(getPetSaveResponseSnapshotOneRoomWorldEcologyVitaminsFedMin).max(getPetSaveResponseSnapshotOneRoomWorldEcologyVitaminsFedMax).optional(),
   "fallCycle": zod.enum(['first', 'needs-clean', 'after-clean']),
   "lastFallRollAt": zod.number().int().min(getPetSaveResponseSnapshotOneRoomWorldEcologyLastFallRollAtMin).optional(),
   "dirtySince": zod.number().int().min(getPetSaveResponseSnapshotOneRoomWorldEcologyDirtySinceMin).optional(),
@@ -258,6 +267,11 @@ export const updatePetSaveBodySnapshotRoomCareStatsRecentInteractionIdsMax = 128
 
 export const updatePetSaveBodySnapshotRoomWorldEcologyLastAttentionAtMin = 0;
 
+export const updatePetSaveBodySnapshotRoomWorldEcologyLastPetPoopAtMin = 0;
+
+export const updatePetSaveBodySnapshotRoomWorldEcologyVitaminsFedMin = 0;
+export const updatePetSaveBodySnapshotRoomWorldEcologyVitaminsFedMax = 3;
+
 export const updatePetSaveBodySnapshotRoomWorldEcologyLastFallRollAtMin = 0;
 
 export const updatePetSaveBodySnapshotRoomWorldEcologyDirtySinceMin = 0;
@@ -295,7 +309,8 @@ export const UpdatePetSaveBody = zod.object({
   "story": zod.string().max(updatePetSaveBodySnapshotRoomGiftsItemStoryMax),
   "receivedAt": zod.number().int().min(updatePetSaveBodySnapshotRoomGiftsItemReceivedAtMin),
   "favorite": zod.boolean().optional(),
-  "fedAt": zod.number().int().min(updatePetSaveBodySnapshotRoomGiftsItemFedAtMin).optional()
+  "fedAt": zod.number().int().min(updatePetSaveBodySnapshotRoomGiftsItemFedAtMin).optional(),
+  "kind": zod.enum(['vitamin']).optional()
 })).max(updatePetSaveBodySnapshotRoomGiftsMax),
   "furnitureLayout": zod.object({
   "bed": zod.object({
@@ -334,6 +349,9 @@ export const UpdatePetSaveBody = zod.object({
 }).optional(),
   "worldEcology": zod.object({
   "lastAttentionAt": zod.number().int().min(updatePetSaveBodySnapshotRoomWorldEcologyLastAttentionAtMin),
+  "lastPetPoopAt": zod.number().int().min(updatePetSaveBodySnapshotRoomWorldEcologyLastPetPoopAtMin).optional(),
+  "sick": zod.boolean().optional(),
+  "vitaminsFed": zod.number().int().min(updatePetSaveBodySnapshotRoomWorldEcologyVitaminsFedMin).max(updatePetSaveBodySnapshotRoomWorldEcologyVitaminsFedMax).optional(),
   "fallCycle": zod.enum(['first', 'needs-clean', 'after-clean']),
   "lastFallRollAt": zod.number().int().min(updatePetSaveBodySnapshotRoomWorldEcologyLastFallRollAtMin).optional(),
   "dirtySince": zod.number().int().min(updatePetSaveBodySnapshotRoomWorldEcologyDirtySinceMin).optional(),
@@ -428,6 +446,11 @@ export const updatePetSaveResponseSnapshotOneRoomCareStatsRecentInteractionIdsMa
 
 export const updatePetSaveResponseSnapshotOneRoomWorldEcologyLastAttentionAtMin = 0;
 
+export const updatePetSaveResponseSnapshotOneRoomWorldEcologyLastPetPoopAtMin = 0;
+
+export const updatePetSaveResponseSnapshotOneRoomWorldEcologyVitaminsFedMin = 0;
+export const updatePetSaveResponseSnapshotOneRoomWorldEcologyVitaminsFedMax = 3;
+
 export const updatePetSaveResponseSnapshotOneRoomWorldEcologyLastFallRollAtMin = 0;
 
 export const updatePetSaveResponseSnapshotOneRoomWorldEcologyDirtySinceMin = 0;
@@ -465,7 +488,8 @@ export const UpdatePetSaveResponse = zod.object({
   "story": zod.string().max(updatePetSaveResponseSnapshotOneRoomGiftsItemStoryMax),
   "receivedAt": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomGiftsItemReceivedAtMin),
   "favorite": zod.boolean().optional(),
-  "fedAt": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomGiftsItemFedAtMin).optional()
+  "fedAt": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomGiftsItemFedAtMin).optional(),
+  "kind": zod.enum(['vitamin']).optional()
 })).max(updatePetSaveResponseSnapshotOneRoomGiftsMax),
   "furnitureLayout": zod.object({
   "bed": zod.object({
@@ -504,6 +528,9 @@ export const UpdatePetSaveResponse = zod.object({
 }).optional(),
   "worldEcology": zod.object({
   "lastAttentionAt": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomWorldEcologyLastAttentionAtMin),
+  "lastPetPoopAt": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomWorldEcologyLastPetPoopAtMin).optional(),
+  "sick": zod.boolean().optional(),
+  "vitaminsFed": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomWorldEcologyVitaminsFedMin).max(updatePetSaveResponseSnapshotOneRoomWorldEcologyVitaminsFedMax).optional(),
   "fallCycle": zod.enum(['first', 'needs-clean', 'after-clean']),
   "lastFallRollAt": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomWorldEcologyLastFallRollAtMin).optional(),
   "dirtySince": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomWorldEcologyDirtySinceMin).optional(),
@@ -627,6 +654,11 @@ export const getCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsMax
 
 export const getCoopHouseholdResponseSharedStateWorldEcologyLastAttentionAtMin = 0;
 
+export const getCoopHouseholdResponseSharedStateWorldEcologyLastPetPoopAtMin = 0;
+
+export const getCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMin = 0;
+export const getCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMax = 3;
+
 export const getCoopHouseholdResponseSharedStateWorldEcologyLastFallRollAtMin = 0;
 
 export const getCoopHouseholdResponseSharedStateWorldEcologyDirtySinceMin = 0;
@@ -676,7 +708,8 @@ export const GetCoopHouseholdResponse = zod.object({
   "story": zod.string().max(getCoopHouseholdResponseSharedStateGiftsItemStoryMax),
   "receivedAt": zod.number().int().min(getCoopHouseholdResponseSharedStateGiftsItemReceivedAtMin),
   "favorite": zod.boolean().optional(),
-  "fedAt": zod.number().int().min(getCoopHouseholdResponseSharedStateGiftsItemFedAtMin).optional()
+  "fedAt": zod.number().int().min(getCoopHouseholdResponseSharedStateGiftsItemFedAtMin).optional(),
+  "kind": zod.enum(['vitamin']).optional()
 })).max(getCoopHouseholdResponseSharedStateGiftsMax),
   "furnitureLayout": zod.object({
   "bed": zod.object({
@@ -715,6 +748,9 @@ export const GetCoopHouseholdResponse = zod.object({
 }).optional(),
   "worldEcology": zod.object({
   "lastAttentionAt": zod.number().int().min(getCoopHouseholdResponseSharedStateWorldEcologyLastAttentionAtMin),
+  "lastPetPoopAt": zod.number().int().min(getCoopHouseholdResponseSharedStateWorldEcologyLastPetPoopAtMin).optional(),
+  "sick": zod.boolean().optional(),
+  "vitaminsFed": zod.number().int().min(getCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMin).max(getCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMax).optional(),
   "fallCycle": zod.enum(['first', 'needs-clean', 'after-clean']),
   "lastFallRollAt": zod.number().int().min(getCoopHouseholdResponseSharedStateWorldEcologyLastFallRollAtMin).optional(),
   "dirtySince": zod.number().int().min(getCoopHouseholdResponseSharedStateWorldEcologyDirtySinceMin).optional(),
@@ -828,6 +864,11 @@ export const createCoopHouseholdBodySharedStateCareStatsRecentInteractionIdsMax 
 
 export const createCoopHouseholdBodySharedStateWorldEcologyLastAttentionAtMin = 0;
 
+export const createCoopHouseholdBodySharedStateWorldEcologyLastPetPoopAtMin = 0;
+
+export const createCoopHouseholdBodySharedStateWorldEcologyVitaminsFedMin = 0;
+export const createCoopHouseholdBodySharedStateWorldEcologyVitaminsFedMax = 3;
+
 export const createCoopHouseholdBodySharedStateWorldEcologyLastFallRollAtMin = 0;
 
 export const createCoopHouseholdBodySharedStateWorldEcologyDirtySinceMin = 0;
@@ -862,7 +903,8 @@ export const CreateCoopHouseholdBody = zod.object({
   "story": zod.string().max(createCoopHouseholdBodySharedStateGiftsItemStoryMax),
   "receivedAt": zod.number().int().min(createCoopHouseholdBodySharedStateGiftsItemReceivedAtMin),
   "favorite": zod.boolean().optional(),
-  "fedAt": zod.number().int().min(createCoopHouseholdBodySharedStateGiftsItemFedAtMin).optional()
+  "fedAt": zod.number().int().min(createCoopHouseholdBodySharedStateGiftsItemFedAtMin).optional(),
+  "kind": zod.enum(['vitamin']).optional()
 })).max(createCoopHouseholdBodySharedStateGiftsMax),
   "furnitureLayout": zod.object({
   "bed": zod.object({
@@ -901,6 +943,9 @@ export const CreateCoopHouseholdBody = zod.object({
 }).optional(),
   "worldEcology": zod.object({
   "lastAttentionAt": zod.number().int().min(createCoopHouseholdBodySharedStateWorldEcologyLastAttentionAtMin),
+  "lastPetPoopAt": zod.number().int().min(createCoopHouseholdBodySharedStateWorldEcologyLastPetPoopAtMin).optional(),
+  "sick": zod.boolean().optional(),
+  "vitaminsFed": zod.number().int().min(createCoopHouseholdBodySharedStateWorldEcologyVitaminsFedMin).max(createCoopHouseholdBodySharedStateWorldEcologyVitaminsFedMax).optional(),
   "fallCycle": zod.enum(['first', 'needs-clean', 'after-clean']),
   "lastFallRollAt": zod.number().int().min(createCoopHouseholdBodySharedStateWorldEcologyLastFallRollAtMin).optional(),
   "dirtySince": zod.number().int().min(createCoopHouseholdBodySharedStateWorldEcologyDirtySinceMin).optional(),
@@ -992,6 +1037,11 @@ export const createCoopHouseholdResponseSharedStateCareStatsRecentInteractionIds
 
 export const createCoopHouseholdResponseSharedStateWorldEcologyLastAttentionAtMin = 0;
 
+export const createCoopHouseholdResponseSharedStateWorldEcologyLastPetPoopAtMin = 0;
+
+export const createCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMin = 0;
+export const createCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMax = 3;
+
 export const createCoopHouseholdResponseSharedStateWorldEcologyLastFallRollAtMin = 0;
 
 export const createCoopHouseholdResponseSharedStateWorldEcologyDirtySinceMin = 0;
@@ -1041,7 +1091,8 @@ export const CreateCoopHouseholdResponse = zod.object({
   "story": zod.string().max(createCoopHouseholdResponseSharedStateGiftsItemStoryMax),
   "receivedAt": zod.number().int().min(createCoopHouseholdResponseSharedStateGiftsItemReceivedAtMin),
   "favorite": zod.boolean().optional(),
-  "fedAt": zod.number().int().min(createCoopHouseholdResponseSharedStateGiftsItemFedAtMin).optional()
+  "fedAt": zod.number().int().min(createCoopHouseholdResponseSharedStateGiftsItemFedAtMin).optional(),
+  "kind": zod.enum(['vitamin']).optional()
 })).max(createCoopHouseholdResponseSharedStateGiftsMax),
   "furnitureLayout": zod.object({
   "bed": zod.object({
@@ -1080,6 +1131,9 @@ export const CreateCoopHouseholdResponse = zod.object({
 }).optional(),
   "worldEcology": zod.object({
   "lastAttentionAt": zod.number().int().min(createCoopHouseholdResponseSharedStateWorldEcologyLastAttentionAtMin),
+  "lastPetPoopAt": zod.number().int().min(createCoopHouseholdResponseSharedStateWorldEcologyLastPetPoopAtMin).optional(),
+  "sick": zod.boolean().optional(),
+  "vitaminsFed": zod.number().int().min(createCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMin).max(createCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMax).optional(),
   "fallCycle": zod.enum(['first', 'needs-clean', 'after-clean']),
   "lastFallRollAt": zod.number().int().min(createCoopHouseholdResponseSharedStateWorldEcologyLastFallRollAtMin).optional(),
   "dirtySince": zod.number().int().min(createCoopHouseholdResponseSharedStateWorldEcologyDirtySinceMin).optional(),
@@ -1218,6 +1272,11 @@ export const joinCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsMa
 
 export const joinCoopHouseholdResponseSharedStateWorldEcologyLastAttentionAtMin = 0;
 
+export const joinCoopHouseholdResponseSharedStateWorldEcologyLastPetPoopAtMin = 0;
+
+export const joinCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMin = 0;
+export const joinCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMax = 3;
+
 export const joinCoopHouseholdResponseSharedStateWorldEcologyLastFallRollAtMin = 0;
 
 export const joinCoopHouseholdResponseSharedStateWorldEcologyDirtySinceMin = 0;
@@ -1267,7 +1326,8 @@ export const JoinCoopHouseholdResponse = zod.object({
   "story": zod.string().max(joinCoopHouseholdResponseSharedStateGiftsItemStoryMax),
   "receivedAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateGiftsItemReceivedAtMin),
   "favorite": zod.boolean().optional(),
-  "fedAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateGiftsItemFedAtMin).optional()
+  "fedAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateGiftsItemFedAtMin).optional(),
+  "kind": zod.enum(['vitamin']).optional()
 })).max(joinCoopHouseholdResponseSharedStateGiftsMax),
   "furnitureLayout": zod.object({
   "bed": zod.object({
@@ -1306,6 +1366,9 @@ export const JoinCoopHouseholdResponse = zod.object({
 }).optional(),
   "worldEcology": zod.object({
   "lastAttentionAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateWorldEcologyLastAttentionAtMin),
+  "lastPetPoopAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateWorldEcologyLastPetPoopAtMin).optional(),
+  "sick": zod.boolean().optional(),
+  "vitaminsFed": zod.number().int().min(joinCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMin).max(joinCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMax).optional(),
   "fallCycle": zod.enum(['first', 'needs-clean', 'after-clean']),
   "lastFallRollAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateWorldEcologyLastFallRollAtMin).optional(),
   "dirtySince": zod.number().int().min(joinCoopHouseholdResponseSharedStateWorldEcologyDirtySinceMin).optional(),
@@ -1419,6 +1482,11 @@ export const updateCoopStateBodySharedStateCareStatsRecentInteractionIdsMax = 12
 
 export const updateCoopStateBodySharedStateWorldEcologyLastAttentionAtMin = 0;
 
+export const updateCoopStateBodySharedStateWorldEcologyLastPetPoopAtMin = 0;
+
+export const updateCoopStateBodySharedStateWorldEcologyVitaminsFedMin = 0;
+export const updateCoopStateBodySharedStateWorldEcologyVitaminsFedMax = 3;
+
 export const updateCoopStateBodySharedStateWorldEcologyLastFallRollAtMin = 0;
 
 export const updateCoopStateBodySharedStateWorldEcologyDirtySinceMin = 0;
@@ -1453,7 +1521,8 @@ export const UpdateCoopStateBody = zod.object({
   "story": zod.string().max(updateCoopStateBodySharedStateGiftsItemStoryMax),
   "receivedAt": zod.number().int().min(updateCoopStateBodySharedStateGiftsItemReceivedAtMin),
   "favorite": zod.boolean().optional(),
-  "fedAt": zod.number().int().min(updateCoopStateBodySharedStateGiftsItemFedAtMin).optional()
+  "fedAt": zod.number().int().min(updateCoopStateBodySharedStateGiftsItemFedAtMin).optional(),
+  "kind": zod.enum(['vitamin']).optional()
 })).max(updateCoopStateBodySharedStateGiftsMax),
   "furnitureLayout": zod.object({
   "bed": zod.object({
@@ -1492,6 +1561,9 @@ export const UpdateCoopStateBody = zod.object({
 }).optional(),
   "worldEcology": zod.object({
   "lastAttentionAt": zod.number().int().min(updateCoopStateBodySharedStateWorldEcologyLastAttentionAtMin),
+  "lastPetPoopAt": zod.number().int().min(updateCoopStateBodySharedStateWorldEcologyLastPetPoopAtMin).optional(),
+  "sick": zod.boolean().optional(),
+  "vitaminsFed": zod.number().int().min(updateCoopStateBodySharedStateWorldEcologyVitaminsFedMin).max(updateCoopStateBodySharedStateWorldEcologyVitaminsFedMax).optional(),
   "fallCycle": zod.enum(['first', 'needs-clean', 'after-clean']),
   "lastFallRollAt": zod.number().int().min(updateCoopStateBodySharedStateWorldEcologyLastFallRollAtMin).optional(),
   "dirtySince": zod.number().int().min(updateCoopStateBodySharedStateWorldEcologyDirtySinceMin).optional(),
@@ -1583,6 +1655,11 @@ export const updateCoopStateResponseSharedStateCareStatsRecentInteractionIdsMax 
 
 export const updateCoopStateResponseSharedStateWorldEcologyLastAttentionAtMin = 0;
 
+export const updateCoopStateResponseSharedStateWorldEcologyLastPetPoopAtMin = 0;
+
+export const updateCoopStateResponseSharedStateWorldEcologyVitaminsFedMin = 0;
+export const updateCoopStateResponseSharedStateWorldEcologyVitaminsFedMax = 3;
+
 export const updateCoopStateResponseSharedStateWorldEcologyLastFallRollAtMin = 0;
 
 export const updateCoopStateResponseSharedStateWorldEcologyDirtySinceMin = 0;
@@ -1619,7 +1696,8 @@ export const UpdateCoopStateResponse = zod.object({
   "story": zod.string().max(updateCoopStateResponseSharedStateGiftsItemStoryMax),
   "receivedAt": zod.number().int().min(updateCoopStateResponseSharedStateGiftsItemReceivedAtMin),
   "favorite": zod.boolean().optional(),
-  "fedAt": zod.number().int().min(updateCoopStateResponseSharedStateGiftsItemFedAtMin).optional()
+  "fedAt": zod.number().int().min(updateCoopStateResponseSharedStateGiftsItemFedAtMin).optional(),
+  "kind": zod.enum(['vitamin']).optional()
 })).max(updateCoopStateResponseSharedStateGiftsMax),
   "furnitureLayout": zod.object({
   "bed": zod.object({
@@ -1658,6 +1736,9 @@ export const UpdateCoopStateResponse = zod.object({
 }).optional(),
   "worldEcology": zod.object({
   "lastAttentionAt": zod.number().int().min(updateCoopStateResponseSharedStateWorldEcologyLastAttentionAtMin),
+  "lastPetPoopAt": zod.number().int().min(updateCoopStateResponseSharedStateWorldEcologyLastPetPoopAtMin).optional(),
+  "sick": zod.boolean().optional(),
+  "vitaminsFed": zod.number().int().min(updateCoopStateResponseSharedStateWorldEcologyVitaminsFedMin).max(updateCoopStateResponseSharedStateWorldEcologyVitaminsFedMax).optional(),
   "fallCycle": zod.enum(['first', 'needs-clean', 'after-clean']),
   "lastFallRollAt": zod.number().int().min(updateCoopStateResponseSharedStateWorldEcologyLastFallRollAtMin).optional(),
   "dirtySince": zod.number().int().min(updateCoopStateResponseSharedStateWorldEcologyDirtySinceMin).optional(),

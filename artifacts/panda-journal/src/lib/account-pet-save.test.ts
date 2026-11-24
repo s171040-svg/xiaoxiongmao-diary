@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ACCOUNT_OWNER_KEY, accountCacheKey, applyPetSnapshot, canRestorePendingLocal, captureLocalValues, restoreLocalValues, snapshotPet } from './account-pet-save';
 import { COMPANION_KEY, initialState, readState } from './companion-store';
+import { UpdatePetSaveBody } from '@workspace/api-zod';
 
 function memoryStorage(): Storage {
   const map = new Map<string, string>();
@@ -42,6 +43,28 @@ test('restoring account gameplay keeps that account local diary and fractional h
   assert.equal(restored.careStats.health, 42.5);
   assert.equal(restored.messages[0].text, 'my conversation');
   assert.equal(restored.gifts[0].fedAt, 2_000);
+});
+test('account save validation preserves vitamin gifts and fever treatment progress', () => {
+  const storage = memoryStorage();
+  const state = initialState(1_000);
+  state.worldEcology = { ...state.worldEcology!, sick: true, vitaminsFed: 2, lastPetPoopAt: 700 };
+  state.gifts = [{
+    id: 'account-vitamin',
+    kind: 'vitamin',
+    emoji: '💊',
+    item: '维生素',
+    animal: '医院小护士',
+    story: '小护士送来的维生素',
+    receivedAt: 900,
+    fedAt: 950,
+  }];
+  storage.setItem(COMPANION_KEY, JSON.stringify(state));
+  const snapshot = snapshotPet(storage);
+  const request = UpdatePetSaveBody.parse({ snapshot, revision: 0 });
+  assert.equal(request.snapshot.room.gifts[0].kind, 'vitamin');
+  assert.equal(request.snapshot.room.worldEcology?.sick, true);
+  assert.equal(request.snapshot.room.worldEcology?.vitaminsFed, 2);
+  assert.equal(request.snapshot.room.worldEcology?.lastPetPoopAt, 700);
 });
 test('changing account clears active local slots but preserves each archived account', () => {
   const storage = memoryStorage();
