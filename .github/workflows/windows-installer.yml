@@ -45,7 +45,9 @@ jobs:
       - name: Check desktop walking and packaged assets
         run: node --test artifacts/panda-journal/desktop/pet-lite-model.test.cjs artifacts/panda-journal/desktop/platform-model.test.cjs artifacts/panda-journal/desktop/windows-platforms.test.cjs
 
-      - name: Build installer
+      - name: Build Windows desktop package
+        env:
+          PANDA_BUILD_OFFLINE_TRIAL: ${{ github.ref == 'refs/heads/desktop-walking-offline-trial' && '1' || '0' }}
         run: pnpm --filter @workspace/panda-journal run desktop:installer:win
 
       - name: Upload installer
@@ -59,8 +61,8 @@ jobs:
           retention-days: 30
 
   publish-portable-test:
-    name: Publish public portable test download
-    if: github.ref == 'refs/heads/desktop-walking-test-20261124'
+    name: Publish public offline trial download
+    if: github.ref == 'refs/heads/desktop-walking-offline-trial'
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -76,11 +78,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create desktop-test-v0.2.3-20261124 \
-            generated-artifacts/windows-installer/小熊猫日记-Portable-0.2.3-x64.exe \
+          gh release create "desktop-offline-trial-${GITHUB_RUN_NUMBER}" \
+            generated-artifacts/windows-installer/Xiaoxiongmao-Offline-Trial-x64.exe \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --prerelease \
             --latest=false \
-            --title "小熊猫日记 Windows 便携测试版 0.2.3" \
-            --notes "Windows x64 免安装测试版。首次运行需联网登录当前测试房间；这是未签名的测试程序，Windows 可能提示未知发布者。"
+            --title "小熊猫桌宠 · Windows 离线试玩" \
+            --notes "Windows x64 免安装桌宠试玩，不联网、不登录、不使用正式宠物存档。双击后小熊猫会在屏幕底部任务栏附近出现。此版本仅用于体验桌面互动。"

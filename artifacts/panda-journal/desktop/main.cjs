@@ -7,8 +7,12 @@ const { chat } = require("@workspace/companion-ai");
 const createTrayIcon = require("./tray-icon.cjs");
 const journalConnection = require("./journal-connection.cjs");
 
-app.setName("小熊猫日记");
+const metadata = app.isPackaged ? require(path.join(app.getAppPath(), "package.json")) : require("../package.json");
+const offlineTrial = metadata.offlineDesktopTrial === true
+  || (!app.isPackaged && process.argv.includes("--offline-desktop-trial"));
+app.setName(offlineTrial ? "小熊猫桌宠离线试玩" : "小熊猫日记");
 if (process.env.PANDA_PROFILE_DIR) app.setPath("userData", path.resolve(process.env.PANDA_PROFILE_DIR));
+else if (offlineTrial) app.setPath("userData", path.join(app.getPath("appData"), "XiaoxiongmaoDesktopTrial"));
 app.disableHardwareAcceleration();
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 const development = process.argv.includes("--dev");
@@ -31,9 +35,9 @@ let journalWasVisible = false;
 const windowedPetWidth = 340, windowedPetHeight = 360;
 const fullDesktopMode = process.platform === "win32" && !process.env.REPL_ID;
 const useInlineGift = process.platform === "linux" && Boolean(process.env.REPL_ID);
-const desktopVersion = require("../package.json").version;
+const desktopVersion = metadata.version;
 const nativeGiftWindowsEnabled = false; // Gifts stay in the room in the quiet first version.
-let desktopPetState = { mode: "desktop", characterId: "panda", identityReady: false, identityStatus: "loading", paused: false, quietMode: false };
+let desktopPetState = { mode: "desktop", characterId: "panda", identityReady: offlineTrial, identityStatus: offlineTrial ? "offline-trial" : "loading", paused: false, quietMode: false };
 let petDragging = false;
 function publishPetState() {
   sendPet("desktop-pet:state", desktopPetState);
@@ -47,6 +51,7 @@ function showDesktopPet() {
   publishPetState();
 }
 function returnPetHome() {
+  if (offlineTrial) { showDesktopPet(); return; }
   openJournal();
   if (!journalWindow || journalWindow.isDestroyed()) throw new Error("房间暂时没有打开");
   desktopPetState.mode = "room";
@@ -174,6 +179,7 @@ function secureWindow(window, origin) {
   });
 }
 function openJournal(show = true) {
+  if (offlineTrial) return;
   const shouldShow = show !== false;
   clearTimeout(saveTimer);
   if (!journalWindow || journalWindow.isDestroyed()) {
@@ -451,14 +457,18 @@ else {
       petWindow.on("show", () => platformScanner.start());
       platformScanner.start();
     }
-    // Keep the local companion clock alive without displaying the chat page.
-    openJournal(false);
+    if (offlineTrial) {
+      petWindow.once("ready-to-show", showDesktopPet);
+    } else {
+      // Keep the companion clock alive without displaying the chat page.
+      openJournal(false);
+    }
     const menu = Menu.buildFromTemplate([
-      { label: `小熊猫日记 v${desktopVersion} · 横线平台桌宠`, enabled: false },
+      { label: offlineTrial ? "小熊猫 · 离线桌面试玩" : `小熊猫日记 v${desktopVersion} · 横线平台桌宠`, enabled: false },
       { type: "separator" },
-      { id: "return-home", label: "回家（打开养成房间）", click: () => returnPetHome() },
+      ...(!offlineTrial ? [{ id: "return-home", label: "回家（打开养成房间）", click: () => returnPetHome() }] : []),
       { id: "show-desktop", label: "显示桌宠", click: () => showDesktopPet() },
-      { label: "连接网页版房间…", enabled: !development && !process.env.PANDA_JOURNAL_URL, click: async () => {
+      ...(!offlineTrial ? [{ label: "连接网页版房间…", enabled: !development && !process.env.PANDA_JOURNAL_URL, click: async () => {
         const owner = journalWindow && !journalWindow.isDestroyed() ? journalWindow : petWindow;
         const { response } = await dialog.showMessageBox(owner, {
           type: "question", title: "使用与网页相同的房间",
@@ -475,7 +485,7 @@ else {
           journalWindow?.destroy(); journalWindow = null;
           openJournal();
         } catch (error) { dialog.showErrorBox("房间连接未更改", error.message); }
-      } },
+      } }] : []),
       { id: "quiet-mode", label: "安静模式", type: "checkbox", click: () => {
         desktopPetState.quietMode = !desktopPetState.quietMode;
         desktopPetState.paused = false;
@@ -500,7 +510,7 @@ else {
       // A self-contained monochrome tray icon; no third-party skin assets.
       const icon = createTrayIcon(nativeImage);
       tray = new Tray(icon);
-      tray.setToolTip("小熊猫日记 · 双击桌宠说说心事");
+      tray.setToolTip(offlineTrial ? "小熊猫桌宠离线试玩" : "小熊猫日记 · 双击桌宠说说心事");
       tray.setContextMenu(menu);
       tray.on("click", () => returnPetHome());
     } catch {
@@ -509,7 +519,11 @@ else {
     }
     tick = setInterval(() => { updatePet(); updateGiftHit(); }, 80);
     console.info(`平台桌宠 v${desktopVersion} 已启动（任务栏与窗口上沿）；单击小熊猫播放挨拳动作，长按可拖动，右键可回家。`);
-  }).catch((error) => { console.error("桌宠启动失败：", error.message); app.quit(); });
+  }).catch((error) => {
+    console.error("桌宠启动失败：", error.message);
+    if (offlineTrial) dialog.showErrorBox("离线桌宠未能启动", "无法打开桌宠窗口。请确认使用的是 Windows 64 位测试文件。");
+    app.quit();
+  });
 }
 app.on("before-quit", () => {
   quitting = true;

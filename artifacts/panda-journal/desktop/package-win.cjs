@@ -8,6 +8,7 @@ const packageRoot = path.resolve(__dirname, "..");
 const workspaceRoot = path.resolve(packageRoot, "../..");
 const stageRoot = path.join(packageRoot, "dist", "windows-app");
 const outputRoot = path.join(workspaceRoot, "generated-artifacts", "windows-installer");
+const offlineTrial = process.env.PANDA_BUILD_OFFLINE_TRIAL === "1";
 const packageInfo = JSON.parse(fs.readFileSync(path.join(packageRoot, "package.json"), "utf8"));
 const electronVersion = JSON.parse(
   fs.readFileSync(path.join(packageRoot, "node_modules", "electron", "package.json"), "utf8"),
@@ -108,6 +109,7 @@ async function main() {
         private: true,
         description: "小熊猫日记 Windows 桌面客户端",
         main: "desktop/main.cjs",
+        ...(offlineTrial ? { offlineDesktopTrial: true } : {}),
       },
       null,
       2,
@@ -149,17 +151,23 @@ async function main() {
     ".bin",
     process.platform === "win32" ? "electron-builder.cmd" : "electron-builder",
   );
-  run(
-    builder,
-    ["--config", "electron-builder.json", "--win", "nsis", "--x64"],
-    stageRoot,
-    "Create Windows installer",
-    getBuilderEnvironment(),
-  );
+  if (!offlineTrial) {
+    run(
+      builder,
+      ["--config", "electron-builder.json", "--win", "nsis", "--x64"],
+      stageRoot,
+      "Create Windows installer",
+      getBuilderEnvironment(),
+    );
+  } else {
+    builderConfig.appId = "com.xiaoxiongmao.desktoptrial";
+  }
 
   builderConfig.win = {
     target: [{ target: "portable", arch: ["x64"] }],
-    artifactName: "${productName}-Portable-${version}-${arch}.${ext}",
+    artifactName: offlineTrial
+      ? "Xiaoxiongmao-Offline-Trial-${arch}.${ext}"
+      : "${productName}-Portable-${version}-${arch}.${ext}",
   };
   delete builderConfig.nsis;
   fs.writeFileSync(
@@ -176,7 +184,8 @@ async function main() {
 
   const installers = fs
     .readdirSync(outputRoot)
-    .filter((name) => name.toLowerCase().endsWith(".exe"))
+    .filter((name) => offlineTrial ? name === "Xiaoxiongmao-Offline-Trial-x64.exe"
+      : name.endsWith(".exe") && !name.includes("-Offline-Trial-"))
     .map((name) => path.join(outputRoot, name));
   if (!installers.length) throw new Error(`Build succeeded but no .exe was found in ${outputRoot}`);
   fs.writeFileSync(path.join(outputRoot, "BUILD-INFO.json"), `${JSON.stringify({
@@ -186,7 +195,7 @@ async function main() {
     movement: "taskbar-and-window-top-platforms",
     artifacts: installers.map(file => ({
       file: path.basename(file),
-      type: path.basename(file).includes("-Portable-") ? "portable" : "installer",
+      type: offlineTrial ? "offline-trial" : path.basename(file).includes("-Portable-") ? "portable" : "installer",
       bytes: fs.statSync(file).size,
     })),
   }, null, 2)}\n`);
