@@ -114,18 +114,53 @@ test('dirty health loses exactly 1.5 per minute and a bath stops the loss', () =
   assert.equal(webTick.state.careStats.health, 8.5);
 });
 
-test('web-room pet poop is created once per minute, but not by the desktop tick', () => {
+test('web-room pet poop gets one 10% roll every five minutes, but not in the desktop tick', () => {
   const state = sample();
-  const beforeDue = tickPetPoop(state, now + MINUTE - 1);
+  const beforeDue = tickPetPoop(state, now + 5 * MINUTE - 1, () => 0.05);
   assert.equal(beforeDue, state);
-  const created = tickPetPoop(state, now + MINUTE);
+  const missed = tickPetPoop(state, now + 5 * MINUTE, () => 0.1);
+  assert.equal(missed.spacePoliceLetters?.filter(letter => letter.kind === 'pet-poop').length, 0);
+  assert.equal(missed.worldEcology?.lastPetPoopAt, now + 5 * MINUTE);
+  assert.equal(tickPetPoop(missed, now + 10 * MINUTE - 1, () => 0.05), missed);
+  const created = tickPetPoop(missed, now + 10 * MINUTE, () => 0.05);
   assert.equal(created.spacePoliceLetters?.filter(letter => letter.kind === 'pet-poop').length, 1);
-  assert.equal(created.spacePoliceLetters?.find(letter => letter.kind === 'pet-poop')?.poop?.createdAt, now + MINUTE);
+  assert.equal(created.spacePoliceLetters?.find(letter => letter.kind === 'pet-poop')?.poop?.createdAt, now + 10 * MINUTE);
 
-  const desktopTick = tickCompanion(state, now + MINUTE);
+  const desktopTick = tickCompanion(state, now + 5 * MINUTE, () => 0.05);
   assert.equal(desktopTick.state.spacePoliceLetters?.some(letter => letter.kind === 'pet-poop'), false);
-  const webTick = tickCompanion(state, now + MINUTE, Math.random, { enableWorldEcology: true });
+  const webTick = tickCompanion(state, now + 5 * MINUTE, () => 0.05, { enableWorldEcology: true });
   assert.equal(webTick.state.spacePoliceLetters?.filter(letter => letter.kind === 'pet-poop').length, 1);
+});
+
+test('a new stool waits until every old one is cleaned, then starts a fresh five-minute roll', () => {
+  const first = tickPetPoop(sample(), now + 5 * MINUTE, () => 0.05);
+  const firstLetter = first.spacePoliceLetters?.find(letter => letter.kind === 'pet-poop');
+  assert.ok(firstLetter);
+  assert.equal(tickPetPoop(first, now + 10 * MINUTE, () => 0.05), first);
+
+  const placed = placeSpacePolicePoop(first, firstLetter.deliveredAt, 0.4, 0.6, now + 5 * MINUTE + 1);
+  const bagged = packSpacePolicePoop(placed, firstLetter.deliveredAt, now + 5 * MINUTE + 2);
+  const disposing = disposeSpacePolicePoopBag(bagged, firstLetter.deliveredAt, 0.5, 0.6, now + 5 * MINUTE + 3);
+  const secondLetter = {
+    id: 'older-active-poop',
+    deliveredAt: now + MINUTE / 2,
+    kind: 'pet-poop' as const,
+    poop: { phase: 'disposing' as const, x: 0.6, y: 0.6, createdAt: now + MINUTE / 2, healthAppliedMinutes: 0 },
+  };
+  const withBacklog = {
+    ...disposing,
+    spacePoliceLetters: [...(disposing.spacePoliceLetters ?? []), secondLetter],
+  };
+  const cleanedAt = now + 11 * MINUTE;
+  const firstCleaned = finishSpacePolicePoopDisposal(withBacklog, firstLetter.deliveredAt, cleanedAt);
+  assert.equal(firstCleaned.worldEcology?.lastPetPoopAt, now + 5 * MINUTE);
+  assert.equal(tickPetPoop(firstCleaned, now + 20 * MINUTE, () => 0.05), firstCleaned);
+  const allCleanedAt = now + 20 * MINUTE;
+  const cleaned = finishSpacePolicePoopDisposal(firstCleaned, secondLetter.deliveredAt, allCleanedAt);
+  assert.equal(cleaned.worldEcology?.lastPetPoopAt, allCleanedAt);
+  assert.equal(tickPetPoop(cleaned, allCleanedAt + 5 * MINUTE - 1, () => 0.05), cleaned);
+  const next = tickPetPoop(cleaned, allCleanedAt + 5 * MINUTE, () => 0.05);
+  assert.equal(next.spacePoliceLetters?.filter(letter => letter.kind === 'pet-poop').length, 3);
 });
 
 test('each uncleared poop begins costing one health per minute after five minutes', () => {

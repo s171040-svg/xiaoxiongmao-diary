@@ -14,7 +14,8 @@ export const CARE_STAT_DECAY_INTERVAL_MS = 6 * 60 * MINUTE;
 export const IDLE_FALL_AFTER_MS = 5 * MINUTE;
 export const DIRTY_HEALTH_DECAY_INTERVAL_MS = MINUTE;
 export const DIRTY_HEALTH_DECAY_AMOUNT = 1.5;
-export const PET_POOP_INTERVAL_MS = MINUTE;
+export const PET_POOP_INTERVAL_MS = 5 * MINUTE;
+export const PET_POOP_CHANCE = 0.1;
 export const PET_POOP_HEALTH_DELAY_MS = 5 * MINUTE;
 export const PET_POOP_HEALTH_DECAY_AMOUNT = 1;
 export const FEVER_HEALTH_THRESHOLD = 20;
@@ -442,17 +443,21 @@ export function tickDirtyHealth(
   return resolveHealthAtZero(state, petName, now);
 }
 
-/** Generate at most one stool per elapsed room tick; its timestamp survives reloads. */
-export function tickPetPoop(state: CompanionState, now = Date.now()): CompanionState {
+/** Roll a 10% chance every five minutes, with one uncleared stool at a time. */
+export function tickPetPoop(state: CompanionState, now = Date.now(), random = Math.random): CompanionState {
   if (!state.worldEcology) return state;
   const ecology = state.worldEcology;
   const lastPetPoopAt = ecology.lastPetPoopAt ?? ecology.lastAttentionAt;
   if (now - lastPetPoopAt < PET_POOP_INTERVAL_MS) return state;
+  const existing = state.spacePoliceLetters
+    ?? (state.spacePoliceLetter ? [{ id: `legacy-space-police-${state.spacePoliceLetter.deliveredAt}`, ...state.spacePoliceLetter }] : []);
+  if (existing.some(letter => letter.poop && letter.poop.phase !== 'disposed')) return state;
   if (state.trip || state.foxMerchantLetter?.status === 'captured') {
     return { ...state, worldEcology: { ...ecology, lastPetPoopAt: now, updatedAt: now } };
   }
-  const existing = state.spacePoliceLetters
-    ?? (state.spacePoliceLetter ? [{ id: `legacy-space-police-${state.spacePoliceLetter.deliveredAt}`, ...state.spacePoliceLetter }] : []);
+  if (random() >= PET_POOP_CHANCE) {
+    return { ...state, worldEcology: { ...ecology, lastPetPoopAt: now, updatedAt: now } };
+  }
   const poopLetter: SpacePoliceLetter = {
     id: `pet-poop-${now}`,
     deliveredAt: now,
@@ -869,10 +874,20 @@ export function disposeSpacePolicePoopBag(
     ? { ...poop, phase: 'disposing', x: clampRoomRatio(x), y: clampRoomRatio(y), disposedAt: now }
     : poop);
 }
-export function finishSpacePolicePoopDisposal(state: CompanionState, deliveredAt: number): CompanionState {
-  return updateSpacePolicePoop(state, deliveredAt, poop => poop.phase === 'disposing'
+export function finishSpacePolicePoopDisposal(
+  state: CompanionState,
+  deliveredAt: number,
+  now = Date.now(),
+): CompanionState {
+  const updated = updateSpacePolicePoop(state, deliveredAt, poop => poop.phase === 'disposing'
     ? { ...poop, phase: 'disposed' }
     : poop);
+  if (updated === state || !updated.worldEcology) return updated;
+  const hasUnclearedPoop = updated.spacePoliceLetters?.some(letter =>
+    letter.poop && letter.poop.phase !== 'disposed') ?? false;
+  return hasUnclearedPoop
+    ? updated
+    : { ...updated, worldEcology: { ...updated.worldEcology, lastPetPoopAt: now, updatedAt: now } };
 }
 export function paySpacePoliceFine(
   state: CompanionState,
@@ -1098,7 +1113,7 @@ export function tickCompanion(state: CompanionState, now: number, random = Math.
 } {
   let next = decayCareStatState(state, now);
   if (options.enableWorldEcology) {
-    next = tickPetPoop(next, now);
+    next = tickPetPoop(next, now, random);
     const poopHealth = tickPetPoopHealth(next, options.petName ?? '小熊猫', now);
     next = poopHealth.state;
     if (poopHealth.event) return { state: next, worldEvent: poopHealth.event };
