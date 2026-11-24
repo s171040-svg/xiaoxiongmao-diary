@@ -157,6 +157,23 @@ async function main() {
     getBuilderEnvironment(),
   );
 
+  builderConfig.win = {
+    target: [{ target: "portable", arch: ["x64"] }],
+    artifactName: "${productName}-Portable-${version}-${arch}.${ext}",
+  };
+  delete builderConfig.nsis;
+  fs.writeFileSync(
+    path.join(stageRoot, "electron-builder.json"),
+    `${JSON.stringify(builderConfig, null, 2)}\n`,
+  );
+  run(
+    builder,
+    ["--config", "electron-builder.json", "--win", "portable", "--x64"],
+    stageRoot,
+    "Create portable Windows app",
+    getBuilderEnvironment(),
+  );
+
   const installers = fs
     .readdirSync(outputRoot)
     .filter((name) => name.toLowerCase().endsWith(".exe"))
@@ -167,9 +184,13 @@ async function main() {
     sourceRevision: process.env.GITHUB_SHA || "local-build",
     buildRun: process.env.GITHUB_RUN_NUMBER || null,
     movement: "taskbar-and-window-top-platforms",
-    installers: installers.map(file => ({ file: path.basename(file), bytes: fs.statSync(file).size })),
+    artifacts: installers.map(file => ({
+      file: path.basename(file),
+      type: path.basename(file).includes("-Portable-") ? "portable" : "installer",
+      bytes: fs.statSync(file).size,
+    })),
   }, null, 2)}\n`);
-  console.log(`Windows installer created:\n${installers.join("\n")}`);
+  console.log(`Windows executables created:\n${installers.join("\n")}`);
 }
 
 main().catch((error) => {
