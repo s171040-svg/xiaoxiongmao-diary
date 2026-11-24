@@ -108,7 +108,43 @@
     return null;
   }
   const landingSources = [...new Set(Object.values(landingSequences).flat().map(frame => frame.source))];
+  const climbEntry = Array.from({ length: 6 }, (_, i) => ({
+    source: `../public/static/panda/transitions/walk-to-climb-up-${i + 1}.png`,
+    nativeLeft: i !== 0, bottom: i === 5 ? 83 : 88, grip: i,
+  }));
+  const climbLoop = Array.from({ length: 8 }, (_, i) => ({
+    source: `../public/static/panda/frames/climb-up-${i + 1}.png`,
+    nativeLeft: true, bottom: 83, grip: 5,
+  }));
+  const edgeClimbSources = [...climbEntry, ...climbLoop].map(frame => frame.source);
+  function edgeClimbAt(route, elapsed) {
+    const turnMs = 76, loopMs = 130, travel = (route.groundY - route.topY) / 24 * 1000;
+    const entryMs = turnMs * climbEntry.length, pauseMs = 1000;
+    let t = Math.max(0, elapsed);
+    if (t < entryMs) return { ...climbEntry[Math.floor(t / turnMs)], phase: "mount", y: route.groundY };
+    t -= entryMs;
+    if (t < travel) return { ...climbLoop[Math.floor(t / loopMs) % climbLoop.length],
+      phase: "up", y: route.groundY - (route.groundY - route.topY) * t / travel };
+    t -= travel;
+    if (t < pauseMs) return { ...climbLoop[0], phase: "pause", y: route.topY };
+    t -= pauseMs;
+    if (t < travel) return { ...climbLoop[(climbLoop.length - Math.floor(t / loopMs) % climbLoop.length) % climbLoop.length],
+      phase: "down", y: route.topY + (route.groundY - route.topY) * t / travel };
+    t -= travel;
+    if (t < entryMs) return { ...climbEntry[climbEntry.length - 1 - Math.floor(t / turnMs)],
+      phase: "dismount", y: route.groundY };
+    return null;
+  }
+  function nextEdgeClimbAt(now, random = Math.random, first = false) {
+    return now + (first ? 55000 + random() * 35000 : 155000 + random() * 85000);
+  }
+  function companionRest(now, random = Math.random) {
+    const choice = random();
+    if (choice < .26) return { motion: "sleep", until: now + 85000 + random() * 55000 };
+    if (choice < .88) return { motion: "stare", until: now + 43000 + random() * 37000 };
+    return { motion: "idle", until: now + 4500 + random() * 5500 };
+  }
   return { sprite, spriteTop, advance, transition, quietRest, punchFrame,
     dirtyReturn, shakeFrame, finishShake, lostWorldFall, shakeFrameCount, shakeFrameIntervalMs,
-    landingFrame, landingSources };
+    landingFrame, landingSources, edgeClimbAt, edgeClimbSources, nextEdgeClimbAt, companionRest };
 });

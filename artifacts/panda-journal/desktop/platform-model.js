@@ -68,9 +68,17 @@
     }
     return Math.abs(x - point.x) < 2 ? null : { x, y: support.y };
   }
+  function edgeRoute(point, support) {
+    // An outing may only approach a screen side via the taskbar, not by
+    // jumping off a window or crossing any part of the desktop in midair.
+    if (support?.ownerId !== "taskbar" || support.right - support.left < 48 || support.y < 120) return null;
+    const left = point.x - support.left <= support.right - point.x;
+    return { side: left ? "left" : "right", x: left ? support.left : support.right,
+      groundY: support.y, topY: Math.max(48, support.y - 146) };
+  }
   function constrain(point, width, height) {
     const base = ground(width, height);
     return { x: clamp(point.x, base.left, base.right), y: clamp(point.y, Math.min(petHeight, height), height) };
   }
-  return { ground, platforms, supportAt, track, landingBelow, fall, walkTarget, constrain };
+  return { ground, platforms, supportAt, track, landingBelow, fall, walkTarget, edgeRoute, constrain };
 });

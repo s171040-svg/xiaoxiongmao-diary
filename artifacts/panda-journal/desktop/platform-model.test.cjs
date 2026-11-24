@@ -46,6 +46,14 @@ test("walking stays horizontal and turns before either end of its current segmen
     }
   }
 });
+test("edge climbs approach the nearest screen side from the taskbar only", () => {
+  const [taskbar, ledge] = surfaces([win("side-window", 0, 120, 500)]);
+  assert.deepEqual(json(model.edgeRoute({ x: 100, y: 720 }, taskbar)), { side: "left", x: 20, groundY: 720, topY: 574 });
+  assert.deepEqual(json(model.edgeRoute({ x: 900, y: 720 }, taskbar)), { side: "right", x: 980, groundY: 720, topY: 574 });
+  assert.equal(model.edgeRoute({ x: 20, y: 120 }, ledge), null);
+  assert.equal(model.edgeRoute({ x: 20, y: 100 }, model.ground(200, 100)), null);
+  assert.equal(model.edgeRoute({ x: 20, y: 140 }, model.ground(200, 140)).topY, 48);
+});
 test("closed windows cause a strictly vertical fall onto the nearest lower top", () => {
   const lines = surfaces([win("lower", 100, 240, 600), win("lowest", 100, 400, 600, 200, 2)]);
   let point = { x: 250, y: 100 }, velocity = 0, support = null;

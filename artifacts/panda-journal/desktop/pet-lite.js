@@ -25,6 +25,7 @@
   let motion = "idle", nextWalk = performance.now() + 1800, press = null, held = false, suppressClickUntil = 0;
   let promptOpen = false, restMenuOpen = false, disposed = false;
   let nextBiteAt = Infinity, bitePending = null, backgroundBite = null;
+  let nextEdgeAt = Infinity, edgeClimb = null, edgeFrame = null;
   let transitionFrames = [], transitionStartedAt = 0;
   const dirtStorageKey = "panda.desktop.dirt.v1";
   let desktopDirt = loadDirt();
@@ -55,14 +56,15 @@
       : model.punchFrame(now - punchStarted, manifest, preference.matches);
     const landing = landingStarted === null ? null
       : model.landingFrame(state.characterId, now - landingStarted, preference.matches);
-    presence.dataset.motion = landing ? "landing" : punchFrame === null ? motion : "punch";
+    presence.dataset.motion = edgeFrame ? "edge-climb" : landing ? "landing" : punchFrame === null ? motion : "punch";
     presence.dataset.landing = landing?.phase ?? "";
+    presence.dataset.edgeClimb = edgeFrame?.phase ?? "";
     presence.dataset.character = state.characterId;
     presence.dataset.dragging = String(held);
     presence.dataset.paused = String(state.paused);
     presence.dataset.quiet = String(Boolean(state.quietMode));
     presence.dataset.platform = support?.ownerId || "";
-    presence.dataset.falling = String(!support && !held);
+    presence.dataset.falling = String(!support && !held && !edgeClimb);
     presence.dataset.roomSide = point.x < innerWidth / 2 ? "left" : "right";
     presence.dataset.roomBubble = point.y < 175 ? "below" : "above";
     presence.dataset.dirtLevel = String(desktopDirt.remainingShakes);
@@ -76,17 +78,20 @@
     biteCanvas.hidden = !biting;
     presence.dataset.biting = String(biting);
     if (biting) biteModel.draw(biteContext, backgroundBite, biteElapsed);
-    const source = landing ? landing.source : biteFrame ? biteFrame.source : punchFrame === null
+    const source = edgeFrame ? edgeFrame.source : landing ? landing.source : biteFrame ? biteFrame.source : punchFrame === null
       ? motion === "shake" && shakeIndex !== null
         ? `../public/static/panda/desktop-shake/${desktopDirt.remainingShakes}/${shakeIndex + 1}.png`
         : transitionFrames[transitionIndex] ?? model.sprite(state.characterId, motion, frame, manifest)
       : `../public/static/panda/punch/${punchFrame}.png`;
     if (transitionIndex >= transitionFrames.length) transitionFrames = [];
     if (image.getAttribute("src") !== source) image.setAttribute("src", source);
-    image.style.top = `${model.spriteTop(source)}px`;
+    image.style.top = `${edgeFrame ? (96 - edgeFrame.bottom) * 40 / 96 : model.spriteTop(source)}px`;
+    image.style.left = edgeFrame ? `${(edgeClimb.route.side === "left" ? -1 : 1) * edgeFrame.grip}px` : "";
+    if (edgeFrame) presence.dataset.edgeFlip = String(edgeFrame.nativeLeft !== (edgeClimb.route.side === "left"));
+    else delete presence.dataset.edgeFlip;
     if (biteFrame) image.dataset.biteFlip = String(biteFrame.nativeLeft !== backgroundBite.left);
     else delete image.dataset.biteFlip;
-    image.dataset.sprite = landing ? "landing" : biting ? "background-bite" : punchFrame === null ? motion : "punch";
+    image.dataset.sprite = edgeFrame ? "edge-climb" : landing ? "landing" : biting ? "background-bite" : punchFrame === null ? motion : "punch";
     image.dataset.frame = String(punchFrame ?? frame);
     if (dirt) {
       const dirtyLevel = desktopDirt.remainingShakes;
@@ -96,10 +101,10 @@
         else dirt.removeAttribute("src");
       }
       dirt.hidden = !dirtyLevel || motion === "shake" || state.characterId !== "panda";
-      const clipped = landing && !dirt.hidden;
-      // A long fall can make dirt visible on the impact frame. Keep the
-      // stains inside the lowered pose rather than floating above its head.
+      const clipped = (landing || edgeFrame) && !dirt.hidden;
+      // Keep stains inside the active silhouette during a pose change.
       dirt.style.top = clipped ? image.style.top : "";
+      dirt.style.left = clipped ? image.style.left : "";
       dirt.style.maskImage = clipped ? `url("${image.src}")` : "";
     }
     presence.dataset.shaking = String(motion === "shake");
@@ -120,6 +125,20 @@
     transitionFrames = [];
     landingStarted = preference.matches ? null : now;
     setMotion(landingStarted === null ? settledMotion() : "idle", false);
+  }
+  function startEdgeClimb(route) {
+    edgeClimb = { route, elapsed: 0 };
+    edgeFrame = model.edgeClimbAt(route, 0);
+    destination = null; support = null; velocity = 0; fallOriginY = null;
+    transitionFrames = [];
+  }
+  function cancelEdgeClimb() {
+    if (!edgeClimb && !destination?.edgeRoute) return false;
+    edgeClimb = null; edgeFrame = null; destination = null;
+    support = geometry.supportAt(point, surfaces); velocity = 0;
+    nextWalk = performance.now() + 1500;
+    setMotion(support ? settledMotion() : "grab");
+    return true;
   }
   function cancelBite() {
     if (!bitePending && !backgroundBite) return false;
@@ -169,6 +188,7 @@
     if (state.identityStatus === "offline-trial") {
       if (held || !state.identityReady || restMenuOpen) return;
       if (cancelBite()) render();
+      if (cancelEdgeClimb()) render();
       restMenuOpen = true;
       destination = null;
       if (support && motion !== "shake") setMotion(settledMotion());
@@ -196,6 +216,7 @@
     if (!press) return;
     punchStarted = null;
     landingStarted = null;
+    cancelEdgeClimb();
     held = true; support = null; velocity = 0; destination = null; closePrompt(); setMotion("grab");
     bridge.setPetDragging(true);
     bridge.setIgnoreMouseEvents(false);
@@ -208,7 +229,10 @@
     press = { id: e.pointerId, offsetX: e.clientX - point.x, offsetY: e.clientY - point.y,
       x: e.clientX, y: e.clientY, timer: setTimeout(beginDrag, 380) };
   });
-  actor.addEventListener("contextmenu", () => { if (cancelBite()) render(); });
+  actor.addEventListener("contextmenu", () => {
+    const stoppedBite = cancelBite();
+    if (cancelEdgeClimb() || stoppedBite) render();
+  });
   actor.addEventListener("pointermove", e => {
     if (!press || press.id !== e.pointerId) return;
     press.x = e.clientX; press.y = e.clientY;
@@ -255,7 +279,10 @@
     const quietChanged = Boolean(state.quietMode) !== Boolean(value.quietMode);
     const poseChanged = state.restPose !== value.restPose;
     const biteEnabled = value.backgroundBite === true && state.backgroundBite !== true;
+    const entering = value.identityReady && value.mode === "desktop" &&
+      (!state.identityReady || state.mode !== "desktop" || changed);
     state = value;
+    if (entering) nextEdgeAt = model.nextEdgeClimbAt(performance.now(), undefined, true);
     if (changed || state.mode !== "desktop" || !state.identityReady) landingStarted = null;
     if (biteEnabled) nextBiteAt = biteModel.nextAt(performance.now(), undefined, true);
     if (quietChanged || poseChanged || !canBite(true, (bitePending ?? backgroundBite)?.manual)) cancelBite();
@@ -264,6 +291,7 @@
     if (changed && value.characterId !== "panda") shakeStartedAt = null;
     if (state.quietMode && (!quietRest || quietChanged)) quietRest = model.quietRest(null, performance.now());
     if (!state.quietMode) quietRest = null;
+    if (changed || state.quietMode || state.restPose || state.paused || state.mode !== "desktop" || !state.identityReady) cancelEdgeClimb();
     if (changed) transitionFrames = [];
     if (state.mode !== "desktop" || !state.identityReady) endDrag();
     if (changed || quietChanged || poseChanged || state.paused || state.mode !== "desktop") {
@@ -287,8 +315,8 @@
     console.error("桌面平台资料暂不可用，将仅沿任务栏活动。");
   });
   void bridge.desktopPetState().then(applyState);
-  // Cache contact and bite frames so their short poses are available on the first play.
-  for (const source of [...model.landingSources, ...biteModel.spriteSources]) new Image().src = source;
+  // Cache one-shot sprites so their short poses are ready on the first play.
+  for (const source of [...model.landingSources, ...biteModel.spriteSources, ...model.edgeClimbSources]) new Image().src = source;
   fetch("../src/lib/panda-animation-manifest.json").then(r => {
     if (!r.ok) throw new Error("Animation manifest missing");
     return r.json();
@@ -301,7 +329,19 @@
     let needsRender = transitionFrames.length > 0;
     const physical = state.mode === "desktop" && state.identityReady
       && document.visibilityState !== "hidden" && !held && !press;
-    if (physical) {
+    if (preference.matches && cancelEdgeClimb()) needsRender = true;
+    if (physical && edgeClimb) {
+      const { route } = edgeClimb;
+      edgeClimb.elapsed += Math.max(0, Math.min(delta, .05)) * 1000;
+      edgeFrame = model.edgeClimbAt(route, edgeClimb.elapsed);
+      point = { x: route.x, y: edgeFrame?.y ?? route.groundY };
+      if (!edgeFrame) {
+        edgeClimb = null; support = geometry.supportAt(point, surfaces);
+        nextWalk = now + 43000;
+        setMotion(support ? "stare" : "grab");
+      }
+      needsRender = true;
+    } else if (physical) {
       const previousSupport = support;
       const tracked = geometry.track(point, support, surfaces);
       const moved = tracked.point.x !== point.x || tracked.point.y !== point.y;
@@ -341,7 +381,7 @@
         || (backgroundBite && now - backgroundBite.started >= biteModel.duration)) {
         if (cancelBite()) needsRender = true;
       } else if (backgroundBite) needsRender = true;
-    } else if (physical && destination && now >= nextBiteAt && canBite(motion === "walk")) {
+    } else if (physical && destination && !destination.edgeRoute && now >= nextBiteAt && canBite(motion === "walk")) {
       void tryBite(now);
     }
     if (punchStarted !== null) {
@@ -380,7 +420,11 @@
       && !bitePending && !backgroundBite;
     if (active) {
       if (!destination && now >= nextWalk) {
-        destination = geometry.walkTarget(point, support);
+        const route = state.characterId === "panda" && now >= nextEdgeAt ? geometry.edgeRoute(point, support) : null;
+        if (route) {
+          destination = { x: route.x, y: route.groundY, edgeRoute: route };
+          nextEdgeAt = model.nextEdgeClimbAt(now);
+        } else destination = geometry.walkTarget(point, support);
         if (destination) {
           presence.dataset.facing = destination.x < point.x ? "left" : "right";
           setMotion("walk");
@@ -391,8 +435,20 @@
         point = { x: Math.min(support.right, Math.max(support.left, step.point.x)), y: support.y };
         needsRender = true;
         if (step.arrived) {
-          destination = null; nextWalk = now + 4500 + Math.random() * 5500;
-          setMotion(Math.random() < .2 ? "sleep" : "idle");
+          const route = destination.edgeRoute;
+          destination = null;
+          if (route) {
+            point = { x: route.x, y: route.groundY };
+            presence.dataset.facing = route.side;
+            startEdgeClimb(route);
+          } else if (state.characterId === "panda") {
+            const rest = model.companionRest(now);
+            nextWalk = rest.until;
+            setMotion(rest.motion);
+          } else {
+            nextWalk = now + 4500 + Math.random() * 5500;
+            setMotion(Math.random() < .2 ? "sleep" : "idle");
+          }
         }
       }
     } else if (!state.quietMode && !state.restPose && support && !held && !promptOpen && (state.paused || preference.matches)) {
@@ -414,9 +470,9 @@
     console.error("桌宠素材加载失败：", image.getAttribute("src"));
   });
   window.addEventListener("resize", () => {
-    cancelBite();
-    surfaces = geometry.platforms(windows, innerWidth, innerHeight);
-    point = geometry.constrain(point, innerWidth, innerHeight); destination = null; render(); publishRegions();
+    cancelBite(); surfaces = geometry.platforms(windows, innerWidth, innerHeight);
+    point = geometry.constrain(point, innerWidth, innerHeight);
+    cancelEdgeClimb(); destination = null; render(); publishRegions();
   });
   const hitTimer = setInterval(publishRegions, 100);
   window.addEventListener("beforeunload", () => {

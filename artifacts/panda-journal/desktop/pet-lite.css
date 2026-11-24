@@ -19,8 +19,10 @@ html[data-lite-desktop="true"] [data-facing="left"] .panda-character{transform:s
 html[data-lite-desktop="true"] .pet-presence[data-biting="true"] .panda-character[data-bite-flip="false"]{transform:none}
 html[data-lite-desktop="true"] .pet-presence[data-biting="true"] .panda-character[data-bite-flip="true"]{transform:scaleX(-1)}
 html[data-lite-desktop="true"] .desktop-dirt-layer{position:absolute;left:0;top:3.333px;width:40px;height:40px;image-rendering:pixelated;pointer-events:none}
-html[data-lite-desktop="true"] [data-motion="landing"] .desktop-dirt-layer{mask-size:100% 100%;mask-repeat:no-repeat}
+html[data-lite-desktop="true"] :is([data-motion="landing"],[data-motion="edge-climb"]) .desktop-dirt-layer{mask-size:100% 100%;mask-repeat:no-repeat}
 html[data-lite-desktop="true"] [data-facing="left"] .desktop-dirt-layer{transform:scaleX(-1)}
+html[data-lite-desktop="true"] .pet-presence[data-edge-flip="false"] :is(.panda-character,.desktop-dirt-layer){transform:none}
+html[data-lite-desktop="true"] .pet-presence[data-edge-flip="true"] :is(.panda-character,.desktop-dirt-layer){transform:scaleX(-1)}
 html[data-lite-desktop="true"] .desktop-shake-dust{display:none;position:absolute;inset:0;pointer-events:none}
 html[data-lite-desktop="true"] [data-shaking="true"] .desktop-shake-dust{display:block}
 html[data-lite-desktop="true"] .desktop-shake-dust i{position:absolute;left:50%;top:48%;width:2px;height:2px;background:#9b8765;image-rendering:pixelated;opacity:0;animation:desktop-dust-pop .62s steps(6,end) infinite}

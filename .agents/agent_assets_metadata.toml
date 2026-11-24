@@ -1156,3 +1156,17 @@ mtime_ms = 1795520152898
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/67e91dff-5221-4e72-a6b9-4e901f884ac1/ff1203b5-a6d1-4dd6-bc25-3c79f73ea970"
 storage_version_token = "1795520205346000"
 content_type = "image/gif"
+
+[[outputs]]
+id = "aJQkPhk4aYHnILaSD4l0f"
+uri = "file://generated-artifacts/panda-desktop-edge-climb.gif"
+type = "image"
+title = "小熊猫贴着桌面边缘爬的动图"
+description = "用实际像素帧演示抬爪、贴边爬升、停一下，再沿原路爬回任务栏。预览略加速。"
+logical_id = "d4e3a05b-5daf-4a59-8637-f51da61bb64e"
+content_hash = "sha256:bdbedcf5b43596dda0f9537080b4aa7eb8bdf65a2594c91c32d388a3d2f6f019"
+size = 57160
+mtime_ms = 1795523614462
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/d4e3a05b-5daf-4a59-8637-f51da61bb64e/fac0ee93-1a03-42af-b80b-7d0ba5b0f62e"
+storage_version_token = "1795523645530293"
+content_type = "image/gif"

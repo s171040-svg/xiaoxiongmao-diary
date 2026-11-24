@@ -76,6 +76,47 @@ test("quiet rests choose only three calm poses, lasting five to ten minutes", ()
   assert.deepEqual([...selected].sort(), ["lying", "sleep", "stare"]);
 });
 
+test("in automatic mode the panda chooses lasting sitting and sleeping breaks", () => {
+  assert.equal(model.companionRest(100, () => .5).motion, "stare");
+  assert(model.companionRest(100, () => .5).until >= 43100);
+  assert.equal(model.companionRest(100, () => 0).motion, "sleep");
+  assert(model.companionRest(100, () => .25).until >= 85100);
+  assert.equal(model.companionRest(100, () => .95).motion, "idle");
+  assert(model.nextEdgeClimbAt(100, () => 0, true) >= 55100);
+  assert(model.nextEdgeClimbAt(100, () => 0) >= 155100);
+});
+
+test("the edge climb uses real mount and loop poses, pauses at the top, and returns to the same ledge", () => {
+  const route = { side: "left", x: 20, topY: 504, groundY: 650 };
+  const mount = Array.from({ length: 6 }, (_, i) => model.edgeClimbAt(route, 76 * i));
+  assert(mount.every(frame => frame.phase === "mount" && frame.y === route.groundY));
+  assert.equal(mount[0].nativeLeft, false);
+  assert.equal(mount[1].nativeLeft, true);
+  const travelMs = 146 / 24 * 1000;
+  const up = model.edgeClimbAt(route, 456 + 3000);
+  assert.equal(up.phase, "up");
+  assert.equal(up.y, 578);
+  const pause = model.edgeClimbAt(route, 456 + travelMs + 500);
+  assert.equal(pause.phase, "pause");
+  assert.equal(pause.y, route.topY);
+  const down = model.edgeClimbAt(route, 456 + travelMs + 1000 + 3000);
+  assert.equal(down.phase, "down");
+  assert.equal(down.y, 576);
+  const dismount = Array.from({ length: 6 }, (_, i) =>
+    model.edgeClimbAt(route, 457 + 2 * travelMs + 1000 + 76 * i));
+  assert(dismount.every(frame => frame.phase === "dismount" && frame.y === route.groundY));
+  assert.deepEqual(dismount.map(frame => frame.source), mount.map(frame => frame.source).reverse());
+  assert.equal(model.edgeClimbAt(route, 20000), null);
+  const hashes = model.edgeClimbSources.map(source => {
+    const png = fs.readFileSync(path.resolve(__dirname, source));
+    assert.equal(png.readUInt32BE(16), 96);
+    assert.equal(png.readUInt32BE(20), 96);
+    return require("node:crypto").createHash("sha256").update(png).digest("hex");
+  });
+  assert.equal(new Set(hashes.slice(0, 6)).size, 6);
+  assert(new Set(hashes.slice(6)).size >= 6, "alternate real paw strokes rather than sliding a still picture");
+});
+
 test("quiet prone poses preserve their scale and align with the same floor", () => {
   assert.equal(model.spriteTop("../public/static/panda/peeking.png"), 22 * 40 / 96);
   for (let frame = 1; frame <= 5; frame++) {

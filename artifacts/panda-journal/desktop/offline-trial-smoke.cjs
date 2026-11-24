@@ -167,6 +167,83 @@ async function main() {
       assert.equal(await presence.getAttribute("data-motion"), "sleep");
       console.log("PASS right-click one-shot bite ignores the random toggle and returns to the selected pose");
     }
+    async function companionState(overrides = {}) {
+      await application.evaluate(({ BrowserWindow }, overrides) => {
+        BrowserWindow.getAllWindows()[0].webContents.send("desktop-pet:state", {
+          mode: "desktop", characterId: "panda", identityReady: true, identityStatus: "offline-trial",
+          paused: false, quietMode: false, restPose: null, backgroundBite: false, ...overrides,
+        });
+      }, overrides);
+    }
+    const position = () => presence.evaluate(el => ({ x: parseFloat(el.style.left), y: parseFloat(el.style.top) }));
+    await pet.evaluate(() => {
+      const model = window.PandaDesktopPet, rest = model.companionRest;
+      const choices = [.5, 0];
+      model.companionRest = now => ({ ...rest(now, () => choices.shift() ?? 0), until: now + 1400 });
+    });
+    await companionState({ restPose: "stare" });
+    await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.motion === "stare");
+    await companionState();
+    await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.motion === "walk");
+    for (const [motion, pattern] of [["stare", /walk-to-idle-5\.png$/], ["sleep", /\/(?:frames\/)?sleep(?:-\d+)?\.png$/]]) {
+      await pet.waitForFunction(({ motion, pattern }) => {
+        const el = document.querySelector("#panda-sprite");
+        return el.dataset.sprite === motion && new RegExp(pattern).test(el.src) && el.complete && el.naturalWidth > 0;
+      }, { motion, pattern: pattern.source });
+      const parked = await position();
+      await pet.waitForTimeout(180);
+      assert.deepEqual(await position(), parked, `${motion} is an actual stationary break`);
+    }
+
+    // Put the pet near the left edge, then make only the outing timer due.
+    // The real route, gravity, paw frames, and transitions are unchanged.
+    await companionState({ paused: true });
+    await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.paused === "true");
+    const sideBox = await actor.boundingBox();
+    await pet.mouse.move(sideBox.x + 20, sideBox.y + 20);
+    await pet.mouse.down();
+    await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.dragging === "true");
+    await pet.mouse.move(39, sideBox.y, { steps: 5 });
+    await pet.mouse.up();
+    await pet.waitForFunction(() => {
+      const el = document.querySelector(".pet-presence");
+      return el.dataset.platform === "taskbar" && !el.dataset.landing;
+    });
+    const taskbar = await position();
+    await pet.evaluate(() => { window.PandaDesktopPet.nextEdgeClimbAt = (now, _rng, first) => now + (first ? 0 : 200000); });
+    await companionState({ mode: "room" });
+    await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.mode === "room");
+    await companionState();
+    async function climbPhase(phase) {
+      await pet.waitForFunction(phase => {
+        const el = document.querySelector(".pet-presence"), sprite = document.querySelector("#panda-sprite");
+        return el.dataset.edgeClimb === phase && el.dataset.falling === "false"
+          && sprite.dataset.sprite === "edge-climb" && sprite.complete && sprite.naturalWidth === 96;
+      }, phase);
+    }
+    await climbPhase("up");
+    const climbStart = await position();
+    assert.equal(climbStart.x, 20, "left climb stays entirely on the left desktop edge");
+    assert.equal(await presence.getAttribute("data-edge-flip"), "false");
+    await climbPhase("pause");
+    const crest = await position();
+    assert.equal(crest.x, climbStart.x);
+    assert.equal(crest.y, taskbar.y - 146);
+    await climbPhase("down");
+    assert.equal((await position()).x, climbStart.x);
+    await pet.waitForFunction(() => {
+      const el = document.querySelector(".pet-presence");
+      return el.dataset.platform === "taskbar" && el.dataset.motion === "stare" && !el.dataset.edgeClimb;
+    });
+    assert.deepEqual(await position(), { x: climbStart.x, y: taskbar.y });
+
+    await companionState({ mode: "room" });
+    await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.mode === "room");
+    await companionState({ quietMode: true });
+    await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.quiet === "true");
+    await pet.waitForTimeout(2100);
+    assert.deepEqual(await position(), { x: climbStart.x, y: taskbar.y }, "a due climb is suppressed in quiet mode");
+    console.log("PASS automatic seated and sleeping breaks, one full vertical edge outing, and no climbing during quiet mode");
   } finally {
     await application?.close();
     fs.rmSync(profile, { recursive: true, force: true });
