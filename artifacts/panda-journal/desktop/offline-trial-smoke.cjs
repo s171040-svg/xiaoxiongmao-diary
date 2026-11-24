@@ -145,6 +145,11 @@ async function main() {
         globalThis.__restPopup = null;
       });
       await waitColor([184, 132, 61]);
+      await pet.waitForFunction(() => {
+        const el = document.querySelector("#panda-sprite");
+        return el.dataset.sprite === "background-bite" && /\/desktop-bite\/jaw-[123]\.png$/.test(el.getAttribute("src"))
+          && el.complete && el.naturalWidth === 96;
+      });
       await canvas.waitFor({ state: "hidden" });
       assert.equal(await presence.getAttribute("data-motion"), "sleep");
       console.log("PASS right-click one-shot bite ignores the random toggle and returns to the selected pose");

@@ -67,10 +67,11 @@
     const shakeIndex = shakeStartedAt === null ? null : model.shakeFrame(performance.now() - shakeStartedAt, preference.matches);
     const biting = backgroundBite !== null;
     const biteElapsed = biting ? performance.now() - backgroundBite.started : 0;
+    const biteFrame = biting ? biteModel.frameAt(biteElapsed, backgroundBite.stayLow) : null;
     biteCanvas.hidden = !biting;
     presence.dataset.biting = String(biting);
     if (biting) biteModel.draw(biteContext, backgroundBite, biteElapsed);
-    const source = biting ? biteModel.spriteAt(biteElapsed) : punchFrame === null
+    const source = biteFrame ? biteFrame.source : punchFrame === null
       ? motion === "shake" && shakeIndex !== null
         ? `../public/static/panda/desktop-shake/${desktopDirt.remainingShakes}/${shakeIndex + 1}.png`
         : transitionFrames[transitionIndex] ?? model.sprite(state.characterId, motion, frame, manifest)
@@ -78,6 +79,8 @@
     if (transitionIndex >= transitionFrames.length) transitionFrames = [];
     if (image.getAttribute("src") !== source) image.setAttribute("src", source);
     image.style.top = `${model.spriteTop(source)}px`;
+    if (biteFrame) image.dataset.biteFlip = String(biteFrame.nativeLeft !== backgroundBite.left);
+    else delete image.dataset.biteFlip;
     image.dataset.sprite = biting ? "background-bite" : punchFrame === null ? motion : "punch";
     image.dataset.frame = String(punchFrame ?? frame);
     if (dirt) {
@@ -113,7 +116,8 @@
         || document.visibilityState === "hidden"), preference.matches, manual);
   }
   async function tryBite(now, manual = false) {
-    const request = { left: presence.dataset.facing === "left", manual };
+    const request = { left: presence.dataset.facing === "left", manual,
+      stayLow: ["sleep", "lying"].includes(motion) };
     bitePending = request;
     nextBiteAt = biteModel.nextAt(now);
     destination = null; setMotion(settledMotion()); publishRegions();
@@ -257,6 +261,8 @@
     console.error("桌面平台资料暂不可用，将仅沿任务栏活动。");
   });
   void bridge.desktopPetState().then(applyState);
+  // Cache these local frames before the first one-shot animation.
+  for (const source of biteModel.spriteSources) new Image().src = source;
   fetch("../src/lib/panda-animation-manifest.json").then(r => {
     if (!r.ok) throw new Error("Animation manifest missing");
     return r.json();

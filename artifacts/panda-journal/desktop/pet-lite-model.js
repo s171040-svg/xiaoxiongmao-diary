@@ -43,6 +43,7 @@
     const bottom = source.includes("/panda/peeking.png") ? 74
       : source.includes("pixellab-walk-to-peeking-")
         ? [86, 80, 75, 73, 72][Number(source.match(/peeking-(\d+)/)[1]) - 1]
+        : source.includes("/desktop-bite/jaw-") ? 80
         : source.includes("pixellab-walk-to-sleep-")
           ? [88, 88, 85, 80, 80, 80, 80][Number(source.match(/sleep-(\d+)/)[1]) - 1] : 88;
     return (96 - bottom) * 40 / 96;
