@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld("pandaDesktop", {
   enterDesktop: () => ipcRenderer.invoke("desktop-pet:enter"),
   returnHome: () => ipcRenderer.invoke("desktop-pet:home"),
   openRestMenu: () => ipcRenderer.invoke("desktop-pet:rest-menu"),
+  backgroundColor: (left) => ipcRenderer.invoke("desktop-pet:background-color", left),
   setPetDragging: (value) => ipcRenderer.send("desktop-pet:dragging", Boolean(value)),
   chat: (input) => ipcRenderer.invoke("companion:chat", input),
   companionMotion: (effect) => ipcRenderer.send("companion:motion", effect),

@@ -31,8 +31,12 @@ async function main() {
     assert.deepEqual(await pet.evaluate(() => window.pandaDesktop.desktopPetState()), {
       mode: "desktop", characterId: "panda", identityReady: true,
       identityStatus: "offline-trial", paused: false, quietMode: false, restPose: null,
+      backgroundBite: process.platform === "win32" && !process.env.REPL_ID,
     });
     assert.equal(await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length), 1);
+    const visibilityDeadline = Date.now() + 5000;
+    while (!await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isVisible())
+      && Date.now() < visibilityDeadline) await new Promise(resolve => setTimeout(resolve, 50));
     assert.equal(await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isVisible()), true);
     await pet.evaluate(() => window.pandaDesktop.returnHome());
     assert.equal(await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length), 1);
@@ -92,6 +96,42 @@ async function main() {
     await choosePose("auto", "趴着");
     await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.motion === "walk");
     console.log("PASS all three click-selected poses, drag-and-drop retaining pose, and resume walking");
+
+    if (process.platform !== "win32") {
+      // The native one-pixel reader is exercised independently on Windows CI.
+      // Here we drive the real Electron renderer with two controlled colors.
+      assert.equal(await pet.evaluate(() => window.pandaDesktop.backgroundColor(false)), null);
+      await pet.evaluate(() => { window.PandaBackgroundBite.nextAt = (now, _rng, first) => now + (first ? 10 : 1300); });
+      await application.evaluate(({ BrowserWindow, ipcMain }) => {
+        ipcMain.removeHandler("desktop-pet:background-color");
+        const colors = ["#ad397b", "#1483bd"];
+        ipcMain.handle("desktop-pet:background-color", () => colors.shift());
+        BrowserWindow.getAllWindows()[0].webContents.send("desktop-pet:state", {
+          mode: "desktop", characterId: "panda", identityReady: true,
+          identityStatus: "offline-trial", paused: false, quietMode: false, restPose: null, backgroundBite: true,
+        });
+      });
+      const canvas = pet.locator("#background-bite");
+      async function waitColor(rgb) {
+        await pet.waitForFunction(expected => {
+          const el = document.querySelector("#background-bite");
+          if (el.hidden) return false;
+          const data = el.getContext("2d").getImageData(0, 0, el.width, el.height).data;
+          for (let i = 0; i < data.length; i += 4) {
+            if (data[i + 3] === 255 && expected.every((v, j) => v === data[i + j])) return true;
+          }
+          return false;
+        }, rgb, { timeout: 15000 });
+      }
+      await waitColor([173, 57, 123]);
+      assert.equal(await canvas.evaluate(el => getComputedStyle(el).pointerEvents), "none");
+      await canvas.waitFor({ state: "hidden" });
+      await waitColor([20, 131, 189]);
+      await choosePose("sleep", "恢复走动");
+      await canvas.waitFor({ state: "hidden" });
+      await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.motion === "sleep");
+      console.log("PASS desktop bite animates sampled colors, never captures clicks, and stops for manual rest");
+    }
   } finally {
     await application?.close();
     fs.rmSync(profile, { recursive: true, force: true });

@@ -34,3 +34,6 @@ html[data-lite-desktop="true"] .pet-shadow{bottom:0;animation:none;scale:.3}
 html[data-lite-desktop="true"] [data-dragging="true"] .pet-shadow{opacity:0}
 html[data-lite-desktop="true"] .speech-bubble{width:210px;max-width:calc(100vw - 16px);bottom:48px}
 html[data-lite-desktop="true"] [data-room-bubble="below"] .speech-bubble{top:48px;bottom:auto}
+.desktop-background-bite{position:absolute;width:128px;height:72px;left:-44px;bottom:-12px;pointer-events:none;image-rendering:pixelated}
+[data-platform="taskbar"] .desktop-background-bite{bottom:0}
+.desktop-background-bite[hidden]{display:none}

@@ -3,7 +3,9 @@
 (() => {
   "use strict";
   const bridge = window.pandaDesktop, model = window.PandaDesktopPet, geometry = window.PandaDesktopPlatforms;
+  const biteModel = window.PandaBackgroundBite;
   const actor = document.getElementById("panda"), image = document.getElementById("panda-sprite");
+  const biteCanvas = document.getElementById("background-bite"), biteContext = biteCanvas.getContext("2d");
   const presence = document.querySelector(".pet-presence");
   const bubble = document.getElementById("speech"), copy = document.getElementById("speech-copy");
   const dirt = document.getElementById("panda-dirt");
@@ -22,6 +24,7 @@
   let destination = null, frame = 0, lastFrame = 0, previous = performance.now();
   let motion = "idle", nextWalk = performance.now() + 1800, press = null, held = false, suppressClickUntil = 0;
   let promptOpen = false, restMenuOpen = false, disposed = false;
+  let nextBiteAt = Infinity, bitePending = null, backgroundBite = null;
   let transitionFrames = [], transitionStartedAt = 0;
   const dirtStorageKey = "panda.desktop.dirt.v1";
   let desktopDirt = loadDirt();
@@ -62,7 +65,12 @@
     presence.dataset.mode = state.mode;
     const transitionIndex = Math.floor((performance.now() - transitionStartedAt) / 75);
     const shakeIndex = shakeStartedAt === null ? null : model.shakeFrame(performance.now() - shakeStartedAt, preference.matches);
-    const source = punchFrame === null
+    const biting = backgroundBite !== null;
+    const biteElapsed = biting ? performance.now() - backgroundBite.started : 0;
+    biteCanvas.hidden = !biting;
+    presence.dataset.biting = String(biting);
+    if (biting) biteModel.draw(biteContext, backgroundBite, biteElapsed);
+    const source = biting ? biteModel.spriteAt(biteElapsed) : punchFrame === null
       ? motion === "shake" && shakeIndex !== null
         ? `../public/static/panda/desktop-shake/${desktopDirt.remainingShakes}/${shakeIndex + 1}.png`
         : transitionFrames[transitionIndex] ?? model.sprite(state.characterId, motion, frame, manifest)
@@ -70,7 +78,7 @@
     if (transitionIndex >= transitionFrames.length) transitionFrames = [];
     if (image.getAttribute("src") !== source) image.setAttribute("src", source);
     image.style.top = `${model.spriteTop(source)}px`;
-    image.dataset.sprite = punchFrame === null ? motion : "punch";
+    image.dataset.sprite = biting ? "background-bite" : punchFrame === null ? motion : "punch";
     image.dataset.frame = String(punchFrame ?? frame);
     if (dirt) {
       const dirtyLevel = desktopDirt.remainingShakes;
@@ -93,6 +101,33 @@
   function settledMotion() {
     return state.restPose ?? (state.quietMode && quietRest ? quietRest.motion : "idle");
   }
+  function cancelBite() {
+    if (!bitePending && !backgroundBite) return false;
+    bitePending = null; backgroundBite = null;
+    nextWalk = performance.now() + 500;
+    return true;
+  }
+  function canBite(walking) {
+    return Boolean(biteContext && support) && biteModel.canStart(state, walking,
+      Boolean(held || press || promptOpen || restMenuOpen || punchStarted !== null || motion === "shake"
+        || document.visibilityState === "hidden"), preference.matches);
+  }
+  async function tryBite(now) {
+    const request = { left: presence.dataset.facing === "left" };
+    bitePending = request;
+    nextBiteAt = biteModel.nextAt(now);
+    destination = null; setMotion("idle"); publishRegions();
+    let color;
+    try { color = await bridge.backgroundColor(request.left); }
+    catch { color = null; }
+    if (bitePending !== request) return;
+    bitePending = null;
+    nextWalk = performance.now() + 500;
+    if (!canBite(true) || !biteModel.validColor(color)) return;
+    transitionFrames = [];
+    backgroundBite = { ...request, color, started: performance.now() };
+    render();
+  }
   function closePrompt() {
     promptOpen = false; bubble.hidden = true;
     nextWalk = performance.now() + 2000; publishRegions();
@@ -109,6 +144,7 @@
     if (event.detail !== 0 && performance.now() < suppressClickUntil) return;
     if (state.identityStatus === "offline-trial") {
       if (held || !state.identityReady || restMenuOpen) return;
+      if (cancelBite()) render();
       restMenuOpen = true;
       destination = null;
       if (support && motion !== "shake") setMotion(settledMotion());
@@ -141,10 +177,12 @@
   }
   actor.addEventListener("pointerdown", e => {
     if (e.button !== 0 || !e.isPrimary) return;
+    if (cancelBite()) render();
     actor.setPointerCapture(e.pointerId);
     press = { id: e.pointerId, offsetX: e.clientX - point.x, offsetY: e.clientY - point.y,
       x: e.clientX, y: e.clientY, timer: setTimeout(beginDrag, 380) };
   });
+  actor.addEventListener("contextmenu", () => { if (cancelBite()) render(); });
   actor.addEventListener("pointermove", e => {
     if (!press || press.id !== e.pointerId) return;
     press.x = e.clientX; press.y = e.clientY;
@@ -184,7 +222,10 @@
     const changed = state.characterId !== value.characterId;
     const quietChanged = Boolean(state.quietMode) !== Boolean(value.quietMode);
     const poseChanged = state.restPose !== value.restPose;
+    const biteEnabled = value.backgroundBite === true && state.backgroundBite !== true;
     state = value;
+    if (biteEnabled) nextBiteAt = biteModel.nextAt(performance.now(), undefined, true);
+    if (!canBite(true)) cancelBite();
     if (state.identityStatus === "offline-trial") actor.setAttribute("aria-label", "点击选择睡觉、坐着或趴着；长按可拖动；右键打开桌宠设置");
     if (changed || quietChanged || poseChanged || state.mode !== "desktop" || state.paused) punchStarted = null;
     if (changed && value.characterId !== "panda") shakeStartedAt = null;
@@ -230,6 +271,7 @@
       const tracked = geometry.track(point, support, surfaces);
       const moved = tracked.point.x !== point.x || tracked.point.y !== point.y;
       if (support && (!tracked.support || moved)) {
+        if (cancelBite()) needsRender = true;
         if (!tracked.support) {
           punchStarted = null;
           fallOriginY = previousSupport?.ownerId === "taskbar" ? null : previousSupport?.y ?? null;
@@ -250,6 +292,13 @@
         needsRender = true;
       } else if (moved) needsRender = true;
     }
+    if (bitePending || backgroundBite) {
+      if (!canBite(true) || (backgroundBite && now - backgroundBite.started >= biteModel.duration)) {
+        if (cancelBite()) needsRender = true;
+      } else if (backgroundBite) needsRender = true;
+    } else if (physical && destination && now >= nextBiteAt && canBite(motion === "walk")) {
+      void tryBite(now);
+    }
     if (punchStarted !== null) {
       needsRender = true;
       if (now >= punchStarted && model.punchFrame(now - punchStarted, manifest, preference.matches) === null) {
@@ -262,7 +311,8 @@
       setMotion(quietRest.motion);
     }
     const canClean = physical && support && state.characterId === "panda" && desktopDirt.remainingShakes > 0
-      && !state.quietMode && !state.paused && !state.restPose && !promptOpen && !restMenuOpen && punchStarted === null;
+      && !state.quietMode && !state.paused && !state.restPose && !promptOpen && !restMenuOpen
+      && !bitePending && !backgroundBite && punchStarted === null;
     const canShake = canClean && !preference.matches;
     const cleaningNow = Date.now();
     if (canClean && preference.matches && motion === "shake" && shakeStartedAt !== null) {
@@ -280,7 +330,8 @@
       destination = null; shakeStartedAt = now; setMotion("shake"); render(); needsRender = true;
     }
     const active = physical && support && punchStarted === null && motion !== "shake"
-      && !state.quietMode && !state.paused && !state.restPose && !preference.matches && !promptOpen && !restMenuOpen;
+      && !state.quietMode && !state.paused && !state.restPose && !preference.matches && !promptOpen && !restMenuOpen
+      && !bitePending && !backgroundBite;
     if (active) {
       if (!destination && now >= nextWalk) {
         destination = geometry.walkTarget(point, support);
@@ -317,6 +368,7 @@
     console.error("桌宠素材加载失败：", image.getAttribute("src"));
   });
   window.addEventListener("resize", () => {
+    cancelBite();
     surfaces = geometry.platforms(windows, innerWidth, innerHeight);
     point = geometry.constrain(point, innerWidth, innerHeight); destination = null; render(); publishRegions();
   });

@@ -1,6 +1,7 @@
 "use strict";
 const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, screen, dialog } = require("electron");
 const { createScanner, localWindows } = require("./windows-platforms.cjs");
+const { readPixel, samplePoint } = require("./windows-pixel.cjs");
 const path = require("node:path");
 const { classify } = require("./ai.cjs");
 const { chat } = require("@workspace/companion-ai");
@@ -37,8 +38,9 @@ const fullDesktopMode = process.platform === "win32" && !process.env.REPL_ID;
 const useInlineGift = process.platform === "linux" && Boolean(process.env.REPL_ID);
 const desktopVersion = metadata.version;
 const nativeGiftWindowsEnabled = false; // Gifts stay in the room in the quiet first version.
-let desktopPetState = { mode: "desktop", characterId: "panda", identityReady: offlineTrial, identityStatus: offlineTrial ? "offline-trial" : "loading", paused: false, quietMode: false, ...(offlineTrial ? { restPose: null } : {}) };
+let desktopPetState = { mode: "desktop", characterId: "panda", identityReady: offlineTrial, identityStatus: offlineTrial ? "offline-trial" : "loading", paused: false, quietMode: false, ...(offlineTrial ? { restPose: null, backgroundBite: fullDesktopMode } : {}) };
 let petDragging = false;
+let nextPixelRead = 0;
 function publishPetState() {
   sendPet("desktop-pet:state", desktopPetState);
   if (journalWindow && !journalWindow.isDestroyed()) journalWindow.webContents.send("desktop-pet:state", desktopPetState);
@@ -318,6 +320,18 @@ ipcMain.handle("desktop-pet:platforms", event => {
   if (!trusted(event, petWindow)) throw new Error("无效的平台请求");
   return platformSnapshot();
 });
+ipcMain.handle("desktop-pet:background-color", (event, left) => {
+  if (!offlineTrial || !fullDesktopMode || !desktopPetState.backgroundBite || !trusted(event, petWindow)
+    || !petWindow.isVisible() || !desktopPetState.identityReady || petDragging || desktopPetState.quietMode
+    || desktopPetState.paused || desktopPetState.restPose || typeof left !== "boolean"
+    || hitRegions.length !== 1 || Date.now() < nextPixelRead) return null;
+  const pet = hitRegions[0], overlay = petWindow.getBounds();
+  const display = screen.getDisplayMatching(overlay);
+  const point = samplePoint(pet, overlay, display.bounds, left, Math.abs(pet.y + pet.height - overlay.height) <= 1);
+  if (!point) return null;
+  nextPixelRead = Date.now() + 15000;
+  return readPixel(screen.dipToScreenPoint(point));
+});
 ipcMain.on("desktop-pet:character", (event, value) => {
   if (!trusted(event, journalWindow) || !value || !["panda", "xiaobai"].includes(value.characterId)
     || typeof value.ready !== "boolean") return;
@@ -507,6 +521,10 @@ else {
         if (offlineTrial) desktopPetState.restPose = null;
         desktopPetState.paused = item.checked; publishPetState();
       } },
+      ...(offlineTrial && fullDesktopMode ? [{
+        id: "background-bite", label: "随机咬背景（本机取色）", type: "checkbox", checked: true,
+        click: item => { desktopPetState.backgroundBite = item.checked; publishPetState(); tray?.setContextMenu(menu); },
+      }] : []),
       { label: "隐藏桌宠", click: () => petWindow?.hide() },
       { type: "separator" },
       { label: "退出桌宠", click: () => app.quit() },
