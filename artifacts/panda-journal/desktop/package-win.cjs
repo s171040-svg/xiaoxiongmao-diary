@@ -69,7 +69,8 @@ async function main() {
 
   for (const file of ["main.cjs", "preload.cjs", "pet.html", "pet.css", "pet-renderer.js", "roaming-geometry.js",
     "pet-lite.js", "pet-lite-model.js", "pet-lite.css", "platform-model.js", "windows-platforms.cjs", "background-bite.js", "windows-pixel.cjs",
-    "journal-connection.cjs", "journal-targets.json"]) {
+    "journal-connection.cjs", "journal-targets.json", "wellbeing.cjs", "wellbeing-animation.js",
+    "notebook-store.cjs", "notebook.html", "notebook.css", "notebook.js"]) {
     fs.copyFileSync(path.join(__dirname, file), path.join(stageRoot, "desktop", file));
   }
   copyDirectory(path.join(packageRoot, "dist", "desktop"), path.join(stageRoot, "dist", "desktop"));

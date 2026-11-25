@@ -1184,3 +1184,31 @@ mtime_ms = 1795524373666
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/d46ee060-9730-4200-8a15-ee4627c8a28b/2d22b974-ed34-430b-981d-49d77e3f7803"
 storage_version_token = "1795524405365760"
 content_type = "image/png"
+
+[[outputs]]
+id = "_fEh_5bzLnPYzzbyrU_G0"
+uri = "file://generated-artifacts/wellbeing/healthy-celebration.gif"
+type = "image"
+title = "小熊猫：健康最重要！"
+description = "休息归来庆祝动作预览：坐下举起小烟花棒，身旁绽放像素烟花，结束后恢复陪伴。预览已放大，桌面实际保持原有尺寸。"
+logical_id = "f73642c2-ea58-4d1c-b602-d1f1f03b142e"
+content_hash = "sha256:bacadf9a4dbb2fc24b512ad9ebaad79a7b1f8077a2026b82fac17b27e7e170e5"
+size = 142127
+mtime_ms = 1795601142728
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/f73642c2-ea58-4d1c-b602-d1f1f03b142e/ceb03acd-02bf-49c2-8e28-01f609ddd04a"
+storage_version_token = "1795601207925785"
+content_type = "image/gif"
+
+[[outputs]]
+id = "TxLYBmS4YiIJjhIlKnHiv"
+uri = "file://generated-artifacts/notebook/local-notebook.png"
+type = "image"
+title = "小熊猫的本子 · 桌面记事预览"
+description = "真实桌面开发版截图：记录今天18:00开会，并安排17:30提醒。当前仅本机记事，不接AI、不上传。"
+logical_id = "dfdef0ba-ec11-4348-a560-4434168f061a"
+content_hash = "sha256:5938016593aa0d05fecdef1d9c54928ade8e37c457082b9d5471ea8193c4a6e8"
+size = 67705
+mtime_ms = 1795602575063
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/dfdef0ba-ec11-4348-a560-4434168f061a/438a96b3-999b-45f1-8b53-e7089c390914"
+storage_version_token = "1795602675940330"
+content_type = "image/png"

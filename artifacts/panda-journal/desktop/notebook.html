@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>小熊猫的日程本</title>
+<link rel="stylesheet" href="notebook.css">
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top">
+    <img class="top-panda" src="../public/static/panda/idle.png" alt="" width="48" height="48">
+    <div class="top-title">
+      <h1>小熊猫的日程本</h1>
+      <p>记下日期、上午或下午、时间和事项，小熊猫提前一小时提醒你准备。</p>
+    </div>
+    <button type="button" class="btn ghost" id="btn-new" data-testid="button-new-reminder">新提醒</button>
+    <button type="button" class="btn ghost" id="btn-close" data-testid="button-close-window" aria-label="关闭日程本">关闭</button>
+  </header>
+
+  <div class="layout">
+    <aside class="list-pane" aria-label="日程列表">
+      <div class="list-head"><span>我的日程</span><span class="count" id="event-count" data-testid="text-event-count">0</span></div>
+      <ol class="event-list" id="event-list" data-testid="list-reminders"></ol>
+      <div class="list-state" id="list-state" data-testid="status-list"></div>
+      <p class="legacy-note" id="legacy-note" hidden></p>
+    </aside>
+
+    <main class="editor" aria-label="日程提醒">
+      <div class="editor-head">
+        <span class="page-label" id="page-label" data-testid="text-page-label">新提醒</span>
+        <span class="save-state" id="save-state" role="status" aria-live="polite" data-testid="status-save"></span>
+      </div>
+
+      <form id="event-form" novalidate>
+        <label class="field">
+          <span>要办的事项</span>
+          <input id="event-title" type="text" maxlength="160" autocomplete="off" placeholder="例如：和同事开会" data-testid="input-event-title">
+        </label>
+
+        <label class="field">
+          <span>日期</span>
+          <input id="event-date" type="date" data-testid="input-event-date">
+        </label>
+
+        <fieldset class="time-field">
+          <legend>开始时间</legend>
+          <div class="time-controls">
+            <label><span class="sr">上午或下午</span>
+              <select id="event-period" data-testid="select-event-period">
+                <option value="am">上午</option>
+                <option value="pm">下午</option>
+              </select>
+            </label>
+            <label><span class="sr">小时</span>
+              <select id="event-hour" data-testid="select-event-hour"></select>
+            </label>
+            <span class="time-colon" aria-hidden="true">:</span>
+            <label><span class="sr">分钟</span>
+              <select id="event-minute" data-testid="select-event-minute"></select>
+            </label>
+          </div>
+        </fieldset>
+
+        <section class="reminder-preview" aria-live="polite">
+          <div class="clock-mark" aria-hidden="true">1h</div>
+          <div>
+            <strong>小熊猫会提前一小时提醒</strong>
+            <p id="reminder-preview" data-testid="text-reminder-preview">选好事项时间后，这里会显示提醒时间。</p>
+          </div>
+        </section>
+        <p class="hint" id="form-hint" data-testid="text-form-hint">提醒只保存在这台电脑。电脑关机或完全退出小熊猫时无法准时提醒。</p>
+
+        <div class="error" id="error" role="alert" hidden data-testid="status-error">
+          <span id="error-text"></span>
+          <button type="button" class="btn small" id="btn-retry" data-testid="button-retry">再试一次</button>
+        </div>
+
+        <footer class="actions">
+          <button type="button" class="btn danger ghost" id="btn-delete" data-testid="button-delete-reminder" hidden>删除事项</button>
+          <button type="button" class="btn ghost" id="btn-cancel" data-testid="button-cancel-reminder" hidden>取消提醒</button>
+          <span class="spacer"></span>
+          <button type="button" class="btn ghost" id="btn-discard" data-testid="button-discard-changes" hidden>放弃修改</button>
+          <button type="submit" class="btn primary" id="btn-save" data-testid="button-save-reminder">保存提醒</button>
+        </footer>
+      </form>
+    </main>
+  </div>
+</div>
+
+<dialog id="confirm" class="confirm" data-testid="dialog-confirm">
+  <form method="dialog">
+    <h3 id="confirm-title">确定吗？</h3>
+    <p id="confirm-body"></p>
+    <div class="confirm-actions">
+      <button value="no" class="btn ghost" id="confirm-no" data-testid="button-confirm-cancel">再想想</button>
+      <button value="yes" class="btn danger" id="confirm-yes" data-testid="button-confirm-ok">确定</button>
+    </div>
+  </form>
+</dialog>
+<script src="notebook.js"></script>
+</body>
+</html>

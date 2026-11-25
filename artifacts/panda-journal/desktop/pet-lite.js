@@ -4,6 +4,9 @@
   "use strict";
   const bridge = window.pandaDesktop, model = window.PandaDesktopPet, geometry = window.PandaDesktopPlatforms;
   const biteModel = window.PandaBackgroundBite;
+  const wellbeingAnimation = window.PandaWellbeingAnimation;
+  const fireworks = document.getElementById("wellbeing-fireworks");
+  const fireworksContext = fireworks.getContext("2d");
   const actor = document.getElementById("panda"), image = document.getElementById("panda-sprite");
   const biteCanvas = document.getElementById("background-bite"), biteContext = biteCanvas.getContext("2d");
   const presence = document.querySelector(".pet-presence");
@@ -35,6 +38,8 @@
   let fallOriginY = null;
   let landingStarted = null;
   let shakeStartedAt = null;
+  let wellbeingPending = null, celebrationStarted = null, wellbeingMessageUntil = 0;
+  let singleClickTimer = null;
   const unsubs = [];
   function loadDirt() {
     try {
@@ -85,11 +90,16 @@
     biteCanvas.hidden = !biting;
     presence.dataset.biting = String(biting);
     if (biting) biteModel.draw(biteContext, backgroundBite, biteElapsed);
-    const source = edgeFrame ? edgeFrame.source : landing ? landing.source : biteFrame ? biteFrame.source : punchFrame === null
+    const celebrationSource = celebrationStarted === null ? null
+      : wellbeingAnimation.sourceAt(now - celebrationStarted, preference.matches);
+    presence.dataset.celebrating = String(Boolean(celebrationSource));
+    fireworks.hidden = !celebrationSource || preference.matches;
+    if (celebrationSource) wellbeingAnimation.draw(fireworksContext, now - celebrationStarted, preference.matches);
+    const source = celebrationSource ?? (edgeFrame ? edgeFrame.source : landing ? landing.source : biteFrame ? biteFrame.source : punchFrame === null
       ? motion === "shake" && shakeIndex !== null
         ? `../public/static/panda/desktop-shake/${desktopDirt.remainingShakes}/${shakeIndex + 1}.png`
         : transitionFrames[transitionIndex] ?? model.sprite(state.characterId, motion, frame, manifest)
-      : `../public/static/panda/punch/${punchFrame}.png`;
+      : `../public/static/panda/punch/${punchFrame}.png`);
     if (transitionIndex >= transitionFrames.length) transitionFrames = [];
     if (image.getAttribute("src") !== source) image.setAttribute("src", source);
     image.style.top = `${edgeFrame ? (96 - edgeFrame.bottom) * 40 / 96 : model.spriteTop(source)}px`;
@@ -98,7 +108,7 @@
     else delete presence.dataset.edgeFlip;
     if (biteFrame) image.dataset.biteFlip = String(biteFrame.nativeLeft !== backgroundBite.left);
     else delete image.dataset.biteFlip;
-    image.dataset.sprite = edgeFrame ? "edge-climb" : landing ? "landing" : biting ? "background-bite" : punchFrame === null ? motion : "punch";
+    image.dataset.sprite = celebrationSource ? "celebrate" : edgeFrame ? "edge-climb" : landing ? "landing" : biting ? "background-bite" : punchFrame === null ? motion : "punch";
     image.dataset.frame = String(punchFrame ?? frame);
     if (dirt) {
       const dirtyLevel = desktopDirt.remainingShakes;
@@ -124,7 +134,7 @@
     motion = value; frame = 0; lastFrame = performance.now(); render();
   }
   function settledMotion() {
-    return state.restPose ?? (state.quietMode && quietRest ? quietRest.motion : "idle");
+    return state.notebookOpen ? "stare" : state.restPose ?? (state.quietMode && quietRest ? quietRest.motion : "idle");
   }
   function dockRestReady(now) {
     return state.characterId === "panda" && desktopDirt.remainingShakes === 0
@@ -184,7 +194,7 @@
   }
   function canBite(walking, manual = false) {
     return Boolean(biteContext && support) && biteModel.canStart(state, walking,
-      Boolean(held || press || promptOpen || restMenuOpen || landingStarted !== null || punchStarted !== null || motion === "shake"
+      Boolean(held || press || promptOpen || restMenuOpen || state.notebookOpen || landingStarted !== null || punchStarted !== null || motion === "shake"
         || document.visibilityState === "hidden"), preference.matches, manual);
   }
   async function tryBite(now, manual = false) {
@@ -208,8 +218,24 @@
     if (!bitePending && !backgroundBite && canBite(false, true)) void tryBite(performance.now(), true);
   }));
   function closePrompt() {
+    wellbeingMessageUntil = 0;
     promptOpen = false; bubble.hidden = true;
     nextWalk = performance.now() + 2000; publishRegions();
+  }
+  if (typeof bridge.onWellbeing === "function") unsubs.push(bridge.onWellbeing(event => {
+    if (!event || !["meal", "rest", "celebrate", "reminder"].includes(event.kind)
+      || typeof event.message !== "string" || event.message.length > 180) return;
+    // A queued celebration wins over another lunch nudge.
+    if (wellbeingPending?.kind === "celebrate" && !["celebrate", "reminder"].includes(event.kind)) return;
+    wellbeingPending = { ...event, received: performance.now() };
+  }));
+  function cancelCelebration() {
+    if (celebrationStarted === null) return;
+    celebrationStarted = null;
+    fireworks.hidden = true;
+    destination = null;
+    nextWalk = performance.now() + 2000;
+    setMotion(support ? settledMotion() : "grab");
   }
   function showPrompt() {
     if (held || !state.identityReady) return;
@@ -219,7 +245,8 @@
     copy.textContent = "要回家吗？"; actions.hidden = false; bubble.hidden = false;
     render(); publishRegions();
   }
-  actor.addEventListener("click", async event => {
+  async function singlePetClick(event) {
+    cancelCelebration();
     if (edgeFall) return;
     if (event.detail !== 0 && performance.now() < suppressClickUntil) return;
     if (state.identityStatus === "offline-trial") {
@@ -240,6 +267,27 @@
     destination = null; closePrompt(); setMotion("idle");
     punchStarted = performance.now() + transitionFrames.length * 75;
     render();
+  }
+  actor.addEventListener("click", event => {
+    clearTimeout(singleClickTimer);
+    if (event.detail > 1 || held || performance.now() < suppressClickUntil) return;
+    // Wait for a possible second click before opening a native pose menu.
+    singleClickTimer = setTimeout(() => {
+      singleClickTimer = null;
+      if (!held && !press && performance.now() >= suppressClickUntil) void singlePetClick(event);
+    }, 500);
+  });
+  actor.addEventListener("dblclick", async event => {
+    event.preventDefault();
+    clearTimeout(singleClickTimer);
+    singleClickTimer = null;
+    if (held || edgeFall || !state.identityReady || performance.now() < suppressClickUntil) return;
+    cancelCelebration(); cancelBite(); cancelEdgeClimb();
+    punchStarted = null; landingStarted = null;
+    destination = null; closePrompt();
+    setMotion(support ? "stare" : "grab");
+    try { await bridge.openNotebook(); }
+    catch { wellbeingPending = { kind: "reminder", message: "记事窗暂时没打开，再双击试试好吗？", received: performance.now() }; }
   });
   home.addEventListener("click", async () => {
     home.disabled = true;
@@ -251,6 +299,9 @@
   document.addEventListener("keydown", e => { if (e.key === "Escape") closePrompt(); });
   function beginDrag() {
     if (!press) return;
+    clearTimeout(singleClickTimer);
+    singleClickTimer = null;
+    cancelCelebration();
     punchStarted = null;
     landingStarted = null;
     cancelEdgeClimb();
@@ -317,10 +368,13 @@
     const changed = state.characterId !== value.characterId;
     const quietChanged = Boolean(state.quietMode) !== Boolean(value.quietMode);
     const poseChanged = state.restPose !== value.restPose;
+    const notebookChanged = Boolean(state.notebookOpen) !== Boolean(value.notebookOpen);
     const biteEnabled = value.backgroundBite === true && state.backgroundBite !== true;
     const entering = value.identityReady && value.mode === "desktop" &&
       (!state.identityReady || state.mode !== "desktop" || changed);
     state = value;
+    if (changed || quietChanged || poseChanged || notebookChanged || state.paused || state.mode !== "desktop" || !state.identityReady) cancelCelebration();
+    if (state.mode !== "desktop" || !state.identityReady) wellbeingPending = null;
     if (entering) {
       const now = performance.now();
       nextEdgeAt = model.nextEdgeClimbAt(now, undefined, true);
@@ -329,17 +383,19 @@
     if (changed || state.mode !== "desktop" || !state.identityReady) landingStarted = null;
     if (biteEnabled) nextBiteAt = biteModel.nextAt(performance.now(), undefined, true);
     if (quietChanged || poseChanged || !canBite(true, (bitePending ?? backgroundBite)?.manual)) cancelBite();
-    if (state.identityStatus === "offline-trial") actor.setAttribute("aria-label", "点击选择睡觉、坐着或趴着；长按可拖动；右键打开桌宠设置");
+    actor.setAttribute("aria-label", state.identityStatus === "offline-trial"
+      ? "双击坐下并打开本机记事；单击选择休息姿势；长按拖动；右键设置"
+      : "双击坐下并打开本机记事；单击挨拳；长按拖动；右键设置");
     if (changed || quietChanged || poseChanged || state.mode !== "desktop" || state.paused) punchStarted = null;
     if (changed && value.characterId !== "panda") shakeStartedAt = null;
     if (state.quietMode && (!quietRest || quietChanged)) quietRest = model.quietRest(null, performance.now());
     if (!state.quietMode) quietRest = null;
-    if (changed || state.quietMode || state.restPose || state.paused || state.mode !== "desktop" || !state.identityReady) {
+    if (changed || state.notebookOpen || state.quietMode || state.restPose || state.paused || state.mode !== "desktop" || !state.identityReady) {
       cancelEdgeClimb(); cancelEdgeFall();
     }
     if (changed) transitionFrames = [];
     if (state.mode !== "desktop" || !state.identityReady) endDrag();
-    if (changed || quietChanged || poseChanged || state.paused || state.mode !== "desktop") {
+    if (changed || quietChanged || poseChanged || notebookChanged || state.paused || state.mode !== "desktop") {
       destination = null; closePrompt();
       if (!held && landingStarted === null) setMotion(support ? settledMotion() : "grab");
       if (quietChanged && !state.quietMode) nextWalk = performance.now() + 200;
@@ -414,6 +470,7 @@
       const tracked = geometry.track(point, support, surfaces);
       const moved = tracked.point.x !== point.x || tracked.point.y !== point.y;
       if (support && (!tracked.support || moved)) {
+        cancelCelebration();
         if (cancelBite()) needsRender = true;
         if (!tracked.support) {
           punchStarted = null;
@@ -435,6 +492,35 @@
         } else setMotion("grab");
         needsRender = true;
       } else if (moved) needsRender = true;
+    }
+    if (wellbeingMessageUntil && now >= wellbeingMessageUntil) closePrompt();
+    if (wellbeingPending && now - wellbeingPending.received > 600000) wellbeingPending = null;
+    const wellbeingReady = physical && support && !edgeClimb && !edgeFall
+      && landingStarted === null && punchStarted === null && motion !== "shake"
+      && !restMenuOpen && !promptOpen && !bitePending && !backgroundBite && transitionFrames.length === 0;
+    if (wellbeingPending && wellbeingReady) {
+      const event = wellbeingPending;
+      wellbeingPending = null;
+      destination = null;
+      promptOpen = true; actions.hidden = true; bubble.hidden = false;
+      copy.textContent = event.message;
+      wellbeingMessageUntil = now + 6500;
+      if (event.kind === "celebrate" && state.characterId === "panda") {
+        setMotion("idle");
+        // Finish the current pose's real transition before the celebration's own entry frames.
+        celebrationStarted = now + transitionFrames.length * 75;
+      }
+      render(); publishRegions();
+    }
+    if (celebrationStarted !== null) {
+      if (!physical || !support || edgeClimb || edgeFall) cancelCelebration();
+      else if (now - celebrationStarted >= wellbeingAnimation.duration) {
+        cancelCelebration();
+      } else {
+        render();
+        if (!disposed) requestAnimationFrame(tick);
+        return;
+      }
     }
     if (landingStarted !== null) {
       needsRender = true;
@@ -458,14 +544,18 @@
         punchStarted = null; setMotion(support ? settledMotion() : "grab"); nextWalk = now + 1500;
       }
     }
-    if (physical && support && state.quietMode && !promptOpen && !restMenuOpen
+    if (physical && support && state.notebookOpen && landingStarted === null && punchStarted === null && celebrationStarted === null) {
+      destination = null;
+      setMotion("stare");
+    }
+    if (physical && support && state.quietMode && !state.notebookOpen && !promptOpen && !restMenuOpen
       && landingStarted === null && punchStarted === null) {
       destination = null;
       if (!quietRest || now >= quietRest.until) quietRest = model.quietRest(quietRest?.motion, now);
       setMotion(quietRest.motion);
     }
     const canClean = physical && support && state.characterId === "panda" && desktopDirt.remainingShakes > 0
-      && !state.quietMode && !state.paused && !state.restPose && !promptOpen && !restMenuOpen
+      && !state.quietMode && !state.paused && !state.restPose && !state.notebookOpen && !promptOpen && !restMenuOpen
       && !bitePending && !backgroundBite && landingStarted === null && punchStarted === null && motion !== "dock-prone";
     const canShake = canClean && !preference.matches;
     const cleaningNow = Date.now();
@@ -484,7 +574,7 @@
       destination = null; shakeStartedAt = now; setMotion("shake"); render(); needsRender = true;
     }
     const active = physical && support && landingStarted === null && punchStarted === null && motion !== "shake"
-      && !state.quietMode && !state.paused && !state.restPose && !preference.matches && !promptOpen && !restMenuOpen
+      && !state.quietMode && !state.paused && !state.restPose && !state.notebookOpen && !preference.matches && !promptOpen && !restMenuOpen
       && !bitePending && !backgroundBite;
     if (active) {
       if (!destination && now >= nextWalk) {
@@ -548,7 +638,7 @@
   });
   const hitTimer = setInterval(publishRegions, 100);
   window.addEventListener("beforeunload", () => {
-    disposed = true; endDrag(); clearInterval(hitTimer); unsubs.forEach(off => off?.());
+    disposed = true; endDrag(); clearTimeout(singleClickTimer); clearInterval(hitTimer); unsubs.forEach(off => off?.());
   }, { once: true });
   presence.hidden = true; render(); requestAnimationFrame(tick);
 })();

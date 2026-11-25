@@ -1,5 +1,8 @@
 "use strict";
-const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, screen, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, screen, dialog, powerMonitor, Notification } = require("electron");
+const fs = require("node:fs");
+const { createWellbeing } = require("./wellbeing.cjs");
+const { createNotebookStore, preview: previewNotebook } = require("./notebook-store.cjs");
 const { createScanner, localWindows } = require("./windows-platforms.cjs");
 const { readPixel, samplePoint } = require("./windows-pixel.cjs");
 const path = require("node:path");
@@ -11,6 +14,7 @@ const journalConnection = require("./journal-connection.cjs");
 const metadata = app.isPackaged ? require(path.join(app.getAppPath(), "package.json")) : require("../package.json");
 const offlineTrial = metadata.offlineDesktopTrial === true
   || (!app.isPackaged && process.argv.includes("--offline-desktop-trial"));
+if (process.platform === "win32") app.setAppUserModelId(offlineTrial ? "com.xiaoxiongmao.desktoptrial" : "com.xiaoxiongmao.journal");
 app.setName(offlineTrial ? "小熊猫桌宠离线试玩" : "小熊猫日记");
 if (process.env.PANDA_PROFILE_DIR) app.setPath("userData", path.resolve(process.env.PANDA_PROFILE_DIR));
 else if (offlineTrial) app.setPath("userData", path.join(app.getPath("appData"), "XiaoxiongmaoDesktopTrial"));
@@ -27,6 +31,10 @@ let roam = null;
 let restUntil = Date.now() + 5000;
 let tick;
 let saveTimer;
+let wellbeingTimer;
+let notebookWindow, notebookStore, notebookTimer, notebookDirty = false, notebookClosing = false;
+let notebookClockFailed = false;
+const notebookNotifications = new Set();
 let companionEffect = { stage: "present", action: "idle", duration: 3000, token: 0 };
 let chatCalls = [];
 let desktopWindowRects = [];
@@ -182,6 +190,139 @@ function secureWindow(window, origin) {
     } catch { event.preventDefault(); }
   });
 }
+function publishNotebook() {
+  if (notebookWindow && !notebookWindow.isDestroyed()) {
+    notebookWindow.webContents.send("notebook:changed", notebookStore.list());
+  }
+}
+function setNotebookOpen(value) {
+  desktopPetState.notebookOpen = Boolean(value);
+  publishPetState();
+}
+function openNotebook() {
+  if (!notebookWindow || notebookWindow.isDestroyed()) {
+    notebookWindow = new BrowserWindow({
+      width: 700, height: 740, minWidth: 480, minHeight: 540,
+      title: "小熊猫 · 本机记事", show: false, autoHideMenuBar: true,
+      backgroundColor: "#f4ecd9",
+      webPreferences: {
+        preload: path.join(__dirname, "preload.cjs"), contextIsolation: true,
+        nodeIntegration: false, sandbox: true, partition: "notebook-local",
+      },
+    });
+    secureWindow(notebookWindow, "null");
+    notebookWindow.loadFile(path.join(__dirname, "notebook.html")).catch(() => {
+      dialog.showErrorBox("记事窗未能打开", "本机记事页面缺失，请使用完整的新版本。已有记录不会删除。");
+      setNotebookOpen(false);
+    });
+    notebookWindow.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
+    notebookWindow.once("ready-to-show", () => {
+      notebookWindow.show(); notebookWindow.focus(); setNotebookOpen(true);
+    });
+    notebookWindow.on("show", () => setNotebookOpen(true));
+    notebookWindow.on("hide", () => setNotebookOpen(false));
+    notebookWindow.on("minimize", () => setNotebookOpen(false));
+    notebookWindow.on("restore", () => setNotebookOpen(true));
+    notebookWindow.on("close", async event => {
+      if (quitting) return;
+      event.preventDefault();
+      if (notebookClosing) return;
+      notebookClosing = true;
+      try {
+        if (notebookDirty) {
+          const { response } = await dialog.showMessageBox(notebookWindow, {
+            type: "question", title: "还有没保存的小记录",
+            message: "要先收起来吗？未保存的草稿会留在这个窗口，退出软件前记得保存。",
+            buttons: ["继续编辑", "收起并保留草稿"], defaultId: 0, cancelId: 0,
+          });
+          if (response !== 1) return;
+        }
+        notebookWindow.hide();
+      } finally { notebookClosing = false; }
+    });
+    notebookWindow.on("closed", () => {
+      notebookWindow = null; notebookDirty = false; setNotebookOpen(false);
+    });
+    notebookWindow.webContents.on("render-process-gone", () => {
+      setNotebookOpen(false);
+      dialog.showErrorBox("记事窗意外关闭", "已经保存的本机记录仍在，未保存的草稿可能需要重新输入。");
+      notebookWindow?.destroy();
+    });
+  } else {
+    if (notebookWindow.isMinimized()) notebookWindow.restore();
+    notebookWindow.show(); notebookWindow.focus(); setNotebookOpen(true);
+  }
+}
+function checkNotebookReminders() {
+  // Do not reveal personal notes on a locked screen.
+  if (powerMonitor.getSystemIdleState(60) === "locked") return;
+  let due;
+  try {
+    due = notebookStore.due();
+    notebookClockFailed = false;
+  } catch {
+    if (!notebookClockFailed) {
+      console.warn("本机提醒暂时无法读取或保存，已暂停本轮通知以保护记事。");
+      sendPet("desktop-pet:wellbeing", { kind: "reminder", message: "本机记事暂时读不到啦，请打开记事窗检查。提醒可能延迟。" });
+      notebookClockFailed = true;
+    }
+    return;
+  }
+  if (!due.length) return;
+  publishNotebook();
+  const format = timestamp => new Date(timestamp).toLocaleString("zh-CN", {
+    month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false,
+  });
+  const first = due.sort((a, b) => a.remindAt - b.remindAt)[0];
+  const message = due.length > 1 ? `小熊猫带来了${due.length}条到点或错过的提醒，打开记事看看吧～`
+    : `${first.overdue ? "补提醒，刚才可能没赶上：" : "小熊猫提醒你："}${first.title}（事项时间 ${format(first.eventAt)}）`;
+  sendPet("desktop-pet:wellbeing", { kind: "reminder", message: message.slice(0, 180) });
+  if (Notification.isSupported()) {
+    const notification = new Notification({ title: "小熊猫的小提醒", body: message, silent: true });
+    notebookNotifications.add(notification);
+    notification.on("click", () => openNotebook());
+    notification.on("close", () => notebookNotifications.delete(notification));
+    notification.on("failed", () => {
+      notebookNotifications.delete(notification);
+      console.warn("系统通知未能显示，请在本机记事中查看已到点的提醒。");
+    });
+    notification.show();
+  }
+}
+ipcMain.handle("notebook:open", event => {
+  if (!trusted(event, petWindow) || !desktopPetState.identityReady || petDragging) throw new Error("请从桌面小熊猫打开记事。");
+  openNotebook();
+  return { ok: true };
+});
+ipcMain.handle("notebook:list", event => {
+  if (!trusted(event, notebookWindow)) throw new Error("无效的本机记事请求。");
+  return notebookStore.list();
+});
+ipcMain.handle("notebook:preview", (event, text) => {
+  if (!trusted(event, notebookWindow)) throw new Error("无效的本机记事请求。");
+  return previewNotebook(text);
+});
+ipcMain.handle("notebook:save", (event, input) => {
+  if (!trusted(event, notebookWindow)) throw new Error("无效的本机记事请求。");
+  const note = notebookStore.save(input);
+  notebookDirty = false;
+  publishNotebook();
+  return note;
+});
+ipcMain.handle("notebook:remove", (event, id) => {
+  if (!trusted(event, notebookWindow)) throw new Error("无效的本机记事请求。");
+  const result = notebookStore.remove(id);
+  notebookDirty = false;
+  publishNotebook();
+  return result;
+});
+ipcMain.handle("notebook:close", event => {
+  if (!trusted(event, notebookWindow)) throw new Error("无效的本机记事请求。");
+  notebookWindow.close();
+});
+ipcMain.on("notebook:dirty", (event, dirty) => {
+  if (trusted(event, notebookWindow)) notebookDirty = dirty === true;
+});
 function openJournal(show = true) {
   if (offlineTrial) return;
   const shouldShow = show !== false;
@@ -438,6 +579,8 @@ if (!gotLock) app.quit();
 else {
   app.on("second-instance", () => returnPetHome());
   app.whenReady().then(() => {
+    notebookStore = createNotebookStore(app.getPath("userData"));
+    notebookTimer = setInterval(checkNotebookReminders, 1000);
     const area = screen.getPrimaryDisplay().workArea;
     const initialBounds = fullDesktopMode ? area : {
       width: windowedPetWidth,
@@ -498,11 +641,41 @@ else {
       publishPetState();
       tray?.setContextMenu(menu);
     }
+    const wellbeingFile = path.join(app.getPath("userData"), "wellbeing-meals.json");
+    let savedMeals = [];
+    try {
+      const saved = JSON.parse(fs.readFileSync(wellbeingFile, "utf8"));
+      if (Array.isArray(saved)) savedMeals = saved;
+    } catch (error) {
+      if (error.code !== "ENOENT") console.warn("午餐提醒记录未能读取，将从本次启动重新计时。");
+    }
+    const wellbeing = createWellbeing(savedMeals, slots => {
+      try {
+        fs.mkdirSync(path.dirname(wellbeingFile), { recursive: true });
+        fs.writeFileSync(wellbeingFile, JSON.stringify(slots));
+      } catch { console.warn("午餐提醒记录未能保存，重开软件可能再次提醒。"); }
+    });
+    const wellbeingAvailable = () => petWindow && !petWindow.isDestroyed()
+      && petWindow.isVisible() && desktopPetState.identityReady
+      && desktopPetState.mode === "desktop" && !petDragging;
+    wellbeingTimer = setInterval(() => {
+      const event = wellbeing.sample({
+        now: Date.now(), idleSeconds: powerMonitor.getSystemIdleTime(), available: Boolean(wellbeingAvailable()),
+      });
+      if (event) sendPet("desktop-pet:wellbeing", event);
+    }, 1000);
     const menu = Menu.buildFromTemplate([
       { label: offlineTrial ? "小熊猫 · 离线桌面试玩" : `小熊猫日记 v${desktopVersion} · 横线平台桌宠`, enabled: false },
       { type: "separator" },
       ...(!offlineTrial ? [{ id: "return-home", label: "回家（打开养成房间）", click: () => returnPetHome() }] : []),
       { id: "show-desktop", label: "显示桌宠", click: () => showDesktopPet() },
+      { label: "打开本机记事", click: () => openNotebook() },
+      { label: "提醒我休息", click: () => {
+        if (wellbeingAvailable()) sendPet("desktop-pet:wellbeing", wellbeing.remind("rest", Date.now()));
+      } },
+      { label: "检视动作：健康最重要！", click: () => {
+        if (wellbeingAvailable()) sendPet("desktop-pet:wellbeing", { kind: "celebrate", message: "健康最重要！你照顾自己，我就超开心～" });
+      } },
       ...(!offlineTrial ? [{ label: "连接网页版房间…", enabled: !development && !process.env.PANDA_JOURNAL_URL, click: async () => {
         const owner = journalWindow && !journalWindow.isDestroyed() ? journalWindow : petWindow;
         const { response } = await dialog.showMessageBox(owner, {
@@ -574,7 +747,7 @@ else {
       // A self-contained monochrome tray icon; no third-party skin assets.
       const icon = createTrayIcon(nativeImage);
       tray = new Tray(icon);
-      tray.setToolTip(offlineTrial ? "小熊猫桌宠离线试玩" : "小熊猫日记 · 双击桌宠说说心事");
+      tray.setToolTip("小熊猫桌面陪伴 · 双击小熊猫打开本机记事");
       tray.setContextMenu(menu);
       tray.on("click", () => returnPetHome());
     } catch {
@@ -589,9 +762,19 @@ else {
     app.quit();
   });
 }
-app.on("before-quit", () => {
+app.on("before-quit", event => {
+  if (notebookDirty && notebookWindow && !notebookWindow.isDestroyed()) {
+    const response = dialog.showMessageBoxSync(notebookWindow, {
+      type: "warning", title: "还有未保存的记事",
+      message: "退出会丢失尚未保存的草稿。已保存的记录不受影响。",
+      buttons: ["返回记事", "放弃草稿并退出"], defaultId: 0, cancelId: 0,
+    });
+    if (response !== 1) { event.preventDefault(); openNotebook(); return; }
+  }
   quitting = true;
   clearInterval(tick);
+  clearInterval(wellbeingTimer);
+  clearInterval(notebookTimer);
   platformScanner?.stop();
   clearTimeout(saveTimer);
 });
