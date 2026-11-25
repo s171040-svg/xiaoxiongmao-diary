@@ -48,7 +48,6 @@ contextBridge.exposeInMainWorld("pandaDesktop", {
 
 contextBridge.exposeInMainWorld("pandaNotebook", {
   list: () => ipcRenderer.invoke("notebook:list"),
-  preview: text => ipcRenderer.invoke("notebook:preview", text),
   save: input => ipcRenderer.invoke("notebook:save", input),
   remove: id => ipcRenderer.invoke("notebook:remove", id),
   close: () => ipcRenderer.invoke("notebook:close"),

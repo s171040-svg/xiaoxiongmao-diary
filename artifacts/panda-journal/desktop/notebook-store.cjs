@@ -79,7 +79,8 @@ function createNotebookStore(directory) {
       if (!old && status === "sent") throw new Error("新提醒不能设为已发送。");
       // A stale editor must not re-arm a reminder that the clock has just sent.
       if (old?.status === "sent" && sameTime && status === "pending") status = "sent";
-      if (status === "pending" && value.eventAt < now + LEAD) {
+      const newlyPending = !sameTime || (old?.status === "cancelled" && status === "pending");
+      if (status === "pending" && newlyPending && value.eventAt < now + LEAD) {
         throw new Error("事项至少要在一小时后，才能提前一小时提醒。");
       }
       if (status === "pending" && value.remindAt !== value.eventAt - LEAD) {
