@@ -286,7 +286,7 @@
     punchStarted = null; landingStarted = null;
     destination = null; closePrompt();
     setMotion(support ? "stare" : "grab");
-    try { await bridge.openNotebook(); }
+    try { await bridge.openScheduleChat(); }
     catch { wellbeingPending = { kind: "reminder", message: "记事窗暂时没打开，再双击试试好吗？", received: performance.now() }; }
   });
   home.addEventListener("click", async () => {
@@ -384,8 +384,8 @@
     if (biteEnabled) nextBiteAt = biteModel.nextAt(performance.now(), undefined, true);
     if (quietChanged || poseChanged || !canBite(true, (bitePending ?? backgroundBite)?.manual)) cancelBite();
     actor.setAttribute("aria-label", state.identityStatus === "offline-trial"
-      ? "双击坐下并打开本机记事；单击选择休息姿势；长按拖动；右键设置"
-      : "双击坐下并打开本机记事；单击挨拳；长按拖动；右键设置");
+      ? "双击坐下并打开日程助手；单击选择休息姿势；长按拖动；右键设置"
+      : "双击坐下并打开日程助手；单击挨拳；长按拖动；右键设置");
     if (changed || quietChanged || poseChanged || state.mode !== "desktop" || state.paused) punchStarted = null;
     if (changed && value.characterId !== "panda") shakeStartedAt = null;
     if (state.quietMode && (!quietRest || quietChanged)) quietRest = model.quietRest(null, performance.now());

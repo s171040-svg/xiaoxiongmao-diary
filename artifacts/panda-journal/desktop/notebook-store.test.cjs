@@ -108,18 +108,24 @@ test("bad input and corrupted data never overwrite saved records", t => {
   assert.equal(fs.readFileSync(file, "utf8"), "{broken");
 });
 
-test("packaged page is a local explicit schedule form, not a chat parser", () => {
+test("packaged app contains the local schedule assistant and existing schedule manager", () => {
   const staging = fs.readFileSync(path.join(__dirname, "package-win.cjs"), "utf8");
-  for (const name of ["notebook-store.cjs", "notebook.html", "notebook.css", "notebook.js"]) {
+  for (const name of [
+    "notebook-store.cjs", "notebook-parser.cjs", "notebook.html", "notebook.css", "notebook.js",
+    "schedule-chat.html", "schedule-chat.css", "schedule-chat.js",
+  ]) {
     assert.ok(staging.includes(`"${name}"`), name);
     assert.ok(fs.existsSync(path.join(__dirname, name)), name);
   }
-  const html = fs.readFileSync(path.join(__dirname, "notebook.html"), "utf8");
-  assert.match(html, /connect-src 'none'/);
-  assert.match(html, /type="date"/);
-  assert.match(html, /event-period/);
-  assert.match(html, /event-hour/);
-  assert.match(html, /event-minute/);
-  assert.match(html, /event-title/);
-  assert.doesNotMatch(html + fs.readFileSync(path.join(__dirname, "notebook.js"), "utf8"), /notebook:preview|classify|自然语言识别/);
+  const chat = fs.readFileSync(path.join(__dirname, "schedule-chat.html"), "utf8");
+  const manager = fs.readFileSync(path.join(__dirname, "notebook.html"), "utf8");
+  assert.match(chat, /connect-src 'none'/);
+  assert.match(chat, /id="message"/);
+  assert.match(chat, /id="send" disabled/);
+  assert.match(manager, /type="date"/);
+  assert.match(manager, /event-period/);
+  assert.match(manager, /event-hour/);
+  assert.match(manager, /event-minute/);
+  assert.match(manager, /event-title/);
+  assert.doesNotMatch(fs.readFileSync(path.join(__dirname, "schedule-chat.js"), "utf8"), /fetch\(|https?:\/\//);
 });

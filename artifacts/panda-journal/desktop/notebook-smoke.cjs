@@ -50,6 +50,14 @@ async function waitMain(fn) {
 async function openByDoubleClick(pet) {
   await pet.locator("#panda").dblclick();
   await waitMain(({ BrowserWindow }) => BrowserWindow.getAllWindows().some(w =>
+    w.webContents.getURL().includes("schedule-chat.html") && w.isVisible()));
+  const page = application.windows().find(w => w.url().includes("schedule-chat.html"));
+  await page.waitForLoadState("load");
+  return page;
+}
+async function openManager(chat) {
+  await chat.getByTestId("button-open-schedule-list").click();
+  await waitMain(({ BrowserWindow }) => BrowserWindow.getAllWindows().some(w =>
     w.webContents.getURL().includes("notebook.html") && w.isVisible()));
   const page = application.windows().find(w => w.url().includes("notebook.html"));
   await page.waitForLoadState("load");
@@ -70,23 +78,49 @@ async function setSchedule(page, title, date, period, hour, minute) {
 async function run() {
   fs.mkdirSync(output, { recursive: true });
   let pet = await launch();
-  let page = await openByDoubleClick(pet);
+  let chat = await openByDoubleClick(pet);
   const errors = [], remote = [];
-  page.on("pageerror", error => errors.push(error.message));
+  chat.on("pageerror", error => errors.push(error.message));
   pet.on("pageerror", error => errors.push(error.message));
+  chat.on("request", request => { if (/^https?:/.test(request.url())) remote.push(request.url()); });
+  assert.equal(await chat.getByTestId("button-send-schedule").isDisabled(), true);
+  await chat.getByTestId("input-schedule-message").fill("明天三点开会");
+  await chat.waitForFunction(() => document.querySelector("#parse-card").dataset.state === "invalid");
+  assert.match(await chat.getByTestId("text-parse-detail").textContent(), /上午还是下午/);
+  assert.equal(await chat.getByTestId("button-send-schedule").isDisabled(), true);
+  await chat.getByTestId("input-schedule-message").fill("明天下午六点和同事开会");
+  await chat.waitForFunction(() => document.querySelector("#parse-card").dataset.state === "valid");
+  assert.match(await chat.getByTestId("text-parse-title").textContent(), /和同事开会/);
+  assert.match(await chat.getByTestId("text-parse-detail").textContent(), /下午5:00/);
+  assert.equal(await chat.getByTestId("button-send-schedule").isDisabled(), false);
+  await chat.getByTestId("input-schedule-message").fill("明天三点开会");
+  assert.equal(await chat.getByTestId("button-send-schedule").isDisabled(), true,
+    "editing a valid draft disables send before the next parse completes");
+  await chat.waitForFunction(() => document.querySelector("#parse-card").dataset.state === "invalid");
+  await chat.getByTestId("input-schedule-message").fill("明天下午六点和同事开会");
+  await chat.waitForFunction(() => document.querySelector("#parse-card").dataset.state === "valid");
+  await chat.screenshot({ path: path.join(output, "schedule-chat.png") });
+  await chat.getByTestId("button-send-schedule").click();
+  await chat.waitForFunction(() => document.querySelector("#parse-title").textContent === "记好啦！");
+  chat.on("request", request => { if (/^https?:/.test(request.url())) remote.push(request.url()); });
+
+  let page = await openManager(chat);
+  const managerErrors = [];
+  page.on("pageerror", error => managerErrors.push(error.message));
   page.on("request", request => { if (/^https?:/.test(request.url())) remote.push(request.url()); });
 
-  await setSchedule(page, "和同事开会", "2026-11-26", "pm", 6, 0);
-  assert.match(await page.getByTestId("text-reminder-preview").textContent(), /11月26日 下午5:00/);
-  await page.screenshot({ path: path.join(output, "local-schedule.png") });
-  await save(page);
   let data = await page.evaluate(() => window.pandaNotebook.list());
   assert.equal(data.notes.length, 1);
   const noteId = data.notes[0].id;
   const reminderId = data.notes[0].reminders[0].id;
-  assert.equal(new Date(data.notes[0].reminders[0].eventAt).getHours(), 18);
-  assert.equal(new Date(data.notes[0].reminders[0].remindAt).getHours(), 17);
+  assert.equal(data.notes[0].reminders[0].title, "和同事开会");
+  assert.equal(data.notes[0].reminders[0].eventAt, new Date(2026, 10, 26, 18).getTime());
+  assert.equal(data.notes[0].reminders[0].remindAt, new Date(2026, 10, 26, 17).getTime());
   assert.equal(data.notes[0].reminders[0].status, "pending");
+
+  await page.getByTestId(`button-event-${noteId}-${reminderId}`).click();
+  await setSchedule(page, "和同事开会", "2026-11-26", "pm", 6, 0);
+  await page.screenshot({ path: path.join(output, "local-schedule.png") });
 
   // Updating the event time moves the reminder to exactly one hour earlier.
   await setSchedule(page, "和同事开会", "2026-11-26", "pm", 7, 0);
@@ -122,11 +156,11 @@ async function run() {
   await page.setViewportSize({ width: 480, height: 600 });
   await page.screenshot({ path: path.join(output, "local-schedule-narrow.png") });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-  assert.deepEqual(errors, []);
+  assert.deepEqual([...errors, ...managerErrors], []);
   assert.deepEqual(remote, []);
   await application.close();
   application = null;
-  console.log("PASS: double-click opens local schedule; explicit date/AM-PM/time; exact one-hour preview; create/edit/cancel/re-enable/delete; rejects events under one hour; responsive, private, no renderer errors or network.");
+  console.log("PASS: double-click opens compact local schedule chat; natural-language validation and send; exact one-hour reminder; manager edit/cancel/re-enable/delete; rejects too-soon events; no network.");
 }
 run().catch(error => { console.error(error); process.exitCode = 1; })
   .finally(async () => { await application?.close(); fs.rmSync(profile, { recursive: true, force: true }); });

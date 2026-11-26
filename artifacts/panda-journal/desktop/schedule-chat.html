@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>小熊猫日程助手</title>
+<link rel="stylesheet" href="schedule-chat.css">
+</head>
+<body>
+<main class="chat" aria-label="小熊猫日程助手">
+  <header class="top">
+    <img src="../public/static/panda/idle.png" alt="" width="48" height="48">
+    <div class="heading">
+      <h1>小熊猫日程助手</h1>
+      <p>告诉我安排，我帮你记好并提前提醒。</p>
+    </div>
+    <button type="button" class="icon-button" id="close" aria-label="收起" data-testid="button-chat-close">×</button>
+  </header>
+
+  <section class="conversation" aria-live="polite">
+    <div class="panda-message">
+      <span class="speaker">小熊猫</span>
+      <p id="reply" data-testid="text-chat-reply">可以像这样告诉我：明天下午三点和客户开会。</p>
+    </div>
+    <div class="parse-card" id="parse-card">
+      <span class="parse-mark" aria-hidden="true">1h</span>
+      <div>
+      <strong id="parse-title" data-testid="text-parse-title">我会在事项前一小时提醒你</strong>
+      <p id="parse-detail" data-testid="text-parse-detail">日程只保存在这台电脑。明确日期和时间后，我才会启用发送。</p>
+      </div>
+    </div>
+  </section>
+
+  <form id="message-form" class="composer" novalidate>
+    <label class="sr-only" for="message">输入日程安排</label>
+    <textarea id="message" maxlength="240" rows="2" placeholder="例如：明天下午三点和客户开会" autocomplete="off" data-testid="input-schedule-message"></textarea>
+    <div class="composer-bottom">
+      <span id="char-count" data-testid="text-chat-char-count">0 / 240</span>
+      <button type="button" class="button secondary" id="open-list" data-testid="button-open-schedule-list">查看日程</button>
+      <button type="submit" class="button primary" id="send" disabled data-testid="button-send-schedule">发送</button>
+    </div>
+  </form>
+</main>
+<script src="schedule-chat.js"></script>
+</body>
+</html>

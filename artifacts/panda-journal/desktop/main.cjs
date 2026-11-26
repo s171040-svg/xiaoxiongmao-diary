@@ -3,6 +3,7 @@ const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, screen, dialog, po
 const fs = require("node:fs");
 const { createWellbeing } = require("./wellbeing.cjs");
 const { createNotebookStore } = require("./notebook-store.cjs");
+const { parseScheduleText } = require("./notebook-parser.cjs");
 const { createScanner, localWindows } = require("./windows-platforms.cjs");
 const { readPixel, samplePoint } = require("./windows-pixel.cjs");
 const path = require("node:path");
@@ -21,7 +22,7 @@ else if (offlineTrial) app.setPath("userData", path.join(app.getPath("appData"),
 app.disableHardwareAcceleration();
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 const development = process.argv.includes("--dev");
-let petWindow, journalWindow, giftWindow, tray;
+let petWindow, journalWindow, giftWindow, tray, scheduleChatWindow;
 let giftState, giftRegion, giftIgnored = true;
 let quitting = false;
 let hitRegions = [];
@@ -33,6 +34,7 @@ let tick;
 let saveTimer;
 let wellbeingTimer;
 let notebookWindow, notebookStore, notebookTimer, notebookDirty = false, notebookClosing = false;
+let scheduleChatDirty = false;
 let notebookClockFailed = false;
 const notebookNotifications = new Set();
 let companionEffect = { stage: "present", action: "idle", duration: 3000, token: 0 };
@@ -196,7 +198,8 @@ function publishNotebook() {
   }
 }
 function setNotebookOpen(value) {
-  desktopPetState.notebookOpen = Boolean(value);
+  const visible = window => window && !window.isDestroyed() && window.isVisible();
+  desktopPetState.notebookOpen = Boolean(visible(notebookWindow) || visible(scheduleChatWindow));
   publishPetState();
 }
 function openNotebook() {
@@ -253,6 +256,69 @@ function openNotebook() {
     notebookWindow.show(); notebookWindow.focus(); setNotebookOpen(true);
   }
 }
+function openScheduleChat() {
+  if (scheduleChatWindow && !scheduleChatWindow.isDestroyed()) {
+    if (scheduleChatWindow.isMinimized()) scheduleChatWindow.restore();
+    scheduleChatWindow.show();
+    scheduleChatWindow.focus();
+    setNotebookOpen(true);
+    return;
+  }
+  const petBounds = petWindow && !petWindow.isDestroyed() ? petWindow.getBounds() : null;
+  const display = petBounds ? screen.getDisplayMatching(petBounds) : screen.getPrimaryDisplay();
+  const area = display.workArea;
+  const width = Math.min(560, Math.max(320, Math.round(area.width * 0.42)));
+  const height = Math.min(480, Math.max(340, Math.round(area.height * 0.44)));
+  let x = petBounds ? petBounds.x + petBounds.width + 14 : area.x + Math.round((area.width - width) / 2);
+  let y = petBounds
+    ? petBounds.y + Math.round((petBounds.height - height) / 2)
+    : area.y + Math.round((area.height - height) / 2);
+  if (petBounds && x + width > area.x + area.width) x = petBounds.x - width - 14;
+  x = Math.max(area.x, Math.min(area.x + area.width - width, x));
+  y = Math.max(area.y, Math.min(area.y + area.height - height, y));
+
+  scheduleChatWindow = new BrowserWindow({
+    x, y, width, height, minWidth: Math.min(360, width), minHeight: Math.min(340, height),
+    title: "小熊猫日程助手", show: false, frame: false, resizable: true,
+    alwaysOnTop: true, skipTaskbar: true, autoHideMenuBar: true,
+    backgroundColor: "#f2e4cf",
+    webPreferences: {
+      preload: path.join(__dirname, "preload.cjs"), contextIsolation: true,
+      nodeIntegration: false, sandbox: true, partition: "notebook-local",
+    },
+  });
+  secureWindow(scheduleChatWindow, "null");
+  scheduleChatWindow.loadFile(path.join(__dirname, "schedule-chat.html")).catch(() => {
+    dialog.showErrorBox("日程助手未能打开", "本机日程页面缺失，请使用包含日程助手的新版本。");
+    setNotebookOpen(false);
+  });
+  scheduleChatWindow.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
+  scheduleChatWindow.once("ready-to-show", () => {
+    scheduleChatWindow.show();
+    scheduleChatWindow.focus();
+    setNotebookOpen(true);
+  });
+  scheduleChatWindow.on("show", () => setNotebookOpen(true));
+  scheduleChatWindow.on("hide", () => setNotebookOpen(false));
+  scheduleChatWindow.on("minimize", () => setNotebookOpen(false));
+  scheduleChatWindow.on("restore", () => setNotebookOpen(true));
+  scheduleChatWindow.on("close", event => {
+    if (quitting) return;
+    event.preventDefault();
+    scheduleChatWindow.hide();
+  });
+  scheduleChatWindow.on("closed", () => {
+    scheduleChatWindow = null;
+    scheduleChatDirty = false;
+    setNotebookOpen(false);
+  });
+  scheduleChatWindow.webContents.on("render-process-gone", () => {
+    scheduleChatDirty = false;
+    setNotebookOpen(false);
+    dialog.showErrorBox("日程助手意外关闭", "已保存的本机日程仍在；未发送的文字可能需要重新输入。");
+    scheduleChatWindow?.destroy();
+  });
+}
 function checkNotebookReminders() {
   // Do not reveal personal notes on a locked screen.
   if (powerMonitor.getSystemIdleState(60) === "locked") return;
@@ -295,6 +361,37 @@ ipcMain.handle("notebook:open", event => {
   if (!trusted(event, petWindow) || !desktopPetState.identityReady || petDragging) throw new Error("请从桌面小熊猫打开记事。");
   openNotebook();
   return { ok: true };
+});
+ipcMain.handle("schedule-chat:open", event => {
+  if (!trusted(event, petWindow) || !desktopPetState.identityReady || petDragging) {
+    throw new Error("请从桌面小熊猫打开日程助手。");
+  }
+  openScheduleChat();
+  return { ok: true };
+});
+ipcMain.handle("schedule-chat:parse", (event, input) => {
+  if (!trusted(event, scheduleChatWindow) || typeof input !== "string") throw new Error("无效的日程解析请求。");
+  return parseScheduleText(input);
+});
+ipcMain.handle("schedule-chat:save", (event, input) => {
+  if (!trusted(event, scheduleChatWindow)) throw new Error("无效的本机日程请求。");
+  const note = notebookStore.save(input);
+  scheduleChatDirty = false;
+  publishNotebook();
+  return note;
+});
+ipcMain.handle("schedule-chat:manager", event => {
+  if (!trusted(event, scheduleChatWindow)) throw new Error("无效的日程列表请求。");
+  scheduleChatWindow.hide();
+  openNotebook();
+  return { ok: true };
+});
+ipcMain.handle("schedule-chat:hide", event => {
+  if (!trusted(event, scheduleChatWindow)) throw new Error("无效的日程窗口请求。");
+  scheduleChatWindow.hide();
+});
+ipcMain.on("schedule-chat:dirty", (event, dirty) => {
+  if (trusted(event, scheduleChatWindow)) scheduleChatDirty = dirty === true;
 });
 ipcMain.handle("notebook:list", event => {
   if (!trusted(event, notebookWindow)) throw new Error("无效的本机日程请求。");
@@ -745,7 +842,7 @@ else {
       // A self-contained monochrome tray icon; no third-party skin assets.
       const icon = createTrayIcon(nativeImage);
       tray = new Tray(icon);
-      tray.setToolTip("小熊猫桌面陪伴 · 双击小熊猫打开日程本");
+      tray.setToolTip("小熊猫桌面陪伴 · 双击小熊猫打开日程助手");
       tray.setContextMenu(menu);
       tray.on("click", () => returnPetHome());
     } catch {
@@ -761,13 +858,23 @@ else {
   });
 }
 app.on("before-quit", event => {
-  if (notebookDirty && notebookWindow && !notebookWindow.isDestroyed()) {
-    const response = dialog.showMessageBoxSync(notebookWindow, {
+  if ((notebookDirty && notebookWindow && !notebookWindow.isDestroyed()) || scheduleChatDirty) {
+    const options = {
       type: "warning", title: "还有未保存的日程",
-      message: "退出会丢失尚未保存的日程草稿。已保存的记录不受影响。",
+      message: "退出会丢失尚未发送的安排草稿。已保存的日程不受影响。",
       buttons: ["返回日程本", "放弃草稿并退出"], defaultId: 0, cancelId: 0,
-    });
-    if (response !== 1) { event.preventDefault(); openNotebook(); return; }
+    };
+    const dialogParent = scheduleChatWindow?.isVisible() ? scheduleChatWindow
+      : notebookWindow?.isVisible() ? notebookWindow : null;
+    const response = dialogParent
+      ? dialog.showMessageBoxSync(dialogParent, options)
+      : dialog.showMessageBoxSync(options);
+    if (response !== 1) {
+      event.preventDefault();
+      if (scheduleChatDirty) openScheduleChat();
+      else openNotebook();
+      return;
+    }
   }
   quitting = true;
   clearInterval(tick);
