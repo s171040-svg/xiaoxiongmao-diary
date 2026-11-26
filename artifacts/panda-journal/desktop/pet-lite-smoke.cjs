@@ -256,29 +256,13 @@ async function run() {
     }, remaining);
     await pet.reload();
     await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.character === "panda");
-    try {
-      await pet.waitForFunction(expected => {
-        const presence = document.querySelector(".pet-presence");
-        return presence.dataset.shaking === "true"
-          && new RegExp(`/desktop-shake/${expected}/\\d+\\.png`).test(
-            document.querySelector("#panda-sprite").src,
-          );
-      }, remaining, { timeout: 10000 });
-    } catch (error) {
-      console.error("Cleaning-cycle state:", await pet.evaluate(() => ({
-        presence: {
-          character: document.querySelector(".pet-presence")?.dataset.character,
-          mode: document.querySelector(".pet-presence")?.dataset.mode,
-          motion: document.querySelector(".pet-presence")?.dataset.motion,
-          falling: document.querySelector(".pet-presence")?.dataset.falling,
-          platform: document.querySelector(".pet-presence")?.dataset.platform,
-          identityReady: document.querySelector(".pet-presence")?.dataset.identityReady,
-        },
-        dirt: localStorage.getItem("panda.desktop.dirt.v1"),
-        sprite: document.querySelector("#panda-sprite")?.src,
-      })));
-      throw error;
-    }
+    await pet.waitForFunction(expected => {
+      const presence = document.querySelector(".pet-presence");
+      return presence.dataset.shaking === "true"
+        && new RegExp(`/desktop-shake/${expected}/\\d+\\.png`).test(
+          document.querySelector("#panda-sprite").src,
+        );
+    }, remaining, { timeout: 10000 });
     if (remaining === 3) await pet.screenshot({ path: path.join(output, "native-dirty-shake.png") });
     await pet.waitForFunction(expected => {
       const presence = document.querySelector(".pet-presence");

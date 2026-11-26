@@ -77,6 +77,7 @@
     if (!draft || send.disabled || !api) return;
     send.disabled = true;
     const saved = draft;
+    input.disabled = true;
     try {
       await api.save({
         text: saved.title,
@@ -98,7 +99,11 @@
       input.focus();
     } catch (error) {
       showInvalid(error?.message || "保存失败，原有日程没有更改。请检查内容后重试。");
+      draft = saved;
       send.disabled = false;
+    } finally {
+      input.disabled = false;
+      input.focus();
     }
   }
 

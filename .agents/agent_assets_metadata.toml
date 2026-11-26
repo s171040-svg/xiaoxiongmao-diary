@@ -1212,3 +1212,17 @@ mtime_ms = 1795602575063
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/dfdef0ba-ec11-4348-a560-4434168f061a/438a96b3-999b-45f1-8b53-e7089c390914"
 storage_version_token = "1795602675940330"
 content_type = "image/png"
+
+[[outputs]]
+id = "8Do02zMpx_fD9gYFzWHIb"
+uri = "file://generated-artifacts/notebook/schedule-chat.png"
+type = "image"
+title = "小熊猫日程助手预览"
+description = "双击桌宠后的一句话日程输入窗，展示识别结果和提前一小时的提醒时间。"
+logical_id = "08a3e008-388d-4fc5-8c91-fd1249f5ec1c"
+content_hash = "sha256:2900de90d53a9d3b236d45fa4937bbf01b26a1fd59d6c8931baa6ad606f357d3"
+size = 34514
+mtime_ms = 1795676647779
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/08a3e008-388d-4fc5-8c91-fd1249f5ec1c/819e9f55-7cea-40f4-9c96-dbbbe932759c"
+storage_version_token = "1795677409614956"
+content_type = "image/png"
