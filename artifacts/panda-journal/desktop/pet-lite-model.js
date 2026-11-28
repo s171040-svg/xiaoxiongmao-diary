@@ -20,6 +20,7 @@
   ];
   const shakeFrameCount = 17, shakeFrameIntervalMs = 85;
   const firstShakeDelayMinMs = 45000, firstShakeDelayRangeMs = 45000;
+  const climbFatigueFallChance = .18;
   function punchFrame(elapsed, manifest, reduced = false) {
     const config = manifest.punch;
     if (!config || elapsed < 0 || elapsed >= (reduced ? config.reducedDurationMs : config.frameCount * config.frameIntervalMs)) return null;
@@ -146,7 +147,7 @@
     if (t < entryMs) return { ...climbEntry[Math.floor(t / turnMs)], phase: "mount", y: route.groundY };
     t -= entryMs;
     if (t < travel) return { ...climbLoop[Math.floor(t / loopMs) % climbLoop.length],
-      phase: "up", y: route.groundY - (route.groundY - route.topY) * t / travel };
+      phase: "up", progress: t / travel, y: route.groundY - (route.groundY - route.topY) * t / travel };
     t -= travel;
     if (t < pauseMs) return { ...climbLoop[0], phase: "pause", y: route.topY };
     t -= pauseMs;
@@ -156,6 +157,10 @@
     if (t < entryMs) return { ...climbEntry[climbEntry.length - 1 - Math.floor(t / turnMs)],
       phase: "dismount", y: route.groundY };
     return null;
+  }
+  function edgeClimbFatigueProgress(random = Math.random) {
+    if (random() >= climbFatigueFallChance) return null;
+    return .4 + random() * .2;
   }
   function nextEdgeClimbAt(now, random = Math.random, first = false) {
     return now + (first ? 55000 + random() * 35000 : 155000 + random() * 85000);
@@ -191,6 +196,7 @@
   return { sprite, spriteTop, advance, transition, quietRest, punchFrame,
     dirtyReturn, shakeFrame, finishShake, lostWorldFall, shakeFrameCount, shakeFrameIntervalMs,
     landingFrame, landingSources, edgeClimbAt, edgeClimbSources, nextEdgeClimbAt, companionRest,
-    shouldFallAtEdge, edgeFallAt, dockSources, dockGreetingMs, nextDockRestAt, dockRestUntil,
+    shouldFallAtEdge, edgeFallAt, edgeClimbFatigueProgress, climbFatigueFallChance,
+    dockSources, dockGreetingMs, nextDockRestAt, dockRestUntil,
     AUTO_REST_DURATION_MS, plushSources };
 });

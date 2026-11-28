@@ -153,6 +153,23 @@ test("the edge climb uses real mount and loop poses, pauses at the top, and retu
   assert(new Set(hashes.slice(6)).size >= 6, "alternate real paw strokes rather than sliding a still picture");
 });
 
+test("an edge climb has an occasional fatigue fall point near the middle", () => {
+  assert.equal(model.climbFatigueFallChance, .18);
+  assert.equal(model.edgeClimbFatigueProgress(() => .18), null, "the chance boundary does not trigger");
+  let failedRollCount = 0;
+  assert.equal(model.edgeClimbFatigueProgress(() => { failedRollCount++; return .18; }), null);
+  assert.equal(failedRollCount, 1, "a climb without a fall uses just one chance roll");
+  const values = [.17, .25];
+  const progress = model.edgeClimbFatigueProgress(() => values.shift());
+  assert.equal(progress, .45);
+  const route = { side: "right", x: 980, topY: 504, groundY: 650 };
+  const travelMs = (route.groundY - route.topY) / 24 * 1000;
+  const frame = model.edgeClimbAt(route, 456 + travelMs * progress);
+  assert.equal(frame.phase, "up");
+  assert.equal(frame.progress, progress, "the renderer can detect the chosen mid-climb point");
+  assert(frame.progress >= .4 && frame.progress <= .6);
+});
+
 test("a clean red panda can step off either screen edge and returns on the same side", () => {
   assert.equal(model.shouldFallAtEdge(0, () => .249), true);
   assert.equal(model.shouldFallAtEdge(0, () => .25), false);

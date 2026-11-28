@@ -31,6 +31,7 @@
   let nextBiteAt = Infinity, bitePending = null, backgroundBite = null;
   let nextEdgeAt = Infinity, edgeClimb = null, edgeFrame = null;
   let edgeFall = null;
+  let climbFallPending = false;
   let nextDockAt = Infinity, dockGreetingFrom = Infinity;
   let transitionFrames = [], transitionStartedAt = 0;
   const dirtStorageKey = "panda.desktop.dirt.v1";
@@ -54,6 +55,11 @@
   }
   function makeDirty(now) {
     if (state.characterId !== "panda" || desktopDirt.remainingShakes > 0) return;
+    desktopDirt = model.dirtyReturn(now);
+    saveDirt();
+  }
+  function makeDirtier(now) {
+    if (state.characterId !== "panda") return;
     desktopDirt = model.dirtyReturn(now);
     saveDirt();
   }
@@ -155,7 +161,7 @@
     setMotion(landingStarted === null ? settledMotion() : "idle", false);
   }
   function startEdgeClimb(route) {
-    edgeClimb = { route, elapsed: 0 };
+    edgeClimb = { route, elapsed: 0, fatigueProgress: model.edgeClimbFatigueProgress() };
     edgeFrame = model.edgeClimbAt(route, 0);
     destination = null; support = null; velocity = 0; fallOriginY = null;
     transitionFrames = [];
@@ -305,6 +311,7 @@
     punchStarted = null;
     landingStarted = null;
     cancelEdgeClimb();
+    climbFallPending = false;
     held = true; support = null; velocity = 0; destination = null; closePrompt(); setMotion("grab");
     bridge.setPetDragging(true);
     bridge.setIgnoreMouseEvents(false);
@@ -459,7 +466,12 @@
       edgeClimb.elapsed += Math.max(0, Math.min(delta, .05)) * 1000;
       edgeFrame = model.edgeClimbAt(route, edgeClimb.elapsed);
       point = { x: route.x, y: edgeFrame?.y ?? route.groundY };
-      if (!edgeFrame) {
+      if (edgeFrame?.phase === "up" && edgeClimb.fatigueProgress !== null
+        && edgeFrame.progress >= edgeClimb.fatigueProgress) {
+        edgeClimb = null; edgeFrame = null; support = null; velocity = 0;
+        destination = null; fallOriginY = null; climbFallPending = true;
+        setMotion("grab", false);
+      } else if (!edgeFrame) {
         edgeClimb = null; support = geometry.supportAt(point, surfaces);
         nextWalk = now + model.AUTO_REST_DURATION_MS;
         setMotion(support ? "stare" : "grab");
@@ -486,7 +498,10 @@
         point = falling.point; velocity = falling.velocity; support = falling.support;
         destination = null; nextWalk = now + 1500;
         if (support) {
-          if (model.lostWorldFall(fallOriginY, support.y)) makeDirty(Date.now());
+          if (climbFallPending) {
+            climbFallPending = false;
+            makeDirtier(Date.now());
+          } else if (model.lostWorldFall(fallOriginY, support.y)) makeDirty(Date.now());
           fallOriginY = null;
           touchDown(now);
         } else setMotion("grab");
