@@ -43,7 +43,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Check desktop walking and packaged assets
-        run: node --test artifacts/panda-journal/desktop/pet-lite-model.test.cjs artifacts/panda-journal/desktop/platform-model.test.cjs artifacts/panda-journal/desktop/windows-platforms.test.cjs artifacts/panda-journal/desktop/background-bite.test.cjs artifacts/panda-journal/desktop/wellbeing.test.cjs artifacts/panda-journal/desktop/notebook-store.test.cjs
+        run: node --test artifacts/panda-journal/desktop/pet-lite-model.test.cjs artifacts/panda-journal/desktop/platform-model.test.cjs artifacts/panda-journal/desktop/windows-platforms.test.cjs artifacts/panda-journal/desktop/background-bite.test.cjs artifacts/panda-journal/desktop/wellbeing.test.cjs artifacts/panda-journal/desktop/notebook-parser.test.cjs artifacts/panda-journal/desktop/notebook-store.test.cjs
 
       - name: Build Windows desktop package
         env:
