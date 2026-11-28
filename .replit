@@ -46,3 +46,19 @@ packages = ["electron", "noto-fonts-color-emoji", "noto-fonts-cjk-sans"]
 [userenv]
 
 [userenv.shared]
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 8081
+externalPort = 80
+
+[[ports]]
+localPort = 8082
+externalPort = 3000
+
+[[ports]]
+localPort = 21836
+externalPort = 3002

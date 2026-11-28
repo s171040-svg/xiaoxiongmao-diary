@@ -1,0 +1,56 @@
+/* No room, furniture, caption, unsolicited dialogue or decorative motion on the desktop. */
+html[data-lite-desktop="true"] .pet-stage{border:0;border-radius:0;background:transparent}
+html[data-lite-desktop="true"] .pet-room-plane,
+html[data-lite-desktop="true"] .pet-home-objects,
+html[data-lite-desktop="true"] .quiet-caption,
+html[data-lite-desktop="true"] .pet-orbit,
+html[data-lite-desktop="true"] .pet-gift-card{display:none!important}
+html[data-lite-desktop="true"] .pet-presence{width:40px;height:40px;transform:translate(-50%,-100%);isolation:isolate}
+html[data-lite-desktop="true"] .pet-presence[hidden]{display:none}
+html[data-lite-desktop="true"] .pet-presence[data-edge-fall]:not([data-edge-fall=""]) .pet-hit-area{pointer-events:none}
+html[data-lite-desktop="true"] .panda-button{width:40px;height:40px;scale:1;transform:none;animation:none;touch-action:none}
+html[data-lite-desktop="true"] .panda-button:hover,
+html[data-lite-desktop="true"] .panda-button:active{scale:1;transform:none}
+/* Outrank legacy motion selectors: walking frames must not bob below a platform. */
+html[data-lite-desktop="true"] .pet-presence[data-motion] .panda-button,
+html[data-lite-desktop="true"] .pet-presence[data-motion] .pet-shadow{animation:none;transform:none}
+/* Both current sprite sets use a 96px canvas with the ground baseline at y=88. */
+html[data-lite-desktop="true"] .panda-character{position:relative;top:3.333px;width:40px;height:40px;animation:none;transform:none;filter:none}
+html[data-lite-desktop="true"] [data-facing="left"] .panda-character{transform:scaleX(-1)}
+html[data-lite-desktop="true"] .pet-presence[data-biting="true"] .panda-character[data-bite-flip="false"]{transform:none}
+html[data-lite-desktop="true"] .pet-presence[data-biting="true"] .panda-character[data-bite-flip="true"]{transform:scaleX(-1)}
+html[data-lite-desktop="true"] .desktop-dirt-layer{position:absolute;left:0;top:3.333px;width:40px;height:40px;image-rendering:pixelated;pointer-events:none}
+html[data-lite-desktop="true"] :is([data-motion="landing"],[data-motion="edge-climb"],[data-motion="dock-prone"]) .desktop-dirt-layer{mask-size:100% 100%;mask-repeat:no-repeat}
+html[data-lite-desktop="true"] [data-facing="left"] .desktop-dirt-layer{transform:scaleX(-1)}
+html[data-lite-desktop="true"] .pet-presence[data-edge-flip="false"] :is(.panda-character,.desktop-dirt-layer){transform:none}
+html[data-lite-desktop="true"] .pet-presence[data-edge-flip="true"] :is(.panda-character,.desktop-dirt-layer){transform:scaleX(-1)}
+html[data-lite-desktop="true"] .desktop-shake-dust{display:none;position:absolute;inset:0;pointer-events:none}
+html[data-lite-desktop="true"] [data-shaking="true"] .desktop-shake-dust{display:block}
+html[data-lite-desktop="true"] .desktop-shake-dust i{position:absolute;left:50%;top:48%;width:2px;height:2px;background:#9b8765;image-rendering:pixelated;opacity:0;animation:desktop-dust-pop .62s steps(6,end) infinite}
+html[data-lite-desktop="true"] .desktop-shake-dust i:nth-child(1){--dx:-18px;--dy:-8px;animation-delay:-.08s}
+html[data-lite-desktop="true"] .desktop-shake-dust i:nth-child(2){--dx:18px;--dy:-11px;animation-delay:-.2s}
+html[data-lite-desktop="true"] .desktop-shake-dust i:nth-child(3){--dx:-15px;--dy:3px;animation-delay:-.34s}
+html[data-lite-desktop="true"] .desktop-shake-dust i:nth-child(4){--dx:17px;--dy:0px;animation-delay:-.44s}
+html[data-lite-desktop="true"] .desktop-shake-dust i:nth-child(5){--dx:-11px;--dy:-14px;animation-delay:-.51s}
+html[data-lite-desktop="true"] .desktop-shake-dust i:nth-child(6){--dx:12px;--dy:-16px;animation-delay:-.14s}
+@keyframes desktop-dust-pop{0%{translate:0 0;opacity:0}18%{opacity:.95}100%{translate:var(--dx) var(--dy);opacity:0}}
+@media (prefers-reduced-motion:reduce){html[data-lite-desktop="true"] .desktop-shake-dust{display:none!important}}
+html[data-lite-desktop="true"] [data-dragging="true"] .panda-button{cursor:grabbing}
+html[data-lite-desktop="true"] .pet-shadow{bottom:0;animation:none;scale:.3}
+html[data-lite-desktop="true"] [data-dragging="true"] .pet-shadow{opacity:0}
+html[data-lite-desktop="true"] .speech-bubble{width:210px;max-width:calc(100vw - 16px);bottom:48px}
+html[data-lite-desktop="true"] [data-room-bubble="below"] .speech-bubble{top:48px;bottom:auto}
+.desktop-dock-greeting{position:absolute;z-index:4;bottom:30px;left:2px;width:max-content;white-space:nowrap;pointer-events:none;color:#503a27;background:#fff6dd;border:1px solid #b98c63;border-radius:7px;padding:4px 7px;font:600 12px/1.3 "Noto Sans CJK SC","Microsoft YaHei",sans-serif;box-shadow:0 2px 4px #4e302628}
+[data-room-side="right"] .desktop-dock-greeting{left:auto;right:2px}
+.desktop-dock-greeting::after{content:"";position:absolute;bottom:-3px;left:12px;width:4px;height:4px;background:inherit;border-right:1px solid #b98c63;border-bottom:1px solid #b98c63;transform:rotate(45deg)}
+[data-room-side="right"] .desktop-dock-greeting::after{left:auto;right:12px}
+.desktop-dock-greeting[hidden]{display:none}
+.desktop-background-bite{position:absolute;width:128px;height:72px;left:-44px;bottom:-12px;pointer-events:none;image-rendering:pixelated}
+[data-platform="taskbar"] .desktop-background-bite{bottom:0}
+.desktop-background-bite[hidden]{display:none}
+.desktop-wellbeing-fireworks{position:absolute;left:-60px;bottom:18px;width:160px;height:120px;pointer-events:none;image-rendering:pixelated}
+.desktop-wellbeing-fireworks[hidden]{display:none}
+html[data-lite-desktop="true"] [data-celebrating="true"] .speech-bubble{bottom:115px}
+html[data-lite-desktop="true"] [data-celebrating="true"][data-room-bubble="below"] .speech-bubble{top:48px;bottom:auto}
+html[data-lite-desktop="true"] [data-celebrating="true"][data-room-bubble="below"] .desktop-wellbeing-fireworks{bottom:auto;top:42px}
+@media (prefers-reduced-motion:reduce){.desktop-wellbeing-fireworks{display:none!important}}

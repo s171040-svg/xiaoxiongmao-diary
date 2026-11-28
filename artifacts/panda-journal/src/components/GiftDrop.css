@@ -1,0 +1,173 @@
+.gift-drop{
+  --gift-scale:.62;
+  position:fixed;
+  width:156px;
+  height:120px;
+  transform:translate(-50%,-100%);
+  transform-origin:50% 100%;
+  pointer-events:none;
+  color:#3d3928;
+}
+.gift-drop-box-button{
+  position:absolute;
+  left:50%;
+  bottom:0;
+  display:grid;
+  width:calc(82px * var(--gift-scale));
+  height:calc(82px * var(--gift-scale));
+  place-items:center;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  filter:drop-shadow(0 5px 3px #32251f66);
+  transform:translateX(-50%);
+  cursor:pointer;
+  pointer-events:auto;
+  touch-action:manipulation;
+}
+.gift-drop-box-button:not(:disabled){animation:gift-box-wait 2.6s ease-in-out infinite}
+.gift-drop-box-button:disabled{cursor:default}
+.gift-drop-box-button img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  image-rendering:pixelated;
+}
+.gift-drop-box-button:focus-visible,.gift-drop-reward:focus-visible,.gift-storage-box:focus-visible{
+  outline:2px solid #fcf0bd;
+  outline-offset:3px;
+  filter:drop-shadow(0 0 4px #314d3b);
+}
+.gift-drop-reward{
+  position:absolute;
+  z-index:1;
+  left:50%;
+  bottom:calc(34px * var(--gift-scale));
+  display:grid;
+  min-width:54px;
+  max-width:118px;
+  min-height:48px;
+  justify-items:center;
+  align-content:center;
+  gap:1px;
+  padding:3px 7px 4px;
+  border:2px solid #78603a;
+  border-radius:5px;
+  background:#fff0bf;
+  color:#4b3b25;
+  box-shadow:inset 0 -3px 0 #d6b978,0 3px 5px #39291944;
+  opacity:0;
+  transform:translate(-50%,13px) scale(.45);
+  cursor:pointer;
+  pointer-events:auto;
+  touch-action:manipulation;
+}
+.gift-drop.opened .gift-drop-reward{animation:gift-item-rise .7s cubic-bezier(.18,.82,.26,1.12) forwards}
+.gift-drop-emoji{font:24px/1 "Apple Color Emoji","Segoe UI Emoji",sans-serif}
+.gift-drop-reward small{
+  max-width:102px;
+  overflow:hidden;
+  color:#604a2e;
+  font:700 10px/1.2 "Noto Sans CJK SC",sans-serif;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.gift-drop-hint{
+  position:absolute;
+  left:50%;
+  bottom:calc(80px * var(--gift-scale));
+  width:max-content;
+  max-width:220px;
+  transform:translateX(-50%);
+  border:1px solid #aa986b;
+  border-radius:9px;
+  background:#fff8e5ed;
+  padding:4px 7px;
+  box-shadow:0 2px 7px #34251948;
+  color:#4d422e;
+  font:600 10px/1.35 "Noto Sans CJK SC",sans-serif;
+  text-align:center;
+  pointer-events:none;
+}
+.gift-drop.collecting .gift-drop-box-button{animation:none}
+.gift-drop.collecting .gift-drop-reward{
+  animation:gift-to-storage 1.55s cubic-bezier(.28,.72,.35,1) forwards;
+}
+.gift-drop.collecting .gift-drop-hint{opacity:0;transition:opacity .12s}
+
+.gift-storage-box{
+  position:fixed;
+  z-index:var(--gift-storage-z,10);
+  left:var(--gift-storage-x,30%);
+  top:var(--gift-storage-y,75%);
+  display:grid;
+  width:calc(94px * var(--gift-storage-scale,.62));
+  height:calc(94px * var(--gift-storage-scale,.62));
+  place-items:center;
+  padding:0;
+  border:0;
+  background:transparent;
+  transform:translate(-50%,-100%);
+  cursor:pointer;
+  pointer-events:auto;
+  touch-action:manipulation;
+  filter:drop-shadow(0 5px 3px #32251f66);
+}
+.gift-storage-box img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  image-rendering:pixelated;
+}
+.gift-storage-count{
+  position:absolute;
+  top:1px;
+  right:-5px;
+  min-width:16px;
+  box-sizing:border-box;
+  border:1px solid #775b31;
+  border-radius:8px;
+  background:#fff1bd;
+  padding:1px 4px;
+  color:#4c3c22;
+  font:700 10px/1.3 "Noto Sans CJK SC",sans-serif;
+  text-align:center;
+}
+.gift-storage-label{
+  position:absolute;
+  bottom:-11px;
+  left:50%;
+  width:max-content;
+  transform:translateX(-50%);
+  border:1px solid #ac9263;
+  border-radius:7px;
+  background:#fff8e5ed;
+  padding:2px 5px;
+  color:#4d422e;
+  font:600 9px/1.2 "Noto Sans CJK SC",sans-serif;
+  white-space:nowrap;
+  opacity:1;
+  pointer-events:none;
+}
+
+@keyframes gift-box-wait{50%{translate:0 -3px}}
+@keyframes gift-item-rise{
+  0%{opacity:0;transform:translate(-50%,13px) scale(.45)}
+  45%{opacity:1;transform:translate(-50%,-19px) scale(1.08)}
+  72%{transform:translate(-50%,-11px) scale(.96)}
+  100%{opacity:1;transform:translate(-50%,-14px) scale(1)}
+}
+@keyframes gift-to-storage{
+  0%{opacity:1;transform:translate(-50%,-14px) scale(1)}
+  46%{opacity:1;transform:translate(-50%,-34px) scale(.82)}
+  100%{opacity:0;transform:translate(calc(-50% + var(--gift-collect-x)),var(--gift-collect-y)) scale(.22)}
+}
+@media(prefers-reduced-motion:reduce){
+  .gift-drop-box-button:not(:disabled){animation:none}
+  .gift-drop.opened .gift-drop-reward{animation:none;opacity:1;transform:translate(-50%,-14px) scale(1)}
+  .gift-drop.collecting .gift-drop-reward{animation:gift-reduced-collect 1.5s both}
+}
+@keyframes gift-reduced-collect{0%,75%{opacity:1}100%{opacity:0;transform:translateY(0) scale(.3)}}

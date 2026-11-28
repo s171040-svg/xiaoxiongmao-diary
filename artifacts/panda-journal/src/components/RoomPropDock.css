@@ -1,0 +1,19 @@
+.rp-dock{position:fixed;z-index:11;left:50%;bottom:10px;display:flex;align-items:stretch;gap:8px;max-width:calc(100vw - 16px);overflow-x:auto;scrollbar-width:thin;padding:6px 8px 6px 6px;transform:translateX(-50%);background:#f4e5bd;border:4px solid #76552c;box-shadow:inset 0 0 0 2px #fff1ce,0 4px 0 #8e6938;image-rendering:pixelated;pointer-events:auto;user-select:none}
+.rp-title{display:flex;align-items:center;margin:0;padding:0 8px;background:#ead4a4;color:#37533a;font:700 13px/1.2 "Noto Sans Mono CJK SC","Noto Sans CJK SC",monospace;letter-spacing:.12em;writing-mode:vertical-rl;text-orientation:upright}
+.rp-group{display:flex;gap:6px}
+.rp-divider{width:4px;background:repeating-linear-gradient(180deg,#76552c 0 4px,transparent 4px 8px)}
+.rp-slot{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:60px;padding:5px 6px 4px;border:3px solid #76552c;background:#f5dfae;color:#354637;box-shadow:inset -3px -3px 0 #c59b59,inset 3px 3px 0 #fff3d2;font:700 12px/1.1 "Noto Sans Mono CJK SC","Noto Sans CJK SC",monospace;cursor:pointer;border-radius:0}
+.rp-slot:hover:not(:disabled){background:#ffe9ad}
+.rp-slot:active:not(:disabled){transform:translateY(2px);box-shadow:inset 3px 3px 0 #c59b59,inset -3px -3px 0 #fff3d2}
+.rp-slot[aria-pressed=true]{background:#b9df8b;box-shadow:inset -3px -3px 0 #76a34d,inset 3px 3px 0 #e0f6bd}
+.rp-slot[data-placed=false]{background:#e2d5b7;color:#61705c;box-shadow:inset -3px -3px 0 #b5a17d,inset 3px 3px 0 #fff2d7}
+.rp-slot[data-placed=false] .rp-icon{opacity:.55;filter:grayscale(.5)}
+.rp-slot:disabled{cursor:not-allowed;opacity:.6}
+.rp-slot:focus-visible{outline:3px solid #fff3b0;outline-offset:2px}
+.rp-icon{width:36px;height:27px;image-rendering:pixelated}
+.rp-furniture-icon{object-fit:contain}
+.rp-teaser-icon{width:18px;height:34px;object-fit:contain;transform:rotate(22deg)}
+.rp-potion-icon{width:14.5px;height:14.5px;object-fit:contain}
+@media (max-width:560px){.rp-title{display:none}.rp-slot{min-width:48px;padding:4px}.rp-icon{width:28px;height:21px}}
+@media (max-width:560px){.rp-teaser-icon{width:16px;height:29px}}
+@media (max-width:420px){.rp-dock{gap:3px;padding:4px;overflow-x:auto;scrollbar-width:none}.rp-dock::-webkit-scrollbar{display:none}.rp-group{flex:none;gap:3px}.rp-divider{flex:none}.rp-slot{min-width:46px;padding:3px 2px;font-size:10px}.rp-icon{width:26px;height:20px}.rp-teaser-icon{width:14px;height:25px}.rp-potion-icon{width:12px;height:12px}}

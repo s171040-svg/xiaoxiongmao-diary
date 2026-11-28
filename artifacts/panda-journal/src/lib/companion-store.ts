@@ -1,12 +1,551 @@
 import type { CompanionInput, CompanionResponse } from '@workspace/api-client-react';
-import type { ChatMessage, CompanionState, DiaryMemory, Gift, PerformanceAction } from './companion-types';
+import type { CareStatCategory, CareStats, ChatMessage, CompanionState, DiaryMemory, FoxMerchantLetter, Gift, PendingCareStatInteraction, PerformanceAction, SharedCareStats, SpacePoliceLetter, SpacePoop, WorldEcologyState } from './companion-types';
 
 export const COMPANION_KEY = 'little-panda-companion-v1';
 export const MINUTE = 60_000;
 export const DAY = 24 * 60 * MINUTE;
 export const PROACTIVE_LIMIT = 4;
 export const GIFT_DROP_MS = 1800;
-export const canFeedGift = (gift: Gift) => ['🍌', '🥕', '🐟', '🍬'].includes(gift.emoji);
+export const CAPTURED_TRIP_CHANCE = 0.1;
+export const CAPTURED_TRIP_EXTRA_MS = 2 * MINUTE;
+export const CAPTURED_HOMECOMING_DURATION_MS = 8000;
+export const SPACE_POLICE_LETTER_EAT_DELAY_MS = 5 * MINUTE;
+export const CARE_STAT_DECAY_INTERVAL_MS = 6 * 60 * MINUTE;
+export const IDLE_FALL_AFTER_MS = 5 * MINUTE;
+export const DIRTY_HEALTH_DECAY_INTERVAL_MS = MINUTE;
+export const DIRTY_HEALTH_DECAY_AMOUNT = 1.5;
+export const PET_POOP_INTERVAL_MS = 5 * MINUTE;
+export const PET_POOP_CHANCE = 0.1;
+export const PET_POOP_HEALTH_DELAY_MS = 5 * MINUTE;
+export const PET_POOP_HEALTH_DECAY_AMOUNT = 1;
+export const FEVER_HEALTH_THRESHOLD = 20;
+export const CLEAN_FALL_CHANCE = 0.1;
+export const isVitaminGift = (gift: Gift) => gift.kind === 'vitamin';
+export const canFeedGift = (gift: Gift) => !isVitaminGift(gift)
+  && ['🍌', '🥕', '🐟', '🍬', '🍓', '🍪', '🎋'].includes(gift.emoji);
+const FEED_ACTION_BY_EMOJI: Record<string, PerformanceAction> = {
+  '🍌': 'eat-banana',
+  '🥕': 'eat-carrot',
+  '🐟': 'eat-fish',
+  '🍬': 'eat-candy',
+  '🍓': 'eat-strawberry',
+  '🍪': 'eat-cookie',
+  '🎋': 'eat-bamboo',
+};
+export const feedActionForGift = (gift: Gift): PerformanceAction | undefined =>
+  isVitaminGift(gift) ? 'take-vitamin' : canFeedGift(gift) ? FEED_ACTION_BY_EMOJI[gift.emoji] : undefined;
+const CARE_STAT_CATEGORIES: CareStatCategory[] = ['health', 'bond', 'growth'];
+
+export function initialCareStats(now = Date.now()): CareStats {
+  return {
+    growth: 50,
+    health: 50,
+    bond: 50,
+    hunger: 100,
+    hungerUpdatedAt: now,
+    lastInteractionAt: now,
+    lastDecayAt: now,
+    revision: 0,
+    lastInteractionCategory: 'growth',
+    recentInteractionIds: [],
+  };
+}
+
+export function initialWorldEcology(now = Date.now()): WorldEcologyState {
+  return {
+    lastAttentionAt: now,
+    lastPetPoopAt: now,
+    fallCycle: 'first',
+    dirtyHealthAppliedMinutes: 0,
+    sick: false,
+    vitaminsFed: 0,
+    updatedAt: now,
+  };
+}
+
+export function normalizeCareStats(stats: SharedCareStats, hungerUpdatedAtFallback = stats.lastInteractionAt): CareStats {
+  return {
+    ...stats,
+    hunger: stats.hunger ?? 100,
+    hungerUpdatedAt: stats.hungerUpdatedAt ?? hungerUpdatedAtFallback,
+  };
+}
+
+function validCareStats(value: unknown): value is CareStats {
+  if (!value || typeof value !== 'object') return false;
+  const stats = value as CareStats;
+  return [stats.growth, stats.bond].every(item => Number.isInteger(item) && item >= 0 && item <= 100)
+    && Number.isFinite(stats.health) && stats.health >= 0 && stats.health <= 100
+    && (stats.hunger === undefined || (Number.isInteger(stats.hunger) && stats.hunger >= 0 && stats.hunger <= 100))
+    && (stats.hungerUpdatedAt === undefined || (Number.isSafeInteger(stats.hungerUpdatedAt) && stats.hungerUpdatedAt >= 0))
+    && [stats.lastInteractionAt, stats.lastDecayAt, stats.revision].every(item => Number.isSafeInteger(item) && item >= 0)
+    && CARE_STAT_CATEGORIES.includes(stats.lastInteractionCategory)
+    && Array.isArray(stats.recentInteractionIds)
+    && stats.recentInteractionIds.length <= 128
+    && stats.recentInteractionIds.every(item => typeof item === 'string' && item.length > 0 && item.length <= 80);
+}
+
+export function adjustHungerState(state: CompanionState, amount: number, now = Date.now()): CompanionState {
+  if (!Number.isSafeInteger(amount)) throw new Error('饥饿值变化必须是整数。');
+  const currentHunger = state.careStats.hunger ?? 100;
+  const hunger = Math.max(0, Math.min(100, currentHunger + amount));
+  if (hunger === currentHunger) return state;
+  return {
+    ...state,
+    careStats: { ...state.careStats, hunger, hungerUpdatedAt: now },
+  };
+}
+
+export function decayCareStats(stats: CareStats, now = Date.now()): CareStats {
+  const lastInteractionAt = Math.min(stats.lastInteractionAt, now);
+  const lastDecayAt = Math.min(stats.lastDecayAt, now);
+  const elapsedSteps = Math.floor(Math.max(0, now - lastInteractionAt) / CARE_STAT_DECAY_INTERVAL_MS);
+  const appliedSteps = Math.floor(Math.max(0, lastDecayAt - lastInteractionAt) / CARE_STAT_DECAY_INTERVAL_MS);
+  const steps = Math.max(0, elapsedSteps - appliedSteps);
+  if (!steps && lastInteractionAt === stats.lastInteractionAt && lastDecayAt === stats.lastDecayAt) return stats;
+  return {
+    ...stats,
+    growth: Math.max(0, stats.growth - steps),
+    health: Math.max(0, stats.health - steps),
+    bond: Math.max(0, stats.bond - steps),
+    lastInteractionAt,
+    lastDecayAt: Math.min(now, lastDecayAt + steps * CARE_STAT_DECAY_INTERVAL_MS),
+  };
+}
+
+function applyCareStatGain(
+  stats: CareStats,
+  category: CareStatCategory,
+  interactionId: string,
+  occurredAt: number,
+): CareStats {
+  if (stats.recentInteractionIds.includes(interactionId)) return stats;
+  const at = Math.max(stats.lastInteractionAt, occurredAt);
+  const decayed = decayCareStats(stats, at);
+  return {
+    ...decayed,
+    growth: Math.min(100, decayed.growth + 1),
+    health: category === 'health' ? Math.min(100, decayed.health + 1) : decayed.health,
+    bond: category === 'bond' ? Math.min(100, decayed.bond + 1) : decayed.bond,
+    lastInteractionAt: at,
+    lastDecayAt: at,
+    lastInteractionCategory: category,
+    recentInteractionIds: [...decayed.recentInteractionIds, interactionId].slice(-128),
+  };
+}
+
+function replayPendingCareInteractions(stats: CareStats, pending: PendingCareStatInteraction[]): CareStats {
+  return pending.reduce(
+    (current, interaction) => applyCareStatGain(current, interaction.category, interaction.interactionId, interaction.occurredAt),
+    stats,
+  );
+}
+
+export function recordCareStatInteraction(
+  state: CompanionState,
+  category: CareStatCategory,
+  now = Date.now(),
+  interactionId = id(),
+): CompanionState {
+  if (state.careStats.recentInteractionIds.includes(interactionId)
+    || state.pendingCareStatInteractions.some(item => item.interactionId === interactionId)) return state;
+  const pending: PendingCareStatInteraction = { interactionId, category, occurredAt: now };
+  return {
+    ...state,
+    careStats: applyCareStatGain(state.careStats, category, interactionId, now),
+    pendingCareStatInteractions: [...state.pendingCareStatInteractions, pending],
+  };
+}
+
+export function mergeSharedCareStats(state: CompanionState, sharedStats: SharedCareStats): CompanionState {
+  const current = state.careStats;
+  const useLocal = current.revision > sharedStats.revision
+    || (current.revision === sharedStats.revision && (
+      current.lastInteractionAt > sharedStats.lastInteractionAt
+      || (current.lastInteractionAt === sharedStats.lastInteractionAt && current.lastDecayAt > sharedStats.lastDecayAt)
+    ));
+  const base = useLocal ? current : sharedStats;
+  const hungerSource = normalizeCareStats(
+    (current.hungerUpdatedAt ?? 0) > (sharedStats.hungerUpdatedAt ?? 0) ? current : sharedStats,
+  );
+  const merged = { ...base, hunger: hungerSource.hunger, hungerUpdatedAt: hungerSource.hungerUpdatedAt };
+  return { ...state, careStats: replayPendingCareInteractions(merged, state.pendingCareStatInteractions) };
+}
+
+export function acknowledgeCareStatInteraction(
+  state: CompanionState,
+  interactionId: string,
+  sharedStats: SharedCareStats,
+): CompanionState {
+  const pending = state.pendingCareStatInteractions.filter(item => item.interactionId !== interactionId);
+  const hungerSource = normalizeCareStats(
+    (state.careStats.hungerUpdatedAt ?? 0) > (sharedStats.hungerUpdatedAt ?? 0)
+      ? state.careStats
+      : sharedStats,
+  );
+  const merged = { ...sharedStats, hunger: hungerSource.hunger, hungerUpdatedAt: hungerSource.hungerUpdatedAt };
+  return {
+    ...state,
+    pendingCareStatInteractions: pending,
+    careStats: replayPendingCareInteractions(merged, pending),
+  };
+}
+
+export function clearPendingCareStatInteractions(state: CompanionState): CompanionState {
+  return state.pendingCareStatInteractions.length
+    ? { ...state, pendingCareStatInteractions: [] }
+    : state;
+}
+
+export function decayCareStatState(state: CompanionState, now = Date.now()): CompanionState {
+  const careStats = decayCareStats(state.careStats, now);
+  return careStats === state.careStats ? state : { ...state, careStats };
+}
+
+export function mergeSharedWorldEcology(state: CompanionState, sharedEcology: WorldEcologyState): CompanionState {
+  const current = state.worldEcology ?? initialWorldEcology(sharedEcology.lastAttentionAt);
+  return current.updatedAt > sharedEcology.updatedAt
+    ? state
+    : { ...state, worldEcology: sharedEcology };
+}
+
+export function mergeSharedFoxMerchantLetter(
+  state: CompanionState,
+  sharedLetter: FoxMerchantLetter,
+): CompanionState {
+  const current = state.foxMerchantLetter;
+  if (!current || sharedLetter.sentAt > current.sentAt) return { ...state, foxMerchantLetter: sharedLetter };
+  if (sharedLetter.sentAt < current.sentAt) return state;
+  const statusOrder = { captured: 0, reset: 1, rescued: 2 } as const;
+  const latest = statusOrder[sharedLetter.status] > statusOrder[current.status] ? sharedLetter : current;
+  const openedAt = Math.max(current.openedAt ?? 0, sharedLetter.openedAt ?? 0) || undefined;
+  return {
+    ...state,
+    foxMerchantLetter: {
+      ...latest,
+      ...(openedAt !== undefined ? { openedAt } : {}),
+      ...(current.resolvedAt !== undefined || sharedLetter.resolvedAt !== undefined
+        ? { resolvedAt: Math.max(current.resolvedAt ?? 0, sharedLetter.resolvedAt ?? 0) }
+        : {}),
+    },
+  };
+}
+
+export function recordPetAttentionState(state: CompanionState, now = Date.now()): CompanionState {
+  const ecology = state.worldEcology ?? initialWorldEcology(now);
+  if (now <= ecology.lastAttentionAt) return state;
+  return {
+    ...state,
+    worldEcology: { ...ecology, lastAttentionAt: now, lastFallRollAt: undefined, updatedAt: now },
+  };
+}
+
+export function tryStartIdleWorldFall(
+  state: CompanionState,
+  now = Date.now(),
+  random = Math.random,
+): { state: CompanionState; shouldFall: boolean } {
+  const ecology = state.worldEcology ?? initialWorldEcology(now);
+  if (ecology.fallCycle === 'needs-clean' || now - ecology.lastAttentionAt <= IDLE_FALL_AFTER_MS) {
+    return { state, shouldFall: false };
+  }
+  if (ecology.fallCycle === 'first') {
+    return {
+      state: {
+        ...state,
+        worldEcology: {
+          ...ecology,
+          fallCycle: 'needs-clean',
+          dirtySince: undefined,
+          dirtyHealthAppliedMinutes: 0,
+          lastFallRollAt: now,
+          updatedAt: now,
+        },
+      },
+      shouldFall: true,
+    };
+  }
+  if (ecology.lastFallRollAt !== undefined && now - ecology.lastFallRollAt < MINUTE) {
+    return { state, shouldFall: false };
+  }
+  const roll = random();
+  const shouldFall = roll < CLEAN_FALL_CHANCE;
+  return {
+    state: {
+      ...state,
+      worldEcology: {
+        ...ecology,
+        ...(shouldFall ? {
+          fallCycle: 'needs-clean' as const,
+          dirtySince: undefined,
+          dirtyHealthAppliedMinutes: 0,
+        } : {}),
+        lastFallRollAt: now,
+        updatedAt: now,
+      },
+    },
+    shouldFall,
+  };
+}
+
+export function markWorldFallReturned(
+  state: CompanionState,
+  now = Date.now(),
+  petName = '小熊猫',
+): CompanionState {
+  const ecology = state.worldEcology ?? initialWorldEcology(now);
+  if (ecology.fallCycle !== 'needs-clean') return state;
+  const returned: CompanionState = {
+    ...state,
+    careStats: {
+      ...state.careStats,
+      health: Math.max(0, Math.round((state.careStats.health - 3) * 10) / 10),
+      revision: state.careStats.revision + 1,
+    },
+    worldEcology: { ...ecology, dirtySince: now, dirtyHealthAppliedMinutes: 0, updatedAt: now },
+  };
+  return resolveHealthAtZero(returned, petName, now).state;
+}
+
+export function markPetWashed(state: CompanionState, now = Date.now()): CompanionState {
+  const ecology = state.worldEcology ?? initialWorldEcology(now);
+  if (ecology.fallCycle !== 'needs-clean' || ecology.dirtySince === undefined) return state;
+  return {
+    ...state,
+    worldEcology: { ...ecology, dirtySince: undefined, updatedAt: now },
+  };
+}
+
+export function markPetDried(state: CompanionState, now = Date.now()): CompanionState {
+  const ecology = state.worldEcology ?? initialWorldEcology(now);
+  if (ecology.fallCycle !== 'needs-clean') return state;
+  const attended = recordPetAttentionState(state, now);
+  const current = attended.worldEcology ?? ecology;
+  return {
+    ...attended,
+    worldEcology: {
+      ...current,
+      fallCycle: 'after-clean',
+      dirtySince: undefined,
+      dirtyHealthAppliedMinutes: 0,
+      lastFallRollAt: undefined,
+      lastAttentionAt: now,
+      updatedAt: now,
+    },
+  };
+}
+
+function foxMerchantName(petName: string) {
+  return petName === '小白' ? '小白专属狐贩子' : '小熊猫专属狐贩子';
+}
+
+function resetCareForNewPet(state: CompanionState, now: number): CompanionState {
+  const ecology = state.worldEcology ?? initialWorldEcology(now);
+  return {
+    ...state,
+    trip: undefined,
+    careStats: initialCareStats(now),
+    pendingCareStatInteractions: [],
+    spacePoliceLetters: state.spacePoliceLetters?.filter(letter => letter.kind !== 'pet-poop'),
+    worldEcology: {
+      ...ecology,
+      lastPetPoopAt: now,
+      sick: false,
+      vitaminsFed: 0,
+      lastAttentionAt: now,
+      fallCycle: 'first',
+      dirtySince: undefined,
+      dirtyHealthAppliedMinutes: 0,
+      lastFallRollAt: undefined,
+      updatedAt: now,
+    },
+  };
+}
+
+export function resolveHealthAtZero(
+  state: CompanionState,
+  petName: string,
+  now = Date.now(),
+): { state: CompanionState; event?: 'captured' | 'reset' } {
+  const ecology = state.worldEcology ?? initialWorldEcology(now);
+  const sickState = state.careStats.health <= FEVER_HEALTH_THRESHOLD && !ecology.sick
+    ? { ...state, worldEcology: { ...ecology, sick: true, vitaminsFed: 0, updatedAt: now } }
+    : state;
+  if (sickState.careStats.health > 0 || sickState.foxMerchantLetter?.status === 'captured') return { state: sickState };
+  state = sickState;
+  const availableSnacks = state.gifts.filter(gift => !gift.fedAt && canFeedGift(gift)).length;
+  const captured = availableSnacks >= 5;
+  const letter: FoxMerchantLetter = {
+    id: id(),
+    sentAt: now,
+    petName,
+    foxName: foxMerchantName(petName),
+    status: captured ? 'captured' : 'reset',
+    snacksAtCapture: availableSnacks,
+  };
+  if (captured) {
+    const ecology = state.worldEcology ?? initialWorldEcology(now);
+    return {
+      state: {
+        ...state,
+        trip: undefined,
+        foxMerchantLetter: letter,
+        worldEcology: { ...ecology, dirtySince: undefined, updatedAt: now },
+        messages: [...state.messages, assistant(
+          `被狐贩子用糖拐跑了！${letter.foxName}寄来一封信：“不给我五颗糖，我就不还给你。请拿 5 份还没喂过的食物礼物来换回${petName}。”`,
+          'event',
+          now,
+        )],
+      },
+      event: 'captured',
+    };
+  }
+  const reset = resetCareForNewPet(state, now);
+  return {
+    state: {
+      ...reset,
+      foxMerchantLetter: letter,
+      messages: [...reset.messages, assistant(
+        `被狐贩子用糖拐跑了！${letter.foxName}寄来信说要 5 份零食。现在只有 ${availableSnacks} 份未喂食的食物礼物，养成状态已重置，可以重新养一只；日记、礼物和房间摆设仍保留。`,
+        'event',
+        now,
+      )],
+    },
+    event: 'reset',
+  };
+}
+
+export function tickDirtyHealth(
+  state: CompanionState,
+  petName: string,
+  now = Date.now(),
+): { state: CompanionState; event?: 'captured' | 'reset' } {
+  if (state.foxMerchantLetter?.status === 'captured') return { state };
+  const ecology = state.worldEcology ?? initialWorldEcology(now);
+  if (ecology.dirtySince !== undefined) {
+    const elapsedMinutes = Math.floor(Math.max(0, now - ecology.dirtySince) / DIRTY_HEALTH_DECAY_INTERVAL_MS);
+    const steps = Math.max(0, elapsedMinutes - ecology.dirtyHealthAppliedMinutes);
+    if (steps > 0) {
+      const health = Math.max(0, Math.round((state.careStats.health - DIRTY_HEALTH_DECAY_AMOUNT * steps) * 10) / 10);
+      const updated: CompanionState = {
+        ...state,
+        careStats: { ...state.careStats, health, revision: state.careStats.revision + steps },
+        worldEcology: {
+          ...ecology,
+          dirtyHealthAppliedMinutes: ecology.dirtyHealthAppliedMinutes + steps,
+          updatedAt: now,
+        },
+      };
+      const resolved = resolveHealthAtZero(updated, petName, now);
+      return resolved;
+    }
+  }
+  return resolveHealthAtZero(state, petName, now);
+}
+
+/** Roll a 10% chance every five minutes, with one uncleared stool at a time. */
+export function tickPetPoop(state: CompanionState, now = Date.now(), random = Math.random): CompanionState {
+  if (!state.worldEcology) return state;
+  const ecology = state.worldEcology;
+  const lastPetPoopAt = ecology.lastPetPoopAt ?? ecology.lastAttentionAt;
+  if (now - lastPetPoopAt < PET_POOP_INTERVAL_MS) return state;
+  const existing = state.spacePoliceLetters
+    ?? (state.spacePoliceLetter ? [{ id: `legacy-space-police-${state.spacePoliceLetter.deliveredAt}`, ...state.spacePoliceLetter }] : []);
+  if (existing.some(letter => letter.poop && letter.poop.phase !== 'disposed')) return state;
+  if (state.trip || state.foxMerchantLetter?.status === 'captured') {
+    return { ...state, worldEcology: { ...ecology, lastPetPoopAt: now, updatedAt: now } };
+  }
+  if (random() >= PET_POOP_CHANCE) {
+    return { ...state, worldEcology: { ...ecology, lastPetPoopAt: now, updatedAt: now } };
+  }
+  const poopLetter: SpacePoliceLetter = {
+    id: `pet-poop-${now}`,
+    deliveredAt: now,
+    kind: 'pet-poop',
+    poop: { phase: 'pending', createdAt: now, healthAppliedMinutes: 0 },
+  };
+  return {
+    ...state,
+    spacePoliceLetters: [...existing, poopLetter],
+    worldEcology: { ...ecology, lastPetPoopAt: now, updatedAt: now },
+  };
+}
+
+/** Each uncleared poop costs one health point per full minute after its five-minute grace period. */
+export function tickPetPoopHealth(
+  state: CompanionState,
+  petName: string,
+  now = Date.now(),
+): { state: CompanionState; event?: 'captured' | 'reset' } {
+  if (state.foxMerchantLetter?.status === 'captured') return { state };
+  const letters = state.spacePoliceLetters
+    ?? (state.spacePoliceLetter ? [{ id: `legacy-space-police-${state.spacePoliceLetter.deliveredAt}`, ...state.spacePoliceLetter }] : []);
+  let loss = 0;
+  const nextLetters = letters.map(letter => {
+    const poop = letter.poop;
+    if (!poop || poop.phase === 'disposed' || poop.createdAt === undefined) return letter;
+    const eligibleMinutes = Math.floor(Math.max(0, now - poop.createdAt - PET_POOP_HEALTH_DELAY_MS) / MINUTE);
+    const steps = Math.max(0, eligibleMinutes - (poop.healthAppliedMinutes ?? 0));
+    if (!steps) return letter;
+    loss += steps;
+    return { ...letter, poop: { ...poop, healthAppliedMinutes: (poop.healthAppliedMinutes ?? 0) + steps } };
+  });
+  if (!loss) return resolveHealthAtZero(state, petName, now);
+  const updated: CompanionState = {
+    ...state,
+    spacePoliceLetters: nextLetters,
+    ...(state.spacePoliceLetter ? {
+      spacePoliceLetter: nextLetters.find(letter => letter.deliveredAt === state.spacePoliceLetter?.deliveredAt)
+        ?? state.spacePoliceLetter,
+    } : {}),
+    careStats: {
+      ...state.careStats,
+      health: Math.max(0, Math.round((state.careStats.health - PET_POOP_HEALTH_DECAY_AMOUNT * loss) * 10) / 10),
+      revision: state.careStats.revision + loss,
+    },
+  };
+  return resolveHealthAtZero(updated, petName, now);
+}
+
+export function openFoxMerchantLetter(state: CompanionState, now = Date.now()): CompanionState {
+  const letter = state.foxMerchantLetter;
+  if (!letter || letter.openedAt !== undefined) return state;
+  const ecology = state.worldEcology ?? initialWorldEcology(now);
+  return {
+    ...state,
+    foxMerchantLetter: { ...letter, openedAt: now },
+    worldEcology: { ...ecology, updatedAt: now },
+  };
+}
+
+export function redeemFoxMerchantLetter(state: CompanionState, now = Date.now()): CompanionState {
+  const letter = state.foxMerchantLetter;
+  if (!letter || letter.status !== 'captured') return state;
+  const available = state.gifts.filter(gift => !gift.fedAt && canFeedGift(gift));
+  if (available.length < 5) return state;
+  const consumed = new Set(available.slice(0, 5).map(gift => gift.id));
+  const ecology = state.worldEcology ?? initialWorldEcology(now);
+  return {
+    ...state,
+    gifts: state.gifts.map(gift => consumed.has(gift.id) ? { ...gift, fedAt: now } : gift),
+    careStats: { ...state.careStats, health: 50, revision: state.careStats.revision + 1 },
+    worldEcology: {
+      ...ecology,
+      lastPetPoopAt: now,
+      sick: false,
+      vitaminsFed: 0,
+      lastAttentionAt: now,
+      fallCycle: 'first',
+      dirtySince: undefined,
+      dirtyHealthAppliedMinutes: 0,
+      lastFallRollAt: undefined,
+      updatedAt: now,
+    },
+    foxMerchantLetter: { ...letter, status: 'rescued', resolvedAt: now },
+    messages: [...state.messages, assistant(`${letter.petName}回来啦！${letter.foxName}收下了 5 份零食，养成进度保留，健康值恢复到 50。`, 'event', now)],
+  };
+}
+
 export function startGiftDrop(state: CompanionState, giftId: string, now = Date.now()): CompanionState {
   return state.pendingGift?.id === giftId && !state.giftDropStartedAt
     ? { ...state, giftDropStartedAt: now } : state;
@@ -24,35 +563,352 @@ export function favoriteGift(state: CompanionState, giftId: string): CompanionSt
 export function feedGift(state: CompanionState, giftId: string, now = Date.now()): CompanionState {
   const gift = state.gifts.find(g => g.id === giftId);
   if (!gift || gift.fedAt || !canFeedGift(gift)) return state;
-  return { ...state, gifts: state.gifts.map(g => g.id === giftId ? { ...g, fedAt: now } : g),
-    messages: [...state.messages, assistant(`唔，${state.userName ? state.userName + '，' : ''}${gift.item}收到啦，小熊猫咔嚓咔嚓吃掉啦。（它开心地嚼了嚼，蹭蹭你）`, 'event', now)] };
+  const fedState = adjustHungerState(state, 1, now);
+  return { ...fedState, gifts: fedState.gifts.map(g => g.id === giftId ? { ...g, fedAt: now } : g),
+    messages: [...fedState.messages, assistant(`唔，${fedState.userName ? fedState.userName + '，' : ''}${gift.item}收到啦，小熊猫咔嚓咔嚓吃掉啦。（它开心地嚼了嚼，蹭蹭你）`, 'event', now)] };
 }
-export const ACTIONS: PerformanceAction[] = ['bamboo', 'jump', 'somersault', 'tail', 'cuddle'];
+export function feedVitaminGift(
+  state: CompanionState,
+  giftId: string,
+  petName = '小熊猫',
+  now = Date.now(),
+): CompanionState {
+  const gift = state.gifts.find(item => item.id === giftId);
+  const ecology = state.worldEcology;
+  if (!gift || !isVitaminGift(gift) || gift.fedAt !== undefined || ecology?.sick !== true
+    || state.foxMerchantLetter?.status === 'captured') return state;
+  const vitaminsFed = Math.min(3, (ecology.vitaminsFed ?? 0) + 1);
+  const cured = vitaminsFed >= 3;
+  const next = {
+    ...state,
+    gifts: state.gifts.map(item => item.id === giftId ? { ...item, fedAt: now } : item),
+    worldEcology: { ...ecology, sick: !cured, vitaminsFed, updatedAt: now },
+    ...(cured ? {
+      careStats: { ...state.careStats, health: 50, revision: state.careStats.revision + 1 },
+    } : {}),
+  };
+  const text = cured
+    ? `${petName}乖乖喝下第三颗维生素，烧终于退啦！健康恢复到 50，又可以精神满满地活动啦。`
+    : `${petName}喝下了一颗维生素，已经 ${vitaminsFed}/3 颗啦。小护士说再乖乖喝几颗，发烧就会退掉。`;
+  return { ...next, messages: [...next.messages, assistant(text, 'event', now)] };
+}
+export function exchangeSnacksForVitamin(
+  state: CompanionState,
+  petName = '小熊猫',
+  now = Date.now(),
+  makeId: () => string = id,
+): CompanionState {
+  if (state.worldEcology?.sick !== true || state.foxMerchantLetter?.status === 'captured'
+    || state.gifts.some(gift => isVitaminGift(gift) && gift.fedAt === undefined)) return state;
+  const snacks = state.gifts.filter(gift => !gift.fedAt && canFeedGift(gift));
+  if (snacks.length < 3) return state;
+  const vitaminId = makeId();
+  if (!vitaminId || state.gifts.some(gift => gift.id === vitaminId)
+    || state.pendingGift?.id === vitaminId || state.trip?.gift.id === vitaminId) {
+    throw new Error('维生素编号重复了，请再试一次。');
+  }
+  const consumed = new Set(snacks.slice(0, 3).map(gift => gift.id));
+  const vitamin: Gift = {
+    id: vitaminId,
+    kind: 'vitamin',
+    emoji: '💊',
+    item: '维生素',
+    animal: '医院小护士',
+    story: `${petName}把三份还没喂过的零食带到医院，小护士笑着帮忙换成一颗维生素，还叮嘱它要按时吃药、快点好起来。`,
+    receivedAt: now,
+  };
+  return {
+    ...state,
+    gifts: [
+      ...state.gifts.map(gift => consumed.has(gift.id) ? { ...gift, fedAt: now } : gift),
+      vitamin,
+    ],
+  };
+}
+export const ACTIONS: PerformanceAction[] = ['bamboo', 'jump', 'somersault', 'tail'];
 export const id = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 export function localDay(now: number) { const d = new Date(now); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; }
 export const idleDelay = (random = Math.random) => (5 + random() * 5) * MINUTE;
 export const tripDelay = (random = Math.random) => (20 + random() * 20) * MINUTE;
 export function initialState(now = Date.now()): CompanionState {
   return { version: 1, messages: [], diary: [], gifts: [], userName: '', draft: '',
-    lastUserAt: now, nextIdleAt: now + idleDelay(), proactiveDay: localDay(now),
-    proactiveCount: 0, nextTripAt: now + tripDelay() };
+    spacePoliceLetters: [], lastUserAt: now, nextIdleAt: now + idleDelay(), proactiveDay: localDay(now),
+    proactiveCount: 0, nextTripAt: now + tripDelay(),
+    careStats: initialCareStats(now), pendingCareStatInteractions: [], worldEcology: initialWorldEcology(now) };
 }
 export function readState(storage: Pick<Storage, 'getItem'>, now = Date.now()): CompanionState {
   const raw = storage.getItem(COMPANION_KEY);
   if (!raw) return initialState(now);
   const value = JSON.parse(raw) as CompanionState;
+  const invalidSpacePoop = (poop: SpacePoop) => !poop
+    || !['pending', 'fresh', 'bagged', 'disposing', 'disposed'].includes(poop.phase)
+    || (poop.phase !== 'pending' && (!Number.isFinite(poop.x) || !Number.isFinite(poop.y)
+      || poop.x! < 0 || poop.x! > 1 || poop.y! < 0 || poop.y! > 1))
+    || (poop.packedAt !== undefined && !Number.isFinite(poop.packedAt))
+    || (poop.disposedAt !== undefined && !Number.isFinite(poop.disposedAt))
+    || (poop.createdAt !== undefined && !Number.isFinite(poop.createdAt))
+    || (poop.healthAppliedMinutes !== undefined
+      && (!Number.isInteger(poop.healthAppliedMinutes) || poop.healthAppliedMinutes < 0));
+  const invalidSpacePoliceLetter = (letter: SpacePoliceLetter) => !letter || typeof letter.id !== 'string'
+    || !Number.isFinite(letter.deliveredAt)
+    || (letter.kind !== undefined && letter.kind !== 'pet-poop')
+    || (letter.openedAt !== undefined && !Number.isFinite(letter.openedAt))
+    || (letter.filedAt !== undefined && !Number.isFinite(letter.filedAt))
+    || (letter.eatenAt !== undefined && !Number.isFinite(letter.eatenAt))
+    || (letter.eatAfterAt !== undefined && !Number.isFinite(letter.eatAfterAt))
+    || (letter.poop !== undefined && invalidSpacePoop(letter.poop))
+    || (letter.finePayment !== undefined && (!letter.finePayment
+      || !Number.isFinite(letter.finePayment.paidAt)
+      || typeof letter.finePayment.giftId !== 'string'
+      || typeof letter.finePayment.emoji !== 'string'
+      || typeof letter.finePayment.item !== 'string'));
+  const invalidFoxMerchantLetter = (letter: FoxMerchantLetter) => !letter || typeof letter.id !== 'string'
+    || !Number.isFinite(letter.sentAt) || typeof letter.petName !== 'string' || typeof letter.foxName !== 'string'
+    || !['captured', 'reset', 'rescued'].includes(letter.status)
+    || !Number.isInteger(letter.snacksAtCapture) || letter.snacksAtCapture < 0
+    || (letter.openedAt !== undefined && !Number.isFinite(letter.openedAt))
+    || (letter.resolvedAt !== undefined && !Number.isFinite(letter.resolvedAt));
+  const invalidWorldEcology = (ecology: WorldEcologyState) => !ecology
+    || !Number.isFinite(ecology.lastAttentionAt)
+    || (ecology.lastPetPoopAt !== undefined && !Number.isFinite(ecology.lastPetPoopAt))
+    || (ecology.sick !== undefined && typeof ecology.sick !== 'boolean')
+    || !['first', 'needs-clean', 'after-clean'].includes(ecology.fallCycle)
+    || (ecology.lastFallRollAt !== undefined && !Number.isFinite(ecology.lastFallRollAt))
+    || (ecology.dirtySince !== undefined && !Number.isFinite(ecology.dirtySince))
+    || !Number.isInteger(ecology.dirtyHealthAppliedMinutes) || ecology.dirtyHealthAppliedMinutes < 0
+    || (ecology.vitaminsFed !== undefined && (!Number.isInteger(ecology.vitaminsFed)
+      || ecology.vitaminsFed < 0 || ecology.vitaminsFed > 3))
+    || !Number.isFinite(ecology.updatedAt);
   if (value.version !== 1 || !Array.isArray(value.messages) || !Array.isArray(value.diary) || !Array.isArray(value.gifts)
     || typeof value.userName !== 'string' || typeof value.draft !== 'string'
+    || (value.trip?.captured !== undefined && typeof value.trip.captured !== 'boolean')
+    || (value.returnEvent !== undefined && (!value.returnEvent || value.returnEvent.kind !== 'captured'
+      || !Number.isFinite(value.returnEvent.until)
+      || (value.returnEvent.awaitingInteraction !== undefined && typeof value.returnEvent.awaitingInteraction !== 'boolean')))
+    || (value.spacePoliceLetter !== undefined && (!value.spacePoliceLetter
+      || !Number.isFinite(value.spacePoliceLetter.deliveredAt)
+      || (value.spacePoliceLetter.openedAt !== undefined && !Number.isFinite(value.spacePoliceLetter.openedAt))
+      || (value.spacePoliceLetter.filedAt !== undefined && !Number.isFinite(value.spacePoliceLetter.filedAt))
+      || (value.spacePoliceLetter.eatenAt !== undefined && !Number.isFinite(value.spacePoliceLetter.eatenAt))
+       || (value.spacePoliceLetter.eatAfterAt !== undefined && !Number.isFinite(value.spacePoliceLetter.eatAfterAt))
+       || (value.spacePoliceLetter.poop !== undefined && invalidSpacePoop(value.spacePoliceLetter.poop))))
+    || (value.spacePoliceLetters !== undefined && (!Array.isArray(value.spacePoliceLetters)
+      || value.spacePoliceLetters.some(invalidSpacePoliceLetter)))
+    || (value.foxMerchantLetter !== undefined && invalidFoxMerchantLetter(value.foxMerchantLetter))
+    || (value.worldEcology !== undefined && invalidWorldEcology(value.worldEcology))
+    || (value.recentGiftStories !== undefined && (!Array.isArray(value.recentGiftStories)
+      || value.recentGiftStories.some(story => typeof story !== 'string')))
+    || (value.careStats !== undefined && !validCareStats(value.careStats))
+    || (value.pendingCareStatInteractions !== undefined && (!Array.isArray(value.pendingCareStatInteractions)
+      || value.pendingCareStatInteractions.some(item => !item || typeof item.interactionId !== 'string'
+        || !item.interactionId || item.interactionId.length > 80 || !CARE_STAT_CATEGORIES.includes(item.category)
+        || !Number.isSafeInteger(item.occurredAt) || item.occurredAt < 0)))
     || ![value.lastUserAt, value.nextIdleAt, value.proactiveCount, value.nextTripAt].every(Number.isFinite)
     || value.messages.some(m => !m || typeof m.id !== 'string' || !['user', 'assistant'].includes(m.role)
       || typeof m.text !== 'string' || !Number.isFinite(m.createdAt))
     || value.diary.some(m => !m || !['worry', 'idea', 'action'].includes(m.kind) || typeof m.text !== 'string' || !Number.isFinite(m.createdAt))) {
     throw new Error('本机聊天记录暂时无法读取；没有覆盖原记录。');
   }
-  return value;
+  let letters: SpacePoliceLetter[] = value.spacePoliceLetters ?? (value.spacePoliceLetter ? [{
+    id: `legacy-space-police-${value.spacePoliceLetter.deliveredAt}`,
+    ...value.spacePoliceLetter,
+  }] : []);
+  if (value.spacePoliceLetter && !letters.some(letter => letter.deliveredAt === value.spacePoliceLetter!.deliveredAt)) {
+    letters = [...letters, { id: `legacy-space-police-${value.spacePoliceLetter.deliveredAt}`, ...value.spacePoliceLetter }];
+  }
+  letters = letters.map(letter => letter.eatenAt !== undefined && !letter.poop
+    ? { ...letter, poop: { phase: 'pending' } }
+    : letter);
+  let activeSpacePoliceLetter = value.spacePoliceLetter;
+  if (activeSpacePoliceLetter?.eatenAt !== undefined && !activeSpacePoliceLetter.poop) {
+    activeSpacePoliceLetter = { ...activeSpacePoliceLetter, poop: { phase: 'pending' } };
+    letters = letters.map(letter => letter.deliveredAt === activeSpacePoliceLetter!.deliveredAt
+      ? { ...letter, poop: activeSpacePoliceLetter!.poop }
+      : letter);
+  } else if (activeSpacePoliceLetter && !activeSpacePoliceLetter.poop) {
+    const archivedActive = letters.find(letter => letter.deliveredAt === activeSpacePoliceLetter!.deliveredAt);
+    if (archivedActive?.poop) activeSpacePoliceLetter = { ...activeSpacePoliceLetter, poop: archivedActive.poop };
+  }
+  let restored: CompanionState = {
+    ...value,
+    careStats: normalizeCareStats(value.careStats ?? initialCareStats(now), now),
+    pendingCareStatInteractions: value.pendingCareStatInteractions ?? [],
+    worldEcology: value.worldEcology ?? initialWorldEcology(now),
+    ...(activeSpacePoliceLetter ? { spacePoliceLetter: activeSpacePoliceLetter } : {}),
+    spacePoliceLetters: letters,
+  };
+  if (restored.returnEvent?.kind === 'captured' && restored.returnEvent.awaitingInteraction !== false && !restored.spacePoliceLetter) {
+    const deliveredAt = Math.max(0, restored.returnEvent.until - CAPTURED_HOMECOMING_DURATION_MS);
+    const archiveEntry: SpacePoliceLetter = { id: `legacy-space-police-${deliveredAt}`, deliveredAt };
+    restored = { ...restored, spacePoliceLetter: { deliveredAt },
+      spacePoliceLetters: letters.some(letter => letter.deliveredAt === deliveredAt) ? letters : [...letters, archiveEntry] };
+  }
+  const activeLetter = restored.spacePoliceLetter;
+  if (activeLetter && activeLetter.eatAfterAt === undefined
+    && activeLetter.filedAt === undefined && activeLetter.eatenAt === undefined) {
+    const eatAfterAt = now + SPACE_POLICE_LETTER_EAT_DELAY_MS;
+    const archive = restored.spacePoliceLetters ?? [];
+    const archived = archive.some(letter => letter.deliveredAt === activeLetter.deliveredAt)
+      ? archive.map(letter => letter.deliveredAt === activeLetter.deliveredAt ? { ...letter, eatAfterAt } : letter)
+      : [...archive, { id: `legacy-space-police-${activeLetter.deliveredAt}`, deliveredAt: activeLetter.deliveredAt, eatAfterAt }];
+    restored = { ...restored, spacePoliceLetter: { ...activeLetter, eatAfterAt }, spacePoliceLetters: archived };
+  }
+  return restored;
+}
+export function deliverSpacePoliceLetter(
+  state: CompanionState,
+  deliveredAt = Date.now(),
+  makeId: () => string = id,
+): CompanionState {
+  const letterId = makeId();
+  const letters = state.spacePoliceLetters ?? [];
+  if (!letterId || letters.some(letter => letter.id === letterId)) throw new Error('来信编号重复了，请再试一次。');
+  const eatAfterAt = deliveredAt + SPACE_POLICE_LETTER_EAT_DELAY_MS;
+  return { ...state, spacePoliceLetter: { deliveredAt, eatAfterAt },
+    spacePoliceLetters: [...letters, { id: letterId, deliveredAt, eatAfterAt }] };
+}
+export function markSpacePoliceLetterOpened(state: CompanionState, now = Date.now(), letterId?: string): CompanionState {
+  const letters: SpacePoliceLetter[] = state.spacePoliceLetters ?? (state.spacePoliceLetter ? [{
+    id: `legacy-space-police-${state.spacePoliceLetter.deliveredAt}`,
+    ...state.spacePoliceLetter,
+  }] : []);
+  const letter = letterId
+    ? letters.find(entry => entry.id === letterId)
+    : state.spacePoliceLetter;
+  if (!letter) return state;
+  const archiveNeedsUpdate = letters.some(entry => (letterId ? entry.id === letterId : entry.deliveredAt === letter.deliveredAt)
+    && entry.openedAt === undefined);
+  const activeNeedsUpdate = state.spacePoliceLetter?.deliveredAt === letter.deliveredAt
+    && state.spacePoliceLetter.openedAt === undefined;
+  if (!archiveNeedsUpdate && !activeNeedsUpdate) return state;
+  return {
+    ...state,
+    ...(activeNeedsUpdate ? { spacePoliceLetter: { ...state.spacePoliceLetter!, openedAt: now } } : {}),
+    spacePoliceLetters: letters.map(entry =>
+      (letterId ? entry.id === letterId : entry.deliveredAt === letter.deliveredAt)
+        ? { ...entry, openedAt: entry.openedAt ?? now }
+        : entry),
+  };
+}
+export function fileSpacePoliceLetter(state: CompanionState, deliveredAt: number, now = Date.now()): CompanionState {
+  const activeLetter = state.spacePoliceLetter;
+  if (!activeLetter || activeLetter.deliveredAt !== deliveredAt
+    || activeLetter.filedAt !== undefined || activeLetter.eatenAt !== undefined) return state;
+  const letters = state.spacePoliceLetters ?? [];
+  const archived = letters.some(letter => letter.deliveredAt === deliveredAt)
+    ? letters.map(letter => letter.deliveredAt === deliveredAt
+      ? { ...letter, openedAt: letter.openedAt ?? now, filedAt: now }
+      : letter)
+    : [...letters, { id: `legacy-space-police-${deliveredAt}`, deliveredAt, openedAt: now, filedAt: now, eatAfterAt: activeLetter.eatAfterAt }];
+  return {
+    ...state,
+    spacePoliceLetter: { ...activeLetter, openedAt: activeLetter.openedAt ?? now, filedAt: now },
+    spacePoliceLetters: archived,
+  };
+}
+export function eatSpacePoliceLetter(state: CompanionState, deliveredAt: number, now = Date.now()): CompanionState {
+  const activeLetter = state.spacePoliceLetter;
+  if (!activeLetter || activeLetter.deliveredAt !== deliveredAt
+    || activeLetter.filedAt !== undefined || activeLetter.eatenAt !== undefined) return state;
+  const letters = state.spacePoliceLetters ?? [];
+  const archived = letters.some(letter => letter.deliveredAt === deliveredAt)
+      ? letters.map(letter => letter.deliveredAt === deliveredAt ? { ...letter, eatenAt: now, poop: { phase: 'pending' as const, createdAt: now, healthAppliedMinutes: 0 } } : letter)
+    : [...letters, { id: `legacy-space-police-${deliveredAt}`, deliveredAt, eatenAt: now, eatAfterAt: activeLetter.eatAfterAt, poop: { phase: 'pending' as const, createdAt: now, healthAppliedMinutes: 0 } }];
+  return {
+    ...state,
+    spacePoliceLetter: { ...activeLetter, eatenAt: now, poop: { phase: 'pending', createdAt: now, healthAppliedMinutes: 0 } },
+    spacePoliceLetters: archived,
+    messages: [...state.messages, assistant('唔……小熊猫太好奇，把信封吃掉了。肚子咕噜咕噜的，拉肚子了。', 'event', now)],
+  };
+}
+function updateSpacePolicePoop(
+  state: CompanionState,
+  deliveredAt: number,
+  update: (poop: SpacePoop) => SpacePoop,
+): CompanionState {
+  const source = state.spacePoliceLetters ?? (state.spacePoliceLetter ? [{
+    id: `legacy-space-police-${state.spacePoliceLetter.deliveredAt}`,
+    ...state.spacePoliceLetter,
+  }] : []);
+  const letter = source.find(entry => entry.deliveredAt === deliveredAt);
+  if (!letter?.poop) return state;
+  const poop = update(letter.poop);
+  if (poop === letter.poop) return state;
+  const spacePoliceLetters = source.map(entry => entry.deliveredAt === deliveredAt ? { ...entry, poop } : entry);
+  return {
+    ...state,
+    spacePoliceLetters,
+    ...(state.spacePoliceLetter?.deliveredAt === deliveredAt
+      ? { spacePoliceLetter: { ...state.spacePoliceLetter, poop } }
+      : {}),
+  };
+}
+const clampRoomRatio = (value: number) => Math.max(0.02, Math.min(0.98, value));
+export function placeSpacePolicePoop(state: CompanionState, deliveredAt: number, x: number, y: number, now = Date.now()): CompanionState {
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return state;
+  return updateSpacePolicePoop(state, deliveredAt, poop => poop.phase === 'pending'
+    ? { ...poop, phase: 'fresh', x: clampRoomRatio(x), y: clampRoomRatio(y),
+      createdAt: poop.createdAt ?? now, healthAppliedMinutes: poop.healthAppliedMinutes ?? 0 }
+    : poop);
+}
+export function packSpacePolicePoop(state: CompanionState, deliveredAt: number, now = Date.now()): CompanionState {
+  return updateSpacePolicePoop(state, deliveredAt, poop => poop.phase === 'fresh'
+    ? { ...poop, phase: 'bagged', packedAt: now }
+    : poop);
+}
+export function moveSpacePolicePoopBag(state: CompanionState, deliveredAt: number, x: number, y: number): CompanionState {
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return state;
+  return updateSpacePolicePoop(state, deliveredAt, poop => poop.phase === 'bagged'
+    ? { ...poop, x: clampRoomRatio(x), y: clampRoomRatio(y) }
+    : poop);
+}
+export function disposeSpacePolicePoopBag(
+  state: CompanionState,
+  deliveredAt: number,
+  x: number,
+  y: number,
+  now = Date.now(),
+): CompanionState {
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return state;
+  return updateSpacePolicePoop(state, deliveredAt, poop => poop.phase === 'bagged'
+    ? { ...poop, phase: 'disposing', x: clampRoomRatio(x), y: clampRoomRatio(y), disposedAt: now }
+    : poop);
+}
+export function finishSpacePolicePoopDisposal(
+  state: CompanionState,
+  deliveredAt: number,
+  now = Date.now(),
+): CompanionState {
+  const updated = updateSpacePolicePoop(state, deliveredAt, poop => poop.phase === 'disposing'
+    ? { ...poop, phase: 'disposed' }
+    : poop);
+  if (updated === state || !updated.worldEcology) return updated;
+  const hasUnclearedPoop = updated.spacePoliceLetters?.some(letter =>
+    letter.poop && letter.poop.phase !== 'disposed') ?? false;
+  return hasUnclearedPoop
+    ? updated
+    : { ...updated, worldEcology: { ...updated.worldEcology, lastPetPoopAt: now, updatedAt: now } };
+}
+export function paySpacePoliceFine(
+  state: CompanionState,
+  letterId: string,
+  giftId: string,
+  now = Date.now(),
+): CompanionState {
+  const letters = state.spacePoliceLetters ?? [];
+  const letter = letters.find(entry => entry.id === letterId);
+  const gift = state.gifts.find(entry => entry.id === giftId);
+  if (!letter || letter.finePayment || !gift) return state;
+  const finePayment = { paidAt: now, giftId: gift.id, emoji: gift.emoji, item: gift.item };
+  return {
+    ...state,
+    gifts: state.gifts.filter(entry => entry.id !== giftId),
+    spacePoliceLetters: letters.map(entry => entry.id === letterId ? { ...entry, finePayment } : entry),
+  };
 }
 export function writeState(storage: Pick<Storage, 'setItem'>, state: CompanionState) {
   storage.setItem(COMPANION_KEY, JSON.stringify(state));
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('panda-care-stats-updated'));
 }
 export type TestGiftInput = Pick<Gift, 'emoji' | 'item' | 'animal' | 'story'>;
 export function injectTestGift(
@@ -145,34 +1001,146 @@ export function welcome(state: CompanionState, now = Date.now()): CompanionState
     messages: [...state.messages, assistant(text, due ? 'followup' : 'welcome', now)],
     diary: state.diary.map(m => m.id === due?.id ? { ...m, followedUpAt: now } : m) };
 }
-export function performancePlan(random = Math.random) {
+export function performancePlan(random = Math.random, allowWorldFall = true) {
   const action = ACTIONS[Math.min(ACTIONS.length - 1, Math.floor(random() * ACTIONS.length))];
   const duration = 2000 + random() * 3000;
-  const drops = ['jump', 'somersault'].includes(action) && random() < 0.1;
+  const drops = allowWorldFall && ['jump', 'somersault'].includes(action) && random() < 0.1;
   return { action, duration, drops };
 }
 const souvenirs = [
-  { emoji: '🍌', item: '香蕉', animal: '猴子' }, { emoji: '🥕', item: '胡萝卜', animal: '兔子' },
-  { emoji: '🌰', item: '松果', animal: '松鼠' }, { emoji: '🐟', item: '小鱼', animal: '小猫' },
-  { emoji: '🍬', item: '糖果', animal: '老爷爷' }, { emoji: '🌸', item: '花瓣', animal: '蝴蝶' },
+  { emoji: '🍌', item: '香蕉', animal: '猴子', stories: [
+    '猴子在树梢发现一串熟香蕉，挑了最香的一根分给小熊猫。小熊猫一路捧回来，想先给你看看。',
+    '小熊猫和猴子在林边歇脚，猴子把藏好的香蕉拿出来分享，还拜托小熊猫替它问你一声好。',
+    '猴子荡到树下时，递给小熊猫一根金黄的香蕉，说这是今天找到的最好吃的一根，想让你也收下。',
+  ] },
+  { emoji: '🥕', item: '胡萝卜', animal: '兔子', stories: [
+    '兔子在菜地边拔出一根脆脆的胡萝卜，分给路过的小熊猫。小熊猫把它抱稳了，带回来送给你。',
+    '小熊猫陪兔子找了半天胡萝卜，最后找到一根又直又漂亮的，兔子笑着把它交给小熊猫带回来。',
+    '兔子刚收好一篮胡萝卜，就挑出最鲜嫩的一根送给小熊猫，说想和你分享今天的收获。',
+  ] },
+  { emoji: '🌰', item: '松果', animal: '松鼠', stories: [
+    '松鼠在松针堆里找到一颗完整的大松果，仔细擦干净后送给小熊猫。小熊猫把这份森林小礼物带给你。',
+    '松鼠爬上树枝摇了摇，落下一颗香香的松果，挑给小熊猫当作路上的纪念品，让它拿回来给你。',
+    '小熊猫帮松鼠把滚远的松果找了回来，松鼠便把另一颗圆滚滚的送给它，说这颗要带回去给你。',
+  ] },
+  { emoji: '🐟', item: '小鱼', animal: '小猫', stories: [
+    '小猫在溪边钓到一条亮闪闪的小鱼，装进小篮子里送给小熊猫，托它回来和你分享这份惊喜。',
+    '小猫蹲在水边等了好久，终于钓到今天第一条小鱼。它把小鱼交给小熊猫，说想让你也看看。',
+    '小熊猫陪小猫在溪边听水声，小猫把刚钓到的小鱼送给它当礼物，小熊猫一路小心地带回来了。',
+  ] },
+  { emoji: '🍬', item: '糖果', animal: '老爷爷', stories: [
+    '路边的老爷爷从小布袋里拿出一颗水果糖送给小熊猫，叮嘱它慢慢带回去，和你一起分享甜味。',
+    '老爷爷看见小熊猫在花园边散步，笑着递给它一颗包装亮晶晶的糖果，说这是给你的小礼物。',
+    '小熊猫帮老爷爷捡起滚到椅子下的糖果，老爷爷便另外挑了一颗新的送给它，让它带回来给你。',
+  ] },
+  { emoji: '🌸', item: '花瓣', animal: '蝴蝶', stories: [
+    '蝴蝶在花丛里挑了一片完整的粉色花瓣送给小熊猫，还绕着它飞了一圈，像是在说这份也想送给你。',
+    '小熊猫和蝴蝶在暖暖的阳光下追了一小会儿，蝴蝶落下一片花瓣送给它，让它带回来装点你的小礼物盒。',
+    '蝴蝶停在一朵刚开的花上，轻轻碰落一片花瓣送给小熊猫。小熊猫把它护好，带回来给你看。',
+  ] },
+  { emoji: '🍓', item: '野莓串', animal: '小刺猬', stories: [
+    '小刺猬在林边摘了一串熟透的野莓，挑了最大最甜的一串，叫它“野莓串”，托小熊猫带回来给你。',
+    '小熊猫陪小刺猬找到叶子底下的野莓，小刺猬把洗干净的莓果串成野莓串，郑重地请它带回来给你。',
+    '小刺猬在灌木丛里发现一串红彤彤的野莓串，留给小熊猫带回来给你当路上点心。',
+  ] },
+  { emoji: '🍪', item: '竹叶饼干', animal: '小熊', stories: [
+    '小熊烤好一片竹叶饼干，香香脆脆的，还特意装进小纸袋托小熊猫带回来给你。',
+    '小熊第一次做竹叶饼干，边缘有一点点歪，不过味道可香啦。它让小熊猫把最好的一块带回来给你。',
+    '小熊和小熊猫一起在厨房等饼干出炉，小熊把刚放凉的竹叶饼干包好，请小熊猫带回来给你。',
+  ] },
+  { emoji: '🎋', item: '嫩竹笋', animal: '竹鼠', stories: [
+    '竹鼠在竹林里找到一根刚冒头的嫩竹笋，擦掉泥土后装好，请小熊猫带回来给你看看。',
+    '小熊猫和竹鼠沿着竹林散步，竹鼠发现一根鲜嫩的嫩竹笋，决定让小熊猫带回来给你。',
+    '竹鼠把自己留着的嫩竹笋分给小熊猫，还说这是今天在竹林里找到的最新鲜的一根，带回来给你尝尝。',
+  ] },
+  { emoji: '🧶', item: '毛线球', animal: '小猫', stories: [
+    '小猫把一颗软软的毛线球送给小熊猫，说可以带回来给你，等你有空时一起滚着玩。',
+    '小猫追着毛线球滚了好几圈，最后把毛线球送给小熊猫，请它带回来给你玩。',
+    '小猫挑了一颗颜色最暖的毛线球送给小熊猫，还叮嘱它带回来给你时不要把线团滚散啦。',
+  ] },
+  { emoji: '🪁', item: '小纸风筝', animal: '麻雀', stories: [
+    '麻雀在树枝上发现一只迷路的小纸风筝，理好细线后请小熊猫带回来给你，等有风时一起玩。',
+    '小熊猫帮麻雀把缠在树梢的风筝线解开，麻雀把修好的小纸风筝送给它，请它带回来给你看看。',
+    '麻雀捡到一只轻飘飘的小纸风筝，和小熊猫把线轴卷整齐，再托它带回来给你。',
+  ] },
+  { emoji: '🪀', item: '木陀螺', animal: '松鼠', stories: [
+    '松鼠用一小块光滑的木头做了个木陀螺，转起来飞快。它把陀螺送给小熊猫带回来给你。',
+    '松鼠在树洞里翻出一只木陀螺，擦得亮亮的，交给小熊猫说带回来给你当玩具。',
+    '小熊猫看松鼠玩木陀螺看得入迷，松鼠就把自己新做的一只送给它，让它带回来给你。',
+  ] },
 ];
-export function beginTrip(state: CompanionState, now = Date.now(), random = Math.random): CompanionState {
-  const pick = souvenirs[Math.min(souvenirs.length - 1, Math.floor(random() * souvenirs.length))];
-  const gift: Omit<Gift, 'receivedAt'> = { ...pick, id: id(),
-    story: `唔，小熊猫遇到了${pick.animal}，${pick.animal}送给小熊猫${pick.item}，给${state.userName || '你'}呀。（它把${pick.item}捧过来）` };
-  return { ...state, trip: { id: gift.id, gift, returnAt: now + 30_000 + random() * 90_000 },
-    messages: [...state.messages, assistant(`诶，${state.userName ? state.userName + '，' : ''}小熊猫出去逛一圈，一会儿回来哦。（它轻轻挥挥爪子）`, 'event', now)] };
+const vitaminSouvenir = {
+  kind: 'vitamin' as const,
+  emoji: '💊',
+  item: '维生素',
+  animal: '医院小护士',
+  stories: [
+    '我路过医院时，小护士看见我蔫蔫的，笑着送给我一颗维生素：“乖乖带回家，记得按时吃哦！”我把它抱好，带回来啦。',
+  ],
+};
+export function beginTrip(
+  state: CompanionState,
+  now = Date.now(),
+  random = Math.random,
+  options: { enableWorldEcology?: boolean; petName?: string } = {},
+): CompanionState {
+  const petName = options.petName ?? '小熊猫';
+  const giftPool = options.enableWorldEcology ? [...souvenirs, vitaminSouvenir] : souvenirs;
+  const pick = giftPool[Math.min(giftPool.length - 1, Math.floor(random() * giftPool.length))];
+  const recentGiftStories = state.recentGiftStories ?? [];
+  const unusedStories = pick.stories.filter(story => !recentGiftStories.includes(story));
+  const storyChoices = unusedStories.length ? unusedStories : pick.stories;
+  const story = storyChoices[Math.min(storyChoices.length - 1, Math.floor(random() * storyChoices.length))];
+  const namedStory = story.replaceAll('小熊猫', petName);
+  const personalizedStory = state.userName ? namedStory.replaceAll('给你', `给${state.userName}`) : namedStory;
+  const captured = random() >= 1 - CAPTURED_TRIP_CHANCE;
+  const returnAt = now + 30_000 + random() * 90_000 + (captured ? CAPTURED_TRIP_EXTRA_MS : 0);
+  const gift: Omit<Gift, 'receivedAt'> = {
+    id: id(), ...(pick === vitaminSouvenir ? { kind: 'vitamin' as const } : {}),
+    emoji: pick.emoji, item: pick.item, animal: pick.animal,
+    story: `${state.userName ? `${state.userName}，` : ''}${personalizedStory}` };
+  const { returnEvent: _returnEvent, ...stateWithoutReturnEvent } = state;
+  return { ...stateWithoutReturnEvent, recentGiftStories: [...recentGiftStories, story].slice(-12),
+    trip: { id: gift.id, gift, returnAt, captured },
+    messages: [...state.messages, assistant(captured
+      ? `哎呀，${petName}太可爱，被路过的人抱走啦！大家正在找它，${petName}会晚一点回家哦。`
+      : `诶，${state.userName ? state.userName + '，' : ''}${petName}出去逛一圈，一会儿回来哦。（它轻轻挥挥爪子）`, 'event', now)] };
 }
-export function tickCompanion(state: CompanionState, now: number, random = Math.random): {
-  state: CompanionState; event?: 'proactive' | 'departure' | 'gift'; text?: string;
+export function tickCompanion(state: CompanionState, now: number, random = Math.random,
+  options: { allowDeparture?: boolean; enableWorldEcology?: boolean; petName?: string } = {}): {
+  state: CompanionState; event?: 'proactive' | 'departure' | 'gift'; text?: string; capturedReturn?: boolean;
+  worldEvent?: 'captured' | 'reset';
 } {
-  let next = state.proactiveDay === localDay(now) ? state : { ...state, proactiveDay: localDay(now), proactiveCount: 0 };
+  let next = decayCareStatState(state, now);
+  if (options.enableWorldEcology) {
+    next = tickPetPoop(next, now, random);
+    const poopHealth = tickPetPoopHealth(next, options.petName ?? '小熊猫', now);
+    next = poopHealth.state;
+    if (poopHealth.event) return { state: next, worldEvent: poopHealth.event };
+    if (next.foxMerchantLetter?.status === 'captured') return { state: next };
+    const result = tickDirtyHealth(next, options.petName ?? '小熊猫', now);
+    next = result.state;
+    if (result.event) return { state: next, worldEvent: result.event };
+    if (next.foxMerchantLetter?.status === 'captured') return { state: next };
+  }
+  next = next.proactiveDay === localDay(now) ? next : { ...next, proactiveDay: localDay(now), proactiveCount: 0 };
+  if (next.returnEvent && !next.returnEvent.awaitingInteraction && now >= next.returnEvent.until) {
+    const { returnEvent: _expiredReturnEvent, ...stateWithoutReturnEvent } = next;
+    next = stateWithoutReturnEvent;
+  }
   if (next.trip && now >= next.trip.returnAt) {
     const gift: Gift = { ...next.trip.gift, receivedAt: now };
-    next = { ...next, trip: undefined, nextTripAt: now + tripDelay(random),
+    const capturedReturn = next.trip.captured === true;
+    const text = capturedReturn
+      ? `${options.petName ?? '小熊猫'}终于被找回来啦……它还呆呆的，脑袋里好像只剩下“好可爱”这几个字。${gift.story}`
+      : gift.story;
+    const { returnEvent: _previousReturnEvent, ...stateWithoutReturnEvent } = next;
+    const returnedState: CompanionState = { ...stateWithoutReturnEvent, trip: undefined, nextTripAt: now + tripDelay(random),
+      ...(capturedReturn ? { returnEvent: { kind: 'captured' as const, until: now + CAPTURED_HOMECOMING_DURATION_MS, awaitingInteraction: true } } : {}),
       pendingGift: gift, giftDropStartedAt: undefined,
-      messages: [...next.messages, assistant(gift.story, 'event', now)] };
-    return { state: next, event: 'gift', text: gift.story };
+      messages: [...next.messages, assistant(text, 'event', now)] };
+    next = capturedReturn ? deliverSpacePoliceLetter(returnedState, now) : returnedState;
+    return { state: next, event: 'gift', text, capturedReturn };
   }
   if (next.trip) return { state: next };
   if (next.pendingGift) {
@@ -214,8 +1182,9 @@ export function tickCompanion(state: CompanionState, now: number, random = Math.
       messages: [...next.messages, assistant(text, due ? 'followup' : 'proactive', now)] };
     return { state: next, event: 'proactive', text };
   }
-  if (!next.pendingGift && now >= next.nextTripAt && now - next.lastUserAt >= MINUTE) {
-    next = beginTrip(next, now, random);
+  if (options.allowDeparture !== false && (!options.enableWorldEcology || !next.worldEcology?.sick) && !next.pendingGift
+    && now >= next.nextTripAt && now - next.lastUserAt >= MINUTE) {
+    next = beginTrip(next, now, random, options);
     return { state: next, event: 'departure', text: next.messages.at(-1)!.text };
   }
   return { state: next };

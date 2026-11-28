@@ -9,6 +9,1900 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Read private account gameplay save
+ */
+export const getPetSaveResponseSnapshotOneRoomGiftsItemIdMax = 120;
+
+export const getPetSaveResponseSnapshotOneRoomGiftsItemEmojiMax = 16;
+
+export const getPetSaveResponseSnapshotOneRoomGiftsItemItemMax = 120;
+
+export const getPetSaveResponseSnapshotOneRoomGiftsItemAnimalMax = 120;
+
+export const getPetSaveResponseSnapshotOneRoomGiftsItemStoryMax = 1200;
+
+export const getPetSaveResponseSnapshotOneRoomGiftsItemReceivedAtMin = 0;
+
+export const getPetSaveResponseSnapshotOneRoomGiftsItemFedAtMin = 0;
+
+export const getPetSaveResponseSnapshotOneRoomGiftsMax = 300;
+
+export const getPetSaveResponseSnapshotOneRoomFurnitureLayoutBedXMin = 0;
+export const getPetSaveResponseSnapshotOneRoomFurnitureLayoutBedXMax = 1;
+
+export const getPetSaveResponseSnapshotOneRoomFurnitureLayoutBedYMin = 0;
+export const getPetSaveResponseSnapshotOneRoomFurnitureLayoutBedYMax = 1;
+
+export const getPetSaveResponseSnapshotOneRoomFurnitureLayoutRackXMin = 0;
+export const getPetSaveResponseSnapshotOneRoomFurnitureLayoutRackXMax = 1;
+
+export const getPetSaveResponseSnapshotOneRoomFurnitureLayoutRackYMin = 0;
+export const getPetSaveResponseSnapshotOneRoomFurnitureLayoutRackYMax = 1;
+
+export const getPetSaveResponseSnapshotOneRoomFurnitureLayoutMailboxXMin = 0;
+export const getPetSaveResponseSnapshotOneRoomFurnitureLayoutMailboxXMax = 1;
+
+export const getPetSaveResponseSnapshotOneRoomFurnitureLayoutMailboxYMin = 0;
+export const getPetSaveResponseSnapshotOneRoomFurnitureLayoutMailboxYMax = 1;
+
+export const getPetSaveResponseSnapshotOneRoomFurnitureLayoutBathStationXMin = 0;
+export const getPetSaveResponseSnapshotOneRoomFurnitureLayoutBathStationXMax = 1;
+
+export const getPetSaveResponseSnapshotOneRoomFurnitureLayoutBathStationYMin = 0;
+export const getPetSaveResponseSnapshotOneRoomFurnitureLayoutBathStationYMax = 1;
+
+export const getPetSaveResponseSnapshotOneRoomFurnitureLayoutTrashCanXMin = 0;
+export const getPetSaveResponseSnapshotOneRoomFurnitureLayoutTrashCanXMax = 1;
+
+export const getPetSaveResponseSnapshotOneRoomFurnitureLayoutTrashCanYMin = 0;
+export const getPetSaveResponseSnapshotOneRoomFurnitureLayoutTrashCanYMax = 1;
+
+export const getPetSaveResponseSnapshotOneRoomCareStatsGrowthMin = 0;
+export const getPetSaveResponseSnapshotOneRoomCareStatsGrowthMax = 100;
+
+export const getPetSaveResponseSnapshotOneRoomCareStatsHealthMin = 0;
+export const getPetSaveResponseSnapshotOneRoomCareStatsHealthMax = 100;
+
+export const getPetSaveResponseSnapshotOneRoomCareStatsBondMin = 0;
+export const getPetSaveResponseSnapshotOneRoomCareStatsBondMax = 100;
+
+export const getPetSaveResponseSnapshotOneRoomCareStatsHungerMin = 0;
+export const getPetSaveResponseSnapshotOneRoomCareStatsHungerMax = 100;
+
+export const getPetSaveResponseSnapshotOneRoomCareStatsHungerUpdatedAtMin = 0;
+
+export const getPetSaveResponseSnapshotOneRoomCareStatsLastInteractionAtMin = 0;
+
+export const getPetSaveResponseSnapshotOneRoomCareStatsLastDecayAtMin = 0;
+
+export const getPetSaveResponseSnapshotOneRoomCareStatsRevisionMin = 0;
+
+export const getPetSaveResponseSnapshotOneRoomCareStatsRecentInteractionIdsItemMax = 80;
+
+export const getPetSaveResponseSnapshotOneRoomCareStatsRecentInteractionIdsMax = 128;
+
+export const getPetSaveResponseSnapshotOneRoomWorldEcologyLastAttentionAtMin = 0;
+
+export const getPetSaveResponseSnapshotOneRoomWorldEcologyLastPetPoopAtMin = 0;
+
+export const getPetSaveResponseSnapshotOneRoomWorldEcologyVitaminsFedMin = 0;
+export const getPetSaveResponseSnapshotOneRoomWorldEcologyVitaminsFedMax = 3;
+
+export const getPetSaveResponseSnapshotOneRoomWorldEcologyLastFallRollAtMin = 0;
+
+export const getPetSaveResponseSnapshotOneRoomWorldEcologyDirtySinceMin = 0;
+
+export const getPetSaveResponseSnapshotOneRoomWorldEcologyDirtyHealthAppliedMinutesMin = 0;
+
+export const getPetSaveResponseSnapshotOneRoomWorldEcologyUpdatedAtMin = 0;
+
+export const getPetSaveResponseSnapshotOneRoomFoxMerchantLetterIdMax = 120;
+
+export const getPetSaveResponseSnapshotOneRoomFoxMerchantLetterSentAtMin = 0;
+
+export const getPetSaveResponseSnapshotOneRoomFoxMerchantLetterPetNameMax = 40;
+
+export const getPetSaveResponseSnapshotOneRoomFoxMerchantLetterFoxNameMax = 80;
+
+export const getPetSaveResponseSnapshotOneRoomFoxMerchantLetterSnacksAtCaptureMin = 0;
+
+export const getPetSaveResponseSnapshotOneRoomFoxMerchantLetterOpenedAtMin = 0;
+
+export const getPetSaveResponseSnapshotOneRoomFoxMerchantLetterResolvedAtMin = 0;
+
+export const getPetSaveResponseRevisionMin = 0;
+
+
+
+export const GetPetSaveResponse = zod.object({
+  "snapshot": zod.union([zod.object({
+  "room": zod.object({
+  "gifts": zod.array(zod.object({
+  "id": zod.string().max(getPetSaveResponseSnapshotOneRoomGiftsItemIdMax),
+  "emoji": zod.string().max(getPetSaveResponseSnapshotOneRoomGiftsItemEmojiMax),
+  "item": zod.string().max(getPetSaveResponseSnapshotOneRoomGiftsItemItemMax),
+  "animal": zod.string().max(getPetSaveResponseSnapshotOneRoomGiftsItemAnimalMax),
+  "story": zod.string().max(getPetSaveResponseSnapshotOneRoomGiftsItemStoryMax),
+  "receivedAt": zod.number().int().min(getPetSaveResponseSnapshotOneRoomGiftsItemReceivedAtMin),
+  "favorite": zod.boolean().optional(),
+  "fedAt": zod.number().int().min(getPetSaveResponseSnapshotOneRoomGiftsItemFedAtMin).optional(),
+  "kind": zod.enum(['vitamin']).optional()
+})).max(getPetSaveResponseSnapshotOneRoomGiftsMax),
+  "furnitureLayout": zod.object({
+  "bed": zod.object({
+  "x": zod.number().min(getPetSaveResponseSnapshotOneRoomFurnitureLayoutBedXMin).max(getPetSaveResponseSnapshotOneRoomFurnitureLayoutBedXMax),
+  "y": zod.number().min(getPetSaveResponseSnapshotOneRoomFurnitureLayoutBedYMin).max(getPetSaveResponseSnapshotOneRoomFurnitureLayoutBedYMax)
+}).optional(),
+  "rack": zod.object({
+  "x": zod.number().min(getPetSaveResponseSnapshotOneRoomFurnitureLayoutRackXMin).max(getPetSaveResponseSnapshotOneRoomFurnitureLayoutRackXMax),
+  "y": zod.number().min(getPetSaveResponseSnapshotOneRoomFurnitureLayoutRackYMin).max(getPetSaveResponseSnapshotOneRoomFurnitureLayoutRackYMax)
+}).optional(),
+  "mailbox": zod.object({
+  "x": zod.number().min(getPetSaveResponseSnapshotOneRoomFurnitureLayoutMailboxXMin).max(getPetSaveResponseSnapshotOneRoomFurnitureLayoutMailboxXMax),
+  "y": zod.number().min(getPetSaveResponseSnapshotOneRoomFurnitureLayoutMailboxYMin).max(getPetSaveResponseSnapshotOneRoomFurnitureLayoutMailboxYMax)
+}).optional(),
+  "bathStation": zod.object({
+  "x": zod.number().min(getPetSaveResponseSnapshotOneRoomFurnitureLayoutBathStationXMin).max(getPetSaveResponseSnapshotOneRoomFurnitureLayoutBathStationXMax),
+  "y": zod.number().min(getPetSaveResponseSnapshotOneRoomFurnitureLayoutBathStationYMin).max(getPetSaveResponseSnapshotOneRoomFurnitureLayoutBathStationYMax)
+}).optional(),
+  "trashCan": zod.object({
+  "x": zod.number().min(getPetSaveResponseSnapshotOneRoomFurnitureLayoutTrashCanXMin).max(getPetSaveResponseSnapshotOneRoomFurnitureLayoutTrashCanXMax),
+  "y": zod.number().min(getPetSaveResponseSnapshotOneRoomFurnitureLayoutTrashCanYMin).max(getPetSaveResponseSnapshotOneRoomFurnitureLayoutTrashCanYMax)
+}).optional()
+}),
+  "placedProps": zod.record(zod.string(), zod.boolean()),
+  "careStats": zod.object({
+  "growth": zod.number().int().min(getPetSaveResponseSnapshotOneRoomCareStatsGrowthMin).max(getPetSaveResponseSnapshotOneRoomCareStatsGrowthMax),
+  "health": zod.number().min(getPetSaveResponseSnapshotOneRoomCareStatsHealthMin).max(getPetSaveResponseSnapshotOneRoomCareStatsHealthMax),
+  "bond": zod.number().int().min(getPetSaveResponseSnapshotOneRoomCareStatsBondMin).max(getPetSaveResponseSnapshotOneRoomCareStatsBondMax),
+  "hunger": zod.number().int().min(getPetSaveResponseSnapshotOneRoomCareStatsHungerMin).max(getPetSaveResponseSnapshotOneRoomCareStatsHungerMax).optional(),
+  "hungerUpdatedAt": zod.number().int().min(getPetSaveResponseSnapshotOneRoomCareStatsHungerUpdatedAtMin).optional(),
+  "lastInteractionAt": zod.number().int().min(getPetSaveResponseSnapshotOneRoomCareStatsLastInteractionAtMin),
+  "lastDecayAt": zod.number().int().min(getPetSaveResponseSnapshotOneRoomCareStatsLastDecayAtMin),
+  "revision": zod.number().int().min(getPetSaveResponseSnapshotOneRoomCareStatsRevisionMin),
+  "lastInteractionCategory": zod.enum(['health', 'bond', 'growth']),
+  "recentInteractionIds": zod.array(zod.string().min(1).max(getPetSaveResponseSnapshotOneRoomCareStatsRecentInteractionIdsItemMax)).max(getPetSaveResponseSnapshotOneRoomCareStatsRecentInteractionIdsMax)
+}).optional(),
+  "worldEcology": zod.object({
+  "lastAttentionAt": zod.number().int().min(getPetSaveResponseSnapshotOneRoomWorldEcologyLastAttentionAtMin),
+  "lastPetPoopAt": zod.number().int().min(getPetSaveResponseSnapshotOneRoomWorldEcologyLastPetPoopAtMin).optional(),
+  "sick": zod.boolean().optional(),
+  "vitaminsFed": zod.number().int().min(getPetSaveResponseSnapshotOneRoomWorldEcologyVitaminsFedMin).max(getPetSaveResponseSnapshotOneRoomWorldEcologyVitaminsFedMax).optional(),
+  "fallCycle": zod.enum(['first', 'needs-clean', 'after-clean']),
+  "lastFallRollAt": zod.number().int().min(getPetSaveResponseSnapshotOneRoomWorldEcologyLastFallRollAtMin).optional(),
+  "dirtySince": zod.number().int().min(getPetSaveResponseSnapshotOneRoomWorldEcologyDirtySinceMin).optional(),
+  "dirtyHealthAppliedMinutes": zod.number().int().min(getPetSaveResponseSnapshotOneRoomWorldEcologyDirtyHealthAppliedMinutesMin),
+  "updatedAt": zod.number().int().min(getPetSaveResponseSnapshotOneRoomWorldEcologyUpdatedAtMin)
+}).optional(),
+  "foxMerchantLetter": zod.object({
+  "id": zod.string().max(getPetSaveResponseSnapshotOneRoomFoxMerchantLetterIdMax),
+  "sentAt": zod.number().int().min(getPetSaveResponseSnapshotOneRoomFoxMerchantLetterSentAtMin),
+  "petName": zod.string().max(getPetSaveResponseSnapshotOneRoomFoxMerchantLetterPetNameMax),
+  "foxName": zod.string().max(getPetSaveResponseSnapshotOneRoomFoxMerchantLetterFoxNameMax),
+  "status": zod.enum(['captured', 'reset', 'rescued']),
+  "snacksAtCapture": zod.number().int().min(getPetSaveResponseSnapshotOneRoomFoxMerchantLetterSnacksAtCaptureMin),
+  "openedAt": zod.number().int().min(getPetSaveResponseSnapshotOneRoomFoxMerchantLetterOpenedAtMin).optional(),
+  "resolvedAt": zod.number().int().min(getPetSaveResponseSnapshotOneRoomFoxMerchantLetterResolvedAtMin).optional()
+}).optional()
+}),
+  "pet": zod.record(zod.string(), zod.unknown())
+}),zod.null()]),
+  "revision": zod.number().int().min(getPetSaveResponseRevisionMin),
+  "migrated": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Save private gameplay progress without chat or diary
+ */
+export const updatePetSaveBodySnapshotRoomGiftsItemIdMax = 120;
+
+export const updatePetSaveBodySnapshotRoomGiftsItemEmojiMax = 16;
+
+export const updatePetSaveBodySnapshotRoomGiftsItemItemMax = 120;
+
+export const updatePetSaveBodySnapshotRoomGiftsItemAnimalMax = 120;
+
+export const updatePetSaveBodySnapshotRoomGiftsItemStoryMax = 1200;
+
+export const updatePetSaveBodySnapshotRoomGiftsItemReceivedAtMin = 0;
+
+export const updatePetSaveBodySnapshotRoomGiftsItemFedAtMin = 0;
+
+export const updatePetSaveBodySnapshotRoomGiftsMax = 300;
+
+export const updatePetSaveBodySnapshotRoomFurnitureLayoutBedXMin = 0;
+export const updatePetSaveBodySnapshotRoomFurnitureLayoutBedXMax = 1;
+
+export const updatePetSaveBodySnapshotRoomFurnitureLayoutBedYMin = 0;
+export const updatePetSaveBodySnapshotRoomFurnitureLayoutBedYMax = 1;
+
+export const updatePetSaveBodySnapshotRoomFurnitureLayoutRackXMin = 0;
+export const updatePetSaveBodySnapshotRoomFurnitureLayoutRackXMax = 1;
+
+export const updatePetSaveBodySnapshotRoomFurnitureLayoutRackYMin = 0;
+export const updatePetSaveBodySnapshotRoomFurnitureLayoutRackYMax = 1;
+
+export const updatePetSaveBodySnapshotRoomFurnitureLayoutMailboxXMin = 0;
+export const updatePetSaveBodySnapshotRoomFurnitureLayoutMailboxXMax = 1;
+
+export const updatePetSaveBodySnapshotRoomFurnitureLayoutMailboxYMin = 0;
+export const updatePetSaveBodySnapshotRoomFurnitureLayoutMailboxYMax = 1;
+
+export const updatePetSaveBodySnapshotRoomFurnitureLayoutBathStationXMin = 0;
+export const updatePetSaveBodySnapshotRoomFurnitureLayoutBathStationXMax = 1;
+
+export const updatePetSaveBodySnapshotRoomFurnitureLayoutBathStationYMin = 0;
+export const updatePetSaveBodySnapshotRoomFurnitureLayoutBathStationYMax = 1;
+
+export const updatePetSaveBodySnapshotRoomFurnitureLayoutTrashCanXMin = 0;
+export const updatePetSaveBodySnapshotRoomFurnitureLayoutTrashCanXMax = 1;
+
+export const updatePetSaveBodySnapshotRoomFurnitureLayoutTrashCanYMin = 0;
+export const updatePetSaveBodySnapshotRoomFurnitureLayoutTrashCanYMax = 1;
+
+export const updatePetSaveBodySnapshotRoomCareStatsGrowthMin = 0;
+export const updatePetSaveBodySnapshotRoomCareStatsGrowthMax = 100;
+
+export const updatePetSaveBodySnapshotRoomCareStatsHealthMin = 0;
+export const updatePetSaveBodySnapshotRoomCareStatsHealthMax = 100;
+
+export const updatePetSaveBodySnapshotRoomCareStatsBondMin = 0;
+export const updatePetSaveBodySnapshotRoomCareStatsBondMax = 100;
+
+export const updatePetSaveBodySnapshotRoomCareStatsHungerMin = 0;
+export const updatePetSaveBodySnapshotRoomCareStatsHungerMax = 100;
+
+export const updatePetSaveBodySnapshotRoomCareStatsHungerUpdatedAtMin = 0;
+
+export const updatePetSaveBodySnapshotRoomCareStatsLastInteractionAtMin = 0;
+
+export const updatePetSaveBodySnapshotRoomCareStatsLastDecayAtMin = 0;
+
+export const updatePetSaveBodySnapshotRoomCareStatsRevisionMin = 0;
+
+export const updatePetSaveBodySnapshotRoomCareStatsRecentInteractionIdsItemMax = 80;
+
+export const updatePetSaveBodySnapshotRoomCareStatsRecentInteractionIdsMax = 128;
+
+export const updatePetSaveBodySnapshotRoomWorldEcologyLastAttentionAtMin = 0;
+
+export const updatePetSaveBodySnapshotRoomWorldEcologyLastPetPoopAtMin = 0;
+
+export const updatePetSaveBodySnapshotRoomWorldEcologyVitaminsFedMin = 0;
+export const updatePetSaveBodySnapshotRoomWorldEcologyVitaminsFedMax = 3;
+
+export const updatePetSaveBodySnapshotRoomWorldEcologyLastFallRollAtMin = 0;
+
+export const updatePetSaveBodySnapshotRoomWorldEcologyDirtySinceMin = 0;
+
+export const updatePetSaveBodySnapshotRoomWorldEcologyDirtyHealthAppliedMinutesMin = 0;
+
+export const updatePetSaveBodySnapshotRoomWorldEcologyUpdatedAtMin = 0;
+
+export const updatePetSaveBodySnapshotRoomFoxMerchantLetterIdMax = 120;
+
+export const updatePetSaveBodySnapshotRoomFoxMerchantLetterSentAtMin = 0;
+
+export const updatePetSaveBodySnapshotRoomFoxMerchantLetterPetNameMax = 40;
+
+export const updatePetSaveBodySnapshotRoomFoxMerchantLetterFoxNameMax = 80;
+
+export const updatePetSaveBodySnapshotRoomFoxMerchantLetterSnacksAtCaptureMin = 0;
+
+export const updatePetSaveBodySnapshotRoomFoxMerchantLetterOpenedAtMin = 0;
+
+export const updatePetSaveBodySnapshotRoomFoxMerchantLetterResolvedAtMin = 0;
+
+export const updatePetSaveBodyRevisionMin = 0;
+
+
+
+export const UpdatePetSaveBody = zod.object({
+  "snapshot": zod.object({
+  "room": zod.object({
+  "gifts": zod.array(zod.object({
+  "id": zod.string().max(updatePetSaveBodySnapshotRoomGiftsItemIdMax),
+  "emoji": zod.string().max(updatePetSaveBodySnapshotRoomGiftsItemEmojiMax),
+  "item": zod.string().max(updatePetSaveBodySnapshotRoomGiftsItemItemMax),
+  "animal": zod.string().max(updatePetSaveBodySnapshotRoomGiftsItemAnimalMax),
+  "story": zod.string().max(updatePetSaveBodySnapshotRoomGiftsItemStoryMax),
+  "receivedAt": zod.number().int().min(updatePetSaveBodySnapshotRoomGiftsItemReceivedAtMin),
+  "favorite": zod.boolean().optional(),
+  "fedAt": zod.number().int().min(updatePetSaveBodySnapshotRoomGiftsItemFedAtMin).optional(),
+  "kind": zod.enum(['vitamin']).optional()
+})).max(updatePetSaveBodySnapshotRoomGiftsMax),
+  "furnitureLayout": zod.object({
+  "bed": zod.object({
+  "x": zod.number().min(updatePetSaveBodySnapshotRoomFurnitureLayoutBedXMin).max(updatePetSaveBodySnapshotRoomFurnitureLayoutBedXMax),
+  "y": zod.number().min(updatePetSaveBodySnapshotRoomFurnitureLayoutBedYMin).max(updatePetSaveBodySnapshotRoomFurnitureLayoutBedYMax)
+}).optional(),
+  "rack": zod.object({
+  "x": zod.number().min(updatePetSaveBodySnapshotRoomFurnitureLayoutRackXMin).max(updatePetSaveBodySnapshotRoomFurnitureLayoutRackXMax),
+  "y": zod.number().min(updatePetSaveBodySnapshotRoomFurnitureLayoutRackYMin).max(updatePetSaveBodySnapshotRoomFurnitureLayoutRackYMax)
+}).optional(),
+  "mailbox": zod.object({
+  "x": zod.number().min(updatePetSaveBodySnapshotRoomFurnitureLayoutMailboxXMin).max(updatePetSaveBodySnapshotRoomFurnitureLayoutMailboxXMax),
+  "y": zod.number().min(updatePetSaveBodySnapshotRoomFurnitureLayoutMailboxYMin).max(updatePetSaveBodySnapshotRoomFurnitureLayoutMailboxYMax)
+}).optional(),
+  "bathStation": zod.object({
+  "x": zod.number().min(updatePetSaveBodySnapshotRoomFurnitureLayoutBathStationXMin).max(updatePetSaveBodySnapshotRoomFurnitureLayoutBathStationXMax),
+  "y": zod.number().min(updatePetSaveBodySnapshotRoomFurnitureLayoutBathStationYMin).max(updatePetSaveBodySnapshotRoomFurnitureLayoutBathStationYMax)
+}).optional(),
+  "trashCan": zod.object({
+  "x": zod.number().min(updatePetSaveBodySnapshotRoomFurnitureLayoutTrashCanXMin).max(updatePetSaveBodySnapshotRoomFurnitureLayoutTrashCanXMax),
+  "y": zod.number().min(updatePetSaveBodySnapshotRoomFurnitureLayoutTrashCanYMin).max(updatePetSaveBodySnapshotRoomFurnitureLayoutTrashCanYMax)
+}).optional()
+}),
+  "placedProps": zod.record(zod.string(), zod.boolean()),
+  "careStats": zod.object({
+  "growth": zod.number().int().min(updatePetSaveBodySnapshotRoomCareStatsGrowthMin).max(updatePetSaveBodySnapshotRoomCareStatsGrowthMax),
+  "health": zod.number().min(updatePetSaveBodySnapshotRoomCareStatsHealthMin).max(updatePetSaveBodySnapshotRoomCareStatsHealthMax),
+  "bond": zod.number().int().min(updatePetSaveBodySnapshotRoomCareStatsBondMin).max(updatePetSaveBodySnapshotRoomCareStatsBondMax),
+  "hunger": zod.number().int().min(updatePetSaveBodySnapshotRoomCareStatsHungerMin).max(updatePetSaveBodySnapshotRoomCareStatsHungerMax).optional(),
+  "hungerUpdatedAt": zod.number().int().min(updatePetSaveBodySnapshotRoomCareStatsHungerUpdatedAtMin).optional(),
+  "lastInteractionAt": zod.number().int().min(updatePetSaveBodySnapshotRoomCareStatsLastInteractionAtMin),
+  "lastDecayAt": zod.number().int().min(updatePetSaveBodySnapshotRoomCareStatsLastDecayAtMin),
+  "revision": zod.number().int().min(updatePetSaveBodySnapshotRoomCareStatsRevisionMin),
+  "lastInteractionCategory": zod.enum(['health', 'bond', 'growth']),
+  "recentInteractionIds": zod.array(zod.string().min(1).max(updatePetSaveBodySnapshotRoomCareStatsRecentInteractionIdsItemMax)).max(updatePetSaveBodySnapshotRoomCareStatsRecentInteractionIdsMax)
+}).optional(),
+  "worldEcology": zod.object({
+  "lastAttentionAt": zod.number().int().min(updatePetSaveBodySnapshotRoomWorldEcologyLastAttentionAtMin),
+  "lastPetPoopAt": zod.number().int().min(updatePetSaveBodySnapshotRoomWorldEcologyLastPetPoopAtMin).optional(),
+  "sick": zod.boolean().optional(),
+  "vitaminsFed": zod.number().int().min(updatePetSaveBodySnapshotRoomWorldEcologyVitaminsFedMin).max(updatePetSaveBodySnapshotRoomWorldEcologyVitaminsFedMax).optional(),
+  "fallCycle": zod.enum(['first', 'needs-clean', 'after-clean']),
+  "lastFallRollAt": zod.number().int().min(updatePetSaveBodySnapshotRoomWorldEcologyLastFallRollAtMin).optional(),
+  "dirtySince": zod.number().int().min(updatePetSaveBodySnapshotRoomWorldEcologyDirtySinceMin).optional(),
+  "dirtyHealthAppliedMinutes": zod.number().int().min(updatePetSaveBodySnapshotRoomWorldEcologyDirtyHealthAppliedMinutesMin),
+  "updatedAt": zod.number().int().min(updatePetSaveBodySnapshotRoomWorldEcologyUpdatedAtMin)
+}).optional(),
+  "foxMerchantLetter": zod.object({
+  "id": zod.string().max(updatePetSaveBodySnapshotRoomFoxMerchantLetterIdMax),
+  "sentAt": zod.number().int().min(updatePetSaveBodySnapshotRoomFoxMerchantLetterSentAtMin),
+  "petName": zod.string().max(updatePetSaveBodySnapshotRoomFoxMerchantLetterPetNameMax),
+  "foxName": zod.string().max(updatePetSaveBodySnapshotRoomFoxMerchantLetterFoxNameMax),
+  "status": zod.enum(['captured', 'reset', 'rescued']),
+  "snacksAtCapture": zod.number().int().min(updatePetSaveBodySnapshotRoomFoxMerchantLetterSnacksAtCaptureMin),
+  "openedAt": zod.number().int().min(updatePetSaveBodySnapshotRoomFoxMerchantLetterOpenedAtMin).optional(),
+  "resolvedAt": zod.number().int().min(updatePetSaveBodySnapshotRoomFoxMerchantLetterResolvedAtMin).optional()
+}).optional()
+}),
+  "pet": zod.record(zod.string(), zod.unknown())
+}),
+  "revision": zod.number().int().min(updatePetSaveBodyRevisionMin)
+})
+
+export const updatePetSaveResponseSnapshotOneRoomGiftsItemIdMax = 120;
+
+export const updatePetSaveResponseSnapshotOneRoomGiftsItemEmojiMax = 16;
+
+export const updatePetSaveResponseSnapshotOneRoomGiftsItemItemMax = 120;
+
+export const updatePetSaveResponseSnapshotOneRoomGiftsItemAnimalMax = 120;
+
+export const updatePetSaveResponseSnapshotOneRoomGiftsItemStoryMax = 1200;
+
+export const updatePetSaveResponseSnapshotOneRoomGiftsItemReceivedAtMin = 0;
+
+export const updatePetSaveResponseSnapshotOneRoomGiftsItemFedAtMin = 0;
+
+export const updatePetSaveResponseSnapshotOneRoomGiftsMax = 300;
+
+export const updatePetSaveResponseSnapshotOneRoomFurnitureLayoutBedXMin = 0;
+export const updatePetSaveResponseSnapshotOneRoomFurnitureLayoutBedXMax = 1;
+
+export const updatePetSaveResponseSnapshotOneRoomFurnitureLayoutBedYMin = 0;
+export const updatePetSaveResponseSnapshotOneRoomFurnitureLayoutBedYMax = 1;
+
+export const updatePetSaveResponseSnapshotOneRoomFurnitureLayoutRackXMin = 0;
+export const updatePetSaveResponseSnapshotOneRoomFurnitureLayoutRackXMax = 1;
+
+export const updatePetSaveResponseSnapshotOneRoomFurnitureLayoutRackYMin = 0;
+export const updatePetSaveResponseSnapshotOneRoomFurnitureLayoutRackYMax = 1;
+
+export const updatePetSaveResponseSnapshotOneRoomFurnitureLayoutMailboxXMin = 0;
+export const updatePetSaveResponseSnapshotOneRoomFurnitureLayoutMailboxXMax = 1;
+
+export const updatePetSaveResponseSnapshotOneRoomFurnitureLayoutMailboxYMin = 0;
+export const updatePetSaveResponseSnapshotOneRoomFurnitureLayoutMailboxYMax = 1;
+
+export const updatePetSaveResponseSnapshotOneRoomFurnitureLayoutBathStationXMin = 0;
+export const updatePetSaveResponseSnapshotOneRoomFurnitureLayoutBathStationXMax = 1;
+
+export const updatePetSaveResponseSnapshotOneRoomFurnitureLayoutBathStationYMin = 0;
+export const updatePetSaveResponseSnapshotOneRoomFurnitureLayoutBathStationYMax = 1;
+
+export const updatePetSaveResponseSnapshotOneRoomFurnitureLayoutTrashCanXMin = 0;
+export const updatePetSaveResponseSnapshotOneRoomFurnitureLayoutTrashCanXMax = 1;
+
+export const updatePetSaveResponseSnapshotOneRoomFurnitureLayoutTrashCanYMin = 0;
+export const updatePetSaveResponseSnapshotOneRoomFurnitureLayoutTrashCanYMax = 1;
+
+export const updatePetSaveResponseSnapshotOneRoomCareStatsGrowthMin = 0;
+export const updatePetSaveResponseSnapshotOneRoomCareStatsGrowthMax = 100;
+
+export const updatePetSaveResponseSnapshotOneRoomCareStatsHealthMin = 0;
+export const updatePetSaveResponseSnapshotOneRoomCareStatsHealthMax = 100;
+
+export const updatePetSaveResponseSnapshotOneRoomCareStatsBondMin = 0;
+export const updatePetSaveResponseSnapshotOneRoomCareStatsBondMax = 100;
+
+export const updatePetSaveResponseSnapshotOneRoomCareStatsHungerMin = 0;
+export const updatePetSaveResponseSnapshotOneRoomCareStatsHungerMax = 100;
+
+export const updatePetSaveResponseSnapshotOneRoomCareStatsHungerUpdatedAtMin = 0;
+
+export const updatePetSaveResponseSnapshotOneRoomCareStatsLastInteractionAtMin = 0;
+
+export const updatePetSaveResponseSnapshotOneRoomCareStatsLastDecayAtMin = 0;
+
+export const updatePetSaveResponseSnapshotOneRoomCareStatsRevisionMin = 0;
+
+export const updatePetSaveResponseSnapshotOneRoomCareStatsRecentInteractionIdsItemMax = 80;
+
+export const updatePetSaveResponseSnapshotOneRoomCareStatsRecentInteractionIdsMax = 128;
+
+export const updatePetSaveResponseSnapshotOneRoomWorldEcologyLastAttentionAtMin = 0;
+
+export const updatePetSaveResponseSnapshotOneRoomWorldEcologyLastPetPoopAtMin = 0;
+
+export const updatePetSaveResponseSnapshotOneRoomWorldEcologyVitaminsFedMin = 0;
+export const updatePetSaveResponseSnapshotOneRoomWorldEcologyVitaminsFedMax = 3;
+
+export const updatePetSaveResponseSnapshotOneRoomWorldEcologyLastFallRollAtMin = 0;
+
+export const updatePetSaveResponseSnapshotOneRoomWorldEcologyDirtySinceMin = 0;
+
+export const updatePetSaveResponseSnapshotOneRoomWorldEcologyDirtyHealthAppliedMinutesMin = 0;
+
+export const updatePetSaveResponseSnapshotOneRoomWorldEcologyUpdatedAtMin = 0;
+
+export const updatePetSaveResponseSnapshotOneRoomFoxMerchantLetterIdMax = 120;
+
+export const updatePetSaveResponseSnapshotOneRoomFoxMerchantLetterSentAtMin = 0;
+
+export const updatePetSaveResponseSnapshotOneRoomFoxMerchantLetterPetNameMax = 40;
+
+export const updatePetSaveResponseSnapshotOneRoomFoxMerchantLetterFoxNameMax = 80;
+
+export const updatePetSaveResponseSnapshotOneRoomFoxMerchantLetterSnacksAtCaptureMin = 0;
+
+export const updatePetSaveResponseSnapshotOneRoomFoxMerchantLetterOpenedAtMin = 0;
+
+export const updatePetSaveResponseSnapshotOneRoomFoxMerchantLetterResolvedAtMin = 0;
+
+export const updatePetSaveResponseRevisionMin = 0;
+
+
+
+export const UpdatePetSaveResponse = zod.object({
+  "snapshot": zod.union([zod.object({
+  "room": zod.object({
+  "gifts": zod.array(zod.object({
+  "id": zod.string().max(updatePetSaveResponseSnapshotOneRoomGiftsItemIdMax),
+  "emoji": zod.string().max(updatePetSaveResponseSnapshotOneRoomGiftsItemEmojiMax),
+  "item": zod.string().max(updatePetSaveResponseSnapshotOneRoomGiftsItemItemMax),
+  "animal": zod.string().max(updatePetSaveResponseSnapshotOneRoomGiftsItemAnimalMax),
+  "story": zod.string().max(updatePetSaveResponseSnapshotOneRoomGiftsItemStoryMax),
+  "receivedAt": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomGiftsItemReceivedAtMin),
+  "favorite": zod.boolean().optional(),
+  "fedAt": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomGiftsItemFedAtMin).optional(),
+  "kind": zod.enum(['vitamin']).optional()
+})).max(updatePetSaveResponseSnapshotOneRoomGiftsMax),
+  "furnitureLayout": zod.object({
+  "bed": zod.object({
+  "x": zod.number().min(updatePetSaveResponseSnapshotOneRoomFurnitureLayoutBedXMin).max(updatePetSaveResponseSnapshotOneRoomFurnitureLayoutBedXMax),
+  "y": zod.number().min(updatePetSaveResponseSnapshotOneRoomFurnitureLayoutBedYMin).max(updatePetSaveResponseSnapshotOneRoomFurnitureLayoutBedYMax)
+}).optional(),
+  "rack": zod.object({
+  "x": zod.number().min(updatePetSaveResponseSnapshotOneRoomFurnitureLayoutRackXMin).max(updatePetSaveResponseSnapshotOneRoomFurnitureLayoutRackXMax),
+  "y": zod.number().min(updatePetSaveResponseSnapshotOneRoomFurnitureLayoutRackYMin).max(updatePetSaveResponseSnapshotOneRoomFurnitureLayoutRackYMax)
+}).optional(),
+  "mailbox": zod.object({
+  "x": zod.number().min(updatePetSaveResponseSnapshotOneRoomFurnitureLayoutMailboxXMin).max(updatePetSaveResponseSnapshotOneRoomFurnitureLayoutMailboxXMax),
+  "y": zod.number().min(updatePetSaveResponseSnapshotOneRoomFurnitureLayoutMailboxYMin).max(updatePetSaveResponseSnapshotOneRoomFurnitureLayoutMailboxYMax)
+}).optional(),
+  "bathStation": zod.object({
+  "x": zod.number().min(updatePetSaveResponseSnapshotOneRoomFurnitureLayoutBathStationXMin).max(updatePetSaveResponseSnapshotOneRoomFurnitureLayoutBathStationXMax),
+  "y": zod.number().min(updatePetSaveResponseSnapshotOneRoomFurnitureLayoutBathStationYMin).max(updatePetSaveResponseSnapshotOneRoomFurnitureLayoutBathStationYMax)
+}).optional(),
+  "trashCan": zod.object({
+  "x": zod.number().min(updatePetSaveResponseSnapshotOneRoomFurnitureLayoutTrashCanXMin).max(updatePetSaveResponseSnapshotOneRoomFurnitureLayoutTrashCanXMax),
+  "y": zod.number().min(updatePetSaveResponseSnapshotOneRoomFurnitureLayoutTrashCanYMin).max(updatePetSaveResponseSnapshotOneRoomFurnitureLayoutTrashCanYMax)
+}).optional()
+}),
+  "placedProps": zod.record(zod.string(), zod.boolean()),
+  "careStats": zod.object({
+  "growth": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomCareStatsGrowthMin).max(updatePetSaveResponseSnapshotOneRoomCareStatsGrowthMax),
+  "health": zod.number().min(updatePetSaveResponseSnapshotOneRoomCareStatsHealthMin).max(updatePetSaveResponseSnapshotOneRoomCareStatsHealthMax),
+  "bond": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomCareStatsBondMin).max(updatePetSaveResponseSnapshotOneRoomCareStatsBondMax),
+  "hunger": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomCareStatsHungerMin).max(updatePetSaveResponseSnapshotOneRoomCareStatsHungerMax).optional(),
+  "hungerUpdatedAt": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomCareStatsHungerUpdatedAtMin).optional(),
+  "lastInteractionAt": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomCareStatsLastInteractionAtMin),
+  "lastDecayAt": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomCareStatsLastDecayAtMin),
+  "revision": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomCareStatsRevisionMin),
+  "lastInteractionCategory": zod.enum(['health', 'bond', 'growth']),
+  "recentInteractionIds": zod.array(zod.string().min(1).max(updatePetSaveResponseSnapshotOneRoomCareStatsRecentInteractionIdsItemMax)).max(updatePetSaveResponseSnapshotOneRoomCareStatsRecentInteractionIdsMax)
+}).optional(),
+  "worldEcology": zod.object({
+  "lastAttentionAt": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomWorldEcologyLastAttentionAtMin),
+  "lastPetPoopAt": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomWorldEcologyLastPetPoopAtMin).optional(),
+  "sick": zod.boolean().optional(),
+  "vitaminsFed": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomWorldEcologyVitaminsFedMin).max(updatePetSaveResponseSnapshotOneRoomWorldEcologyVitaminsFedMax).optional(),
+  "fallCycle": zod.enum(['first', 'needs-clean', 'after-clean']),
+  "lastFallRollAt": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomWorldEcologyLastFallRollAtMin).optional(),
+  "dirtySince": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomWorldEcologyDirtySinceMin).optional(),
+  "dirtyHealthAppliedMinutes": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomWorldEcologyDirtyHealthAppliedMinutesMin),
+  "updatedAt": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomWorldEcologyUpdatedAtMin)
+}).optional(),
+  "foxMerchantLetter": zod.object({
+  "id": zod.string().max(updatePetSaveResponseSnapshotOneRoomFoxMerchantLetterIdMax),
+  "sentAt": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomFoxMerchantLetterSentAtMin),
+  "petName": zod.string().max(updatePetSaveResponseSnapshotOneRoomFoxMerchantLetterPetNameMax),
+  "foxName": zod.string().max(updatePetSaveResponseSnapshotOneRoomFoxMerchantLetterFoxNameMax),
+  "status": zod.enum(['captured', 'reset', 'rescued']),
+  "snacksAtCapture": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomFoxMerchantLetterSnacksAtCaptureMin),
+  "openedAt": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomFoxMerchantLetterOpenedAtMin).optional(),
+  "resolvedAt": zod.number().int().min(updatePetSaveResponseSnapshotOneRoomFoxMerchantLetterResolvedAtMin).optional()
+}).optional()
+}),
+  "pet": zod.record(zod.string(), zod.unknown())
+}),zod.null()]),
+  "revision": zod.number().int().min(updatePetSaveResponseRevisionMin),
+  "migrated": zod.boolean().optional()
+})
+
+
+/**
+ * @summary Read the account's permanent character choice
+ */
+export const GetPetCharacterResponse = zod.object({
+  "characterId": zod.union([zod.literal('panda'),zod.literal('xiaobai'),zod.literal(null)]).nullable(),
+  "locked": zod.boolean(),
+  "shared": zod.boolean()
+})
+
+
+/**
+ * @summary Choose one permanent pet for this account
+ */
+export const ChoosePetCharacterBody = zod.object({
+  "characterId": zod.enum(['panda', 'xiaobai'])
+})
+
+export const ChoosePetCharacterResponse = zod.object({
+  "characterId": zod.union([zod.literal('panda'),zod.literal('xiaobai'),zod.literal(null)]).nullable(),
+  "locked": zod.boolean(),
+  "shared": zod.boolean()
+})
+
+
+/**
+ * @summary Get the authenticated player's shared panda household
+ */
+export const getCoopHouseholdResponseSharedStateGiftsItemIdMax = 120;
+
+export const getCoopHouseholdResponseSharedStateGiftsItemEmojiMax = 16;
+
+export const getCoopHouseholdResponseSharedStateGiftsItemItemMax = 120;
+
+export const getCoopHouseholdResponseSharedStateGiftsItemAnimalMax = 120;
+
+export const getCoopHouseholdResponseSharedStateGiftsItemStoryMax = 1200;
+
+export const getCoopHouseholdResponseSharedStateGiftsItemReceivedAtMin = 0;
+
+export const getCoopHouseholdResponseSharedStateGiftsItemFedAtMin = 0;
+
+export const getCoopHouseholdResponseSharedStateGiftsMax = 300;
+
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutBedXMin = 0;
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutBedXMax = 1;
+
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutBedYMin = 0;
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutBedYMax = 1;
+
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutRackXMin = 0;
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutRackXMax = 1;
+
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutRackYMin = 0;
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutRackYMax = 1;
+
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMin = 0;
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMax = 1;
+
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMin = 0;
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMax = 1;
+
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMin = 0;
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMax = 1;
+
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMin = 0;
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMax = 1;
+
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanXMin = 0;
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanXMax = 1;
+
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanYMin = 0;
+export const getCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanYMax = 1;
+
+export const getCoopHouseholdResponseSharedStateCareStatsGrowthMin = 0;
+export const getCoopHouseholdResponseSharedStateCareStatsGrowthMax = 100;
+
+export const getCoopHouseholdResponseSharedStateCareStatsHealthMin = 0;
+export const getCoopHouseholdResponseSharedStateCareStatsHealthMax = 100;
+
+export const getCoopHouseholdResponseSharedStateCareStatsBondMin = 0;
+export const getCoopHouseholdResponseSharedStateCareStatsBondMax = 100;
+
+export const getCoopHouseholdResponseSharedStateCareStatsHungerMin = 0;
+export const getCoopHouseholdResponseSharedStateCareStatsHungerMax = 100;
+
+export const getCoopHouseholdResponseSharedStateCareStatsHungerUpdatedAtMin = 0;
+
+export const getCoopHouseholdResponseSharedStateCareStatsLastInteractionAtMin = 0;
+
+export const getCoopHouseholdResponseSharedStateCareStatsLastDecayAtMin = 0;
+
+export const getCoopHouseholdResponseSharedStateCareStatsRevisionMin = 0;
+
+export const getCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsItemMax = 80;
+
+export const getCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsMax = 128;
+
+export const getCoopHouseholdResponseSharedStateWorldEcologyLastAttentionAtMin = 0;
+
+export const getCoopHouseholdResponseSharedStateWorldEcologyLastPetPoopAtMin = 0;
+
+export const getCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMin = 0;
+export const getCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMax = 3;
+
+export const getCoopHouseholdResponseSharedStateWorldEcologyLastFallRollAtMin = 0;
+
+export const getCoopHouseholdResponseSharedStateWorldEcologyDirtySinceMin = 0;
+
+export const getCoopHouseholdResponseSharedStateWorldEcologyDirtyHealthAppliedMinutesMin = 0;
+
+export const getCoopHouseholdResponseSharedStateWorldEcologyUpdatedAtMin = 0;
+
+export const getCoopHouseholdResponseSharedStateFoxMerchantLetterIdMax = 120;
+
+export const getCoopHouseholdResponseSharedStateFoxMerchantLetterSentAtMin = 0;
+
+export const getCoopHouseholdResponseSharedStateFoxMerchantLetterPetNameMax = 40;
+
+export const getCoopHouseholdResponseSharedStateFoxMerchantLetterFoxNameMax = 80;
+
+export const getCoopHouseholdResponseSharedStateFoxMerchantLetterSnacksAtCaptureMin = 0;
+
+export const getCoopHouseholdResponseSharedStateFoxMerchantLetterOpenedAtMin = 0;
+
+export const getCoopHouseholdResponseSharedStateFoxMerchantLetterResolvedAtMin = 0;
+
+export const getCoopHouseholdResponseQueuedNotesItemTitleMax = 48;
+
+export const getCoopHouseholdResponseQueuedNotesItemMessageMax = 180;
+
+export const getCoopHouseholdResponseQueuedNotesItemCreatedAtMin = 0;
+
+export const getCoopHouseholdResponseInboxItemTitleMax = 48;
+
+export const getCoopHouseholdResponseInboxItemMessageMax = 180;
+
+export const getCoopHouseholdResponseInboxItemCreatedAtMin = 0;
+
+
+
+export const GetCoopHouseholdResponse = zod.object({
+  "householdId": zod.string().uuid(),
+  "playerNumber": zod.union([zod.literal(1),zod.literal(2)]),
+  "memberCount": zod.union([zod.literal(1),zod.literal(2)]),
+  "sharedState": zod.object({
+  "gifts": zod.array(zod.object({
+  "id": zod.string().max(getCoopHouseholdResponseSharedStateGiftsItemIdMax),
+  "emoji": zod.string().max(getCoopHouseholdResponseSharedStateGiftsItemEmojiMax),
+  "item": zod.string().max(getCoopHouseholdResponseSharedStateGiftsItemItemMax),
+  "animal": zod.string().max(getCoopHouseholdResponseSharedStateGiftsItemAnimalMax),
+  "story": zod.string().max(getCoopHouseholdResponseSharedStateGiftsItemStoryMax),
+  "receivedAt": zod.number().int().min(getCoopHouseholdResponseSharedStateGiftsItemReceivedAtMin),
+  "favorite": zod.boolean().optional(),
+  "fedAt": zod.number().int().min(getCoopHouseholdResponseSharedStateGiftsItemFedAtMin).optional(),
+  "kind": zod.enum(['vitamin']).optional()
+})).max(getCoopHouseholdResponseSharedStateGiftsMax),
+  "furnitureLayout": zod.object({
+  "bed": zod.object({
+  "x": zod.number().min(getCoopHouseholdResponseSharedStateFurnitureLayoutBedXMin).max(getCoopHouseholdResponseSharedStateFurnitureLayoutBedXMax),
+  "y": zod.number().min(getCoopHouseholdResponseSharedStateFurnitureLayoutBedYMin).max(getCoopHouseholdResponseSharedStateFurnitureLayoutBedYMax)
+}).optional(),
+  "rack": zod.object({
+  "x": zod.number().min(getCoopHouseholdResponseSharedStateFurnitureLayoutRackXMin).max(getCoopHouseholdResponseSharedStateFurnitureLayoutRackXMax),
+  "y": zod.number().min(getCoopHouseholdResponseSharedStateFurnitureLayoutRackYMin).max(getCoopHouseholdResponseSharedStateFurnitureLayoutRackYMax)
+}).optional(),
+  "mailbox": zod.object({
+  "x": zod.number().min(getCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMin).max(getCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMax),
+  "y": zod.number().min(getCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMin).max(getCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMax)
+}).optional(),
+  "bathStation": zod.object({
+  "x": zod.number().min(getCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMin).max(getCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMax),
+  "y": zod.number().min(getCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMin).max(getCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMax)
+}).optional(),
+  "trashCan": zod.object({
+  "x": zod.number().min(getCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanXMin).max(getCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanXMax),
+  "y": zod.number().min(getCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanYMin).max(getCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanYMax)
+}).optional()
+}),
+  "placedProps": zod.record(zod.string(), zod.boolean()),
+  "careStats": zod.object({
+  "growth": zod.number().int().min(getCoopHouseholdResponseSharedStateCareStatsGrowthMin).max(getCoopHouseholdResponseSharedStateCareStatsGrowthMax),
+  "health": zod.number().min(getCoopHouseholdResponseSharedStateCareStatsHealthMin).max(getCoopHouseholdResponseSharedStateCareStatsHealthMax),
+  "bond": zod.number().int().min(getCoopHouseholdResponseSharedStateCareStatsBondMin).max(getCoopHouseholdResponseSharedStateCareStatsBondMax),
+  "hunger": zod.number().int().min(getCoopHouseholdResponseSharedStateCareStatsHungerMin).max(getCoopHouseholdResponseSharedStateCareStatsHungerMax).optional(),
+  "hungerUpdatedAt": zod.number().int().min(getCoopHouseholdResponseSharedStateCareStatsHungerUpdatedAtMin).optional(),
+  "lastInteractionAt": zod.number().int().min(getCoopHouseholdResponseSharedStateCareStatsLastInteractionAtMin),
+  "lastDecayAt": zod.number().int().min(getCoopHouseholdResponseSharedStateCareStatsLastDecayAtMin),
+  "revision": zod.number().int().min(getCoopHouseholdResponseSharedStateCareStatsRevisionMin),
+  "lastInteractionCategory": zod.enum(['health', 'bond', 'growth']),
+  "recentInteractionIds": zod.array(zod.string().min(1).max(getCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsItemMax)).max(getCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsMax)
+}).optional(),
+  "worldEcology": zod.object({
+  "lastAttentionAt": zod.number().int().min(getCoopHouseholdResponseSharedStateWorldEcologyLastAttentionAtMin),
+  "lastPetPoopAt": zod.number().int().min(getCoopHouseholdResponseSharedStateWorldEcologyLastPetPoopAtMin).optional(),
+  "sick": zod.boolean().optional(),
+  "vitaminsFed": zod.number().int().min(getCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMin).max(getCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMax).optional(),
+  "fallCycle": zod.enum(['first', 'needs-clean', 'after-clean']),
+  "lastFallRollAt": zod.number().int().min(getCoopHouseholdResponseSharedStateWorldEcologyLastFallRollAtMin).optional(),
+  "dirtySince": zod.number().int().min(getCoopHouseholdResponseSharedStateWorldEcologyDirtySinceMin).optional(),
+  "dirtyHealthAppliedMinutes": zod.number().int().min(getCoopHouseholdResponseSharedStateWorldEcologyDirtyHealthAppliedMinutesMin),
+  "updatedAt": zod.number().int().min(getCoopHouseholdResponseSharedStateWorldEcologyUpdatedAtMin)
+}).optional(),
+  "foxMerchantLetter": zod.object({
+  "id": zod.string().max(getCoopHouseholdResponseSharedStateFoxMerchantLetterIdMax),
+  "sentAt": zod.number().int().min(getCoopHouseholdResponseSharedStateFoxMerchantLetterSentAtMin),
+  "petName": zod.string().max(getCoopHouseholdResponseSharedStateFoxMerchantLetterPetNameMax),
+  "foxName": zod.string().max(getCoopHouseholdResponseSharedStateFoxMerchantLetterFoxNameMax),
+  "status": zod.enum(['captured', 'reset', 'rescued']),
+  "snacksAtCapture": zod.number().int().min(getCoopHouseholdResponseSharedStateFoxMerchantLetterSnacksAtCaptureMin),
+  "openedAt": zod.number().int().min(getCoopHouseholdResponseSharedStateFoxMerchantLetterOpenedAtMin).optional(),
+  "resolvedAt": zod.number().int().min(getCoopHouseholdResponseSharedStateFoxMerchantLetterResolvedAtMin).optional()
+}).optional()
+}),
+  "queuedNotes": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['daily', 'idea', 'worry']),
+  "title": zod.string().max(getCoopHouseholdResponseQueuedNotesItemTitleMax),
+  "message": zod.string().max(getCoopHouseholdResponseQueuedNotesItemMessageMax),
+  "excluded": zod.boolean(),
+  "createdAt": zod.number().int().min(getCoopHouseholdResponseQueuedNotesItemCreatedAtMin),
+  "automatic": zod.boolean()
+})),
+  "inbox": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['daily', 'idea', 'worry']),
+  "title": zod.string().max(getCoopHouseholdResponseInboxItemTitleMax),
+  "message": zod.string().max(getCoopHouseholdResponseInboxItemMessageMax),
+  "excluded": zod.boolean(),
+  "createdAt": zod.number().int().min(getCoopHouseholdResponseInboxItemCreatedAtMin),
+  "automatic": zod.boolean()
+}))
+})
+
+
+/**
+ * @summary Start a shared panda household from a private local game snapshot
+ */
+export const createCoopHouseholdBodySharedStateGiftsItemIdMax = 120;
+
+export const createCoopHouseholdBodySharedStateGiftsItemEmojiMax = 16;
+
+export const createCoopHouseholdBodySharedStateGiftsItemItemMax = 120;
+
+export const createCoopHouseholdBodySharedStateGiftsItemAnimalMax = 120;
+
+export const createCoopHouseholdBodySharedStateGiftsItemStoryMax = 1200;
+
+export const createCoopHouseholdBodySharedStateGiftsItemReceivedAtMin = 0;
+
+export const createCoopHouseholdBodySharedStateGiftsItemFedAtMin = 0;
+
+export const createCoopHouseholdBodySharedStateGiftsMax = 300;
+
+export const createCoopHouseholdBodySharedStateFurnitureLayoutBedXMin = 0;
+export const createCoopHouseholdBodySharedStateFurnitureLayoutBedXMax = 1;
+
+export const createCoopHouseholdBodySharedStateFurnitureLayoutBedYMin = 0;
+export const createCoopHouseholdBodySharedStateFurnitureLayoutBedYMax = 1;
+
+export const createCoopHouseholdBodySharedStateFurnitureLayoutRackXMin = 0;
+export const createCoopHouseholdBodySharedStateFurnitureLayoutRackXMax = 1;
+
+export const createCoopHouseholdBodySharedStateFurnitureLayoutRackYMin = 0;
+export const createCoopHouseholdBodySharedStateFurnitureLayoutRackYMax = 1;
+
+export const createCoopHouseholdBodySharedStateFurnitureLayoutMailboxXMin = 0;
+export const createCoopHouseholdBodySharedStateFurnitureLayoutMailboxXMax = 1;
+
+export const createCoopHouseholdBodySharedStateFurnitureLayoutMailboxYMin = 0;
+export const createCoopHouseholdBodySharedStateFurnitureLayoutMailboxYMax = 1;
+
+export const createCoopHouseholdBodySharedStateFurnitureLayoutBathStationXMin = 0;
+export const createCoopHouseholdBodySharedStateFurnitureLayoutBathStationXMax = 1;
+
+export const createCoopHouseholdBodySharedStateFurnitureLayoutBathStationYMin = 0;
+export const createCoopHouseholdBodySharedStateFurnitureLayoutBathStationYMax = 1;
+
+export const createCoopHouseholdBodySharedStateFurnitureLayoutTrashCanXMin = 0;
+export const createCoopHouseholdBodySharedStateFurnitureLayoutTrashCanXMax = 1;
+
+export const createCoopHouseholdBodySharedStateFurnitureLayoutTrashCanYMin = 0;
+export const createCoopHouseholdBodySharedStateFurnitureLayoutTrashCanYMax = 1;
+
+export const createCoopHouseholdBodySharedStateCareStatsGrowthMin = 0;
+export const createCoopHouseholdBodySharedStateCareStatsGrowthMax = 100;
+
+export const createCoopHouseholdBodySharedStateCareStatsHealthMin = 0;
+export const createCoopHouseholdBodySharedStateCareStatsHealthMax = 100;
+
+export const createCoopHouseholdBodySharedStateCareStatsBondMin = 0;
+export const createCoopHouseholdBodySharedStateCareStatsBondMax = 100;
+
+export const createCoopHouseholdBodySharedStateCareStatsHungerMin = 0;
+export const createCoopHouseholdBodySharedStateCareStatsHungerMax = 100;
+
+export const createCoopHouseholdBodySharedStateCareStatsHungerUpdatedAtMin = 0;
+
+export const createCoopHouseholdBodySharedStateCareStatsLastInteractionAtMin = 0;
+
+export const createCoopHouseholdBodySharedStateCareStatsLastDecayAtMin = 0;
+
+export const createCoopHouseholdBodySharedStateCareStatsRevisionMin = 0;
+
+export const createCoopHouseholdBodySharedStateCareStatsRecentInteractionIdsItemMax = 80;
+
+export const createCoopHouseholdBodySharedStateCareStatsRecentInteractionIdsMax = 128;
+
+export const createCoopHouseholdBodySharedStateWorldEcologyLastAttentionAtMin = 0;
+
+export const createCoopHouseholdBodySharedStateWorldEcologyLastPetPoopAtMin = 0;
+
+export const createCoopHouseholdBodySharedStateWorldEcologyVitaminsFedMin = 0;
+export const createCoopHouseholdBodySharedStateWorldEcologyVitaminsFedMax = 3;
+
+export const createCoopHouseholdBodySharedStateWorldEcologyLastFallRollAtMin = 0;
+
+export const createCoopHouseholdBodySharedStateWorldEcologyDirtySinceMin = 0;
+
+export const createCoopHouseholdBodySharedStateWorldEcologyDirtyHealthAppliedMinutesMin = 0;
+
+export const createCoopHouseholdBodySharedStateWorldEcologyUpdatedAtMin = 0;
+
+export const createCoopHouseholdBodySharedStateFoxMerchantLetterIdMax = 120;
+
+export const createCoopHouseholdBodySharedStateFoxMerchantLetterSentAtMin = 0;
+
+export const createCoopHouseholdBodySharedStateFoxMerchantLetterPetNameMax = 40;
+
+export const createCoopHouseholdBodySharedStateFoxMerchantLetterFoxNameMax = 80;
+
+export const createCoopHouseholdBodySharedStateFoxMerchantLetterSnacksAtCaptureMin = 0;
+
+export const createCoopHouseholdBodySharedStateFoxMerchantLetterOpenedAtMin = 0;
+
+export const createCoopHouseholdBodySharedStateFoxMerchantLetterResolvedAtMin = 0;
+
+
+
+export const CreateCoopHouseholdBody = zod.object({
+  "sharedState": zod.object({
+  "gifts": zod.array(zod.object({
+  "id": zod.string().max(createCoopHouseholdBodySharedStateGiftsItemIdMax),
+  "emoji": zod.string().max(createCoopHouseholdBodySharedStateGiftsItemEmojiMax),
+  "item": zod.string().max(createCoopHouseholdBodySharedStateGiftsItemItemMax),
+  "animal": zod.string().max(createCoopHouseholdBodySharedStateGiftsItemAnimalMax),
+  "story": zod.string().max(createCoopHouseholdBodySharedStateGiftsItemStoryMax),
+  "receivedAt": zod.number().int().min(createCoopHouseholdBodySharedStateGiftsItemReceivedAtMin),
+  "favorite": zod.boolean().optional(),
+  "fedAt": zod.number().int().min(createCoopHouseholdBodySharedStateGiftsItemFedAtMin).optional(),
+  "kind": zod.enum(['vitamin']).optional()
+})).max(createCoopHouseholdBodySharedStateGiftsMax),
+  "furnitureLayout": zod.object({
+  "bed": zod.object({
+  "x": zod.number().min(createCoopHouseholdBodySharedStateFurnitureLayoutBedXMin).max(createCoopHouseholdBodySharedStateFurnitureLayoutBedXMax),
+  "y": zod.number().min(createCoopHouseholdBodySharedStateFurnitureLayoutBedYMin).max(createCoopHouseholdBodySharedStateFurnitureLayoutBedYMax)
+}).optional(),
+  "rack": zod.object({
+  "x": zod.number().min(createCoopHouseholdBodySharedStateFurnitureLayoutRackXMin).max(createCoopHouseholdBodySharedStateFurnitureLayoutRackXMax),
+  "y": zod.number().min(createCoopHouseholdBodySharedStateFurnitureLayoutRackYMin).max(createCoopHouseholdBodySharedStateFurnitureLayoutRackYMax)
+}).optional(),
+  "mailbox": zod.object({
+  "x": zod.number().min(createCoopHouseholdBodySharedStateFurnitureLayoutMailboxXMin).max(createCoopHouseholdBodySharedStateFurnitureLayoutMailboxXMax),
+  "y": zod.number().min(createCoopHouseholdBodySharedStateFurnitureLayoutMailboxYMin).max(createCoopHouseholdBodySharedStateFurnitureLayoutMailboxYMax)
+}).optional(),
+  "bathStation": zod.object({
+  "x": zod.number().min(createCoopHouseholdBodySharedStateFurnitureLayoutBathStationXMin).max(createCoopHouseholdBodySharedStateFurnitureLayoutBathStationXMax),
+  "y": zod.number().min(createCoopHouseholdBodySharedStateFurnitureLayoutBathStationYMin).max(createCoopHouseholdBodySharedStateFurnitureLayoutBathStationYMax)
+}).optional(),
+  "trashCan": zod.object({
+  "x": zod.number().min(createCoopHouseholdBodySharedStateFurnitureLayoutTrashCanXMin).max(createCoopHouseholdBodySharedStateFurnitureLayoutTrashCanXMax),
+  "y": zod.number().min(createCoopHouseholdBodySharedStateFurnitureLayoutTrashCanYMin).max(createCoopHouseholdBodySharedStateFurnitureLayoutTrashCanYMax)
+}).optional()
+}),
+  "placedProps": zod.record(zod.string(), zod.boolean()),
+  "careStats": zod.object({
+  "growth": zod.number().int().min(createCoopHouseholdBodySharedStateCareStatsGrowthMin).max(createCoopHouseholdBodySharedStateCareStatsGrowthMax),
+  "health": zod.number().min(createCoopHouseholdBodySharedStateCareStatsHealthMin).max(createCoopHouseholdBodySharedStateCareStatsHealthMax),
+  "bond": zod.number().int().min(createCoopHouseholdBodySharedStateCareStatsBondMin).max(createCoopHouseholdBodySharedStateCareStatsBondMax),
+  "hunger": zod.number().int().min(createCoopHouseholdBodySharedStateCareStatsHungerMin).max(createCoopHouseholdBodySharedStateCareStatsHungerMax).optional(),
+  "hungerUpdatedAt": zod.number().int().min(createCoopHouseholdBodySharedStateCareStatsHungerUpdatedAtMin).optional(),
+  "lastInteractionAt": zod.number().int().min(createCoopHouseholdBodySharedStateCareStatsLastInteractionAtMin),
+  "lastDecayAt": zod.number().int().min(createCoopHouseholdBodySharedStateCareStatsLastDecayAtMin),
+  "revision": zod.number().int().min(createCoopHouseholdBodySharedStateCareStatsRevisionMin),
+  "lastInteractionCategory": zod.enum(['health', 'bond', 'growth']),
+  "recentInteractionIds": zod.array(zod.string().min(1).max(createCoopHouseholdBodySharedStateCareStatsRecentInteractionIdsItemMax)).max(createCoopHouseholdBodySharedStateCareStatsRecentInteractionIdsMax)
+}).optional(),
+  "worldEcology": zod.object({
+  "lastAttentionAt": zod.number().int().min(createCoopHouseholdBodySharedStateWorldEcologyLastAttentionAtMin),
+  "lastPetPoopAt": zod.number().int().min(createCoopHouseholdBodySharedStateWorldEcologyLastPetPoopAtMin).optional(),
+  "sick": zod.boolean().optional(),
+  "vitaminsFed": zod.number().int().min(createCoopHouseholdBodySharedStateWorldEcologyVitaminsFedMin).max(createCoopHouseholdBodySharedStateWorldEcologyVitaminsFedMax).optional(),
+  "fallCycle": zod.enum(['first', 'needs-clean', 'after-clean']),
+  "lastFallRollAt": zod.number().int().min(createCoopHouseholdBodySharedStateWorldEcologyLastFallRollAtMin).optional(),
+  "dirtySince": zod.number().int().min(createCoopHouseholdBodySharedStateWorldEcologyDirtySinceMin).optional(),
+  "dirtyHealthAppliedMinutes": zod.number().int().min(createCoopHouseholdBodySharedStateWorldEcologyDirtyHealthAppliedMinutesMin),
+  "updatedAt": zod.number().int().min(createCoopHouseholdBodySharedStateWorldEcologyUpdatedAtMin)
+}).optional(),
+  "foxMerchantLetter": zod.object({
+  "id": zod.string().max(createCoopHouseholdBodySharedStateFoxMerchantLetterIdMax),
+  "sentAt": zod.number().int().min(createCoopHouseholdBodySharedStateFoxMerchantLetterSentAtMin),
+  "petName": zod.string().max(createCoopHouseholdBodySharedStateFoxMerchantLetterPetNameMax),
+  "foxName": zod.string().max(createCoopHouseholdBodySharedStateFoxMerchantLetterFoxNameMax),
+  "status": zod.enum(['captured', 'reset', 'rescued']),
+  "snacksAtCapture": zod.number().int().min(createCoopHouseholdBodySharedStateFoxMerchantLetterSnacksAtCaptureMin),
+  "openedAt": zod.number().int().min(createCoopHouseholdBodySharedStateFoxMerchantLetterOpenedAtMin).optional(),
+  "resolvedAt": zod.number().int().min(createCoopHouseholdBodySharedStateFoxMerchantLetterResolvedAtMin).optional()
+}).optional()
+})
+})
+
+export const createCoopHouseholdResponseSharedStateGiftsItemIdMax = 120;
+
+export const createCoopHouseholdResponseSharedStateGiftsItemEmojiMax = 16;
+
+export const createCoopHouseholdResponseSharedStateGiftsItemItemMax = 120;
+
+export const createCoopHouseholdResponseSharedStateGiftsItemAnimalMax = 120;
+
+export const createCoopHouseholdResponseSharedStateGiftsItemStoryMax = 1200;
+
+export const createCoopHouseholdResponseSharedStateGiftsItemReceivedAtMin = 0;
+
+export const createCoopHouseholdResponseSharedStateGiftsItemFedAtMin = 0;
+
+export const createCoopHouseholdResponseSharedStateGiftsMax = 300;
+
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutBedXMin = 0;
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutBedXMax = 1;
+
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutBedYMin = 0;
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutBedYMax = 1;
+
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutRackXMin = 0;
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutRackXMax = 1;
+
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutRackYMin = 0;
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutRackYMax = 1;
+
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMin = 0;
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMax = 1;
+
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMin = 0;
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMax = 1;
+
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMin = 0;
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMax = 1;
+
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMin = 0;
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMax = 1;
+
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanXMin = 0;
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanXMax = 1;
+
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanYMin = 0;
+export const createCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanYMax = 1;
+
+export const createCoopHouseholdResponseSharedStateCareStatsGrowthMin = 0;
+export const createCoopHouseholdResponseSharedStateCareStatsGrowthMax = 100;
+
+export const createCoopHouseholdResponseSharedStateCareStatsHealthMin = 0;
+export const createCoopHouseholdResponseSharedStateCareStatsHealthMax = 100;
+
+export const createCoopHouseholdResponseSharedStateCareStatsBondMin = 0;
+export const createCoopHouseholdResponseSharedStateCareStatsBondMax = 100;
+
+export const createCoopHouseholdResponseSharedStateCareStatsHungerMin = 0;
+export const createCoopHouseholdResponseSharedStateCareStatsHungerMax = 100;
+
+export const createCoopHouseholdResponseSharedStateCareStatsHungerUpdatedAtMin = 0;
+
+export const createCoopHouseholdResponseSharedStateCareStatsLastInteractionAtMin = 0;
+
+export const createCoopHouseholdResponseSharedStateCareStatsLastDecayAtMin = 0;
+
+export const createCoopHouseholdResponseSharedStateCareStatsRevisionMin = 0;
+
+export const createCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsItemMax = 80;
+
+export const createCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsMax = 128;
+
+export const createCoopHouseholdResponseSharedStateWorldEcologyLastAttentionAtMin = 0;
+
+export const createCoopHouseholdResponseSharedStateWorldEcologyLastPetPoopAtMin = 0;
+
+export const createCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMin = 0;
+export const createCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMax = 3;
+
+export const createCoopHouseholdResponseSharedStateWorldEcologyLastFallRollAtMin = 0;
+
+export const createCoopHouseholdResponseSharedStateWorldEcologyDirtySinceMin = 0;
+
+export const createCoopHouseholdResponseSharedStateWorldEcologyDirtyHealthAppliedMinutesMin = 0;
+
+export const createCoopHouseholdResponseSharedStateWorldEcologyUpdatedAtMin = 0;
+
+export const createCoopHouseholdResponseSharedStateFoxMerchantLetterIdMax = 120;
+
+export const createCoopHouseholdResponseSharedStateFoxMerchantLetterSentAtMin = 0;
+
+export const createCoopHouseholdResponseSharedStateFoxMerchantLetterPetNameMax = 40;
+
+export const createCoopHouseholdResponseSharedStateFoxMerchantLetterFoxNameMax = 80;
+
+export const createCoopHouseholdResponseSharedStateFoxMerchantLetterSnacksAtCaptureMin = 0;
+
+export const createCoopHouseholdResponseSharedStateFoxMerchantLetterOpenedAtMin = 0;
+
+export const createCoopHouseholdResponseSharedStateFoxMerchantLetterResolvedAtMin = 0;
+
+export const createCoopHouseholdResponseQueuedNotesItemTitleMax = 48;
+
+export const createCoopHouseholdResponseQueuedNotesItemMessageMax = 180;
+
+export const createCoopHouseholdResponseQueuedNotesItemCreatedAtMin = 0;
+
+export const createCoopHouseholdResponseInboxItemTitleMax = 48;
+
+export const createCoopHouseholdResponseInboxItemMessageMax = 180;
+
+export const createCoopHouseholdResponseInboxItemCreatedAtMin = 0;
+
+
+
+export const CreateCoopHouseholdResponse = zod.object({
+  "householdId": zod.string().uuid(),
+  "playerNumber": zod.union([zod.literal(1),zod.literal(2)]),
+  "memberCount": zod.union([zod.literal(1),zod.literal(2)]),
+  "sharedState": zod.object({
+  "gifts": zod.array(zod.object({
+  "id": zod.string().max(createCoopHouseholdResponseSharedStateGiftsItemIdMax),
+  "emoji": zod.string().max(createCoopHouseholdResponseSharedStateGiftsItemEmojiMax),
+  "item": zod.string().max(createCoopHouseholdResponseSharedStateGiftsItemItemMax),
+  "animal": zod.string().max(createCoopHouseholdResponseSharedStateGiftsItemAnimalMax),
+  "story": zod.string().max(createCoopHouseholdResponseSharedStateGiftsItemStoryMax),
+  "receivedAt": zod.number().int().min(createCoopHouseholdResponseSharedStateGiftsItemReceivedAtMin),
+  "favorite": zod.boolean().optional(),
+  "fedAt": zod.number().int().min(createCoopHouseholdResponseSharedStateGiftsItemFedAtMin).optional(),
+  "kind": zod.enum(['vitamin']).optional()
+})).max(createCoopHouseholdResponseSharedStateGiftsMax),
+  "furnitureLayout": zod.object({
+  "bed": zod.object({
+  "x": zod.number().min(createCoopHouseholdResponseSharedStateFurnitureLayoutBedXMin).max(createCoopHouseholdResponseSharedStateFurnitureLayoutBedXMax),
+  "y": zod.number().min(createCoopHouseholdResponseSharedStateFurnitureLayoutBedYMin).max(createCoopHouseholdResponseSharedStateFurnitureLayoutBedYMax)
+}).optional(),
+  "rack": zod.object({
+  "x": zod.number().min(createCoopHouseholdResponseSharedStateFurnitureLayoutRackXMin).max(createCoopHouseholdResponseSharedStateFurnitureLayoutRackXMax),
+  "y": zod.number().min(createCoopHouseholdResponseSharedStateFurnitureLayoutRackYMin).max(createCoopHouseholdResponseSharedStateFurnitureLayoutRackYMax)
+}).optional(),
+  "mailbox": zod.object({
+  "x": zod.number().min(createCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMin).max(createCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMax),
+  "y": zod.number().min(createCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMin).max(createCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMax)
+}).optional(),
+  "bathStation": zod.object({
+  "x": zod.number().min(createCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMin).max(createCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMax),
+  "y": zod.number().min(createCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMin).max(createCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMax)
+}).optional(),
+  "trashCan": zod.object({
+  "x": zod.number().min(createCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanXMin).max(createCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanXMax),
+  "y": zod.number().min(createCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanYMin).max(createCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanYMax)
+}).optional()
+}),
+  "placedProps": zod.record(zod.string(), zod.boolean()),
+  "careStats": zod.object({
+  "growth": zod.number().int().min(createCoopHouseholdResponseSharedStateCareStatsGrowthMin).max(createCoopHouseholdResponseSharedStateCareStatsGrowthMax),
+  "health": zod.number().min(createCoopHouseholdResponseSharedStateCareStatsHealthMin).max(createCoopHouseholdResponseSharedStateCareStatsHealthMax),
+  "bond": zod.number().int().min(createCoopHouseholdResponseSharedStateCareStatsBondMin).max(createCoopHouseholdResponseSharedStateCareStatsBondMax),
+  "hunger": zod.number().int().min(createCoopHouseholdResponseSharedStateCareStatsHungerMin).max(createCoopHouseholdResponseSharedStateCareStatsHungerMax).optional(),
+  "hungerUpdatedAt": zod.number().int().min(createCoopHouseholdResponseSharedStateCareStatsHungerUpdatedAtMin).optional(),
+  "lastInteractionAt": zod.number().int().min(createCoopHouseholdResponseSharedStateCareStatsLastInteractionAtMin),
+  "lastDecayAt": zod.number().int().min(createCoopHouseholdResponseSharedStateCareStatsLastDecayAtMin),
+  "revision": zod.number().int().min(createCoopHouseholdResponseSharedStateCareStatsRevisionMin),
+  "lastInteractionCategory": zod.enum(['health', 'bond', 'growth']),
+  "recentInteractionIds": zod.array(zod.string().min(1).max(createCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsItemMax)).max(createCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsMax)
+}).optional(),
+  "worldEcology": zod.object({
+  "lastAttentionAt": zod.number().int().min(createCoopHouseholdResponseSharedStateWorldEcologyLastAttentionAtMin),
+  "lastPetPoopAt": zod.number().int().min(createCoopHouseholdResponseSharedStateWorldEcologyLastPetPoopAtMin).optional(),
+  "sick": zod.boolean().optional(),
+  "vitaminsFed": zod.number().int().min(createCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMin).max(createCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMax).optional(),
+  "fallCycle": zod.enum(['first', 'needs-clean', 'after-clean']),
+  "lastFallRollAt": zod.number().int().min(createCoopHouseholdResponseSharedStateWorldEcologyLastFallRollAtMin).optional(),
+  "dirtySince": zod.number().int().min(createCoopHouseholdResponseSharedStateWorldEcologyDirtySinceMin).optional(),
+  "dirtyHealthAppliedMinutes": zod.number().int().min(createCoopHouseholdResponseSharedStateWorldEcologyDirtyHealthAppliedMinutesMin),
+  "updatedAt": zod.number().int().min(createCoopHouseholdResponseSharedStateWorldEcologyUpdatedAtMin)
+}).optional(),
+  "foxMerchantLetter": zod.object({
+  "id": zod.string().max(createCoopHouseholdResponseSharedStateFoxMerchantLetterIdMax),
+  "sentAt": zod.number().int().min(createCoopHouseholdResponseSharedStateFoxMerchantLetterSentAtMin),
+  "petName": zod.string().max(createCoopHouseholdResponseSharedStateFoxMerchantLetterPetNameMax),
+  "foxName": zod.string().max(createCoopHouseholdResponseSharedStateFoxMerchantLetterFoxNameMax),
+  "status": zod.enum(['captured', 'reset', 'rescued']),
+  "snacksAtCapture": zod.number().int().min(createCoopHouseholdResponseSharedStateFoxMerchantLetterSnacksAtCaptureMin),
+  "openedAt": zod.number().int().min(createCoopHouseholdResponseSharedStateFoxMerchantLetterOpenedAtMin).optional(),
+  "resolvedAt": zod.number().int().min(createCoopHouseholdResponseSharedStateFoxMerchantLetterResolvedAtMin).optional()
+}).optional()
+}),
+  "queuedNotes": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['daily', 'idea', 'worry']),
+  "title": zod.string().max(createCoopHouseholdResponseQueuedNotesItemTitleMax),
+  "message": zod.string().max(createCoopHouseholdResponseQueuedNotesItemMessageMax),
+  "excluded": zod.boolean(),
+  "createdAt": zod.number().int().min(createCoopHouseholdResponseQueuedNotesItemCreatedAtMin),
+  "automatic": zod.boolean()
+})),
+  "inbox": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['daily', 'idea', 'worry']),
+  "title": zod.string().max(createCoopHouseholdResponseInboxItemTitleMax),
+  "message": zod.string().max(createCoopHouseholdResponseInboxItemMessageMax),
+  "excluded": zod.boolean(),
+  "createdAt": zod.number().int().min(createCoopHouseholdResponseInboxItemCreatedAtMin),
+  "automatic": zod.boolean()
+}))
+})
+
+
+/**
+ * @summary Create a one-time invite code for the second player
+ */
+export const createCoopInvitationResponseCodeMin = 8;
+export const createCoopInvitationResponseCodeMax = 12;
+
+export const createCoopInvitationResponseExpiresAtMin = 0;
+
+
+
+export const CreateCoopInvitationResponse = zod.object({
+  "code": zod.string().min(createCoopInvitationResponseCodeMin).max(createCoopInvitationResponseCodeMax),
+  "expiresAt": zod.number().int().min(createCoopInvitationResponseExpiresAtMin)
+})
+
+
+/**
+ * @summary Join a household with an invite code
+ */
+export const joinCoopHouseholdBodyCodeMin = 8;
+export const joinCoopHouseholdBodyCodeMax = 12;
+
+
+
+export const JoinCoopHouseholdBody = zod.object({
+  "code": zod.string().min(joinCoopHouseholdBodyCodeMin).max(joinCoopHouseholdBodyCodeMax)
+})
+
+export const joinCoopHouseholdResponseSharedStateGiftsItemIdMax = 120;
+
+export const joinCoopHouseholdResponseSharedStateGiftsItemEmojiMax = 16;
+
+export const joinCoopHouseholdResponseSharedStateGiftsItemItemMax = 120;
+
+export const joinCoopHouseholdResponseSharedStateGiftsItemAnimalMax = 120;
+
+export const joinCoopHouseholdResponseSharedStateGiftsItemStoryMax = 1200;
+
+export const joinCoopHouseholdResponseSharedStateGiftsItemReceivedAtMin = 0;
+
+export const joinCoopHouseholdResponseSharedStateGiftsItemFedAtMin = 0;
+
+export const joinCoopHouseholdResponseSharedStateGiftsMax = 300;
+
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutBedXMin = 0;
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutBedXMax = 1;
+
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutBedYMin = 0;
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutBedYMax = 1;
+
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutRackXMin = 0;
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutRackXMax = 1;
+
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutRackYMin = 0;
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutRackYMax = 1;
+
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMin = 0;
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMax = 1;
+
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMin = 0;
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMax = 1;
+
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMin = 0;
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMax = 1;
+
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMin = 0;
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMax = 1;
+
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanXMin = 0;
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanXMax = 1;
+
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanYMin = 0;
+export const joinCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanYMax = 1;
+
+export const joinCoopHouseholdResponseSharedStateCareStatsGrowthMin = 0;
+export const joinCoopHouseholdResponseSharedStateCareStatsGrowthMax = 100;
+
+export const joinCoopHouseholdResponseSharedStateCareStatsHealthMin = 0;
+export const joinCoopHouseholdResponseSharedStateCareStatsHealthMax = 100;
+
+export const joinCoopHouseholdResponseSharedStateCareStatsBondMin = 0;
+export const joinCoopHouseholdResponseSharedStateCareStatsBondMax = 100;
+
+export const joinCoopHouseholdResponseSharedStateCareStatsHungerMin = 0;
+export const joinCoopHouseholdResponseSharedStateCareStatsHungerMax = 100;
+
+export const joinCoopHouseholdResponseSharedStateCareStatsHungerUpdatedAtMin = 0;
+
+export const joinCoopHouseholdResponseSharedStateCareStatsLastInteractionAtMin = 0;
+
+export const joinCoopHouseholdResponseSharedStateCareStatsLastDecayAtMin = 0;
+
+export const joinCoopHouseholdResponseSharedStateCareStatsRevisionMin = 0;
+
+export const joinCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsItemMax = 80;
+
+export const joinCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsMax = 128;
+
+export const joinCoopHouseholdResponseSharedStateWorldEcologyLastAttentionAtMin = 0;
+
+export const joinCoopHouseholdResponseSharedStateWorldEcologyLastPetPoopAtMin = 0;
+
+export const joinCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMin = 0;
+export const joinCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMax = 3;
+
+export const joinCoopHouseholdResponseSharedStateWorldEcologyLastFallRollAtMin = 0;
+
+export const joinCoopHouseholdResponseSharedStateWorldEcologyDirtySinceMin = 0;
+
+export const joinCoopHouseholdResponseSharedStateWorldEcologyDirtyHealthAppliedMinutesMin = 0;
+
+export const joinCoopHouseholdResponseSharedStateWorldEcologyUpdatedAtMin = 0;
+
+export const joinCoopHouseholdResponseSharedStateFoxMerchantLetterIdMax = 120;
+
+export const joinCoopHouseholdResponseSharedStateFoxMerchantLetterSentAtMin = 0;
+
+export const joinCoopHouseholdResponseSharedStateFoxMerchantLetterPetNameMax = 40;
+
+export const joinCoopHouseholdResponseSharedStateFoxMerchantLetterFoxNameMax = 80;
+
+export const joinCoopHouseholdResponseSharedStateFoxMerchantLetterSnacksAtCaptureMin = 0;
+
+export const joinCoopHouseholdResponseSharedStateFoxMerchantLetterOpenedAtMin = 0;
+
+export const joinCoopHouseholdResponseSharedStateFoxMerchantLetterResolvedAtMin = 0;
+
+export const joinCoopHouseholdResponseQueuedNotesItemTitleMax = 48;
+
+export const joinCoopHouseholdResponseQueuedNotesItemMessageMax = 180;
+
+export const joinCoopHouseholdResponseQueuedNotesItemCreatedAtMin = 0;
+
+export const joinCoopHouseholdResponseInboxItemTitleMax = 48;
+
+export const joinCoopHouseholdResponseInboxItemMessageMax = 180;
+
+export const joinCoopHouseholdResponseInboxItemCreatedAtMin = 0;
+
+
+
+export const JoinCoopHouseholdResponse = zod.object({
+  "householdId": zod.string().uuid(),
+  "playerNumber": zod.union([zod.literal(1),zod.literal(2)]),
+  "memberCount": zod.union([zod.literal(1),zod.literal(2)]),
+  "sharedState": zod.object({
+  "gifts": zod.array(zod.object({
+  "id": zod.string().max(joinCoopHouseholdResponseSharedStateGiftsItemIdMax),
+  "emoji": zod.string().max(joinCoopHouseholdResponseSharedStateGiftsItemEmojiMax),
+  "item": zod.string().max(joinCoopHouseholdResponseSharedStateGiftsItemItemMax),
+  "animal": zod.string().max(joinCoopHouseholdResponseSharedStateGiftsItemAnimalMax),
+  "story": zod.string().max(joinCoopHouseholdResponseSharedStateGiftsItemStoryMax),
+  "receivedAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateGiftsItemReceivedAtMin),
+  "favorite": zod.boolean().optional(),
+  "fedAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateGiftsItemFedAtMin).optional(),
+  "kind": zod.enum(['vitamin']).optional()
+})).max(joinCoopHouseholdResponseSharedStateGiftsMax),
+  "furnitureLayout": zod.object({
+  "bed": zod.object({
+  "x": zod.number().min(joinCoopHouseholdResponseSharedStateFurnitureLayoutBedXMin).max(joinCoopHouseholdResponseSharedStateFurnitureLayoutBedXMax),
+  "y": zod.number().min(joinCoopHouseholdResponseSharedStateFurnitureLayoutBedYMin).max(joinCoopHouseholdResponseSharedStateFurnitureLayoutBedYMax)
+}).optional(),
+  "rack": zod.object({
+  "x": zod.number().min(joinCoopHouseholdResponseSharedStateFurnitureLayoutRackXMin).max(joinCoopHouseholdResponseSharedStateFurnitureLayoutRackXMax),
+  "y": zod.number().min(joinCoopHouseholdResponseSharedStateFurnitureLayoutRackYMin).max(joinCoopHouseholdResponseSharedStateFurnitureLayoutRackYMax)
+}).optional(),
+  "mailbox": zod.object({
+  "x": zod.number().min(joinCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMin).max(joinCoopHouseholdResponseSharedStateFurnitureLayoutMailboxXMax),
+  "y": zod.number().min(joinCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMin).max(joinCoopHouseholdResponseSharedStateFurnitureLayoutMailboxYMax)
+}).optional(),
+  "bathStation": zod.object({
+  "x": zod.number().min(joinCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMin).max(joinCoopHouseholdResponseSharedStateFurnitureLayoutBathStationXMax),
+  "y": zod.number().min(joinCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMin).max(joinCoopHouseholdResponseSharedStateFurnitureLayoutBathStationYMax)
+}).optional(),
+  "trashCan": zod.object({
+  "x": zod.number().min(joinCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanXMin).max(joinCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanXMax),
+  "y": zod.number().min(joinCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanYMin).max(joinCoopHouseholdResponseSharedStateFurnitureLayoutTrashCanYMax)
+}).optional()
+}),
+  "placedProps": zod.record(zod.string(), zod.boolean()),
+  "careStats": zod.object({
+  "growth": zod.number().int().min(joinCoopHouseholdResponseSharedStateCareStatsGrowthMin).max(joinCoopHouseholdResponseSharedStateCareStatsGrowthMax),
+  "health": zod.number().min(joinCoopHouseholdResponseSharedStateCareStatsHealthMin).max(joinCoopHouseholdResponseSharedStateCareStatsHealthMax),
+  "bond": zod.number().int().min(joinCoopHouseholdResponseSharedStateCareStatsBondMin).max(joinCoopHouseholdResponseSharedStateCareStatsBondMax),
+  "hunger": zod.number().int().min(joinCoopHouseholdResponseSharedStateCareStatsHungerMin).max(joinCoopHouseholdResponseSharedStateCareStatsHungerMax).optional(),
+  "hungerUpdatedAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateCareStatsHungerUpdatedAtMin).optional(),
+  "lastInteractionAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateCareStatsLastInteractionAtMin),
+  "lastDecayAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateCareStatsLastDecayAtMin),
+  "revision": zod.number().int().min(joinCoopHouseholdResponseSharedStateCareStatsRevisionMin),
+  "lastInteractionCategory": zod.enum(['health', 'bond', 'growth']),
+  "recentInteractionIds": zod.array(zod.string().min(1).max(joinCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsItemMax)).max(joinCoopHouseholdResponseSharedStateCareStatsRecentInteractionIdsMax)
+}).optional(),
+  "worldEcology": zod.object({
+  "lastAttentionAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateWorldEcologyLastAttentionAtMin),
+  "lastPetPoopAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateWorldEcologyLastPetPoopAtMin).optional(),
+  "sick": zod.boolean().optional(),
+  "vitaminsFed": zod.number().int().min(joinCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMin).max(joinCoopHouseholdResponseSharedStateWorldEcologyVitaminsFedMax).optional(),
+  "fallCycle": zod.enum(['first', 'needs-clean', 'after-clean']),
+  "lastFallRollAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateWorldEcologyLastFallRollAtMin).optional(),
+  "dirtySince": zod.number().int().min(joinCoopHouseholdResponseSharedStateWorldEcologyDirtySinceMin).optional(),
+  "dirtyHealthAppliedMinutes": zod.number().int().min(joinCoopHouseholdResponseSharedStateWorldEcologyDirtyHealthAppliedMinutesMin),
+  "updatedAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateWorldEcologyUpdatedAtMin)
+}).optional(),
+  "foxMerchantLetter": zod.object({
+  "id": zod.string().max(joinCoopHouseholdResponseSharedStateFoxMerchantLetterIdMax),
+  "sentAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateFoxMerchantLetterSentAtMin),
+  "petName": zod.string().max(joinCoopHouseholdResponseSharedStateFoxMerchantLetterPetNameMax),
+  "foxName": zod.string().max(joinCoopHouseholdResponseSharedStateFoxMerchantLetterFoxNameMax),
+  "status": zod.enum(['captured', 'reset', 'rescued']),
+  "snacksAtCapture": zod.number().int().min(joinCoopHouseholdResponseSharedStateFoxMerchantLetterSnacksAtCaptureMin),
+  "openedAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateFoxMerchantLetterOpenedAtMin).optional(),
+  "resolvedAt": zod.number().int().min(joinCoopHouseholdResponseSharedStateFoxMerchantLetterResolvedAtMin).optional()
+}).optional()
+}),
+  "queuedNotes": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['daily', 'idea', 'worry']),
+  "title": zod.string().max(joinCoopHouseholdResponseQueuedNotesItemTitleMax),
+  "message": zod.string().max(joinCoopHouseholdResponseQueuedNotesItemMessageMax),
+  "excluded": zod.boolean(),
+  "createdAt": zod.number().int().min(joinCoopHouseholdResponseQueuedNotesItemCreatedAtMin),
+  "automatic": zod.boolean()
+})),
+  "inbox": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['daily', 'idea', 'worry']),
+  "title": zod.string().max(joinCoopHouseholdResponseInboxItemTitleMax),
+  "message": zod.string().max(joinCoopHouseholdResponseInboxItemMessageMax),
+  "excluded": zod.boolean(),
+  "createdAt": zod.number().int().min(joinCoopHouseholdResponseInboxItemCreatedAtMin),
+  "automatic": zod.boolean()
+}))
+})
+
+
+/**
+ * @summary Update the household's shared game and room state
+ */
+export const updateCoopStateBodySharedStateGiftsItemIdMax = 120;
+
+export const updateCoopStateBodySharedStateGiftsItemEmojiMax = 16;
+
+export const updateCoopStateBodySharedStateGiftsItemItemMax = 120;
+
+export const updateCoopStateBodySharedStateGiftsItemAnimalMax = 120;
+
+export const updateCoopStateBodySharedStateGiftsItemStoryMax = 1200;
+
+export const updateCoopStateBodySharedStateGiftsItemReceivedAtMin = 0;
+
+export const updateCoopStateBodySharedStateGiftsItemFedAtMin = 0;
+
+export const updateCoopStateBodySharedStateGiftsMax = 300;
+
+export const updateCoopStateBodySharedStateFurnitureLayoutBedXMin = 0;
+export const updateCoopStateBodySharedStateFurnitureLayoutBedXMax = 1;
+
+export const updateCoopStateBodySharedStateFurnitureLayoutBedYMin = 0;
+export const updateCoopStateBodySharedStateFurnitureLayoutBedYMax = 1;
+
+export const updateCoopStateBodySharedStateFurnitureLayoutRackXMin = 0;
+export const updateCoopStateBodySharedStateFurnitureLayoutRackXMax = 1;
+
+export const updateCoopStateBodySharedStateFurnitureLayoutRackYMin = 0;
+export const updateCoopStateBodySharedStateFurnitureLayoutRackYMax = 1;
+
+export const updateCoopStateBodySharedStateFurnitureLayoutMailboxXMin = 0;
+export const updateCoopStateBodySharedStateFurnitureLayoutMailboxXMax = 1;
+
+export const updateCoopStateBodySharedStateFurnitureLayoutMailboxYMin = 0;
+export const updateCoopStateBodySharedStateFurnitureLayoutMailboxYMax = 1;
+
+export const updateCoopStateBodySharedStateFurnitureLayoutBathStationXMin = 0;
+export const updateCoopStateBodySharedStateFurnitureLayoutBathStationXMax = 1;
+
+export const updateCoopStateBodySharedStateFurnitureLayoutBathStationYMin = 0;
+export const updateCoopStateBodySharedStateFurnitureLayoutBathStationYMax = 1;
+
+export const updateCoopStateBodySharedStateFurnitureLayoutTrashCanXMin = 0;
+export const updateCoopStateBodySharedStateFurnitureLayoutTrashCanXMax = 1;
+
+export const updateCoopStateBodySharedStateFurnitureLayoutTrashCanYMin = 0;
+export const updateCoopStateBodySharedStateFurnitureLayoutTrashCanYMax = 1;
+
+export const updateCoopStateBodySharedStateCareStatsGrowthMin = 0;
+export const updateCoopStateBodySharedStateCareStatsGrowthMax = 100;
+
+export const updateCoopStateBodySharedStateCareStatsHealthMin = 0;
+export const updateCoopStateBodySharedStateCareStatsHealthMax = 100;
+
+export const updateCoopStateBodySharedStateCareStatsBondMin = 0;
+export const updateCoopStateBodySharedStateCareStatsBondMax = 100;
+
+export const updateCoopStateBodySharedStateCareStatsHungerMin = 0;
+export const updateCoopStateBodySharedStateCareStatsHungerMax = 100;
+
+export const updateCoopStateBodySharedStateCareStatsHungerUpdatedAtMin = 0;
+
+export const updateCoopStateBodySharedStateCareStatsLastInteractionAtMin = 0;
+
+export const updateCoopStateBodySharedStateCareStatsLastDecayAtMin = 0;
+
+export const updateCoopStateBodySharedStateCareStatsRevisionMin = 0;
+
+export const updateCoopStateBodySharedStateCareStatsRecentInteractionIdsItemMax = 80;
+
+export const updateCoopStateBodySharedStateCareStatsRecentInteractionIdsMax = 128;
+
+export const updateCoopStateBodySharedStateWorldEcologyLastAttentionAtMin = 0;
+
+export const updateCoopStateBodySharedStateWorldEcologyLastPetPoopAtMin = 0;
+
+export const updateCoopStateBodySharedStateWorldEcologyVitaminsFedMin = 0;
+export const updateCoopStateBodySharedStateWorldEcologyVitaminsFedMax = 3;
+
+export const updateCoopStateBodySharedStateWorldEcologyLastFallRollAtMin = 0;
+
+export const updateCoopStateBodySharedStateWorldEcologyDirtySinceMin = 0;
+
+export const updateCoopStateBodySharedStateWorldEcologyDirtyHealthAppliedMinutesMin = 0;
+
+export const updateCoopStateBodySharedStateWorldEcologyUpdatedAtMin = 0;
+
+export const updateCoopStateBodySharedStateFoxMerchantLetterIdMax = 120;
+
+export const updateCoopStateBodySharedStateFoxMerchantLetterSentAtMin = 0;
+
+export const updateCoopStateBodySharedStateFoxMerchantLetterPetNameMax = 40;
+
+export const updateCoopStateBodySharedStateFoxMerchantLetterFoxNameMax = 80;
+
+export const updateCoopStateBodySharedStateFoxMerchantLetterSnacksAtCaptureMin = 0;
+
+export const updateCoopStateBodySharedStateFoxMerchantLetterOpenedAtMin = 0;
+
+export const updateCoopStateBodySharedStateFoxMerchantLetterResolvedAtMin = 0;
+
+
+
+export const UpdateCoopStateBody = zod.object({
+  "sharedState": zod.object({
+  "gifts": zod.array(zod.object({
+  "id": zod.string().max(updateCoopStateBodySharedStateGiftsItemIdMax),
+  "emoji": zod.string().max(updateCoopStateBodySharedStateGiftsItemEmojiMax),
+  "item": zod.string().max(updateCoopStateBodySharedStateGiftsItemItemMax),
+  "animal": zod.string().max(updateCoopStateBodySharedStateGiftsItemAnimalMax),
+  "story": zod.string().max(updateCoopStateBodySharedStateGiftsItemStoryMax),
+  "receivedAt": zod.number().int().min(updateCoopStateBodySharedStateGiftsItemReceivedAtMin),
+  "favorite": zod.boolean().optional(),
+  "fedAt": zod.number().int().min(updateCoopStateBodySharedStateGiftsItemFedAtMin).optional(),
+  "kind": zod.enum(['vitamin']).optional()
+})).max(updateCoopStateBodySharedStateGiftsMax),
+  "furnitureLayout": zod.object({
+  "bed": zod.object({
+  "x": zod.number().min(updateCoopStateBodySharedStateFurnitureLayoutBedXMin).max(updateCoopStateBodySharedStateFurnitureLayoutBedXMax),
+  "y": zod.number().min(updateCoopStateBodySharedStateFurnitureLayoutBedYMin).max(updateCoopStateBodySharedStateFurnitureLayoutBedYMax)
+}).optional(),
+  "rack": zod.object({
+  "x": zod.number().min(updateCoopStateBodySharedStateFurnitureLayoutRackXMin).max(updateCoopStateBodySharedStateFurnitureLayoutRackXMax),
+  "y": zod.number().min(updateCoopStateBodySharedStateFurnitureLayoutRackYMin).max(updateCoopStateBodySharedStateFurnitureLayoutRackYMax)
+}).optional(),
+  "mailbox": zod.object({
+  "x": zod.number().min(updateCoopStateBodySharedStateFurnitureLayoutMailboxXMin).max(updateCoopStateBodySharedStateFurnitureLayoutMailboxXMax),
+  "y": zod.number().min(updateCoopStateBodySharedStateFurnitureLayoutMailboxYMin).max(updateCoopStateBodySharedStateFurnitureLayoutMailboxYMax)
+}).optional(),
+  "bathStation": zod.object({
+  "x": zod.number().min(updateCoopStateBodySharedStateFurnitureLayoutBathStationXMin).max(updateCoopStateBodySharedStateFurnitureLayoutBathStationXMax),
+  "y": zod.number().min(updateCoopStateBodySharedStateFurnitureLayoutBathStationYMin).max(updateCoopStateBodySharedStateFurnitureLayoutBathStationYMax)
+}).optional(),
+  "trashCan": zod.object({
+  "x": zod.number().min(updateCoopStateBodySharedStateFurnitureLayoutTrashCanXMin).max(updateCoopStateBodySharedStateFurnitureLayoutTrashCanXMax),
+  "y": zod.number().min(updateCoopStateBodySharedStateFurnitureLayoutTrashCanYMin).max(updateCoopStateBodySharedStateFurnitureLayoutTrashCanYMax)
+}).optional()
+}),
+  "placedProps": zod.record(zod.string(), zod.boolean()),
+  "careStats": zod.object({
+  "growth": zod.number().int().min(updateCoopStateBodySharedStateCareStatsGrowthMin).max(updateCoopStateBodySharedStateCareStatsGrowthMax),
+  "health": zod.number().min(updateCoopStateBodySharedStateCareStatsHealthMin).max(updateCoopStateBodySharedStateCareStatsHealthMax),
+  "bond": zod.number().int().min(updateCoopStateBodySharedStateCareStatsBondMin).max(updateCoopStateBodySharedStateCareStatsBondMax),
+  "hunger": zod.number().int().min(updateCoopStateBodySharedStateCareStatsHungerMin).max(updateCoopStateBodySharedStateCareStatsHungerMax).optional(),
+  "hungerUpdatedAt": zod.number().int().min(updateCoopStateBodySharedStateCareStatsHungerUpdatedAtMin).optional(),
+  "lastInteractionAt": zod.number().int().min(updateCoopStateBodySharedStateCareStatsLastInteractionAtMin),
+  "lastDecayAt": zod.number().int().min(updateCoopStateBodySharedStateCareStatsLastDecayAtMin),
+  "revision": zod.number().int().min(updateCoopStateBodySharedStateCareStatsRevisionMin),
+  "lastInteractionCategory": zod.enum(['health', 'bond', 'growth']),
+  "recentInteractionIds": zod.array(zod.string().min(1).max(updateCoopStateBodySharedStateCareStatsRecentInteractionIdsItemMax)).max(updateCoopStateBodySharedStateCareStatsRecentInteractionIdsMax)
+}).optional(),
+  "worldEcology": zod.object({
+  "lastAttentionAt": zod.number().int().min(updateCoopStateBodySharedStateWorldEcologyLastAttentionAtMin),
+  "lastPetPoopAt": zod.number().int().min(updateCoopStateBodySharedStateWorldEcologyLastPetPoopAtMin).optional(),
+  "sick": zod.boolean().optional(),
+  "vitaminsFed": zod.number().int().min(updateCoopStateBodySharedStateWorldEcologyVitaminsFedMin).max(updateCoopStateBodySharedStateWorldEcologyVitaminsFedMax).optional(),
+  "fallCycle": zod.enum(['first', 'needs-clean', 'after-clean']),
+  "lastFallRollAt": zod.number().int().min(updateCoopStateBodySharedStateWorldEcologyLastFallRollAtMin).optional(),
+  "dirtySince": zod.number().int().min(updateCoopStateBodySharedStateWorldEcologyDirtySinceMin).optional(),
+  "dirtyHealthAppliedMinutes": zod.number().int().min(updateCoopStateBodySharedStateWorldEcologyDirtyHealthAppliedMinutesMin),
+  "updatedAt": zod.number().int().min(updateCoopStateBodySharedStateWorldEcologyUpdatedAtMin)
+}).optional(),
+  "foxMerchantLetter": zod.object({
+  "id": zod.string().max(updateCoopStateBodySharedStateFoxMerchantLetterIdMax),
+  "sentAt": zod.number().int().min(updateCoopStateBodySharedStateFoxMerchantLetterSentAtMin),
+  "petName": zod.string().max(updateCoopStateBodySharedStateFoxMerchantLetterPetNameMax),
+  "foxName": zod.string().max(updateCoopStateBodySharedStateFoxMerchantLetterFoxNameMax),
+  "status": zod.enum(['captured', 'reset', 'rescued']),
+  "snacksAtCapture": zod.number().int().min(updateCoopStateBodySharedStateFoxMerchantLetterSnacksAtCaptureMin),
+  "openedAt": zod.number().int().min(updateCoopStateBodySharedStateFoxMerchantLetterOpenedAtMin).optional(),
+  "resolvedAt": zod.number().int().min(updateCoopStateBodySharedStateFoxMerchantLetterResolvedAtMin).optional()
+}).optional()
+})
+})
+
+export const updateCoopStateResponseSharedStateGiftsItemIdMax = 120;
+
+export const updateCoopStateResponseSharedStateGiftsItemEmojiMax = 16;
+
+export const updateCoopStateResponseSharedStateGiftsItemItemMax = 120;
+
+export const updateCoopStateResponseSharedStateGiftsItemAnimalMax = 120;
+
+export const updateCoopStateResponseSharedStateGiftsItemStoryMax = 1200;
+
+export const updateCoopStateResponseSharedStateGiftsItemReceivedAtMin = 0;
+
+export const updateCoopStateResponseSharedStateGiftsItemFedAtMin = 0;
+
+export const updateCoopStateResponseSharedStateGiftsMax = 300;
+
+export const updateCoopStateResponseSharedStateFurnitureLayoutBedXMin = 0;
+export const updateCoopStateResponseSharedStateFurnitureLayoutBedXMax = 1;
+
+export const updateCoopStateResponseSharedStateFurnitureLayoutBedYMin = 0;
+export const updateCoopStateResponseSharedStateFurnitureLayoutBedYMax = 1;
+
+export const updateCoopStateResponseSharedStateFurnitureLayoutRackXMin = 0;
+export const updateCoopStateResponseSharedStateFurnitureLayoutRackXMax = 1;
+
+export const updateCoopStateResponseSharedStateFurnitureLayoutRackYMin = 0;
+export const updateCoopStateResponseSharedStateFurnitureLayoutRackYMax = 1;
+
+export const updateCoopStateResponseSharedStateFurnitureLayoutMailboxXMin = 0;
+export const updateCoopStateResponseSharedStateFurnitureLayoutMailboxXMax = 1;
+
+export const updateCoopStateResponseSharedStateFurnitureLayoutMailboxYMin = 0;
+export const updateCoopStateResponseSharedStateFurnitureLayoutMailboxYMax = 1;
+
+export const updateCoopStateResponseSharedStateFurnitureLayoutBathStationXMin = 0;
+export const updateCoopStateResponseSharedStateFurnitureLayoutBathStationXMax = 1;
+
+export const updateCoopStateResponseSharedStateFurnitureLayoutBathStationYMin = 0;
+export const updateCoopStateResponseSharedStateFurnitureLayoutBathStationYMax = 1;
+
+export const updateCoopStateResponseSharedStateFurnitureLayoutTrashCanXMin = 0;
+export const updateCoopStateResponseSharedStateFurnitureLayoutTrashCanXMax = 1;
+
+export const updateCoopStateResponseSharedStateFurnitureLayoutTrashCanYMin = 0;
+export const updateCoopStateResponseSharedStateFurnitureLayoutTrashCanYMax = 1;
+
+export const updateCoopStateResponseSharedStateCareStatsGrowthMin = 0;
+export const updateCoopStateResponseSharedStateCareStatsGrowthMax = 100;
+
+export const updateCoopStateResponseSharedStateCareStatsHealthMin = 0;
+export const updateCoopStateResponseSharedStateCareStatsHealthMax = 100;
+
+export const updateCoopStateResponseSharedStateCareStatsBondMin = 0;
+export const updateCoopStateResponseSharedStateCareStatsBondMax = 100;
+
+export const updateCoopStateResponseSharedStateCareStatsHungerMin = 0;
+export const updateCoopStateResponseSharedStateCareStatsHungerMax = 100;
+
+export const updateCoopStateResponseSharedStateCareStatsHungerUpdatedAtMin = 0;
+
+export const updateCoopStateResponseSharedStateCareStatsLastInteractionAtMin = 0;
+
+export const updateCoopStateResponseSharedStateCareStatsLastDecayAtMin = 0;
+
+export const updateCoopStateResponseSharedStateCareStatsRevisionMin = 0;
+
+export const updateCoopStateResponseSharedStateCareStatsRecentInteractionIdsItemMax = 80;
+
+export const updateCoopStateResponseSharedStateCareStatsRecentInteractionIdsMax = 128;
+
+export const updateCoopStateResponseSharedStateWorldEcologyLastAttentionAtMin = 0;
+
+export const updateCoopStateResponseSharedStateWorldEcologyLastPetPoopAtMin = 0;
+
+export const updateCoopStateResponseSharedStateWorldEcologyVitaminsFedMin = 0;
+export const updateCoopStateResponseSharedStateWorldEcologyVitaminsFedMax = 3;
+
+export const updateCoopStateResponseSharedStateWorldEcologyLastFallRollAtMin = 0;
+
+export const updateCoopStateResponseSharedStateWorldEcologyDirtySinceMin = 0;
+
+export const updateCoopStateResponseSharedStateWorldEcologyDirtyHealthAppliedMinutesMin = 0;
+
+export const updateCoopStateResponseSharedStateWorldEcologyUpdatedAtMin = 0;
+
+export const updateCoopStateResponseSharedStateFoxMerchantLetterIdMax = 120;
+
+export const updateCoopStateResponseSharedStateFoxMerchantLetterSentAtMin = 0;
+
+export const updateCoopStateResponseSharedStateFoxMerchantLetterPetNameMax = 40;
+
+export const updateCoopStateResponseSharedStateFoxMerchantLetterFoxNameMax = 80;
+
+export const updateCoopStateResponseSharedStateFoxMerchantLetterSnacksAtCaptureMin = 0;
+
+export const updateCoopStateResponseSharedStateFoxMerchantLetterOpenedAtMin = 0;
+
+export const updateCoopStateResponseSharedStateFoxMerchantLetterResolvedAtMin = 0;
+
+export const updateCoopStateResponseUpdatedAtMin = 0;
+
+
+
+export const UpdateCoopStateResponse = zod.object({
+  "sharedState": zod.object({
+  "gifts": zod.array(zod.object({
+  "id": zod.string().max(updateCoopStateResponseSharedStateGiftsItemIdMax),
+  "emoji": zod.string().max(updateCoopStateResponseSharedStateGiftsItemEmojiMax),
+  "item": zod.string().max(updateCoopStateResponseSharedStateGiftsItemItemMax),
+  "animal": zod.string().max(updateCoopStateResponseSharedStateGiftsItemAnimalMax),
+  "story": zod.string().max(updateCoopStateResponseSharedStateGiftsItemStoryMax),
+  "receivedAt": zod.number().int().min(updateCoopStateResponseSharedStateGiftsItemReceivedAtMin),
+  "favorite": zod.boolean().optional(),
+  "fedAt": zod.number().int().min(updateCoopStateResponseSharedStateGiftsItemFedAtMin).optional(),
+  "kind": zod.enum(['vitamin']).optional()
+})).max(updateCoopStateResponseSharedStateGiftsMax),
+  "furnitureLayout": zod.object({
+  "bed": zod.object({
+  "x": zod.number().min(updateCoopStateResponseSharedStateFurnitureLayoutBedXMin).max(updateCoopStateResponseSharedStateFurnitureLayoutBedXMax),
+  "y": zod.number().min(updateCoopStateResponseSharedStateFurnitureLayoutBedYMin).max(updateCoopStateResponseSharedStateFurnitureLayoutBedYMax)
+}).optional(),
+  "rack": zod.object({
+  "x": zod.number().min(updateCoopStateResponseSharedStateFurnitureLayoutRackXMin).max(updateCoopStateResponseSharedStateFurnitureLayoutRackXMax),
+  "y": zod.number().min(updateCoopStateResponseSharedStateFurnitureLayoutRackYMin).max(updateCoopStateResponseSharedStateFurnitureLayoutRackYMax)
+}).optional(),
+  "mailbox": zod.object({
+  "x": zod.number().min(updateCoopStateResponseSharedStateFurnitureLayoutMailboxXMin).max(updateCoopStateResponseSharedStateFurnitureLayoutMailboxXMax),
+  "y": zod.number().min(updateCoopStateResponseSharedStateFurnitureLayoutMailboxYMin).max(updateCoopStateResponseSharedStateFurnitureLayoutMailboxYMax)
+}).optional(),
+  "bathStation": zod.object({
+  "x": zod.number().min(updateCoopStateResponseSharedStateFurnitureLayoutBathStationXMin).max(updateCoopStateResponseSharedStateFurnitureLayoutBathStationXMax),
+  "y": zod.number().min(updateCoopStateResponseSharedStateFurnitureLayoutBathStationYMin).max(updateCoopStateResponseSharedStateFurnitureLayoutBathStationYMax)
+}).optional(),
+  "trashCan": zod.object({
+  "x": zod.number().min(updateCoopStateResponseSharedStateFurnitureLayoutTrashCanXMin).max(updateCoopStateResponseSharedStateFurnitureLayoutTrashCanXMax),
+  "y": zod.number().min(updateCoopStateResponseSharedStateFurnitureLayoutTrashCanYMin).max(updateCoopStateResponseSharedStateFurnitureLayoutTrashCanYMax)
+}).optional()
+}),
+  "placedProps": zod.record(zod.string(), zod.boolean()),
+  "careStats": zod.object({
+  "growth": zod.number().int().min(updateCoopStateResponseSharedStateCareStatsGrowthMin).max(updateCoopStateResponseSharedStateCareStatsGrowthMax),
+  "health": zod.number().min(updateCoopStateResponseSharedStateCareStatsHealthMin).max(updateCoopStateResponseSharedStateCareStatsHealthMax),
+  "bond": zod.number().int().min(updateCoopStateResponseSharedStateCareStatsBondMin).max(updateCoopStateResponseSharedStateCareStatsBondMax),
+  "hunger": zod.number().int().min(updateCoopStateResponseSharedStateCareStatsHungerMin).max(updateCoopStateResponseSharedStateCareStatsHungerMax).optional(),
+  "hungerUpdatedAt": zod.number().int().min(updateCoopStateResponseSharedStateCareStatsHungerUpdatedAtMin).optional(),
+  "lastInteractionAt": zod.number().int().min(updateCoopStateResponseSharedStateCareStatsLastInteractionAtMin),
+  "lastDecayAt": zod.number().int().min(updateCoopStateResponseSharedStateCareStatsLastDecayAtMin),
+  "revision": zod.number().int().min(updateCoopStateResponseSharedStateCareStatsRevisionMin),
+  "lastInteractionCategory": zod.enum(['health', 'bond', 'growth']),
+  "recentInteractionIds": zod.array(zod.string().min(1).max(updateCoopStateResponseSharedStateCareStatsRecentInteractionIdsItemMax)).max(updateCoopStateResponseSharedStateCareStatsRecentInteractionIdsMax)
+}).optional(),
+  "worldEcology": zod.object({
+  "lastAttentionAt": zod.number().int().min(updateCoopStateResponseSharedStateWorldEcologyLastAttentionAtMin),
+  "lastPetPoopAt": zod.number().int().min(updateCoopStateResponseSharedStateWorldEcologyLastPetPoopAtMin).optional(),
+  "sick": zod.boolean().optional(),
+  "vitaminsFed": zod.number().int().min(updateCoopStateResponseSharedStateWorldEcologyVitaminsFedMin).max(updateCoopStateResponseSharedStateWorldEcologyVitaminsFedMax).optional(),
+  "fallCycle": zod.enum(['first', 'needs-clean', 'after-clean']),
+  "lastFallRollAt": zod.number().int().min(updateCoopStateResponseSharedStateWorldEcologyLastFallRollAtMin).optional(),
+  "dirtySince": zod.number().int().min(updateCoopStateResponseSharedStateWorldEcologyDirtySinceMin).optional(),
+  "dirtyHealthAppliedMinutes": zod.number().int().min(updateCoopStateResponseSharedStateWorldEcologyDirtyHealthAppliedMinutesMin),
+  "updatedAt": zod.number().int().min(updateCoopStateResponseSharedStateWorldEcologyUpdatedAtMin)
+}).optional(),
+  "foxMerchantLetter": zod.object({
+  "id": zod.string().max(updateCoopStateResponseSharedStateFoxMerchantLetterIdMax),
+  "sentAt": zod.number().int().min(updateCoopStateResponseSharedStateFoxMerchantLetterSentAtMin),
+  "petName": zod.string().max(updateCoopStateResponseSharedStateFoxMerchantLetterPetNameMax),
+  "foxName": zod.string().max(updateCoopStateResponseSharedStateFoxMerchantLetterFoxNameMax),
+  "status": zod.enum(['captured', 'reset', 'rescued']),
+  "snacksAtCapture": zod.number().int().min(updateCoopStateResponseSharedStateFoxMerchantLetterSnacksAtCaptureMin),
+  "openedAt": zod.number().int().min(updateCoopStateResponseSharedStateFoxMerchantLetterOpenedAtMin).optional(),
+  "resolvedAt": zod.number().int().min(updateCoopStateResponseSharedStateFoxMerchantLetterResolvedAtMin).optional()
+}).optional()
+}),
+  "updatedAt": zod.number().int().min(updateCoopStateResponseUpdatedAtMin)
+})
+
+
+/**
+ * @summary Apply a care interaction to shared panda stats
+ */
+export const recordCoopCareStatInteractionBodyInteractionIdMax = 80;
+
+export const recordCoopCareStatInteractionBodyOccurredAtMin = 0;
+
+
+
+export const RecordCoopCareStatInteractionBody = zod.object({
+  "interactionId": zod.string().min(1).max(recordCoopCareStatInteractionBodyInteractionIdMax),
+  "category": zod.enum(['health', 'bond', 'growth']),
+  "occurredAt": zod.number().int().min(recordCoopCareStatInteractionBodyOccurredAtMin)
+})
+
+export const recordCoopCareStatInteractionResponseCareStatsGrowthMin = 0;
+export const recordCoopCareStatInteractionResponseCareStatsGrowthMax = 100;
+
+export const recordCoopCareStatInteractionResponseCareStatsHealthMin = 0;
+export const recordCoopCareStatInteractionResponseCareStatsHealthMax = 100;
+
+export const recordCoopCareStatInteractionResponseCareStatsBondMin = 0;
+export const recordCoopCareStatInteractionResponseCareStatsBondMax = 100;
+
+export const recordCoopCareStatInteractionResponseCareStatsHungerMin = 0;
+export const recordCoopCareStatInteractionResponseCareStatsHungerMax = 100;
+
+export const recordCoopCareStatInteractionResponseCareStatsHungerUpdatedAtMin = 0;
+
+export const recordCoopCareStatInteractionResponseCareStatsLastInteractionAtMin = 0;
+
+export const recordCoopCareStatInteractionResponseCareStatsLastDecayAtMin = 0;
+
+export const recordCoopCareStatInteractionResponseCareStatsRevisionMin = 0;
+
+export const recordCoopCareStatInteractionResponseCareStatsRecentInteractionIdsItemMax = 80;
+
+export const recordCoopCareStatInteractionResponseCareStatsRecentInteractionIdsMax = 128;
+
+
+
+export const RecordCoopCareStatInteractionResponse = zod.object({
+  "careStats": zod.object({
+  "growth": zod.number().int().min(recordCoopCareStatInteractionResponseCareStatsGrowthMin).max(recordCoopCareStatInteractionResponseCareStatsGrowthMax),
+  "health": zod.number().min(recordCoopCareStatInteractionResponseCareStatsHealthMin).max(recordCoopCareStatInteractionResponseCareStatsHealthMax),
+  "bond": zod.number().int().min(recordCoopCareStatInteractionResponseCareStatsBondMin).max(recordCoopCareStatInteractionResponseCareStatsBondMax),
+  "hunger": zod.number().int().min(recordCoopCareStatInteractionResponseCareStatsHungerMin).max(recordCoopCareStatInteractionResponseCareStatsHungerMax).optional(),
+  "hungerUpdatedAt": zod.number().int().min(recordCoopCareStatInteractionResponseCareStatsHungerUpdatedAtMin).optional(),
+  "lastInteractionAt": zod.number().int().min(recordCoopCareStatInteractionResponseCareStatsLastInteractionAtMin),
+  "lastDecayAt": zod.number().int().min(recordCoopCareStatInteractionResponseCareStatsLastDecayAtMin),
+  "revision": zod.number().int().min(recordCoopCareStatInteractionResponseCareStatsRevisionMin),
+  "lastInteractionCategory": zod.enum(['health', 'bond', 'growth']),
+  "recentInteractionIds": zod.array(zod.string().min(1).max(recordCoopCareStatInteractionResponseCareStatsRecentInteractionIdsItemMax)).max(recordCoopCareStatInteractionResponseCareStatsRecentInteractionIdsMax)
+})
+})
+
+
+/**
+ * @summary Turn a private diary note into a brief emotion-only message for the other player
+ */
+export const createCoopShareNoteBodyTextMax = 1200;
+
+
+
+export const CreateCoopShareNoteBody = zod.object({
+  "text": zod.string().min(1).max(createCoopShareNoteBodyTextMax)
+})
+
+export const createCoopShareNoteResponseTitleMax = 48;
+
+export const createCoopShareNoteResponseMessageMax = 180;
+
+export const createCoopShareNoteResponseCreatedAtMin = 0;
+
+
+
+export const CreateCoopShareNoteResponse = zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['daily', 'idea', 'worry']),
+  "title": zod.string().max(createCoopShareNoteResponseTitleMax),
+  "message": zod.string().max(createCoopShareNoteResponseMessageMax),
+  "excluded": zod.boolean(),
+  "createdAt": zod.number().int().min(createCoopShareNoteResponseCreatedAtMin),
+  "automatic": zod.boolean()
+})
+
+
+/**
+ * @summary Mark a queued note as excluded or allow it to be carried
+ */
+export const UpdateCoopShareNoteParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const UpdateCoopShareNoteBody = zod.object({
+  "excluded": zod.boolean()
+})
+
+export const updateCoopShareNoteResponseTitleMax = 48;
+
+export const updateCoopShareNoteResponseMessageMax = 180;
+
+export const updateCoopShareNoteResponseCreatedAtMin = 0;
+
+
+
+export const UpdateCoopShareNoteResponse = zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['daily', 'idea', 'worry']),
+  "title": zod.string().max(updateCoopShareNoteResponseTitleMax),
+  "message": zod.string().max(updateCoopShareNoteResponseMessageMax),
+  "excluded": zod.boolean(),
+  "createdAt": zod.number().int().min(updateCoopShareNoteResponseCreatedAtMin),
+  "automatic": zod.boolean()
+})
+
+
+/**
+ * @summary Deliver one queued note from the other player when the panda returns from an outing
+ */
+export const deliverNextCoopShareNoteResponseNoteTitleMax = 48;
+
+export const deliverNextCoopShareNoteResponseNoteMessageMax = 180;
+
+export const deliverNextCoopShareNoteResponseNoteCreatedAtMin = 0;
+
+
+
+export const DeliverNextCoopShareNoteResponse = zod.object({
+  "delivered": zod.boolean(),
+  "note": zod.object({
+  "id": zod.string().uuid(),
+  "category": zod.enum(['daily', 'idea', 'worry']),
+  "title": zod.string().max(deliverNextCoopShareNoteResponseNoteTitleMax),
+  "message": zod.string().max(deliverNextCoopShareNoteResponseNoteMessageMax),
+  "excluded": zod.boolean(),
+  "createdAt": zod.number().int().min(deliverNextCoopShareNoteResponseNoteCreatedAtMin),
+  "automatic": zod.boolean()
+}).optional()
+})
+
+
+/**
  * @summary Contextual companion reply and local diary suggestions, never stored on server
  */
 export const companionChatBodyMessagesItemContentMax = 4000;
@@ -32,7 +1926,8 @@ export const CompanionChatBody = zod.object({
   "memories": zod.array(zod.object({
   "kind": zod.enum(['worry', 'idea', 'action']),
   "text": zod.string().min(1).max(companionChatBodyMemoriesItemTextMax)
-})).max(companionChatBodyMemoriesMax)
+})).max(companionChatBodyMemoriesMax),
+  "clearMindMode": zod.boolean().optional().describe('Enable the clear-mind support prompt for this reply only.')
 })
 
 export const companionChatResponseReplyMax = 300;

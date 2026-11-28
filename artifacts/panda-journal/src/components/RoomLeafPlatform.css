@@ -1,0 +1,9 @@
+.rlp-drop-zone{position:fixed;pointer-events:none;z-index:239;box-sizing:border-box}
+.rlp-drop-zone[data-dragging]{border:0;background:transparent}
+.rlp-leaf{position:fixed;pointer-events:none;z-index:1;image-rendering:pixelated}
+.rlp-leaf img{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
+.rlp-leaf .rlp-toy{top:30%;transform-origin:50% 0}
+.rlp-rope{position:absolute;top:0;left:46.875%;width:6.25%;height:31%;background:#55452d;image-rendering:pixelated}
+.rlp-leaf[data-playing] .rlp-toy{animation:rlp-leaf-batting 1.4s steps(7,end) infinite}
+@keyframes rlp-leaf-batting{0%,100%{transform:rotate(0)}20%{transform:rotate(-13deg)}45%{transform:rotate(16deg)}70%{transform:rotate(-6deg)}}
+@media(prefers-reduced-motion:reduce){.rlp-leaf[data-playing] .rlp-toy{animation:none}}

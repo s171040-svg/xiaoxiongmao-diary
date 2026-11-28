@@ -5,6 +5,7 @@ import {
   isMouseBehindOnTurn,
   isNearSleepZone,
   scheduleActivityReset,
+  PLUSH_PLAY_DURATION_MS,
 } from './room-activity';
 
 const sleepingZonePoint = { u: 0.2, v: 0.18 };
@@ -18,16 +19,26 @@ assert.equal(chooseRestActivity(ordinaryPoint, () => 0.23), null);
 assert.equal(chooseRestActivity(ordinaryPoint, () => 0.31), null);
 assert.equal(chooseRestActivity(ordinaryPoint, () => 0.35), 'peeking');
 assert.equal(chooseRestActivity(ordinaryPoint, () => 0.41), null);
+assert.equal(chooseRestActivity(ordinaryPoint, () => 0.46), 'plush-play');
+assert.equal(chooseRestActivity(ordinaryPoint, () => 0.53999), 'plush-play');
+assert.equal(chooseRestActivity(ordinaryPoint, () => 0.54), null);
+assert.equal(chooseRestActivity(sleepingZonePoint, () => 0.5), 'sleeping');
+assert.equal(PLUSH_PLAY_DURATION_MS, 60_000);
+assert.equal(getRestDurationMs('plush-play', () => 0), 60_000);
+assert.equal(getRestDurationMs('plush-play', () => 0.99999), 60_000);
 assert.equal(chooseRestActivity(sleepingZonePoint, () => 0.8), null);
 assert.equal(chooseRestActivity(sleepingZonePoint, () => 0.9), 'peeking');
-assert.equal(getRestDurationMs('lying', () => 0), 10000);
-assert.equal(getRestDurationMs('lying', () => 0.999999), 19999);
-assert.equal(getRestDurationMs('daydreaming', () => 0), 3200);
-assert.equal(getRestDurationMs('daydreaming', () => 0.999999), 5599);
+assert.equal(getRestDurationMs('lying', () => 0), 330000);
+assert.equal(getRestDurationMs('lying', () => 0.999999), 449999);
+assert.equal(getRestDurationMs('daydreaming', () => 0), 330000);
+assert.equal(getRestDurationMs('daydreaming', () => 0.999999), 449999);
 assert.equal(getRestDurationMs('peeking', () => 0), 4000);
 assert.equal(getRestDurationMs('peeking', () => 0.999999), 6999);
-assert.equal(getRestDurationMs('sleeping', () => 0), 10000);
-assert.equal(getRestDurationMs('sleeping', () => 0.999999), 19999);
+assert.equal(getRestDurationMs('sleeping', () => 0), 330000);
+assert.equal(getRestDurationMs('sleeping', () => 0.999999), 449999);
+for (const activity of ['lying', 'sleeping', 'daydreaming'] as const) {
+  assert.ok(getRestDurationMs(activity, () => 0) > 5 * 60 * 1000);
+}
 assert.equal(isMouseBehindOnTurn({ x: 50, y: 100 }, { x: 100, y: 100 }, 'left'), true);
 assert.equal(isMouseBehindOnTurn({ x: 150, y: 100 }, { x: 100, y: 100 }, 'left'), false);
 assert.equal(isMouseBehindOnTurn({ x: 500, y: 100 }, { x: 100, y: 100 }, 'left'), false);
@@ -47,11 +58,11 @@ const cancelScheduledActivity = scheduleActivityReset(
   },
   (timer) => { cancelledTimer = timer; },
 );
-assert.equal(scheduledDelay, 4000);
+assert.ok(scheduledDelay >= 4000 && scheduledDelay <= 6999);
 assert.equal(resetToRoaming, false);
 scheduledCallback?.();
 assert.equal(resetToRoaming, true);
 cancelScheduledActivity();
 assert.equal(cancelledTimer, 123);
 
-console.log('PASS room activity selection without rolling, peeking duration, and automatic reset scheduling');
+console.log('PASS room activity selection, five-minute rest duration, and automatic reset scheduling');

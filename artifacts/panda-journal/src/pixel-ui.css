@@ -1,0 +1,70 @@
+/*
+ * Pixel-art UI skin. Loaded last so it restyles every journal control:
+ * square corners, hard 2px-step borders, drop-blocks instead of blurs.
+ */
+:root{
+  --px-ink:#354637;--px-edge:#76552c;--px-wood:#dfbd7e;--px-wood-hi:#fff1c7;--px-wood-lo:#be8c49;
+  --px-paper:#fff8e6;--px-paper-lo:#e9d9b4;--px-green:#b9df8b;--px-green-hi:#e0f6bd;--px-green-lo:#76a34d;
+  --px-red:#d9483b;
+  --px-font:"Zpix","Fusion Pixel","Noto Sans Mono CJK SC","Noto Sans CJK SC",ui-monospace,monospace;
+}
+.cc-app,.cc-dialog,.memory-dialog,.rp-dock{font-family:var(--px-font);-webkit-font-smoothing:none;font-smooth:never}
+.cc-app *,.cc-dialog *,.memory-dialog *{border-radius:0!important;backdrop-filter:none!important}
+
+/* Top bar */
+.cc-top{background:#f3e7c8!important;border:0!important;border-bottom:4px solid #c29a58!important;box-shadow:0 4px 0 #9f7a43;color:var(--px-ink)}
+.cc-title strong{font-family:var(--px-font)!important;font-weight:700;color:#3f6942;letter-spacing:.08em}
+.cc-title span{color:#6b775d!important}
+
+/* All journal buttons */
+.cc-actions button,.cc-tabs button,.cc-confirm button,.cc-del,.cc-stamp button,.cc-send,.cc-gift-actions button,.cc-feelings button,
+.cc-police-pay-button,.cc-dialog button:not(.cc-icon):not(.cc-space-mail-item),.memory-dialog button,.ps-room-layout-reset{
+  border:3px solid var(--px-edge)!important;background:var(--px-wood)!important;color:var(--px-ink)!important;
+  box-shadow:inset -3px -3px 0 var(--px-wood-lo),inset 3px 3px 0 var(--px-wood-hi);
+  font:700 13px/1.2 var(--px-font)!important;padding:6px 11px;transition:none!important;cursor:pointer;text-shadow:none}
+.cc-actions button:hover,.cc-tabs button:hover,.cc-send:hover:not(:disabled),.cc-gift-actions button:hover,.ps-room-layout-reset:hover{background:#d8b878!important;transform:none!important}
+.cc-actions button:active,.cc-tabs button:active,.cc-send:active:not(:disabled),.cc-gift-actions button:active,.cc-dialog button:active{transform:translateY(2px)!important;box-shadow:inset 3px 3px 0 var(--px-wood-lo),inset -3px -3px 0 var(--px-wood-hi)}
+.cc-tabs button[aria-selected=true],.cc-tabs button.on,.cc-gift-actions button[aria-pressed=true]{background:var(--px-green)!important;box-shadow:inset -3px -3px 0 var(--px-green-lo),inset 3px 3px 0 var(--px-green-hi)}
+.cc-danger,.cc-confirm .cc-danger{background:#ed8177!important;color:#3f241e!important;box-shadow:inset -3px -3px 0 #bf5148,inset 3px 3px 0 #ffb4a5}
+button:disabled{opacity:.55}
+.cc-app button:focus-visible,.cc-dialog button:focus-visible{outline:3px solid #fff3b0!important;outline-offset:2px}
+.cc-app button:not(.ps-panda):not(.pd-dream):not(.ps-space-letter-box):not(.ps-room-waste):not(.ps-bath-ball):not(.ps-space-police-envelope):not(.rp-slot):not(.rp-reset),
+.cc-dialog button:not(.cc-icon),.memory-dialog button{
+  border-radius:0!important;border-style:solid!important;border-width:3px!important;border-color:var(--px-edge)!important;
+  font-family:var(--px-font)!important;image-rendering:pixelated;transition:none!important;
+}
+
+/* Panels, cards and dialogs */
+.cc-dialog,.memory-dialog{background:var(--px-paper)!important;color:var(--px-ink)!important;border:4px solid var(--px-edge)!important;box-shadow:inset 0 0 0 3px #d2ae69,6px 6px 0 #76552c55!important}
+.cc-dhead{background:#e7d5a8!important;color:var(--px-ink)!important;border:0!important;border-bottom:4px solid #c29a58!important}
+.cc-card,.cc-feelings,.cc-gift,.cc-space-police-letter,.cc-police-payment,.cc-space-mail-item,.cc-photo{border:3px solid var(--px-edge)!important;background:#fffaf0!important;box-shadow:inset -3px -3px 0 var(--px-paper-lo),3px 3px 0 #1d130a55}
+.cc-tag,.cc-space-mail-status{border:2px solid var(--px-edge)!important;background:var(--px-green)!important;color:var(--px-ink)!important;padding:1px 6px}
+
+/* Chat bubbles and inputs */
+.cc-bubble{border:3px solid var(--px-edge)!important;box-shadow:3px 3px 0 #1d130a55;clip-path:none}
+.bot .cc-bubble{background:#fffaf0!important;color:var(--px-ink)!important;font-family:var(--px-font)!important}
+.me .cc-bubble{background:var(--px-green)!important;color:var(--px-ink)!important}
+.cc-room-input,.cc-box textarea,.cc-feelings input,.cc-dev-gift-form input,.cc-dev-gift-form select,.cc-dialog input,.cc-dialog textarea{border:3px solid var(--px-edge)!important;background:#fffaf0!important;color:var(--px-ink)!important;font-family:var(--px-font)!important;box-shadow:inset 3px 3px 0 var(--px-paper-lo)}
+.cc-box,.cc-composer{border:0!important;background:transparent!important;box-shadow:none!important}
+
+/* Room-side bars and notices */
+.ps-thinking,.ps-bubble-layer [class*="bubble"],.ps-room-chat-bubble{border-radius:0!important}
+.ps-room-chat-bubble{border:3px solid var(--px-edge)!important;background:#fffaf0!important;color:var(--px-ink)!important;box-shadow:3px 3px 0 #1d130a66!important;font-family:var(--px-font)!important}
+.ps-space-letter-box{border-radius:0!important}
+.cc-icon{border:3px solid var(--px-edge)!important;background:var(--px-wood)!important;color:var(--px-ink)!important}
+
+/* Keep the room frame and the space around the bedroom light as well. */
+.ps-room-surface[data-room-only=true]{
+  background-color:#f4efd9;
+  background-image:linear-gradient(45deg,#e8efd9 25%,transparent 25% 75%,#e8efd9 75%),linear-gradient(45deg,#e8efd9 25%,transparent 25% 75%,#e8efd9 75%)!important;
+}
+.ps-room-surface[data-room-only=true]::after{
+  border-color:#8d6b39!important;
+  box-shadow:0 0 0 4px #e4c98e,0 0 0 8px #9a7540!important;
+}
+.ps-room-surface[data-room-only=true] .ps-room-backdrop{background-color:transparent}
+.ps-room-surface[data-room-only=true] .ps-room-floor{background-color:transparent}
+
+/* Header icon buttons */
+.cc-actions button .top-pixel-icon{display:block;width:28px;height:28px;image-rendering:pixelated}
+.cc-actions button[data-testid=button-diary],.cc-actions button[data-testid=button-dev-action],.cc-actions button[data-testid=button-gifts],.cc-actions button[data-testid=button-dev-gift]{padding:4px 6px;min-width:44px;min-height:44px;justify-content:center}

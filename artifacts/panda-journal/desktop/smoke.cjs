@@ -22,7 +22,8 @@ function hasPngTransparency(png) {
   return false;
 }
 for (const sprite of new Set([...Object.values(animationManifest.motionSprites), ...Object.values(animationManifest.actionSprites)])) {
-  const png = fs.readFileSync(path.join(spriteDir, `${sprite}.png`));
+  const baseSprite = { "cuddle-wriggle": "lying", "captured-homecoming": "captured-dazed" }[sprite] || sprite;
+  const png = fs.readFileSync(path.join(spriteDir, `${baseSprite}.png`));
   assert.equal(png.toString("ascii", 1, 4), "PNG", `${sprite} sprite is a PNG`);
   const width = png.readUInt32BE(16);
   const height = png.readUInt32BE(20);
@@ -50,7 +51,7 @@ async function main() {
       FONTCONFIG_FILE: process.env.FONTCONFIG_FILE, FONTCONFIG_PATH: process.env.FONTCONFIG_PATH,
       XDG_DATA_DIRS: process.env.XDG_DATA_DIRS, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
       TZ: "Asia/Hong_Kong",
-      PANDA_PROFILE_DIR: profile, PANDA_JOURNAL_URL: "http://127.0.0.1:21836/",
+      PANDA_PROFILE_DIR: profile, PANDA_JOURNAL_URL: "http://127.0.0.1:21836/room",
       DEEPSEEK_API_KEY: "synthetic-test-key" },
   });
   await until(() => application.windows().length === 2, "hidden local chat created");
@@ -58,6 +59,7 @@ async function main() {
   const journal = application.windows().find(w => !w.url().includes("pet.html"));
   await pet.waitForLoadState("domcontentloaded");
   await journal.getByTestId("input-chat").waitFor();
+  await pet.emulateMedia({ reducedMotion: "no-preference" });
   assert.equal(await journal.getByTestId("companion-chat").getAttribute("data-room-only"), "false",
     "Electron journal retains the desktop chat view");
   assert.equal(await journal.getByTestId("panda-click-debug").count(), 0,
@@ -134,6 +136,29 @@ async function main() {
   assert.equal(await pet.locator("#panda-sprite").evaluate((img, width) => img.complete && img.naturalWidth === width, spriteSizes.walk.width), true);
   await until(async () => Number(await pet.locator("#panda-sprite").getAttribute("data-frame")) !== idleFrame, "idle pixel animation advances");
   assert.equal(await pet.locator("#panda-sprite").evaluate((img, width) => img.complete && img.naturalWidth === width, spriteSizes.walk.width), true);
+  await journal.evaluate(effect => window.pandaDesktop.companionMotion(effect),
+    { stage: "performing", action: "bamboo", duration: 5000, token: Date.now() });
+  await until(async () => !(await pet.locator(".pet-action-transition").isHidden()),
+    "desktop snack action begins its normal transition frames");
+  await pet.emulateMedia({ reducedMotion: "reduce" });
+  assert.equal(await pet.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches), true,
+    "desktop window receives the reduced-motion preference change");
+  await until(async () => await pet.locator(".pet-presence").getAttribute("data-bamboo-phase") === "eating",
+    "desktop snack action finishes its transition and reaches the eating state");
+  assert.equal(await pet.locator(".pet-action-transition").isHidden(), true,
+    "reduced-motion desktop snack action does not flash transition frames");
+  assert.equal(await pet.locator("#panda-sprite").isHidden(), false,
+    "reduced-motion desktop snack action keeps its action pose visible");
+  assert.equal(await pet.locator("#panda-sprite").getAttribute("data-frame"), "14",
+    "reduced-motion desktop snack action holds its completed static pose");
+  await journal.evaluate(() => window.pandaDesktop.companionMotion({
+    stage: "present", action: "idle", duration: 3000, token: Date.now(),
+  }));
+  await until(async () => await pet.locator(".pet-presence").getAttribute("data-stage") === "present",
+    "reduced-motion desktop snack action returns to roaming state");
+  assert.equal(await pet.locator(".pet-action-transition").isHidden(), true,
+    "reduced-motion desktop snack action does not flash exit frames");
+  await pet.emulateMedia({ reducedMotion: "no-preference" });
   await pet.screenshot({ path: path.join(os.tmpdir(), "panda-pet-room.png") });
   const rect = await pet.locator("#panda").boundingBox();
   await application.evaluate(({ screen, BrowserWindow }, r) => {
@@ -181,11 +206,25 @@ async function main() {
   await journal.getByTestId("button-gifts").click();
   const injectedCard = journal.locator(".cc-gift").filter({ hasText: "测试香蕉" });
   await injectedCard.getByRole("button", { name: "收藏" }).click();
-  await injectedCard.getByRole("button", { name: "喂小熊猫" }).click();
+  await injectedCard.getByRole("button", { name: "取出喂食" }).click();
+  await journal.evaluate(() => {
+    const state = JSON.parse(localStorage.getItem("little-panda-companion-v1") || "{}");
+    state.careStats ??= { hunger: 100 };
+    state.careStats.hunger = 50;
+    localStorage.setItem("little-panda-companion-v1", JSON.stringify(state));
+  });
+  const snackToken = journal.getByTestId("snack-feed-token");
+  const snackBounds = await snackToken.boundingBox();
+  const pandaBounds = await journal.locator(".ps-panda").boundingBox();
+  assert.ok(snackBounds && pandaBounds, "selected snack and panda are visible for drag-to-feed");
+  await journal.mouse.move(snackBounds.x + snackBounds.width / 2, snackBounds.y + snackBounds.height / 2);
+  await journal.mouse.down();
+  await journal.mouse.move(pandaBounds.x + pandaBounds.width / 2, pandaBounds.y + pandaBounds.height / 2, { steps: 8 });
+  await journal.mouse.up();
   await until(async () => (await read()).gifts.at(-1).fedAt, "developer food gift can be fed");
   injectedGift = (await read()).gifts.at(-1);
   assert.equal(injectedGift.favorite, true);
-  await journal.getByTestId("dialog-gifts-close").click();
+  assert.equal((await read()).careStats.hunger, 51, "desktop snack feeding restores one hunger point");
   await journal.evaluate(snapshot => localStorage.setItem("little-panda-companion-v1", JSON.stringify(snapshot)), stateBeforeDevGift);
   await journal.reload();
   await journal.getByTestId("input-chat").waitFor();
@@ -208,6 +247,15 @@ async function main() {
   await until(async () => await journal.getByTestId("panda-interaction-state").getAttribute("data-transition-direction") === "entering", "dynamic action uses generated entry frames");
   await until(async () => await journal.getByTestId("panda-interaction-state").getAttribute("data-transition-direction") === null, "dynamic action entry frames finish before the action");
   await until(async () => !(await journal.locator(".ps-panda").getAttribute("class") || "").split(/\s+/).includes("ps-jump"), "developer action returns to idle");
+  await journal.emulateMedia({ reducedMotion: "reduce" });
+  await journal.getByTestId("button-dev-action").click();
+  await journal.getByTestId("button-dev-action-jump").click();
+  await until(async () => (await journal.locator(".ps-panda").getAttribute("class") || "").split(/\s+/).includes("ps-jump"), "reduced-motion action still starts");
+  assert.equal(await journal.getByTestId("panda-interaction-state").getAttribute("data-transition-direction"), null,
+    "reduced-motion action uses its pose without playing transition frames");
+  await until(async () => !(await journal.locator(".ps-panda").getAttribute("class") || "").split(/\s+/).includes("ps-jump"),
+    "reduced-motion action completes and returns to idle");
+  await journal.emulateMedia({ reducedMotion: "no-preference" });
   await journal.getByTestId("button-dev-action").click();
   await journal.getByTestId("button-dev-action-bamboo").click();
   await Promise.all([
@@ -283,7 +331,7 @@ async function main() {
       width: 1280, height: 800, show: true,
       webPreferences: { partition: "panda-web-room-smoke", contextIsolation: true, nodeIntegration: false },
     });
-    roomWindow.loadURL("http://127.0.0.1:21836/");
+    roomWindow.loadURL("http://127.0.0.1:21836/room");
   });
   let webRoom;
   await until(async () => {
@@ -300,7 +348,8 @@ async function main() {
   await until(() => webRoom.evaluate(() => document.visibilityState === "visible"), "web room active for behavior checks");
   assert.equal(await webRoom.getByTestId("companion-chat").getAttribute("data-room-only"), "true");
   const welcomeBubble = webRoom.getByTestId("panda-chat-bubble");
-  await welcomeBubble.waitFor();
+  await until(async () => await welcomeBubble.count() === 1 && await welcomeBubble.isVisible(),
+    "the initial welcome appears in the web room", 12000);
   const roomSpeech = await welcomeBubble.textContent();
   assert.ok(roomSpeech?.trim(), "the current room message appears in the panda dialogue");
   assert.doesNotMatch(roomSpeech, /[（(][^）)]*[）)]/u, "web room hides parenthetical action asides");
@@ -317,7 +366,7 @@ async function main() {
     "web room does not render the old composer or message inputs");
   assert.equal(await webRoom.locator(".cc-scroll, .cc-row, .cc-bubble, .cc-composer").count(), 0,
     "web room does not render old history rows or chat bubbles");
-  assert.equal(await welcomeBubble.count(), 1, "roaming welcome and follow-up text use the panda dialogue");
+  assert.ok(await welcomeBubble.count() <= 1, "room dialogue uses a single panda bubble when a message is available");
   await webRoom.evaluate(() => {
     window.__roomRequestCount = 0;
     window.__roomReplyAttempts = 0;
@@ -345,33 +394,47 @@ async function main() {
     const stage = document.querySelector(".ps-stage").getBoundingClientRect();
     const planeElement = document.querySelector(".ps-room-surface");
     const plane = planeElement.getBoundingClientRect();
-    const furniture = document.querySelector('[data-testid="room-foreground-furniture"]');
+    const backdrop = planeElement.querySelector(".ps-room-backdrop");
+    const floor = planeElement.querySelector(".ps-room-floor");
+    const furniture = document.querySelector('[data-testid="room-occlusion-cat-tree"]');
     return {
       stage, plane,
       surfaceDisplay: getComputedStyle(planeElement).display,
       furnitureDisplay: getComputedStyle(furniture).display,
       roomLayers: [...planeElement.children].map((layer) => layer.className),
+      occlusionCount: document.querySelectorAll(".ps-room-occlusion").length,
+      backdropImage: getComputedStyle(backdrop).backgroundImage,
+      floorImage: getComputedStyle(floor).backgroundImage,
+      backdropClip: getComputedStyle(backdrop).clipPath,
+      floorClip: getComputedStyle(floor).clipPath,
       width: innerWidth, height: innerHeight,
-      night: planeElement.dataset.night === "true"
+      nightAttributes: document.querySelectorAll("[data-night]").length
     };
   });
   assert.ok(Math.abs(journalRoom.stage.width - journalRoom.width) < 2 && Math.abs(journalRoom.stage.height - journalRoom.height) < 2,
     "journal room stage fills the browser viewport");
-  assert.equal(journalRoom.surfaceDisplay, "none", "unconfigured room background stays hidden");
-  assert.equal(journalRoom.furnitureDisplay, "none", "unconfigured room furniture stays hidden");
-  assert.equal(journalRoom.plane.width, 0, "hidden room scene does not define the movement area");
+  assert.equal(journalRoom.surfaceDisplay, "block", "the selected bedroom scene is visible");
+  assert.ok(Math.abs(journalRoom.plane.width - journalRoom.width) < 2
+    && Math.abs(journalRoom.plane.height - journalRoom.height) < 2,
+  "the selected room surface fills the movement viewport");
+  assert.ok(journalRoom.backdropImage.includes("room-background-pixellab.png")
+    && journalRoom.floorImage.includes("room-background-pixellab.png"),
+  "the backdrop and walking floor use the selected PixelLab scene");
+  assert.notEqual(journalRoom.backdropClip, journalRoom.floorClip, "the room image is split at the floor horizon");
+  assert.equal(journalRoom.furnitureDisplay, "block", "furniture occlusion layers are visible above the panda");
+  assert.ok(journalRoom.occlusionCount >= 4, "major painted furniture has depth-sorted occlusion layers");
   assert.deepEqual(journalRoom.roomLayers, ["ps-room-backdrop", "ps-room-floor"]);
-  assert.equal(journalRoom.night, false, "web interaction smoke test uses the user's Hong Kong daytime");
+  assert.equal(journalRoom.nightAttributes, 0, "web room does not switch into an automatic night mode");
   await webRoom.emulateMedia({ reducedMotion: "no-preference" });
-  if (!journalRoom.night) {
-    const journalWalkBounds = await webRoom.evaluate(async () => {
-      const track = document.querySelector(".ps-track");
+  const journalWalkBounds = await webRoom.evaluate(async () => {
+    const track = document.querySelector(".ps-track");
     const points = [];
     const started = performance.now();
       while (performance.now() - started < 9500) {
         points.push({
           x: Number(track.dataset.roomU),
           y: Number(track.dataset.roomV),
+          walkable: track.dataset.roomWalkable === "true",
           projectedX: Number.parseFloat(track.style.getPropertyValue("--room-x")),
           projectedY: Number.parseFloat(track.style.getPropertyValue("--room-y")),
           scale: Number(track.dataset.roomScale),
@@ -382,16 +445,17 @@ async function main() {
         xSpan: Math.max(...points.map(p => p.x)) - Math.min(...points.map(p => p.x)),
         ySpan: Math.max(...points.map(p => p.y)) - Math.min(...points.map(p => p.y)),
         scaleSpan: Math.max(...points.map(p => p.scale)) - Math.min(...points.map(p => p.scale)),
-        maxScreenProjectionError: Math.max(...points.map(p => Math.max(Math.abs(p.projectedX - p.x * 100), Math.abs(p.projectedY - p.y * 100)))),
+        allPointsWalkable: points.every(p => p.walkable),
+        maxViewportOverflow: Math.max(...points.map(p => Math.max(0, -p.projectedX, p.projectedX - 100, -p.projectedY, p.projectedY - 100))),
         sawWalking: points.some(p => p.sprite === "walk"),
         sawResting: points.some(p => p.sprite === "idle"),
       };
-    });
-    assert.ok(journalWalkBounds.xSpan > 0.01 && journalWalkBounds.ySpan > 0.01, "journal pet moves in both room-plane axes");
-    assert.ok(journalWalkBounds.maxScreenProjectionError < 0.05, "journal pet maps its roam coordinates across the full screen");
-    assert.ok(journalWalkBounds.scaleSpan < 0.001, "room pet keeps the same minimum size at every depth");
-    assert.ok(journalWalkBounds.sawWalking && journalWalkBounds.sawResting, "room pet alternates between walking and resting");
-  }
+  });
+  assert.ok(journalWalkBounds.xSpan > 0.01 && journalWalkBounds.ySpan > 0.01, "journal pet moves in both room-plane axes");
+  assert.equal(journalWalkBounds.allPointsWalkable, true, "every sampled roaming position avoids furniture and stays on floor");
+  assert.ok(journalWalkBounds.maxViewportOverflow < 0.05, "room positions project inside the browser viewport");
+  assert.ok(journalWalkBounds.scaleSpan > 0.001, "room pet scales with depth on the room plane");
+  assert.ok(journalWalkBounds.sawWalking && journalWalkBounds.sawResting, "room pet alternates between walking and resting");
 
   const webPandaButton = webRoom.getByTestId("button-panda");
   const webInteraction = webRoom.getByTestId("panda-interaction-state");
@@ -427,6 +491,10 @@ async function main() {
   await webRoom.mouse.up();
   await until(async () => await webPandaButton.getAttribute("data-bath-state") === "falling",
     "dropping the panda over the bathtub starts the bath entry");
+  assert.equal(await webPandaButton.getAttribute("data-bath-transition"), "entering",
+    "the web room marks the entry animation while the panda falls into the tub");
+  assert.equal(await webRoom.getByTestId("bath-transition-splash").count(), 1,
+    "a small landing splash appears during bath entry");
   await until(async () => {
     if (await webPandaButton.getAttribute("data-bath-state") !== "bathing") return false;
     return await Promise.all([
@@ -440,48 +508,26 @@ async function main() {
       }),
     ]).then(([tubIsUnchanged, pandaBathSpriteLoaded]) => tubIsUnchanged && pandaBathSpriteLoaded);
   }, "the panda bath animation loads while the original bathtub remains unchanged");
+  const bathWaterBubbles = webRoom.getByTestId("bath-water-bubbles");
+  assert.equal(await bathWaterBubbles.count(), 1, "the bathing pose includes a subtle water bubble layer");
+  assert.equal(await bathWaterBubbles.locator("i").count(), 2, "the bath bubbles stay sparse and do not cover the panda");
   const pandaBodyInBath = await webRoom.locator(".ps-body").boundingBox();
   const bathtubWidthInBath = await webBathtub.evaluate(el => el.getBoundingClientRect().width);
   assert.ok(pandaBodyBeforeBath && pandaBodyInBath, "the panda remains visible in the bathing pose");
-  assert.ok(Math.abs(pandaBodyInBath.width - pandaBodyBeforeBath.width) < 0.1,
-    "the panda keeps the same displayed size while bathing");
+  const bathRoomScale = Number(await webRoom.locator(".ps-track").getAttribute("data-room-scale"));
+  assert.ok(Math.abs(pandaBodyInBath.width - 88 * bathRoomScale) < 1,
+    "the bathing sprite keeps its perspective-scaled size");
   assert.ok(Math.abs(bathtubWidthInBath - bathtubWidthBeforeBath) < 0.1,
     "the bathtub keeps its original displayed size while bathing");
-  const bathBox = webRoom.getByTestId("bath-ball-box");
-  await bathBox.waitFor();
-  const bathBoxBounds = await bathBox.boundingBox();
-  const bathtubBounds = await webBathtub.boundingBox();
-  assert.ok(bathBoxBounds && bathtubBounds, "the bath-ball box is beside the bathtub");
-  assert.ok(bathBoxBounds.x + bathBoxBounds.width < bathtubBounds.x,
-    "the bath-ball box does not overlap the bathtub");
+  assert.equal(await webRoom.getByTestId("bath-ball-box").count(), 0, "the separate bath-ball box is gone");
   const bathBall = webRoom.getByTestId("bath-ball");
-  await until(async () => await bathBall.count() === 0,
-    "the bath puff stays in its box until the user takes it out");
-  await bathBox.click();
   await bathBall.waitFor();
-  await until(async () => await bathBall.getAttribute("data-dropping") === "true"
-      && await bathBall.evaluate(el => getComputedStyle(el).animationName === "ps-bath-ball-drop"),
-    "clicking the box makes the bath puff drop out with a bounce");
-  await until(async () => await bathBall.getAttribute("data-dropping") === "false",
-    "the bath puff settles beside the bathtub before it is dragged");
-  await until(() => bathBall.evaluate(el => el.querySelector("img")?.naturalWidth === 48),
-    "the draggable bath puff sprite loads");
-  const bathBallBox = await bathBall.boundingBox();
-  const bathPandaBox = await webPandaButton.boundingBox();
-  assert.ok(bathBallBox && bathPandaBox, "bath puff and panda hit target are visible");
-  await webRoom.mouse.move(bathBallBox.x + bathBallBox.width / 2, bathBallBox.y + bathBallBox.height / 2);
-  await webRoom.mouse.down();
-  await webRoom.mouse.move(bathPandaBox.x + bathPandaBox.width / 2, bathPandaBox.y + bathPandaBox.height / 2, { steps: 5 });
-  await until(async () => await webPandaButton.getAttribute("data-bath-rubbing") === "true",
-    "the rubbing animation starts as soon as the bath puff touches the panda");
+  await until(async () => await bathBall.getAttribute("data-on-panda") === "true"
+      && await webPandaButton.getAttribute("data-bath-rubbing") === "true",
+    "the bath puff appears by itself and starts the soap-washing animation");
   await until(async () => webRoom.locator(".ps-body").evaluate(el =>
     el.currentSrc.includes("/static/panda/bathing-soap/")),
-  "touching the panda switches to the separate PixelLab soap-washing frames");
-  assert.equal(await webRoom.locator(".ps-bath-foam i").count(), 4,
-    "visible soap bubbles appear while the puff touches the panda");
-  assert.equal(await webRoom.locator(".ps-body").evaluate(el => getComputedStyle(el).animationName),
-    "ps-bath-scrub", "the panda visibly moves its body while soaping");
-  await webRoom.mouse.up();
+  "the automatic puff uses the PixelLab soap-washing frames");
   await until(async () => await bathBall.getAttribute("data-on-panda") === "true",
     "the bath puff can be placed on the panda");
   assert.equal(await webPandaButton.getAttribute("data-bath-state"), "bathing",
@@ -502,22 +548,66 @@ async function main() {
     el.currentSrc.includes("/static/panda/bathing-wash/")),
   "the panda returns to its ordinary bathing animation after the puff is moved away");
   const bathingPosition = await webPosition.evaluate(el => ({ u: el.dataset.roomU, v: el.dataset.roomV }));
-  await webRoom.waitForTimeout(450);
-  assert.notEqual(await webRoom.locator(".ps-body").getAttribute("data-frame"), "0",
+  await until(async () => await webRoom.locator(".ps-body").getAttribute("data-frame") !== "0",
     "the bathing pose advances through its animation frames");
   assert.deepEqual(await webPosition.evaluate(el => ({ u: el.dataset.roomU, v: el.dataset.roomV })), bathingPosition,
     "the panda remains still while bathing");
   const pandaInBath = await webPandaButton.boundingBox();
   assert.ok(pandaInBath, "the panda can still be picked up while bathing");
-  await webRoom.mouse.move(pandaInBath.x + pandaInBath.width * 0.22, pandaInBath.y + pandaInBath.height * 0.66);
+  const bathLiftPoint = await webPandaButton.evaluate(el => {
+    const rect = el.getBoundingClientRect();
+    for (const [u, v] of [[0.18, 0.78], [0.18, 0.62], [0.5, 0.82], [0.82, 0.78]]) {
+      const x = rect.left + rect.width * u;
+      const y = rect.top + rect.height * v;
+      if (!document.elementFromPoint(x, y)?.closest(".ps-bath-ball")) return { x, y };
+    }
+    throw new Error("No unobstructed point is available to lift the panda from the tub");
+  });
+  await webRoom.mouse.move(bathLiftPoint.x, bathLiftPoint.y);
   await webRoom.mouse.down();
-  await webRoom.waitForTimeout(480);
+  await until(async () => await webPandaButton.getAttribute("data-bath-transition") === "exiting",
+    "lifting the panda from the web bathtub starts a short exit transition");
   await webRoom.mouse.move(webViewport.width * 0.52, webViewport.height * 0.55, { steps: 5 });
   await webRoom.mouse.up();
   await until(async () => await webPandaButton.getAttribute("data-bath-state") === "none",
     "lifting the panda out of the bathtub restores roaming");
-  await webRoom.waitForTimeout(160);
+  await until(async () => await webRoom.getByTestId("panda-interaction-state").getAttribute("data-transition-direction") === null
+      && await webPandaButton.getAttribute("data-activity-state") === "roaming",
+    "the panda finishes returning to roaming before the next room drag");
   console.info("PASS bathtub drop, persistent bathing pose, draggable bath puff and lift-to-exit");
+  const dryingRack = webRoom.getByTestId("room-clothes-rack");
+  await dryingRack.waitFor();
+  const rackBounds = await dryingRack.boundingBox();
+  const dampPandaBounds = await webPandaButton.boundingBox();
+  assert.ok(rackBounds && dampPandaBounds, "the damp panda and drying rack are available");
+  const rackHangX = rackBounds.x + rackBounds.width * 0.5;
+  const rackHangY = rackBounds.y + rackBounds.height * 0.27 + dampPandaBounds.height * 0.5;
+  await webRoom.mouse.move(dampPandaBounds.x + dampPandaBounds.width / 2, dampPandaBounds.y + dampPandaBounds.height / 2);
+  await webRoom.mouse.down();
+  await webRoom.waitForTimeout(480);
+  assert.equal(await webPandaButton.getAttribute("data-bath-transition"), null,
+    "a new room interaction safely clears the bath exit transition");
+  await webRoom.mouse.move(rackHangX, rackHangY, { steps: 5 });
+  await webRoom.mouse.up();
+  await until(async () => await webPandaButton.getAttribute("data-hanging-on-rack") === "true"
+      && await webRoom.getByTestId("panda-damp-status").textContent().then(text => text.includes("晾干中")),
+    "the damp panda hangs on the drying rack");
+  await until(async () => (await webRoom.getByTestId("panda-damp-status").textContent()).includes("晾好啦"),
+    "the drying rack clears the five-second damp timer", 7000);
+  const rackPandaBounds = await webPandaButton.boundingBox();
+  assert.ok(rackPandaBounds, "the dried panda remains on the rack");
+  await webRoom.mouse.move(rackPandaBounds.x + rackPandaBounds.width / 2, rackPandaBounds.y + rackPandaBounds.height / 2);
+  await webRoom.mouse.down();
+  await webRoom.waitForTimeout(480);
+  await webRoom.mouse.move(webViewport.width * 0.52, webViewport.height * 0.55, { steps: 5 });
+  await webRoom.mouse.up();
+  await until(async () => await webPandaButton.getAttribute("data-hanging-on-rack") === null
+      && await webRoom.getByTestId("panda-damp-status").count() === 0,
+    "lifting the dried panda clears its damp state");
+  await until(async () => await webRoom.getByTestId("panda-interaction-state").getAttribute("data-transition-direction") === null
+      && await webPandaButton.getAttribute("data-activity-state") === "roaming",
+    "the dried panda resumes roaming before the bed check");
+  console.info("PASS five-second drying rack and lift-to-dry transition");
   const webBed = webRoom.getByTestId("room-bed");
   await webBed.waitFor();
   await until(() => webBed.evaluate(el => el.complete && el.naturalWidth > 0 && el.naturalHeight > 0),
@@ -548,7 +638,7 @@ async function main() {
   await webRoom.mouse.move(pandaOnBed.x + pandaOnBed.width / 2, pandaOnBed.y + pandaOnBed.height / 2);
   await webRoom.mouse.down();
   await webRoom.waitForTimeout(480);
-  await webRoom.mouse.move(webViewport.width * 0.68, webViewport.height * 0.55, { steps: 5 });
+  await webRoom.mouse.move(webViewport.width * 0.52, webViewport.height * 0.55, { steps: 5 });
   await webRoom.mouse.up();
   await until(async () => await webPandaButton.getAttribute("data-sleeping-on-bed") === "false"
       && await webPandaButton.getAttribute("data-activity-state") === "roaming",
@@ -663,19 +753,23 @@ async function main() {
     return current.u !== positionAfterTimeout.u || current.v !== positionAfterTimeout.v;
   }, "web panda resumes roaming after the chat timeout", 4000);
 
-  await until(async () => await webPandaButton.evaluate(el => el.classList.contains("ps-walking")),
-    "web panda starts a route before the world-fall event check", 5000);
-  await webRoom.evaluate(() => {
-    window.__savedWorldFallRandom = Math.random;
-    const rolls = [0.8, 0.05];
-    Math.random = () => rolls.length ? rolls.shift() : 0.5;
-  });
+  await webRoom.getByTestId("button-dev-action").click();
+  await webRoom.getByTestId("button-dev-event-world-fall").click();
+  await until(async () => await webRoom.getByTestId("space-time-black-hole").count() === 1,
+    "the world-fall check creates its black hole");
+  const blackHole = webRoom.getByTestId("space-time-black-hole");
+  const blackHoleBounds = await blackHole.boundingBox();
+  const pandaBeforeBlackHole = await webPandaButton.boundingBox();
+  assert.ok(blackHoleBounds && pandaBeforeBlackHole, "the black hole and panda are available for the collision check");
+  await webRoom.mouse.move(pandaBeforeBlackHole.x + pandaBeforeBlackHole.width / 2,
+    pandaBeforeBlackHole.y + pandaBeforeBlackHole.height / 2);
+  await webRoom.mouse.down();
+  await webRoom.waitForTimeout(480);
+  await webRoom.mouse.move(blackHoleBounds.x + blackHoleBounds.width / 2,
+    blackHoleBounds.y + blackHoleBounds.height / 2, { steps: 5 });
+  await webRoom.mouse.up();
   await until(async () => await webInteraction.getAttribute("data-world-fall-state") === "falling",
-    "random route event begins the world fall", 20000);
-  await webRoom.evaluate(() => {
-    if (window.__savedWorldFallRandom) Math.random = window.__savedWorldFallRandom;
-    delete window.__savedWorldFallRandom;
-  });
+    "touching the black hole begins the world fall", 5000);
   assert.equal((await webRoom.getByTestId("panda-world-fall-message").textContent()).trim(), "掉出去啦！",
     "the fall leaves the requested short message");
   assert.equal(await webPandaButton.evaluate(el => getComputedStyle(el).animationName), "ps-world-fall",
@@ -731,8 +825,10 @@ async function main() {
     "two seconds of continuous circling trigger the drop only on release");
   await until(async () => await webPandaButton.getAttribute("data-dizzy-state") === "dazed",
     "the generated fall animation ends in a seated dizzy pose", 5000);
-  assert.equal(await webPandaButton.locator(".ps-body").getAttribute("data-frame"), "8",
-    "the final dizzy-eye sprite frame is held while the panda sits");
+  assert.equal(await webPandaButton.locator(".ps-body").getAttribute("data-sprite"), "dirty-return",
+    "the dirty return sprite stays visible while the panda is dizzy");
+  assert.equal(await webPandaButton.locator(".ps-body").getAttribute("data-frame"), "0",
+    "the static dirty return pose is preserved during the dizzy pause");
   assert.equal(await webPandaButton.locator(".ps-body").evaluate(img => img.naturalWidth), 96,
     "the generated dizzy sprite frame loads at its native pixel dimensions");
   await until(async () => await webPandaButton.getAttribute("data-dizzy-state") === "none",

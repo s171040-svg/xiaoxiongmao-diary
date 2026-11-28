@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { companionChat, type CompanionResponse } from '@workspace/api-client-react';
 import { isDesktop } from '@/lib/desktop';
-import { isQuietHours } from '@/lib/quiet-hours';
 import { replyFrame, replyRhythm } from '@/lib/reply-rhythm';
-import type { ChatMessage, CompanionState, PerformanceAction, PetEffect } from '@/lib/companion-types';
+import type { CareStatCategory, ChatMessage, CompanionState, Gift, PerformanceAction, PetEffect, SharedCareStats, WorldEcologyState, FoxMerchantLetter } from '@/lib/companion-types';
 import type { JournalEntry } from '@/lib/journal-types';
-import { assistant, contextFor, id, initialState, markPendingInterrupted, readState, receiveReply, recordUserMessage, performancePlan, tickCompanion, welcome, writeState, startGiftDrop, collectGift, favoriteGift, feedGift, injectTestGift, GIFT_DROP_MS, COMPANION_KEY, type TestGiftInput } from '@/lib/companion-store';
+import { acknowledgeCareStatInteraction as acknowledgeCareStatInteractionInState, adjustHungerState, assistant, canFeedGift, clearPendingCareStatInteractions, contextFor, deliverSpacePoliceLetter, eatSpacePoliceLetter as eatSpacePoliceLetterInState, fileSpacePoliceLetter as fileSpacePoliceLetterInState, feedActionForGift, feedVitaminGift, exchangeSnacksForVitamin as exchangeSnacksForVitaminInState, isVitaminGift, finishSpacePolicePoopDisposal, id, initialState, markPendingInterrupted, markSpacePoliceLetterOpened as markSpacePoliceLetterOpenedInState, mergeSharedCareStats, mergeSharedWorldEcology, mergeSharedFoxMerchantLetter, moveSpacePolicePoopBag, packSpacePolicePoop, placeSpacePolicePoop, disposeSpacePolicePoopBag, paySpacePoliceFine as paySpacePoliceFineInState, readState, receiveReply, recordCareStatInteraction as recordCareStatInteractionInState, recordPetAttentionState, recordUserMessage, performancePlan, tickCompanion, tryStartIdleWorldFall, markWorldFallReturned as markWorldFallReturnedInState, markPetWashed as markPetWashedInState, markPetDried as markPetDriedInState, openFoxMerchantLetter as openFoxMerchantLetterInState, redeemFoxMerchantLetter as redeemFoxMerchantLetterInState, welcome, writeState, startGiftDrop, collectGift, favoriteGift, feedGift, injectTestGift, GIFT_DROP_MS, CAPTURED_HOMECOMING_DURATION_MS, COMPANION_KEY, type TestGiftInput } from '@/lib/companion-store';
 
 function initial() {
   try {
@@ -32,7 +31,11 @@ function photoData(file: File): Promise<string> {
     image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('照片暂时无法读取。')); }; image.src = url;
   });
 }
-export function useCompanion() {
+export function useCompanion({
+  allowRandomPerformanceFall = true,
+  enableRoomEcology = false,
+  petName = '小熊猫',
+}: { allowRandomPerformanceFall?: boolean; enableRoomEcology?: boolean; petName?: string } = {}) {
   const [loaded] = useState(initial);
   const [state, setState] = useState(loaded.state);
   const current = useRef(state);
@@ -45,10 +48,20 @@ export function useCompanion() {
   const [listening, setListening] = useState(false);
   const listeningRef = useRef(listening), photoLoadingRef = useRef(isPhotoLoading);
   listeningRef.current = listening; photoLoadingRef.current = isPhotoLoading;
-  const [nightMode, setNightMode] = useState(isQuietHours);
   const [legacyEntries] = useState(legacy);
-  const [pet, setPet] = useState<PetEffect>({ action: 'idle', stage: state.trip ? 'away' : 'present', duration: 3000, token: 0 });
+  const [pet, setPet] = useState<PetEffect>(() => {
+    if (state.trip) return { action: 'idle', stage: 'away', duration: 3000, token: 0 };
+    if (enableRoomEcology && state.foxMerchantLetter?.status === 'captured') return { action: 'idle', stage: 'away', duration: 3000, token: 0 };
+    if (state.returnEvent?.kind === 'captured'
+      && (state.returnEvent.awaitingInteraction || state.returnEvent.until > Date.now())) {
+      return { action: 'captured-homecoming', stage: 'performing',
+        duration: CAPTURED_HOMECOMING_DURATION_MS, token: state.returnEvent.until };
+    }
+    return { action: 'idle', stage: 'present', duration: 3000, token: 0 };
+  });
   const petRef = useRef(pet);
+  const roomPetAnchored = useRef(false);
+  const setRoomPetAnchored = useCallback((anchored: boolean) => { roomPetAnchored.current = anchored; }, []);
   const timers = useRef<number[]>([]);
   const welcomeAt = useRef(0), queuedPerformance = useRef(false);
   const visible = useRef(!isDesktop() && document.visibilityState === 'visible');
@@ -63,8 +76,96 @@ export function useCompanion() {
     writeState(localStorage, next); current.current = next; setState(next); return next;
   }, []);
   const motion = useCallback((next: PetEffect) => {
-    petRef.current = next; setPet(next); window.pandaDesktop?.companionMotion(next);
+    petRef.current = next;
+    setPet(next);
+    const desktopEffect = next.action === 'captured-homecoming'
+      ? { ...next, stage: 'present' as const, action: 'idle' as const }
+      : next;
+    window.pandaDesktop?.companionMotion(desktopEffect);
   }, []);
+  const recordCareStatInteraction = useCallback((category: CareStatCategory) => {
+    try {
+      transact(s => {
+        const next = recordCareStatInteractionInState(s, category);
+        return enableRoomEcology ? recordPetAttentionState(next, Date.now()) : next;
+      });
+    }
+    catch (e) { report(e); }
+  }, [enableRoomEcology, report, transact]);
+  const recordPetAttention = useCallback((now = Date.now()) => {
+    if (!enableRoomEcology) return;
+    try { transact(s => recordPetAttentionState(s, now)); }
+    catch (e) { report(e); }
+  }, [enableRoomEcology, report, transact]);
+  const tryIdleWorldFall = useCallback((random = Math.random) => {
+    if (!enableRoomEcology) return false;
+    let shouldFall = false;
+    try {
+      transact(s => {
+        const result = tryStartIdleWorldFall(s, Date.now(), random);
+        shouldFall = result.shouldFall;
+        return result.state;
+      });
+    } catch (e) { report(e); }
+    return shouldFall;
+  }, [enableRoomEcology, report, transact]);
+  const markWorldFallReturned = useCallback((now = Date.now()): 'dirty' | 'captured' | 'reset' | undefined => {
+    if (!enableRoomEcology) return undefined;
+    try {
+      const next = transact(s => markWorldFallReturnedInState(s, now, petName));
+      if (next.foxMerchantLetter?.status === 'captured') {
+        queuedPerformance.current = false;
+        motion({ action: 'idle', stage: 'away', duration: 3000, token: 0 });
+        return 'captured';
+      }
+      if (next.foxMerchantLetter?.status === 'reset') return 'reset';
+      return 'dirty';
+    }
+    catch (e) { report(e); return undefined; }
+  }, [enableRoomEcology, motion, petName, report, transact]);
+  const markPetWashed = useCallback((now = Date.now()) => {
+    if (!enableRoomEcology) return;
+    try { transact(s => markPetWashedInState(s, now)); }
+    catch (e) { report(e); }
+  }, [enableRoomEcology, report, transact]);
+  const markPetDried = useCallback((now = Date.now()) => {
+    if (!enableRoomEcology) return;
+    try { transact(s => markPetDriedInState(s, now)); }
+    catch (e) { report(e); }
+  }, [enableRoomEcology, report, transact]);
+  const openFoxLetter = useCallback(() => {
+    try { transact(s => openFoxMerchantLetterInState(s)); }
+    catch (e) { report(e); }
+  }, [report, transact]);
+  const adjustHunger = useCallback((amount: number, now = Date.now()) => {
+    try { transact(s => adjustHungerState(s, amount, now)); }
+    catch (e) { report(e); }
+  }, [report, transact]);
+  const redeemFoxLetter = useCallback(() => {
+    const before = current.current;
+    try {
+      const next = transact(s => redeemFoxMerchantLetterInState(s));
+      if (before.foxMerchantLetter?.status !== 'captured'
+        || next.foxMerchantLetter?.status !== 'rescued') return false;
+      queuedPerformance.current = false;
+      motion({ action: 'idle', stage: 'present', duration: 3000, token: Date.now() });
+      return true;
+    } catch (e) { report(e); return false; }
+  }, [motion, report, transact]);
+  const mergeFoxLetterFromShared = useCallback((letter: FoxMerchantLetter) => {
+    const wasCaptured = current.current.foxMerchantLetter?.status === 'captured';
+    try {
+      const next = transact(s => mergeSharedFoxMerchantLetter(s, letter));
+      if (!enableRoomEcology) return;
+      const isCaptured = next.foxMerchantLetter?.status === 'captured';
+      if (!wasCaptured && isCaptured) {
+        queuedPerformance.current = false;
+        motion({ action: 'idle', stage: 'away', duration: 3000, token: 0 });
+      } else if (wasCaptured && !isCaptured) {
+        motion({ action: 'idle', stage: 'present', duration: 3000, token: Date.now() });
+      }
+    } catch (e) { report(e); }
+  }, [enableRoomEcology, motion, report, transact]);
   const notify = useCallback((text: string) => { window.pandaDesktop?.notifyMessage(text); }, []);
   const append = useCallback((text: string, kind: ChatMessage['kind'] = 'event') => {
     transact(s => ({ ...s, messages: [...s.messages, assistant(text, kind)] })); notify(text);
@@ -88,26 +189,34 @@ export function useCompanion() {
   }, [report, transact]);
   useEffect(() => {
     const gift = state.pendingGift;
-    window.pandaDesktop?.showGift(gift, state.giftDropStartedAt);
-    if (!gift || !state.giftDropStartedAt) return;
+    if (pet.stage !== 'returning') window.pandaDesktop?.showGift(gift, state.giftDropStartedAt);
+    if (!gift) return;
+    if (window.pandaDesktop && canFeedGift(gift) && !state.giftDropStartedAt) {
+      collectPresent(gift.id);
+      return;
+    }
+    if (!state.giftDropStartedAt) return;
     const timer = window.setTimeout(() => {
       try {
         const next = transact(s => collectGift(s, gift.id));
         if (!next.pendingGift) {
-          setStatus('小礼物收好啦，可以去小礼物里看看。');
+          setStatus(canFeedGift(gift)
+            ? '礼物收进收纳盒啦；打开“零食”页可以喂小熊猫。'
+            : '小礼物收进收纳盒啦；打开“纪念品”页可以查看。');
           motion({ ...petRef.current, carrying: undefined });
         }
       } catch (e) { report(e); }
     }, Math.max(0, state.giftDropStartedAt + GIFT_DROP_MS - Date.now()));
     return () => clearTimeout(timer);
-  }, [state.pendingGift, state.giftDropStartedAt, motion, report, transact]);
+  }, [state.pendingGift, state.giftDropStartedAt, collectPresent, motion, pet.stage, report, transact]);
   useEffect(() => window.pandaDesktop?.onGiftClick(collectPresent), [collectPresent]);
   const perform = useCallback(() => {
     if (petRef.current.stage !== 'present') { queuedPerformance.current = true; return; }
-    const plan = performancePlan();
+    const plan = performancePlan(Math.random, allowRandomPerformanceFall);
     const base: PetEffect = {
       ...petRef.current,
       ...plan,
+      actionPreview: undefined,
       duration: plan.action === 'bamboo' ? Math.max(plan.duration, 7000) : plan.duration,
       stage: 'performing',
       token: Date.now(),
@@ -135,27 +244,122 @@ export function useCompanion() {
         }, 5000);
       }, base.duration / 2);
     } else later(done, base.duration);
-  }, [append, later, motion, report]);
+  }, [allowRandomPerformanceFall, append, later, motion, report]);
   const performTestAction = useCallback((action: PerformanceAction) => {
-    if (!import.meta.env.DEV) throw new Error('动作检测仅在开发环境可用。');
-    if (['roll', 'spin', 'tumble'].includes(action)) return false;
+    if (!import.meta.env.DEV) throw new Error('动画检视仅在开发环境可用。');
+    if (['roll', 'tumble'].includes(action)) return false;
     if (petRef.current.stage !== 'present') return false;
+    if (action === 'captured-homecoming') {
+      try {
+        transact(s => deliverSpacePoliceLetter(s));
+      } catch (e) { report(e); return false; }
+    }
     const base: PetEffect = {
       ...petRef.current,
       action,
       stage: 'performing',
-      duration: action === 'bamboo' ? 7000 : 3500,
+      duration: action === 'bamboo' ? 7000 : action === 'captured-homecoming' ? CAPTURED_HOMECOMING_DURATION_MS : 3500,
       token: Date.now(),
       userName: current.current.userName,
+      actionPreview: true,
     };
     motion(base);
+    if (action === 'captured-homecoming') return true;
     later(() => {
       if (petRef.current.token !== base.token || petRef.current.stage !== 'performing') return;
-      motion({ ...base, action: 'idle', stage: 'present', duration: 3000 });
+      motion({ ...base, action: 'idle', stage: 'present', duration: 3000, actionPreview: undefined });
       settle.current();
     }, base.duration);
     return true;
-  }, [later, motion]);
+  }, [later, motion, report, transact]);
+  const acknowledgeCapturedHomecoming = useCallback(() => {
+    const active = petRef.current;
+    if (active.stage !== 'performing' || active.action !== 'captured-homecoming') return false;
+    try {
+      if (readState(localStorage).returnEvent?.kind === 'captured') {
+        transact(currentState => ({ ...currentState, returnEvent: undefined }));
+      }
+    } catch (e) { report(e); }
+    queuedPerformance.current = false;
+    motion({
+      ...active,
+      action: 'idle',
+      stage: 'present',
+      duration: 3000,
+      token: Date.now(),
+      carrying: undefined,
+      actionPreview: undefined,
+    });
+    return true;
+  }, [motion, report, transact]);
+  const markSpacePoliceLetterOpened = useCallback((letterId?: string) => {
+    try {
+      if (letterId
+        ? !current.current.spacePoliceLetters?.some(letter => letter.id === letterId)
+        : !current.current.spacePoliceLetter) return false;
+      transact(s => markSpacePoliceLetterOpenedInState(s, Date.now(), letterId));
+      return true;
+    } catch (e) { report(e); return false; }
+  }, [report, transact]);
+  const fileSpacePoliceLetter = useCallback((deliveredAt: number) => {
+    const activeLetter = current.current.spacePoliceLetter;
+    if (!activeLetter || activeLetter.deliveredAt !== deliveredAt
+      || activeLetter.filedAt !== undefined || activeLetter.eatenAt !== undefined) return false;
+    try {
+      transact(s => fileSpacePoliceLetterInState(s, deliveredAt));
+      return true;
+    } catch (e) { report(e); return false; }
+  }, [report, transact]);
+  const eatSpacePoliceLetter = useCallback((deliveredAt: number) => {
+    const activeLetter = current.current.spacePoliceLetter;
+    if (!activeLetter || activeLetter.deliveredAt !== deliveredAt
+      || activeLetter.filedAt !== undefined || activeLetter.eatenAt !== undefined) return false;
+    try {
+      transact(s => eatSpacePoliceLetterInState(s, deliveredAt));
+      return true;
+    } catch (e) { report(e); return false; }
+  }, [report, transact]);
+  const placeSpacePolicePoopAt = useCallback((deliveredAt: number, x: number, y: number) => {
+    try { transact(s => placeSpacePolicePoop(s, deliveredAt, x, y)); }
+    catch (e) { report(e); }
+  }, [report, transact]);
+  const packSpacePolicePoopByLetter = useCallback((deliveredAt: number) => {
+    try { transact(s => packSpacePolicePoop(s, deliveredAt)); }
+    catch (e) { report(e); }
+  }, [report, transact]);
+  const moveSpacePolicePoopBagTo = useCallback((deliveredAt: number, x: number, y: number) => {
+    try { transact(s => moveSpacePolicePoopBag(s, deliveredAt, x, y)); }
+    catch (e) { report(e); }
+  }, [report, transact]);
+  const disposeSpacePolicePoopBagAt = useCallback((deliveredAt: number, x: number, y: number) => {
+    try { transact(s => disposeSpacePolicePoopBag(s, deliveredAt, x, y)); }
+    catch (e) { report(e); }
+  }, [report, transact]);
+  const finishSpacePolicePoopDisposalForLetter = useCallback((deliveredAt: number) => {
+    try { transact(s => finishSpacePolicePoopDisposal(s, deliveredAt)); }
+    catch (e) { report(e); }
+  }, [report, transact]);
+  useEffect(() => {
+    if (pet.stage !== 'performing' || pet.action !== 'captured-homecoming') return undefined;
+    const token = pet.token;
+    const returnEvent = state.returnEvent;
+    if (!returnEvent || returnEvent.awaitingInteraction) return undefined;
+    const duration = returnEvent?.kind === 'captured'
+      ? Math.max(0, returnEvent.until - Date.now())
+      : pet.duration;
+    const timer = window.setTimeout(() => {
+      if (petRef.current.stage !== 'performing' || petRef.current.token !== token) return;
+      motion({ ...petRef.current, action: 'idle', stage: 'present', duration: 3000, carrying: undefined });
+      if (returnEvent?.kind === 'captured') {
+        try {
+          transact(currentState => currentState.returnEvent?.until === returnEvent.until
+            ? { ...currentState, returnEvent: undefined } : currentState);
+        } catch (e) { report(e); }
+      }
+      settle.current();
+    }, duration);
+    return () => window.clearTimeout(timer);
+  }, [motion, pet.action, pet.duration, pet.stage, pet.token, report, state.returnEvent, transact]);
   settle.current = () => { if (queuedPerformance.current) { queuedPerformance.current = false; perform(); } };
   const greet = useCallback((manual = false) => {
     if (!manual && Date.now() - welcomeAt.current < 300) return;
@@ -186,21 +390,40 @@ export function useCompanion() {
     const sync = (event: StorageEvent) => { if (event.key === COMPANION_KEY) { try { const next = readState(localStorage); current.current = next; setState(next); } catch (e) { report(e); } } };
     window.addEventListener('storage', sync);
     const timer = window.setInterval(() => {
-      setNightMode(isQuietHours());
       if (listeningRef.current || photoLoadingRef.current || petRef.current.stage === 'performing' || petRef.current.stage === 'fallen' || petRef.current.stage === 'returning') return;
       const tick = () => {
         try {
           const previous = readState(localStorage);
           if (busyRef.current && !(previous.trip && Date.now() >= previous.trip.returnAt)) return;
-          const result = tickCompanion(previous, Date.now());
+          const result = tickCompanion(previous, Date.now(), Math.random, {
+            allowDeparture: !roomPetAnchored.current && previous.foxMerchantLetter?.status !== 'captured',
+            enableWorldEcology: enableRoomEcology,
+            petName,
+          });
           if (result.state !== previous) {
             writeState(localStorage, result.state); current.current = result.state; setState(result.state);
+          }
+          if (result.worldEvent === 'captured') {
+            queuedPerformance.current = false;
+            motion({ action: 'idle', stage: 'away', duration: 3000, token: 0 });
+          }
+          if (result.worldEvent === 'reset') {
+            notify(result.state.messages.at(-1)?.text ?? '养成状态已重置，可以重新养一只。');
+            motion({ action: 'idle', stage: 'present', duration: 3000, token: Date.now() });
           }
           if (result.text) notify(result.text);
           if (result.event === 'departure') motion({ ...petRef.current, stage: 'away', token: Date.now(), carrying: undefined });
           if (result.event === 'gift') {
-            motion({ ...petRef.current, stage: 'returning', token: Date.now(), carrying: result.state.pendingGift?.emoji });
-            later(() => { motion({ ...petRef.current, stage: 'present', action: 'idle' }); settle.current(); }, 2500);
+            if (result.capturedReturn) {
+              motion({ ...petRef.current, action: 'captured-homecoming', stage: 'performing',
+                duration: CAPTURED_HOMECOMING_DURATION_MS, token: Date.now(), carrying: undefined });
+            } else {
+              motion({ ...petRef.current, action: 'idle', stage: 'returning', token: Date.now(), carrying: result.state.pendingGift?.emoji });
+              later(() => {
+                motion({ ...petRef.current, stage: 'present', action: 'idle', duration: 3000, carrying: undefined });
+                settle.current();
+              }, 2500);
+            }
           }
         } catch (e) { report(e); }
       };
@@ -212,19 +435,20 @@ export function useCompanion() {
       clearInterval(timer); document.removeEventListener('visibilitychange', change); window.removeEventListener('storage', sync);
       off?.(); offGreeting?.();
     };
-  }, [greet, loaded.error, motion, notify, report, later, transact]);
+  }, [enableRoomEcology, petName, greet, loaded.error, motion, notify, report, later, transact]);
   useEffect(() => {
     alive.current = true;
     return () => { alive.current = false; timers.current.forEach(clearTimeout); };
   }, []);
-  async function requestReply(messageId: string) {
+  async function requestReply(messageId: string, clearMindMode = false) {
     busyRef.current = true; setBusy(true); setError(false); setStatus('小熊猫在认真听…');
     setReplyDisplay(null);
     const sentAt = Date.now();
     const pause = 500 + Math.random() * 1000;
     notify('唔……');
     try {
-      const input = contextFor(readState(localStorage), messageId);
+      const context = contextFor(readState(localStorage), messageId);
+      const input = clearMindMode ? { ...context, clearMindMode: true } : context;
       const response: CompanionResponse = window.pandaDesktop ? await window.pandaDesktop.chat(input) : await companionChat(input);
       const wait = (ms: number) => new Promise<void>(resolve => window.setTimeout(resolve, ms));
       await wait(Math.max(0, sentAt + pause - Date.now()));
@@ -256,22 +480,28 @@ export function useCompanion() {
       report(new Error(reason));
     } finally { busyRef.current = false; if (alive.current) { setBusy(false); setReplyDisplay(null); } }
   }
-  async function send(textOverride?: string) {
+  async function send(textOverride?: string, options?: { clearMindMode?: boolean }) {
     if (busyRef.current || isPhotoLoading || listening) return;
     const text = (textOverride ?? current.current.draft).trim();
     if (!text) { report(new Error('照片只留在本机，先配上一句话再发送吧。')); return; }
-    const message: ChatMessage = { id: id(), role: 'user', text, photo: current.current.draftPhoto, createdAt: Date.now(), status: 'pending', kind: 'chat' };
+    acknowledgeCapturedHomecoming();
+    const clearMindMode = options?.clearMindMode === true;
+    const message: ChatMessage = { id: id(), role: 'user', text, photo: current.current.draftPhoto, createdAt: Date.now(), status: 'pending', kind: 'chat',
+      clearMindMode: clearMindMode || undefined };
     try {
-      transact(s => recordUserMessage(s, message));
+      transact(s => {
+        const next = recordCareStatInteractionInState(recordUserMessage(s, message), 'bond', message.createdAt);
+        return enableRoomEcology ? recordPetAttentionState(next, message.createdAt) : next;
+      });
     } catch (e) { report(e); return; }
-    await requestReply(message.id);
+    await requestReply(message.id, clearMindMode);
   }
   async function retryMessage(messageId: string) {
     if (busyRef.current) return;
     if (current.current.messages.filter(m => m.role === 'user').at(-1)?.id !== messageId) { report(new Error('这条后面已有新消息，请继续聊，不重复发送旧消息。')); return; }
     try { transact(s => ({ ...s, messages: s.messages.map(m => m.id === messageId ? { ...m, status: 'pending', failureReason: undefined } : m) })); }
     catch (e) { report(e); return; }
-    await requestReply(messageId);
+    await requestReply(messageId, current.current.messages.find(message => message.id === messageId)?.clearMindMode === true);
   }
   async function choosePhoto(file?: File) {
     if (!file || busyRef.current) return;
@@ -282,24 +512,80 @@ export function useCompanion() {
   }
   return {
     state, draft: state.draft, photo: state.draftPhoto, busy, replyDisplay, isPhotoLoading, listening, setListening, collectPresent,
-    status, error, nightMode, pet, legacyEntries, send, retryMessage, choosePhoto, perform,
+      status, error, pet, legacyEntries, send, retryMessage, choosePhoto, perform, acknowledgeCapturedHomecoming, markSpacePoliceLetterOpened, fileSpacePoliceLetter, eatSpacePoliceLetter,
+      placeSpacePolicePoopAt, packSpacePolicePoopByLetter, moveSpacePolicePoopBagTo, disposeSpacePolicePoopBagAt, finishSpacePolicePoopDisposalForLetter,
+     paySpacePoliceFine: (letterId: string, giftId: string) => {
+       try {
+         const next = transact(s => paySpacePoliceFineInState(s, letterId, giftId));
+         const letter = next.spacePoliceLetters?.find(entry => entry.id === letterId);
+         return letter?.finePayment ? letter : null;
+       } catch (e) { report(e); return null; }
+     },
     setDraft: (draft: string) => { try { transact(s => ({ ...s, draft })); } catch (e) { report(e); } },
     removePhoto: () => { try { transact(s => ({ ...s, draftPhoto: undefined })); } catch (e) { report(e); } },
     removeDiary: (memoryId: string) => { try { transact(s => ({ ...s, diary: s.diary.filter(m => m.id !== memoryId) })); } catch (e) { report(e); } },
+    recordCareStatInteraction, recordPetAttention, tryIdleWorldFall, markWorldFallReturned, markPetWashed, markPetDried,
+    openFoxLetter, redeemFoxLetter, adjustHunger,
+    setRoomPetAnchored,
+    mergeSharedCareStats: (careStats: SharedCareStats) => {
+      try { transact(s => mergeSharedCareStats(s, careStats)); }
+      catch (e) { report(e); }
+    },
+    mergeSharedWorldEcology: (worldEcology: WorldEcologyState) => {
+      try { transact(s => mergeSharedWorldEcology(s, worldEcology)); }
+      catch (e) { report(e); }
+    },
+    mergeSharedFoxMerchantLetter: mergeFoxLetterFromShared,
+    acknowledgeCareStatInteraction: (interactionId: string, careStats: SharedCareStats) => {
+      try { transact(s => acknowledgeCareStatInteractionInState(s, interactionId, careStats)); }
+      catch (e) { report(e); }
+    },
+    clearPendingCareStatInteractions: () => {
+      try { transact(clearPendingCareStatInteractions); }
+      catch (e) { report(e); }
+    },
+    mergeSharedGifts: (gifts: Gift[]) => {
+      try {
+        transact(s => {
+          const merged = new Map(s.gifts.map(gift => [gift.id, gift]));
+          for (const gift of gifts) merged.set(gift.id, { ...merged.get(gift.id), ...gift });
+          return { ...s, gifts: [...merged.values()].slice(-300) };
+        });
+      } catch (e) { report(e); }
+    },
     favoriteGift: (giftId: string) => { try { transact(s => favoriteGift(s, giftId)); } catch (e) { report(e); } },
     feedGift: (giftId: string) => {
       try {
         const before = current.current;
-        const next = transact(s => feedGift(s, giftId));
+        const gift = before.gifts.find(item => item.id === giftId);
+        const action = gift ? feedActionForGift(gift) : undefined;
+        const vitamin = gift ? isVitaminGift(gift) : false;
+        const now = Date.now();
+        const next = transact(s => {
+          if (vitamin) return enableRoomEcology ? feedVitaminGift(s, giftId, petName, now) : s;
+          const fed = feedGift(s, giftId, now);
+          return fed === s ? fed : recordCareStatInteractionInState(fed, 'health');
+        });
         if (next.messages.length !== before.messages.length) {
           notify(next.messages.at(-1)!.text);
-          if (petRef.current.stage === 'present') {
-            const effect: PetEffect = { ...petRef.current, action: 'bamboo', stage: 'performing', duration: 7000, token: Date.now() };
+          if (action && petRef.current.stage === 'present') {
+            const effect: PetEffect = { ...petRef.current, action, stage: 'performing', duration: 7000, token: Date.now() };
             motion(effect);
             later(() => { motion({ ...effect, action: 'idle', stage: 'present', duration: 3000 }); settle.current(); }, effect.duration);
           }
         }
       } catch (e) { report(e); }
+    },
+    exchangeSnacksForVitamin: () => {
+      if (!enableRoomEcology) return false;
+      try {
+        const before = current.current;
+        const next = transact(s => exchangeSnacksForVitaminInState(s, petName));
+        const exchanged = next.gifts.length > before.gifts.length
+          && next.gifts.at(-1)?.kind === 'vitamin';
+        if (exchanged) setStatus(`已经为${petName}换好一颗维生素，打开维生素页取出来喂它吧。`);
+        return exchanged;
+      } catch (e) { report(e); return false; }
     },
     ...(import.meta.env.DEV ? { addTestGift, performTestAction } : {}),
   };

@@ -1,17 +1,23 @@
 .ps-room-surface{display:none;position:fixed;z-index:0;inset:0;overflow:hidden;pointer-events:none}
+.ps-room-surface[data-room-only=true]{display:block}
 .ps-room-backdrop,.ps-room-floor{position:absolute;inset:0}
 .ps-room-backdrop{z-index:0;background-color:#e4d6b7;background-image:linear-gradient(180deg,#e4d6b7 0%,#d8c49b 42%,#c0a77b 100%)}
 .ps-room-floor{z-index:1;overflow:hidden}
 .ps-room-floor::before{position:absolute;inset:0;background-image:repeating-linear-gradient(45deg,transparent 0 48px,#957b5538 49px 50px),repeating-linear-gradient(-45deg,transparent 0 48px,#957b5538 49px 50px);background-position:center;content:"";opacity:.86}
 .ps-room-floor::after{position:absolute;inset:0;background:linear-gradient(180deg,#fff6df2e,transparent 45%,#60482617);content:""}
-.ps-room-surface[data-night=true]:not([data-room-only=true]) .ps-room-backdrop{background-color:#1d2927;background-image:linear-gradient(180deg,#1e2a2b 0%,#273533 48%,#374238 100%)}
-.ps-room-surface[data-night=true]:not([data-room-only=true]) .ps-room-floor::before{background-image:repeating-linear-gradient(45deg,transparent 0 48px,#9db39a24 49px 50px),repeating-linear-gradient(-45deg,transparent 0 48px,#9db39a24 49px 50px)}
 .ps-room-surface[data-room-only=true] .ps-room-backdrop,.ps-room-surface[data-room-only=true] .ps-room-floor{background-color:transparent}
 .ps-room-surface[data-room-only=true] .ps-room-backdrop{background-color:#dfe8cc}
 .ps-room-surface[data-room-only=true] .ps-room-floor{background-color:#c5ad82}
 .ps-room-surface[data-room-only=true] .ps-room-floor::before{display:none}
-.ps-room-surface[data-room-only=true][data-night=true] .ps-room-backdrop,.ps-room-surface[data-room-only=true][data-night=true] .ps-room-floor{filter:brightness(.58) saturate(.82)}
 .ps-stage{position:fixed;z-index:2;inset:0;width:100vw;height:100vh;height:100dvh;overflow:hidden;pointer-events:none;--room-walk-range:clamp(0px,35vw,42vw);--room-roll-range:clamp(0px,4.5vw,54px)}
+.ps-snack-feed-token{position:fixed;z-index:50;display:grid;place-items:center;box-sizing:border-box;width:42px;height:42px;padding:0;border:0;border-radius:0;background:transparent;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.ps-snack-feed-token[data-dragging=true]{z-index:55;cursor:grabbing;transform:scale(1.08)}
+.ps-truth-potion-token{position:fixed;z-index:50;display:grid;width:28px;height:28px;padding:0;place-items:center;border:0;background:transparent;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.ps-truth-potion-token img{display:block;width:26px;height:26px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(1px 2px 2px #39231088);pointer-events:none}
+.ps-truth-potion-token[data-dragging=true]{z-index:55;cursor:grabbing;transform:scale(1.08)}
+.ps-truth-potion-token:focus-visible{outline:2px solid #f7d368;outline-offset:2px}
+.ps-snack-feed-emoji{display:grid;width:100%;height:100%;place-items:center;font-size:27px;line-height:1;filter:drop-shadow(1px 2px 2px #39231088);pointer-events:none}
+.ps-panda[data-snack-feeding=true]{filter:drop-shadow(0 0 7px #ffd76d)}
 .ps-debug-panel{position:fixed;z-index:20;bottom:12px;left:12px;box-sizing:border-box;width:min(440px,calc(100vw - 24px));max-height:min(260px,42vh);overflow:hidden;padding:10px 12px;border:1px solid #ffffff42;border-radius:10px;background:#18201eeF;color:#f3f1e7;box-shadow:0 5px 24px #0004;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;pointer-events:none}
 .ps-debug-panel strong,.ps-debug-panel>span{display:block}
 .ps-debug-panel strong{margin-bottom:3px;color:#d8e9c9;font:600 12px/1.4 "Noto Sans CJK SC",sans-serif}
@@ -21,11 +27,46 @@
 .ps-thinking{position:absolute;z-index:4;left:calc(50% + 34px);top:14px;padding:3px 10px;border-radius:14px;background:var(--bub,#fff);color:var(--sage,#527459);font:500 15px/1.5 "Noto Sans CJK SC",sans-serif}
 .ps-room-chat-bubble{top:auto;bottom:calc(100% + 8px);left:50%;box-sizing:border-box;width:max-content;max-width:min(320px,calc(100vw - 28px));transform:translateX(-50%);padding:9px 13px;border:1px solid color-mix(in srgb,var(--sage,#527459) 24%,transparent);border-radius:16px;box-shadow:0 4px 16px #1e302a24;white-space:pre-wrap;overflow-wrap:anywhere;text-align:center;line-height:1.55}
 .ps-track{position:absolute;left:var(--room-x,50%);top:var(--room-y,53%);width:calc(92px * var(--room-scale,.89));height:calc(92px * var(--room-scale,.89));display:grid;place-items:end center;transform:translate(-50%,-100%);pointer-events:none}
+.ps-stage[data-dragging=true] .ps-track{left:0;top:0;translate:var(--panda-drag-x,var(--room-x,50%)) var(--panda-drag-y,var(--room-y,53%));will-change:translate}
+.ps-room-interactive-jar{position:fixed;display:block;transform:translate(-50%,-100%);background:transparent;pointer-events:none}
+.ps-panda[data-jar-trapped=true]{z-index:8;cursor:grab}
+.ps-panda[data-jar-trapped=true]:hover,.ps-panda[data-jar-trapped=true]:active{translate:0;scale:1}
+.ps-panda[data-jar-trapped=true] .ps-body{clip-path:none;transform:none;translate:0 0;rotate:0;scale:1;animation:none!important;filter:none}
 .ps-track.ps-bed-sleeping{z-index:4}
 .ps-room-furniture{display:none;position:absolute;width:clamp(116px,14vw,168px);height:auto;image-rendering:pixelated;transform-origin:center bottom;pointer-events:none;user-select:none}
-.ps-room-bed{position:fixed;z-index:1;left:clamp(28px,26vw,360px);top:clamp(230px,58vh,500px);width:clamp(155px,18vw,225px);height:auto;transform:translate(-50%,-70%);image-rendering:pixelated;filter:drop-shadow(0 4px 5px #17131d40);pointer-events:none;user-select:none}
-.ps-bath-station{position:fixed;z-index:2;right:clamp(14px,4vw,56px);bottom:clamp(78px,12vh,112px);display:flex;align-items:flex-end;gap:9px;pointer-events:none}
-.ps-room-bathtub{position:static;display:block;width:clamp(96px,13vw,164px);height:auto;image-rendering:pixelated;filter:drop-shadow(0 3px 4px #443a2730);pointer-events:none;user-select:none}
+.ps-room-occlusion{position:absolute;inset:0;display:block;pointer-events:none;background-repeat:no-repeat}
+.ps-room-image-cutout-canvas{position:fixed;z-index:241;top:50%;left:50%;width:min(100vw,177.7777778vh);aspect-ratio:16/9;transform:translate(-50%,-50%);pointer-events:none}
+.ps-room-live-clock{position:absolute;inset:0;display:block;width:100%;height:100%;image-rendering:pixelated;pointer-events:none}
+.ps-room-plant-user-cutout{position:absolute;right:0;bottom:0;display:block;width:12.109375%;height:auto;image-rendering:pixelated;pointer-events:none;user-select:none}
+.ps-room-rack{position:fixed;z-index:1;left:68%;bottom:clamp(190px,26vh,280px);width:clamp(58px,6vw,80px);height:auto;transform:translateX(-50%);image-rendering:pixelated;filter:drop-shadow(0 4px 4px #33271c30);pointer-events:auto;touch-action:none;user-select:none;cursor:grab}
+.ps-room-rack-occlusion{position:fixed;z-index:240;left:68%;bottom:calc(var(--room-gap-bottom,0px) + var(--room-h,100vh) * .24);width:clamp(58px,6vw,80px);height:auto;transform:translateX(-50%);image-rendering:pixelated;pointer-events:none;user-select:none;visibility:hidden}
+.ps-room-bed{position:fixed;z-index:1;left:clamp(28px,26vw,360px);top:clamp(260px,66vh,560px);width:clamp(103px,12vw,150px);height:auto;transform:translate(-50%,-80%);image-rendering:pixelated;filter:drop-shadow(0 4px 5px #17131d40);pointer-events:auto;touch-action:none;user-select:none;cursor:grab}
+.ps-bath-station{position:fixed;z-index:2;right:clamp(14px,4vw,56px);bottom:clamp(78px,12vh,112px);display:flex;width:max-content;align-items:flex-end;gap:9px;pointer-events:auto;touch-action:none;user-select:none;cursor:grab}
+.ps-bath-tub-wrap{position:relative;display:block;width:clamp(96px,13vw,164px);line-height:0}
+.ps-room-bathtub{position:static;display:block;width:100%;height:auto;image-rendering:pixelated;filter:drop-shadow(0 3px 4px #443a2730);pointer-events:none;user-select:none}
+.ps-space-letter-box{position:fixed;z-index:130;left:clamp(18px,7vw,90px);bottom:clamp(82px,12vh,120px);box-sizing:border-box;display:flex;width:70px;height:62px;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:14px 5px 4px;border:2px solid #61432b;border-radius:3px;background:linear-gradient(90deg,#98683b 0 12%,#c08a50 13% 86%,#98683b 87%);box-shadow:inset 0 0 0 2px #dfbd7e,0 4px 0 #4e3523,0 6px 8px #29201938;image-rendering:pixelated;cursor:pointer;user-select:none;pointer-events:auto}
+.ps-furniture-dragging{z-index:200!important;cursor:grabbing!important;filter:drop-shadow(0 7px 8px #201a1660) brightness(1.04)}
+.ps-furniture-controlled{outline:2px dashed #f5d98d;outline-offset:3px}
+.ps-room-rack-eye{position:fixed;z-index:230;display:grid;width:56px;height:56px;place-items:center;padding:0;border:0;border-radius:50%;background:transparent;transform:translate(-50%,-50%);cursor:grab;pointer-events:auto;touch-action:none;user-select:none}
+.ps-room-rack-eye img{display:block;width:19px;height:auto;image-rendering:pixelated;filter:drop-shadow(0 1px 2px #241b1a90);pointer-events:none}
+.ps-room-rack-eye:focus-visible{outline:2px solid #f5d98d;outline-offset:1px}
+.ps-room-rack-eye-dragging{z-index:260;cursor:grabbing;transform:translate(-50%,-50%) scale(1.08)}
+.ps-room-rack-eye-controlled img{filter:drop-shadow(0 0 3px #fff2b7) drop-shadow(0 2px 3px #241b1a90)}
+.ps-room-rack-eye-hint{position:fixed;z-index:261;max-width:220px;padding:5px 8px;border:1px solid #d2bd8a;border-radius:10px;background:#fff8e8ed;box-shadow:0 2px 8px #291c1730;color:#59442d;font:600 11px/1.35 "Noto Sans CJK SC",sans-serif;white-space:nowrap;pointer-events:auto}
+.ps-room-rack-eye-hint button{width:36px;height:36px;margin:0 2px 4px 0;padding:0;border:1px solid #b29a6b;border-radius:4px;background:#fff5d9;color:#59442d;font:700 20px/1 sans-serif;cursor:pointer;touch-action:manipulation}
+.ps-room-rack-eye-hint button:active{background:#e8d7af}
+.ps-room-rack-eye-hint button:focus-visible{outline:2px solid #58734b;outline-offset:1px}
+.ps-room-rack-eye-hint span{display:block;font-size:10px}
+.ps-bath-station.ps-furniture-dragging .ps-bath-box{cursor:grabbing}
+.ps-space-letter-box::before{position:absolute;top:3px;left:-5px;right:-5px;height:9px;border:2px solid #67472c;border-radius:2px;background:linear-gradient(#e8ca91 0 25%,#af7745 27%);box-shadow:0 2px 0 #66452a;content:""}
+.ps-space-letter-box::after{position:absolute;top:24px;right:5px;left:5px;height:2px;background:#76502e;box-shadow:0 4px 0 #76502e;content:"";opacity:.55}
+.ps-space-letter-box-stamp{position:relative;z-index:1;display:grid;width:23px;height:18px;place-items:center;border:1px solid #8b5a39;border-radius:2px;background:#f5e5bd;color:#9c4f43;box-shadow:0 1px 0 #603d29;pointer-events:none}
+.ps-space-letter-box-stamp:before{content:"";width:13px;height:9px;border:1px solid currentColor;border-radius:1px;background:linear-gradient(145deg,transparent 47%,currentColor 48% 53%,transparent 54%),linear-gradient(35deg,transparent 47%,currentColor 48% 53%,transparent 54%)}
+.ps-space-letter-box-label{z-index:1;color:#fff2d5;font:700 10px/1.1 "Noto Sans CJK SC",sans-serif;text-shadow:0 1px #54371f;white-space:nowrap;pointer-events:none}
+.ps-space-letter-box-count{position:absolute;z-index:2;top:-8px;right:-8px;display:grid;min-width:19px;height:19px;place-items:center;padding:0 3px;border:1px solid #fff5e5;border-radius:10px;background:#b44942;color:#fff9ec;font:700 10px/1 "Noto Sans CJK SC",sans-serif;box-shadow:0 1px 2px #402c2580;pointer-events:none}
+.ps-space-letter-box:hover{filter:brightness(1.08);translate:0 -2px}
+.ps-space-letter-box:active{translate:0 1px}
+.ps-space-letter-box:focus-visible{outline:2px solid #5f8f72;outline-offset:3px}
 .ps-bath-box{box-sizing:border-box;position:relative;display:flex;flex:0 0 54px;width:54px;height:56px;flex-direction:column;align-items:center;justify-content:center;gap:1px;margin:0 0 5px;padding:10px 2px 3px;border:2px solid #63452e;border-radius:3px;background:linear-gradient(90deg,#99693e 0 13%,#c38e55 14% 84%,#9b6c40 85%);box-shadow:inset 0 0 0 2px #dfb77b,0 3px 0 #543924,0 4px 5px #33271638;cursor:pointer;pointer-events:auto;image-rendering:pixelated;transition:filter 120ms ease,translate 120ms ease}
 .ps-bath-box::before{position:absolute;top:2px;left:-4px;right:-4px;height:8px;border:2px solid #62452d;border-radius:2px;background:linear-gradient(#e4c48b 0 28%,#b58049 30%);box-shadow:0 2px 0 #714b2d;content:""}
 .ps-bath-box::after{position:absolute;right:5px;bottom:8px;left:5px;height:2px;background:#7a512f;box-shadow:0 4px 0 #7a512f;content:"";opacity:.62}
@@ -35,53 +76,145 @@
 .ps-bath-box:not(:disabled):active{translate:0 1px}
 .ps-bath-box:disabled{cursor:default;filter:saturate(.88)}
 .ps-bath-box:focus-visible{outline:2px solid #5f8f72;outline-offset:3px}
-.ps-bath-ball{position:fixed;z-index:130;display:grid;width:40px;height:40px;padding:0;place-items:center;border:0;border-radius:50%;background:transparent;cursor:grab;pointer-events:auto;touch-action:none;user-select:none;filter:drop-shadow(0 2px 3px #443a2740)}
+.ps-bath-ball{position:fixed;z-index:260;display:grid;width:40px;height:40px;padding:0;place-items:center;border:0;border-radius:50%;background:transparent;cursor:grab;pointer-events:auto;touch-action:none;user-select:none;filter:drop-shadow(0 2px 3px #443a2740)}
 .ps-bath-ball img{display:block;width:100%;height:100%;image-rendering:pixelated;pointer-events:none}
-.ps-bath-ball.ps-bath-ball-dragging{z-index:131;cursor:grabbing}
+.ps-bath-ball-wet img{filter:saturate(.72) brightness(1.08)}
+.ps-bath-ball-wet::after{content:"";position:absolute;right:3px;top:2px;width:4px;height:6px;border:1px solid #357d86;border-radius:55% 55% 60% 60%;background:#a9e4eb;box-shadow:1px 1px 0 #e8fbfc;pointer-events:none}
+.ps-bath-ball-status{position:absolute;left:50%;top:-5px;transform:translate(-50%,-100%);padding:3px 7px;border:1px solid #758d79;border-radius:7px;background:#fffdf2;color:#46604d;font:500 10px/1.25 "Noto Sans CJK SC",sans-serif;white-space:nowrap;pointer-events:none}
+.ps-bath-ball.ps-bath-ball-dragging{z-index:261;cursor:grabbing}
 .ps-bath-ball.ps-bath-ball-dropping{animation:ps-bath-ball-drop 720ms cubic-bezier(.2,.72,.3,1) both}
 .ps-bath-ball:focus-visible{outline:2px solid #5f8f72;outline-offset:2px}
+.ps-window-drying-hook{position:absolute;z-index:34;left:calc(var(--room-left,0px) + var(--room-w,100vw) * .585);top:calc(var(--room-top,0px) + var(--room-h,100vh) * .118);display:block;width:26px;height:34px;padding:0;border:0;background:transparent;pointer-events:auto;touch-action:none}
+.ps-window-drying-hook::before{content:"";position:absolute;left:10px;top:2px;width:6px;height:5px;background:#d5a85d;box-shadow:1px 1px 0 #593b25,-1px -1px 0 #f3d796}
+.ps-window-drying-hook i{position:absolute;left:7px;top:8px;width:10px;height:13px;box-sizing:border-box;border:2px solid #593b25;border-top:0;border-radius:0 0 8px 8px;filter:drop-shadow(1px 1px 0 #f0d08b)}
+.ps-window-drying-hook[data-drop-hint=true]{z-index:260}
+.ps-window-drying-hook[data-drop-hint=true]::after{content:"";position:absolute;inset:-5px;border:2px dashed #d94635;background:#fff2c92b;pointer-events:none}
+.ps-hook-drop-hint{position:absolute;left:50%;bottom:calc(100% + 4px);display:flex;flex-direction:column;align-items:center;transform:translateX(-50%);pointer-events:none;user-select:none}
+.ps-hook-drop-hint>span{padding:3px 7px;border:1px solid #a76b40;background:#fff8df;color:#704529;font:600 12px/1.4 "Noto Sans CJK SC",sans-serif;white-space:nowrap;box-shadow:1px 2px 0 #68432a44}
+.ps-hook-drop-hint>b{color:#dc352c;font:700 32px/1 sans-serif;text-shadow:1px 0 #fff8df,-1px 0 #fff8df,0 1px #fff8df,0 -1px #fff8df}
+.ps-room-trash-can{position:fixed;z-index:120;left:80%;top:78%;display:block;box-sizing:border-box;width:58px;height:66px;padding:0;border:0;background:transparent;transform:translate(-50%,-50%);filter:drop-shadow(0 3px 0 #49352788);pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+.ps-room-trash-can img{display:block;width:100%;height:100%;object-fit:contain;image-rendering:pixelated;pointer-events:none}
+.ps-room-trash-can[data-dragging=true]{z-index:200;cursor:grabbing;filter:drop-shadow(0 7px 8px #201a1660) brightness(1.04)}
+.ps-room-trash-can[data-panda-state=entering],.ps-room-trash-can[data-panda-state=exiting]{pointer-events:none}
+.ps-room-trash-panda{position:fixed;z-index:119;width:88px;height:88px;object-fit:contain;clip-path:inset(0 0 40% 0);transform:translate(-50%,-50%);image-rendering:pixelated;pointer-events:none}
+.ps-panda[data-trash-can-state]{visibility:hidden;pointer-events:none}
+.ps-room-trash-can[data-disposing=true]{animation:ps-trash-can-wiggle 360ms steps(2,end) 2}
+.ps-room-waste{position:fixed;z-index:130;display:grid;width:48px;height:48px;padding:0;place-items:center;translate:-50% -50%;border:0;border-radius:50%;background:transparent;cursor:grab;pointer-events:auto;touch-action:none;user-select:none}
+.ps-room-waste-fresh{animation:ps-waste-wiggle 2.8s ease-in-out infinite}
+.ps-room-waste-poop{display:block;width:32px;height:28px;image-rendering:pixelated;filter:drop-shadow(0 2px 2px #39281e66);pointer-events:none}
+.ps-room-waste-bag{position:relative;display:block;width:26px;height:29px;border:2px solid #242124;border-radius:5px 5px 8px 8px;background:linear-gradient(90deg,#111114 0 20%,#29282a 21% 70%,#141315 71%);box-shadow:0 3px 4px #17121752;pointer-events:none}
+.ps-room-waste-bag::before{position:absolute;top:-6px;left:5px;width:12px;height:7px;border:2px solid #242124;border-bottom:0;border-radius:6px 6px 0 0;content:""}
+.ps-room-waste-bag::after{position:absolute;top:5px;left:5px;width:3px;height:16px;border-radius:3px;background:#ffffff2c;content:""}
+.ps-room-waste-bag i{position:absolute;top:2px;right:3px;width:5px;height:3px;background:#0b0b0d;transform:rotate(24deg)}
+.ps-room-waste-hint{position:absolute;z-index:2;left:50%;bottom:calc(100% + 6px);width:max-content;max-width:calc(100vw - 24px);transform:translateX(-50%);padding:5px 8px;border:1px solid #8b7857;border-radius:7px;background:#fff8e8;color:#654f36;box-shadow:1px 2px 0 #57452a55;font:600 11px/1.3 "Noto Sans CJK SC",sans-serif;white-space:nowrap;pointer-events:none}
+.ps-room-waste-dragging{z-index:130;cursor:grabbing;filter:drop-shadow(0 7px 6px #18151c70)}
+.ps-room-waste-disposing{z-index:130;pointer-events:none;animation:ps-waste-into-bin 720ms cubic-bezier(.55,.08,.82,.36) both}
+.ps-room-waste-wrap{position:absolute;z-index:1;display:block;width:32px;height:34px;pointer-events:none}
+.ps-room-waste-wrap::before{position:absolute;inset:2px;border:2px solid #171719;border-radius:6px 6px 9px 9px;background:linear-gradient(90deg,#09090b 0 20%,#262528 21% 72%,#111113 73%);box-shadow:0 2px 2px #1b141770;content:"";animation:ps-waste-wrap-over 880ms cubic-bezier(.2,.8,.25,1) both}
+.ps-room-waste-wrap i{position:absolute;top:0;left:12px;width:6px;height:8px;border:2px solid #211f22;border-bottom:0;border-radius:5px 5px 0 0;content:"";animation:ps-waste-wrap-tie 880ms ease-in-out both}
+.ps-room-waste:disabled{cursor:default}
+.ps-room-waste:focus-visible{outline:2px solid #9278cf;outline-offset:1px}
+.ps-room-waste-dragging:focus-visible{outline:none}
+.ps-room-waste[disabled] .ps-room-waste-bag{filter:brightness(1.15)}
 .ps-ground-shadow{position:absolute;z-index:0;left:50%;bottom:calc(2px * var(--room-scale,.89));width:calc(66px * var(--room-scale,.89) * var(--room-shadow-scale,1));height:calc(18px * var(--room-scale,.89) * var(--room-shadow-scale,1));transform:translateX(-50%);border-radius:50%;background:radial-gradient(ellipse,rgba(34,31,25,.42) 0%,rgba(34,31,25,.2) 48%,transparent 80%);opacity:var(--room-shadow-opacity,.68);filter:blur(var(--room-shadow-blur,2px));pointer-events:none}
 .ps-ground-shadow-sleeping{animation:ps-room-sleep-shadow 2.6s ease-in-out infinite}
 .ps-track.ps-returning{animation:ps-crawl 2.5s ease-out both}
 .ps-track.ps-world-returning{animation:ps-crawl 2.5s ease-out both}
+.ps-track.ps-captured-homecoming{animation:ps-captured-homecoming-path 2.1s cubic-bezier(.35,.65,.25,1) both}
+.ps-track.ps-captured-homecoming .ps-ground-shadow{animation:ps-captured-impact-shadow 2.1s ease-out both}
+.ps-captured-impact-dust{position:absolute;z-index:2;left:50%;bottom:0;display:flex;align-items:flex-end;gap:3px;translate:-50% 0;pointer-events:none;animation:ps-captured-impact-dust 2.1s ease-out both}
+.ps-captured-impact-dust i{display:block;width:7px;height:4px;border-radius:50%;background:#b9a184;box-shadow:0 1px 1px #6e51384d}
+.ps-captured-impact-dust i:nth-child(1){width:5px;height:3px;margin-bottom:4px}
+.ps-captured-impact-dust i:nth-child(2){width:9px;height:5px}
+.ps-captured-impact-dust i:nth-child(3){width:5px;height:3px;margin-bottom:3px}
+.ps-captured-hug-bubble{position:absolute;z-index:4;top:-7%;left:50%;width:max-content;max-width:220px;translate:-50% -100%;padding:4px 9px;border:1px solid #897c6838;border-radius:12px;background:#fffdf2;color:#775c48;box-shadow:0 2px 8px #2c211522;font:600 13px/1.4 "Noto Sans CJK SC",sans-serif;white-space:nowrap;pointer-events:none;animation:ps-captured-hug-bubble 420ms cubic-bezier(.2,.8,.2,1) both}
+.ps-captured-time-vortex{position:absolute;z-index:0;left:50%;bottom:2px;display:block;width:calc(88px * var(--room-scale,.89));height:calc(88px * var(--room-scale,.89));translate:-50% 0;opacity:0;pointer-events:none;animation:ps-space-vortex-open 2.1s cubic-bezier(.2,.72,.2,1) both}
+.ps-captured-time-vortex img{display:block;width:100%;height:100%;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 0 3px #4e9c8477)}
+.ps-space-police-envelope{position:absolute;z-index:12;left:0;top:0;box-sizing:border-box;display:block;width:calc(15px * var(--room-scale,.89));height:calc(11px * var(--room-scale,.89));padding:0;translate:calc(-50% + 36px) 0;border:1px solid #624633;border-radius:1px;background:#f9e4b5;box-shadow:1px 1px 0 #402c25;image-rendering:pixelated;pointer-events:auto;touch-action:none;cursor:pointer;animation:none;transition:scale 160ms ease,rotate 160ms ease,opacity 180ms ease,filter 120ms ease}
+.ps-space-police-envelope:disabled{cursor:default}
+.ps-space-police-envelope:not(:disabled):hover{filter:brightness(1.08)}
+.ps-space-police-envelope-dragging{z-index:20;scale:1.6;cursor:grabbing;filter:drop-shadow(2px 3px 2px #33221d88)}
+.ps-space-police-envelope-storing{scale:.12;rotate:38deg;opacity:0;pointer-events:none}
+.ps-space-police-envelope::before{position:absolute;inset:0;clip-path:polygon(0 0,50% 62%,100% 0);background:#d9aa70;content:""}
+.ps-space-police-envelope i{position:absolute;z-index:1;top:50%;left:50%;width:3px;height:3px;translate:-50% -30%;border-radius:50%;background:#bd4e50;box-shadow:0 0 0 1px #fff1c7}
+.ps-space-police-envelope-flying{animation:ps-space-envelope-flight 2.1s cubic-bezier(.25,.72,.22,1) both}
+.ps-space-police-envelope-opened{background:#f0d6a5;border-color:#936749}
+.ps-space-letter-arrow{position:absolute;z-index:13;display:grid;width:18px;height:21px;place-items:center;translate:-50% 0;border:1px solid #b45d4b;border-radius:7px;background:#fff3d8;color:#a84238;box-shadow:1px 2px 0 #62463377;font:900 17px/1 "Noto Sans CJK SC",sans-serif;pointer-events:none;animation:ps-space-letter-arrow-float .9s ease-in-out infinite}
 .ps-track.ps-world-away{pointer-events:none}
 .ps-track.ps-bath-dropping{animation:ps-bath-drop-travel .68s cubic-bezier(.38,.02,.72,.4) both}
 .ps-panda{position:relative;display:grid;width:100%;height:100%;padding:0;place-items:center;border:0;border-radius:10px;background:transparent;cursor:pointer;pointer-events:auto;touch-action:none;user-select:none}
-.ps-stage[data-room-only="true"]{--room-night-light:1;--room-belly-roll-range:clamp(14px,3.2vw,42px);--room-roll-duration:3.6s;--room-settle-duration:320ms;--room-pose-duration:360ms}
-.ps-stage[data-room-only="true"][data-night="true"]{--room-night-light:.92}
+.ps-stage[data-room-only="true"]{--room-belly-roll-range:clamp(14px,3.2vw,42px);--room-roll-duration:3.6s;--room-settle-duration:320ms;--room-pose-duration:360ms}
 .ps-stage[data-room-only="true"] .ps-panda{z-index:1}
 .ps-stage[data-room-only="true"] .ps-panda::before{display:none}
+.ps-stage[data-room-only="true"] .ps-panda.ps-bored-hidden{visibility:hidden;pointer-events:none}
+.ps-bored-panda{position:fixed;z-index:12;left:50%;bottom:calc(10px + var(--bored-dock-height,68px) - 18px);display:grid;width:var(--bored-panda-size,36px);height:var(--bored-panda-size,36px);place-items:center;transform:translateX(-50%);pointer-events:none;animation:ps-bored-panda-climb 950ms cubic-bezier(.2,.75,.25,1) both;image-rendering:pixelated}
+.ps-bored-panda img{display:block;width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
+.ps-bored-panda-speech{position:absolute;left:50%;top:-4px;max-width:150px;transform:translate(-50%,-100%);padding:3px 6px;border:1px solid #8b7857;border-radius:8px;background:#fff8e8;color:#654f36;box-shadow:1px 2px 0 #57452a55;font:600 10px/1.2 "Noto Sans CJK SC",sans-serif;white-space:nowrap;animation:ps-bored-panda-speech 4.8s ease-in-out infinite}
+.ps-bored-panda-speech::after{position:absolute;left:50%;bottom:-4px;width:6px;height:6px;border-right:1px solid #8b7857;border-bottom:1px solid #8b7857;background:#fff8e8;transform:translateX(-50%) rotate(45deg);content:""}
+@keyframes ps-bored-panda-climb{from{opacity:0;translate:0 28px}to{opacity:1;translate:0 0}}
+@keyframes ps-bored-panda-speech{0%,68%,100%{opacity:.92}78%{opacity:.42}90%{opacity:1}}
 .ps-panda:hover{translate:0 -3px}.ps-panda:active{scale:.94}
 .ps-panda.ps-pressing .ps-body{translate:0 -2px;filter:brightness(1.04)}
 .ps-panda.ps-dragging{z-index:5;cursor:grabbing;scale:1.04;translate:0 -14px;transform-origin:50% 5%;filter:drop-shadow(0 12px 7px #29221655);animation:ps-held-sway 1.25s ease-in-out infinite alternate}
 .ps-panda.ps-dragging .ps-body{rotate:7deg;scale:1 1.04;transform-origin:50% 12%;filter:saturate(.88) brightness(1.04);animation:ps-hang-body 1.1s ease-in-out infinite alternate}
+.ps-panda.ps-dirty-grabbing{transform-origin:50% 12%}
+.ps-panda.ps-dirty-grabbing[data-sprite="dirty-grab-lift"] .ps-body{rotate:0deg;scale:1;transform-origin:50% 12%;animation:none!important}
+.ps-panda.ps-dirty-grabbing[data-sprite="dirty-grab"] .ps-body{rotate:7deg;scale:1 1.04;transform-origin:50% 12%;animation:ps-hang-body 1.1s ease-in-out infinite alternate}
 .ps-panda.ps-bath-dropping{z-index:8;cursor:default;pointer-events:none;animation:ps-bath-plunge .68s cubic-bezier(.4,0,.78,.38) both}
 .ps-panda.ps-bath-dropping:hover,.ps-panda.ps-bath-dropping:active{translate:0 0;scale:1}
 .ps-panda.ps-bathing{z-index:5;cursor:grab;animation:none;translate:0 0;scale:1}
+.ps-track[data-bath-occluded="true"] .ps-ground-shadow{display:none}
 .ps-panda.ps-bathing:hover,.ps-panda.ps-bathing:active{translate:0 0;scale:1}
 .ps-panda.ps-bathing .ps-body{opacity:1;animation:none!important;filter:none;translate:0;rotate:0deg;scale:1}
+.ps-stage[data-room-only="true"] .ps-body[data-sprite="bathing-entry-shake"]{width:calc(88px * var(--room-scale,.89));height:calc(88px * var(--room-scale,.89))}
 .ps-panda.ps-bathing[data-bath-rubbing="true"] .ps-body{animation:ps-bath-scrub 260ms ease-in-out infinite alternate!important;transform-origin:50% 82%}
+.ps-panda.ps-bath-exiting{z-index:6;cursor:grabbing;animation:none;translate:0 -14px;scale:1.04;transform-origin:50% 5%}
+.ps-panda.ps-bath-exiting .ps-body{animation:ps-bath-lift-out 380ms cubic-bezier(.2,.75,.25,1) both!important;transform-origin:50% 78%}
+.ps-bath-water-bubbles,.ps-bath-splash{position:absolute;z-index:2;inset:0;pointer-events:none}
+.ps-bath-splash-entering{z-index:5}
+.ps-bath-water-bubbles i,.ps-bath-splash i{position:absolute;display:block;box-sizing:border-box;border:1px solid #f3ffff;border-radius:50%;background:#b7e7ed;box-shadow:0 0 2px #f7ffffa8}
+.ps-bath-water-bubbles i{width:6px;height:6px;opacity:.85;animation:ps-bath-soap-bubble 1500ms ease-in-out infinite}
+.ps-bath-water-bubbles i:first-child{top:32%;left:7%;animation-delay:-420ms}
+.ps-bath-water-bubbles i:last-child{top:49%;right:7%;width:5px;height:5px;animation-delay:-1080ms}
 .ps-bath-foam{position:absolute;z-index:4;inset:0;pointer-events:none}
-.ps-bath-foam i{position:absolute;display:block;width:8px;height:8px;border:1px solid #f5ffff;border-radius:50%;background:radial-gradient(circle at 30% 28%,#fff 0 1px,#c9f2f2 2px,#83c5ca 100%);box-shadow:0 0 3px #fff9;opacity:.92;animation:ps-bath-soap-bubble 880ms ease-in-out infinite}
+.ps-bath-foam i{position:absolute;display:block;width:6px;height:6px;border:1px solid #f5ffff;border-radius:50%;background:radial-gradient(circle at 30% 28%,#fff 0 1px,#c9f2f2 2px,#83c5ca 100%);box-shadow:0 0 3px #fff9;opacity:.88;animation:ps-bath-soap-bubble 1100ms ease-in-out infinite}
 .ps-bath-foam i:nth-child(1){top:39%;left:16%;animation-delay:-180ms}
 .ps-bath-foam i:nth-child(2){top:56%;right:14%;animation-delay:-520ms}
-.ps-bath-foam i:nth-child(3){top:27%;right:24%;animation-delay:-360ms}
-.ps-bath-foam i:nth-child(4){top:68%;left:29%;width:6px;height:6px;animation-delay:-700ms}
+.ps-bath-foam i:nth-child(3){top:27%;right:24%;width:5px;height:5px;animation-delay:-360ms}
+.ps-bath-foam i:nth-child(4){top:68%;left:29%;width:5px;height:5px;animation-delay:-700ms}
+.ps-bath-splash i{width:6px;height:8px;border-color:#f4ffff;background:#8bd7e0;opacity:0;filter:drop-shadow(1px 1px 0 #4e9ca6)}
+.ps-bath-splash i:nth-child(1){left:18%;top:59%;width:5px;height:7px}
+.ps-bath-splash i:nth-child(2){left:34%;top:51%;width:4px;height:6px}
+.ps-bath-splash i:nth-child(3){left:48%;top:56%;width:6px;height:8px}
+.ps-bath-splash i:nth-child(4){right:34%;top:50%;width:4px;height:6px}
+.ps-bath-splash i:nth-child(5){right:18%;top:59%;width:5px;height:7px}
+.ps-bath-splash-entering i{animation:ps-bath-entry-splash-left 680ms ease-out both}
+.ps-bath-splash-entering i:nth-child(even){animation-name:ps-bath-entry-splash-right}
+.ps-bath-splash-entering i:nth-child(2){animation-delay:80ms}
+.ps-bath-splash-entering i:nth-child(3){animation-delay:130ms}
+.ps-bath-splash-entering i:nth-child(4){animation-delay:70ms}
+.ps-bath-splash-entering i:nth-child(5){animation-delay:115ms}
+.ps-bath-splash:not(.ps-bath-splash-entering) i{animation:ps-bath-exit-splash 380ms ease-out both}
+.ps-bath-splash:not(.ps-bath-splash-entering) i:nth-child(2){animation-delay:45ms}
+.ps-bath-splash:not(.ps-bath-splash-entering) i:nth-child(3){animation-delay:80ms}
 .ps-panda.ps-dizzy{z-index:5;cursor:default;animation:none}
 .ps-panda.ps-dizzy:hover,.ps-panda.ps-dizzy:active{translate:0 0;scale:1}
 .ps-panda.ps-dizzy .ps-body{animation:none!important;filter:none}
-.ps-panda.ps-world-falling{z-index:6;cursor:default;pointer-events:none;transform-origin:center bottom;animation:ps-world-fall 1.1s cubic-bezier(.35,.05,.68,.36) both}
+.ps-panda.ps-world-falling{z-index:6;cursor:default;pointer-events:none;transform-origin:center center;animation:ps-world-fall 1.1s cubic-bezier(.35,.05,.68,.36) both}
 .ps-panda.ps-world-falling:hover,.ps-panda.ps-world-falling:active{translate:0 0;scale:1}
 .ps-panda.ps-world-dirty{cursor:default}
 .ps-panda.ps-world-dirty .ps-body{transform-origin:center bottom;animation:ps-world-sob 920ms ease-in-out infinite}
 .ps-panda.ps-fly-flee .ps-body{transform-origin:center bottom;animation:ps-dirty-flee 180ms steps(2,end) infinite!important;filter:saturate(.86) brightness(1.03)}
-.ps-fly-chaser{position:absolute;z-index:6;top:13%;display:block;font-size:16px;line-height:1;filter:drop-shadow(0 1px 1px #35251988);pointer-events:none;animation:ps-fly-buzz 150ms steps(2,end) infinite}
+.ps-fly-chaser{position:absolute;z-index:6;top:13%;display:block;width:12px;height:9px;background:radial-gradient(ellipse at 48% 55%,#393b34 0 25%,transparent 29%),radial-gradient(ellipse at 20% 35%,#d8e2ce 0 29%,transparent 32%),radial-gradient(ellipse at 76% 31%,#d8e2ce 0 28%,transparent 31%);filter:drop-shadow(0 1px 1px #35251988);pointer-events:none;animation:ps-fly-buzz 150ms steps(2,end) infinite}
 .ps-fly-chaser-left{left:-4%;transform:translate(-45%,-65%)}
 .ps-fly-chaser-right{right:-4%;transform:translate(45%,-65%)}
 .ps-world-fall-bubble{z-index:7;border-color:#9a7651;background:#fff0d1;color:#755132;font-weight:700;animation:ps-world-note 1.8s ease-out both}
 .ps-world-dirty-plea{z-index:7;border-color:#a67d59;background:#fff1df;color:#78533b;font-weight:700;animation:ps-dirty-plea-in 320ms ease-out both}
 .ps-panda:focus-visible{outline:2px solid #5f8f72;outline-offset:2px}
 .ps-panda.ps-reacting{animation:ps-react 1.4s ease-in-out both}
+/* The new click reaction is redrawn pixel art, not the legacy CSS wiggle. */
+.ps-stage .ps-panda[data-punch-active="true"],
+.ps-stage .ps-panda[data-punch-active="true"] .ps-body{animation:none!important}
 .ps-panda.ps-startled{animation:ps-startle 620ms cubic-bezier(.12,.86,.22,1) both;transform-origin:center bottom}
 .ps-panda.ps-startled .ps-body{animation:ps-startle-shiver 70ms steps(2,end) 6;transform-origin:center bottom}
 .ps-panda.ps-chatting{animation:none;cursor:pointer}
@@ -91,6 +224,8 @@
 .ps-stage[data-room-only="true"] .ps-panda.ps-room-rolling .ps-body{animation:ps-room-tumble var(--room-roll-duration) cubic-bezier(.4,.05,.6,.95) both;transform-origin:center}
 .ps-stage[data-room-only="true"] .ps-panda.ps-room-rolling .ps-body{width:calc(90px * var(--room-scale,.89));height:calc(90px * var(--room-scale,.89))}
 .ps-stage[data-room-only="true"] .ps-ground-shadow-rolling{animation:ps-room-roll-shadow var(--room-roll-duration) ease-in-out both}
+.ps-panda.ps-spin .ps-body{transform-origin:center;animation:ps-spin-in-place 780ms linear infinite}
+.ps-panda.ps-somersault .ps-body{transform-origin:center center;rotate:-15deg;animation:none}
 .ps-panda.ps-lying,.ps-panda.ps-sleeping{place-items:end center}
 .ps-panda.ps-peeking{place-items:end center}
 .ps-panda.ps-peeking .ps-body{animation:ps-peek-breathe 2.8s ease-in-out infinite}
@@ -108,7 +243,7 @@
 .ps-panda::before{position:absolute;z-index:-1;right:12%;bottom:5%;left:12%;height:12%;border-radius:50%;background:radial-gradient(closest-side,rgba(70,75,51,.3),transparent);content:""}
 .ps-body{display:block;grid-area:1/1;width:calc(60px * var(--room-scale,.89));height:calc(60px * var(--room-scale,.89));object-fit:contain;image-rendering:pixelated}
 .ps-stage[data-room-only="true"] .ps-panda.ps-transition-frames-entering .ps-body,.ps-stage[data-room-only="true"] .ps-panda.ps-transition-frames-waking .ps-body{visibility:hidden;animation:none!important}
-.ps-transition-frame{display:block;grid-area:1/1;z-index:2;width:calc(90px * var(--room-scale,.89));height:calc(90px * var(--room-scale,.89));object-fit:contain;image-rendering:pixelated;filter:brightness(calc(var(--room-brightness,1) * var(--room-night-light,1)));pointer-events:none}
+.ps-transition-frame{display:block;grid-area:1/1;z-index:2;width:calc(90px * var(--room-scale,.89));height:calc(90px * var(--room-scale,.89));object-fit:contain;image-rendering:pixelated;filter:brightness(var(--room-brightness,1));pointer-events:none}
 .ps-panda.ps-pixel-transition .ps-body{visibility:hidden;animation:none!important}
 .ps-stage[data-room-only="true"] .ps-panda.ps-pixel-transition[data-transition-direction="entering"] .ps-transition-frame{width:calc(72px * var(--room-scale,.89));height:calc(72px * var(--room-scale,.89))}
 .ps-stage[data-room-only="true"] .ps-panda.ps-pixel-transition[data-transition-direction="entering"].ps-idle .ps-transition-frame{width:calc(88px * var(--room-scale,.89));height:calc(88px * var(--room-scale,.89))}
@@ -120,35 +255,59 @@
 .ps-stage[data-room-only="false"] .ps-panda.ps-pixel-transition[data-transition-direction="entering"].ps-lying .ps-transition-frame,.ps-stage[data-room-only="false"] .ps-panda.ps-pixel-transition[data-transition-direction="entering"].ps-sleeping .ps-transition-frame{width:calc(84px * var(--room-scale,.89));height:calc(84px * var(--room-scale,.89))}
 .ps-stage[data-room-only="false"] .ps-panda.ps-pixel-transition[data-transition-direction="waking"] .ps-transition-frame{width:60px;height:60px}
 .ps-panda[data-facing="left"] .ps-transition-frame{transform:scaleX(-1)}
-.ps-stage[data-room-only="true"] .ps-body{width:calc(72px * var(--room-scale,.89));height:calc(72px * var(--room-scale,.89));filter:brightness(calc(var(--room-brightness,1) * var(--room-night-light,1)))}
-.ps-stage[data-room-only="true"] .ps-panda.ps-pressing .ps-body{filter:brightness(calc(var(--room-brightness,1) * var(--room-night-light,1) * 1.04))}
-.ps-stage[data-room-only="true"] .ps-panda.ps-dragging .ps-body{filter:saturate(.88) brightness(calc(var(--room-brightness,1) * var(--room-night-light,1) * 1.04))}
-.ps-body[data-sprite="idle"],.ps-body[data-sprite="walk"],.ps-body[data-sprite="grab"],.ps-body[data-sprite="dizzy"],.ps-body[data-sprite="chew"]{width:calc(72px * var(--room-scale,.89));height:calc(72px * var(--room-scale,.89))}
+.ps-stage[data-room-only="true"] .ps-body{width:calc(72px * var(--room-scale,.89));height:calc(72px * var(--room-scale,.89));filter:brightness(var(--room-brightness,1))}
+.ps-stage[data-room-only="true"] .ps-panda.ps-pressing .ps-body{filter:brightness(calc(var(--room-brightness,1) * 1.04))}
+.ps-stage[data-room-only="true"] .ps-panda.ps-dragging .ps-body{filter:saturate(.88) brightness(calc(var(--room-brightness,1) * 1.04))}
+.ps-body[data-sprite="idle"],.ps-body[data-sprite="walk"],.ps-body[data-sprite="grab"],.ps-body[data-sprite="dizzy"],.ps-body[data-sprite="chew"],.ps-body[data-sprite="dirty-grab"],.ps-body[data-sprite="dirty-grab-lift"]{width:calc(72px * var(--room-scale,.89));height:calc(72px * var(--room-scale,.89))}
 .ps-panda.ps-lying .ps-body,.ps-panda.ps-sleeping .ps-body{width:calc(84px * var(--room-scale,.89));height:calc(84px * var(--room-scale,.89));transform-origin:center bottom}
 .ps-panda.ps-lying .ps-body{translate:0 0}
 .ps-panda.ps-sleeping .ps-body{translate:0 calc(17px * var(--room-scale,.89))}
 .ps-panda.ps-sleeping .ps-body{animation:ps-sleep-breathe 2.6s ease-in-out infinite}
 .ps-panda.ps-sleeping::before{animation:ps-sleep-shadow 2.6s ease-in-out infinite}
 .ps-panda[data-facing="left"] .ps-body{transform:scaleX(-1)}
-.ps-stage[data-room-only="true"] .ps-body[data-sprite="idle"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="walk"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="grab"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="dizzy"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="chew"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="bathing"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="startled"]{width:calc(88px * var(--room-scale,.89));height:calc(88px * var(--room-scale,.89))}
+.ps-panda[data-facing="left"] .ps-body[data-sprite="climb-up"],.ps-panda[data-facing="left"][data-transition-key="climb-up"] .ps-transition-frame{transform:none}
+.ps-stage[data-room-only="true"] .ps-body[data-sprite="idle"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="walk"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="grab"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="dizzy"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="chew"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="dirty-grab"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="dirty-grab-lift"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="bathing"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="bathing-soap"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="dirty-bathing"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="dirty-bathing-soap"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="startled"],.ps-stage[data-room-only="true"] .ps-body[data-sprite="captured-homecoming"]{width:calc(88px * var(--room-scale,.89));height:calc(88px * var(--room-scale,.89))}
 .ps-stage[data-room-only="true"] .ps-panda.ps-lying .ps-body,.ps-stage[data-room-only="true"] .ps-panda.ps-sleeping .ps-body{width:calc(90px * var(--room-scale,.89));height:calc(90px * var(--room-scale,.89))}
 .ps-stage[data-room-only="true"] .ps-panda.ps-peeking .ps-body{width:calc(110px * var(--room-scale,.89));height:calc(110px * var(--room-scale,.89))}
-.ps-sleep-zzz{position:absolute;z-index:2;top:-4%;left:4%;display:flex;align-items:flex-start;color:#526f91;font-family:"Noto Sans CJK SC",sans-serif;font-weight:800;line-height:1;text-shadow:0 1px 2px #fff9;pointer-events:none;animation:ps-zzz-float 1.9s ease-in-out infinite}
-.ps-sleep-zzz i{display:block;font-size:10px;font-style:normal}
-.ps-sleep-zzz i:nth-child(2){margin-top:-4px;font-size:13px;animation:ps-zzz-twitch 1.9s ease-in-out .18s infinite}
-.ps-sleep-zzz i:nth-child(3){margin-top:-9px;font-size:17px;animation:ps-zzz-twitch 1.9s ease-in-out .36s infinite}
+.ps-sleep-zzz{position:absolute;z-index:2;top:-5%;left:4%;display:block;width:22px;height:28px;color:#526f91;font-family:"Noto Sans CJK SC",sans-serif;font-weight:800;line-height:1;text-shadow:0 1px 2px #fff9;pointer-events:none}
+.ps-sleep-zzz i{position:absolute;bottom:0;left:1px;display:block;font-size:10px;font-style:normal;opacity:0;filter:blur(1px);animation:ps-zzz-smoke 2.7s cubic-bezier(.2,.65,.35,1) infinite}
+.ps-sleep-zzz i:nth-child(2){left:2px;font-size:13px;--zzz-drift:3px;animation-delay:.85s}
+.ps-sleep-zzz i:nth-child(3){left:0;font-size:17px;--zzz-drift:-2px;animation-delay:1.7s}
 .ps-panda[data-facing="left"].ps-sleeping .ps-sleep-zzz{right:4%;left:auto}
 .ps-scared-mark{position:absolute;z-index:3;top:-9%;right:8%;display:flex;align-items:flex-start;color:#d87947;font:800 20px/1 "Noto Sans CJK SC",sans-serif;text-shadow:0 1px 2px #fff9;pointer-events:none;animation:ps-scared-mark 620ms cubic-bezier(.2,.8,.2,1) both}
 .ps-scared-mark i{display:block;width:6px;height:9px;margin:11px 0 0 -2px;border-radius:70% 20% 70% 70%;background:#83b9ce;rotate:35deg}
 .ps-panda[data-facing="left"].ps-startled .ps-scared-mark{right:auto;left:8%}
+.ps-grab-hook{position:absolute;z-index:5;top:3%;left:50%;width:22px;height:19px;translate:-50% 0;pointer-events:none}
+.ps-panda[data-character="xiaobai"] .ps-grab-hook{z-index:0}
+.ps-panda[data-character="xiaobai"].ps-dragging .ps-body{position:relative;z-index:1}
+.ps-grab-hook::before{position:absolute;top:0;left:7px;width:8px;height:11px;border:2px solid #694831;border-bottom:0;border-radius:8px 8px 2px 2px;background:#e7c19d;box-shadow:0 1px 0 #fff9;content:""}
+.ps-grab-hook i,.ps-grab-hook b{position:absolute;top:7px;width:7px;height:9px;border:2px solid #694831;border-top:0;border-radius:1px 1px 6px 6px;background:#e7c19d;box-shadow:0 1px 0 #fff9}
+.ps-grab-hook i{left:1px;rotate:-25deg}.ps-grab-hook b{right:1px;rotate:25deg}
 .ps-grab-daze{position:absolute;z-index:4;top:-10%;left:calc(50% + 14px);color:#776d5f;font:700 15px/1 "Noto Sans CJK SC",sans-serif;letter-spacing:2px;text-shadow:0 1px 2px #fff9;pointer-events:none;animation:ps-grab-daze 1.15s ease-in-out infinite}
 .ps-daydream-dots{position:absolute;z-index:2;top:4%;right:5%;color:#527459;font:700 22px/1 "Noto Sans CJK SC",sans-serif;letter-spacing:2px;text-shadow:0 1px 2px #fff9;pointer-events:none;animation:ps-daydream 1.5s ease-in-out infinite}
-.ps-gift{position:absolute;font-size:calc(24px * var(--room-scale,.89));font-family:"Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif}
+@keyframes ps-captured-homecoming-path{0%{translate:4vw -4vh;rotate:4deg;scale:.96;opacity:0}12%{translate:3vw -3vh;rotate:2deg;scale:.99;opacity:1}28%{translate:1vw -.4vh;rotate:-1deg;scale:1.01 .95}34%{translate:1vw -.4vh;rotate:1deg;scale:1.04 .9}42%{translate:1vw -.4vh;rotate:-.5deg;scale:.99 1.01}58%{translate:.5vw .3vh;rotate:0deg;scale:1}100%{translate:0 0;rotate:0deg;scale:1}}
+@keyframes ps-space-vortex-open{0%{opacity:0;scale:.08}12%{opacity:.9;scale:.65}28%{opacity:1;scale:1.08}43%{opacity:1;scale:1}72%{opacity:.94;scale:1.02}100%{opacity:0;scale:.18}}
+@keyframes ps-space-envelope-flight{0%{opacity:0;translate:-50% -4px;rotate:-14deg;scale:.3}12%{opacity:1;translate:-50% -13px;rotate:-4deg;scale:.76}33%{translate:calc(-50% + 14px) -22px;rotate:20deg;scale:1.12}52%{translate:calc(-50% + 29px) -9px;rotate:-12deg;scale:.96}65%{translate:calc(-50% + 36px) -1px;rotate:8deg;scale:1.06}77%{translate:calc(-50% + 36px) -7px;rotate:-4deg;scale:1}87%,100%{opacity:1;translate:calc(-50% + 36px) 0;rotate:0deg;scale:1}}
+@keyframes ps-space-letter-arrow-float{0%,100%{translate:-50% -1px}50%{translate:-50% -6px}}
+@keyframes ps-captured-impact-shadow{0%,24%{scale:.35 .8;opacity:0}34%{scale:1.12 1.05;opacity:.68}48%{scale:1.35 .9;opacity:.4}70%,100%{scale:1;opacity:.68}}
+@keyframes ps-captured-impact-dust{0%,24%{opacity:0;scale:.35;translate:-50% 3px}34%{opacity:.62;scale:.82;translate:-50% 0}52%{opacity:.3;scale:1.1;translate:-50% -2px}72%,100%{opacity:0;scale:1.25;translate:-50% -3px}}
+@keyframes ps-captured-hug-bubble{from{opacity:0;scale:.75;translate:-50% -85%}to{opacity:1;scale:1;translate:-50% -100%}}
+.ps-gift{position:absolute;z-index:4;font-size:calc(24px * var(--room-scale,.89));font-family:"Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif;line-height:1;filter:drop-shadow(0 1px 1px #35251b55);pointer-events:none}
 .ps-bamboo i{position:absolute;top:-14px;left:-4px;font:600 12px "Noto Sans CJK SC",sans-serif;color:#6a8a5a;font-style:normal;white-space:nowrap}
-.ps-gift{left:-18px;bottom:6px;animation:ps-breathe 3s ease-in-out infinite}
+.ps-gift-held{left:calc(50% + 7px);right:auto;bottom:calc(10px * var(--room-scale,.89));animation:ps-gift-carry .34s ease-in-out infinite alternate}
+.ps-panda[data-facing="left"] .ps-gift-held{right:calc(50% + 7px);left:auto}
+.ps-stage[data-room-only="false"] .ps-gift-held{bottom:8px;font-size:22px}
+@keyframes ps-gift-carry{from{translate:0 1px;rotate:-7deg}to{translate:1px -2px;rotate:7deg}}
 .ps-panda.ps-roll,.ps-panda.ps-spin,.ps-panda.ps-tumble{animation:ps-roll var(--ps-dur) ease-in-out infinite alternate}
-.ps-panda.ps-jump,.ps-panda.ps-somersault{animation:ps-hop calc(var(--ps-dur)/3) ease-in-out 3}
-.ps-panda.ps-cuddle{animation:ps-cuddle calc(var(--ps-dur)/3) ease-in-out 3}
+.ps-panda.ps-jump{animation:ps-hop calc(var(--ps-dur)/3) ease-in-out 3}
+.ps-panda.ps-somersault{animation:none}
+.ps-panda.ps-cuddle{animation:none;place-items:end center;transform-origin:center bottom}
+.ps-panda.ps-cuddle:hover,.ps-panda.ps-cuddle:active{translate:0 0;scale:1}
+.ps-panda.ps-cuddle .ps-body{transform-origin:50% 82%;animation:ps-cuddle-ground-wriggle 1.12s cubic-bezier(.42,.02,.58,.98) infinite}
+.ps-panda[data-character="xiaobai"].ps-cuddle .ps-body{animation:none;translate:0 0;rotate:0deg;scale:1}
+.ps-track:has(.ps-panda[data-character="xiaobai"].ps-cuddle) .ps-ground-shadow-cuddling{animation:none}
+.ps-panda.ps-cuddle.ps-chatting .ps-body{animation:none!important}
+.ps-ground-shadow-cuddling{animation:ps-cuddle-ground-shadow 1.12s ease-in-out infinite}
 .ps-away{margin:0;position:absolute;z-index:3;inset:0;display:grid;place-items:center;font-size:15px;color:#6d8670}
 @keyframes ps-breathe{50%{translate:0 -2px}}
 @keyframes ps-sleep-breathe{0%,100%{scale:1 .985}50%{scale:1 1.015}}
@@ -164,6 +323,7 @@
 }
 .ps-snack-drop{position:absolute;z-index:5;top:-20%;left:50%;width:28px;height:28px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 1px 2px rgba(29,39,26,.55));pointer-events:none;animation:ps-snack-fall .78s cubic-bezier(.34,.02,.58,1) both}
 @keyframes ps-roll{0%{translate:calc(0px - var(--room-roll-range)) 0;rotate:-8deg}100%{translate:var(--room-roll-range) 0;rotate:8deg}}
+@keyframes ps-spin-in-place{to{rotate:360deg}}
 @keyframes ps-room-tumble{
   0%,100%{translate:0 0;rotate:0deg;scale:1}
   20%{translate:-5px -1px;rotate:-4deg;scale:1.02 .99}
@@ -179,7 +339,18 @@
   80%{translate:2px 0;scale:.98 .9;opacity:var(--room-shadow-opacity,.68)}
 }
 @keyframes ps-hop{50%{translate:0 -18px}}
-@keyframes ps-cuddle{50%{translate:-6px 0}}
+@keyframes ps-cuddle-ground-wriggle{
+  0%,100%{translate:0 0;rotate:-2deg;scale:1 1}
+  18%{translate:-1px 0;rotate:-6deg;scale:1.035 .975}
+  38%{translate:1px 0;rotate:2deg;scale:.985 1.025}
+  60%{translate:2px 0;rotate:6deg;scale:1.035 .975}
+  82%{translate:-1px 0;rotate:-3deg;scale:.99 1.015}
+}
+@keyframes ps-cuddle-ground-shadow{
+  0%,100%{scale:.98 1;opacity:var(--room-shadow-opacity,.68)}
+  38%{scale:1.08 .94;opacity:calc(var(--room-shadow-opacity,.68)*.86)}
+  60%{scale:1.04 .96;opacity:calc(var(--room-shadow-opacity,.68)*.92)}
+}
 @keyframes ps-react{0%,100%{translate:0 0;rotate:0}30%{translate:0 -4px;rotate:-3deg}68%{translate:0 1px;rotate:2deg}}
 @keyframes ps-startle{0%,100%{translate:0 0;rotate:0;scale:1}5%{translate:0 -11px;rotate:-11deg;scale:1.12 1.05}17%{translate:0 2px;rotate:9deg;scale:.94 1.04}32%{translate:0 -4px;rotate:-7deg;scale:1.05 .97}50%{translate:0 0;rotate:5deg;scale:1.01}72%{translate:0 -1px;rotate:-2deg;scale:1}}
 @keyframes ps-startle-shiver{0%,100%{translate:0 0;rotate:0}50%{translate:3px 0;rotate:1deg}}
@@ -199,16 +370,15 @@
 @keyframes ps-pose-fade-in{0%{opacity:0}46%{opacity:1}100%{opacity:1}}
 @keyframes ps-zzz-wake{0%{translate:0 0;opacity:.8}100%{translate:0 -8px;opacity:0}}
 @keyframes ps-dots-wake{0%{translate:0 0;opacity:.8}100%{translate:0 -4px;opacity:0}}
-@keyframes ps-zzz-float{0%,100%{translate:0 0;opacity:.65}50%{translate:2px -7px;opacity:1}}
-@keyframes ps-zzz-twitch{0%,100%{translate:0 0}50%{translate:0 -2px}}
+@keyframes ps-zzz-smoke{0%{translate:0 7px;scale:.55;opacity:0;filter:blur(1.5px)}14%{opacity:.8;filter:blur(.2px)}60%{translate:var(--zzz-drift,0) -14px;scale:.92;opacity:.45}100%{translate:var(--zzz-drift,0) -27px;scale:1.12;opacity:0;filter:blur(1.8px)}}
 @keyframes ps-daydream{0%,100%{translate:0 1px;opacity:.45}50%{translate:2px -4px;opacity:1}}
 @keyframes ps-crawl{from{transform:translate(calc(-50% - 80px),-100%);opacity:.6}to{transform:translate(-50%,-100%);opacity:1}}
 @keyframes ps-world-fall{
-  0%{transform:translate(0,0) rotate(0deg) scale(1);opacity:1}
-  18%{transform:translate(0,-12px) rotate(110deg) scale(.92);opacity:1}
-  58%{transform:translate(5px,23px) rotate(360deg) scale(.52);opacity:.86}
-  82%{transform:translate(12px,51px) rotate(530deg) scale(.22);opacity:.52}
-  100%{transform:translate(18px,74px) rotate(700deg) scale(.02);opacity:0}
+  0%{transform:rotate(0deg) scale(1);opacity:1}
+  18%{transform:rotate(110deg) scale(.92);opacity:1}
+  58%{transform:rotate(360deg) scale(.52);opacity:.86}
+  82%{transform:rotate(530deg) scale(.22);opacity:.52}
+  100%{transform:rotate(700deg) scale(.02);opacity:0}
 }
 @keyframes ps-world-note{
   0%{opacity:0;transform:translate(-50%,6px) scale(.95)}
@@ -228,9 +398,75 @@
 @keyframes ps-bath-drop-travel{0%{left:var(--bath-start-x,50%);top:var(--bath-start-y,58%)}100%{left:var(--room-x,50%);top:var(--room-y,58%)}}
 @keyframes ps-dirty-flee{0%{translate:-1px -1px;rotate:-3deg}50%{translate:1px -4px;rotate:2deg}100%{translate:2px 0;rotate:-2deg}}
 @keyframes ps-fly-buzz{0%{translate:-3px 3px;rotate:-16deg}50%{translate:4px -5px;rotate:14deg}100%{translate:-3px 3px;rotate:-16deg}}
-@keyframes ps-bath-plunge{0%{transform:translateY(-22px) rotate(-6deg) scale(1.02);opacity:1}35%{transform:translateY(-5px) rotate(8deg) scale(.94);opacity:1}100%{transform:translateY(20px) rotate(0) scale(.72);opacity:0}}
+@keyframes ps-bath-plunge{0%{transform:translateY(-18px) scale(1.02);opacity:1}18%{transform:translateY(-12px) scale(1.01);opacity:1}36%{transform:translateY(-4px) scale(.98);opacity:1}55%{transform:translateY(5px) scale(.95);opacity:1}76%{transform:translateY(12px) scale(.92);opacity:1}100%{transform:translateY(17px) scale(.9);opacity:1}}
 @keyframes ps-bath-scrub{0%{translate:-1px 0;rotate:-2deg;filter:brightness(.98)}50%{translate:1px -2px;rotate:2deg;filter:brightness(1.06)}100%{translate:-1px 0;rotate:-2deg;filter:brightness(.98)}}
 @keyframes ps-bath-soap-bubble{0%,100%{translate:0 2px;scale:.78;opacity:.35}45%{translate:-1px -5px;scale:1.08;opacity:1}75%{translate:2px -10px;scale:.94;opacity:.85}}
+@keyframes ps-bath-entry-splash-left{0%,48%{translate:0 3px;scale:.48;opacity:0}62%{opacity:1}82%{translate:-8px -8px;scale:1;opacity:.9}100%{translate:-15px -14px;scale:.78;opacity:0}}
+@keyframes ps-bath-entry-splash-right{0%,48%{translate:0 3px;scale:.48;opacity:0}62%{opacity:1}82%{translate:8px -8px;scale:1;opacity:.9}100%{translate:15px -14px;scale:.78;opacity:0}}
+@keyframes ps-bath-exit-splash{0%{translate:0 0;scale:.6;opacity:.86}48%{translate:1px 5px;scale:1;opacity:.72}100%{translate:2px 10px;scale:.78;opacity:0}}
+@keyframes ps-bath-lift-out{0%{translate:0 2px;rotate:0deg;scale:1}18%{translate:-1px -1px;rotate:-3deg;scale:.99}38%{translate:1px -4px;rotate:4deg;scale:.98}58%{translate:-1px -8px;rotate:-3deg;scale:.97}78%{translate:1px -12px;rotate:2deg;scale:.96}100%{translate:0 -16px;rotate:0deg;scale:.95}}
 @keyframes ps-bath-ball-drop{0%{transform:translateY(-20px) scale(.68) rotate(-18deg);opacity:0}18%{opacity:1}62%{transform:translateY(5px) scale(1.08) rotate(8deg)}78%{transform:translateY(-5px) scale(.97) rotate(-5deg)}100%{transform:translateY(0) scale(1) rotate(0);opacity:1}}
-@media (prefers-reduced-motion:reduce){.ps-panda,.ps-body,.ps-snack-drop,.ps-gift,.ps-sleep-zzz,.ps-daydream-dots{animation-duration:.01ms!important}.ps-panda.ps-dragging,.ps-panda.ps-dragging .ps-body{animation:none}.ps-grab-daze{animation:none;opacity:1;translate:0}.ps-scared-mark{animation:none;opacity:1;translate:0 0}.ps-track.ps-returning{animation:none}}
-@media (prefers-reduced-motion:reduce){.ps-track.ps-bath-dropping,.ps-panda.ps-bath-dropping{animation:none!important}}
+@media (prefers-reduced-motion:reduce){.ps-panda,.ps-body,.ps-snack-drop,.ps-gift,.ps-sleep-zzz,.ps-daydream-dots,.ps-captured-time-vortex,.ps-captured-time-vortex img,.ps-space-police-envelope-flying{animation-duration:.01ms!important}.ps-sleep-zzz i{animation:none!important;translate:0 0;scale:1;opacity:.72;filter:none}.ps-space-letter-arrow{animation:none;translate:-50% -2px}.ps-panda.ps-dragging,.ps-panda.ps-dragging .ps-body{animation:none}.ps-grab-daze{animation:none;opacity:1;translate:0}.ps-scared-mark{animation:none;opacity:1;translate:0 0}.ps-track.ps-returning,.ps-track.ps-captured-homecoming{animation:none!important;translate:0 0;rotate:0deg;scale:1;opacity:1}.ps-captured-impact-dust{display:none}.ps-captured-hug-bubble{animation:none;opacity:1;translate:-50% -100%;scale:1}}
+@media (prefers-reduced-motion:reduce){.ps-sleep-zzz i:nth-child(2){translate:2px -8px}.ps-sleep-zzz i:nth-child(3){translate:-1px -17px}}
+@media (prefers-reduced-motion:reduce){.ps-track.ps-bath-dropping,.ps-panda.ps-bath-dropping,.ps-panda.ps-bath-exiting,.ps-panda.ps-bath-exiting .ps-body{animation:none!important}.ps-bath-water-bubbles i,.ps-bath-foam i,.ps-bath-splash i{animation:none!important;opacity:.75}}
+.ps-track.ps-hanging-on-rack{z-index:7}
+.ps-panda.ps-hanging{z-index:6;cursor:grab;transform-origin:50% 5%;translate:0;scale:1;filter:drop-shadow(0 8px 5px #29221644)}
+.ps-panda.ps-hanging:hover,.ps-panda.ps-hanging:active{translate:0;scale:1}
+.ps-panda.ps-hanging .ps-body{rotate:0deg;scale:1 1.04;transform-origin:50% 8%;filter:saturate(.9) brightness(1.03);animation:ps-rack-hang-sway 1.45s ease-in-out infinite alternate}
+@keyframes ps-rack-hang-sway{0%{rotate:-3deg}100%{rotate:3deg}}
+@media (prefers-reduced-motion:reduce){.ps-panda.ps-hanging,.ps-panda.ps-hanging .ps-body{animation:none}}
+.ps-stage[data-room-only="true"] .ps-panda[data-damp-after-bath="true"] .ps-body{filter:saturate(.76) brightness(calc(var(--room-brightness,1) * 1.02))}
+.ps-damp-drops{position:absolute;z-index:7;inset:0;pointer-events:none}
+.ps-damp-drops i{position:absolute;display:block;width:5px;height:7px;border:1px solid #357d86;border-radius:55% 55% 60% 60%;background:#a9e4eb;box-shadow:1px 1px 0 #e8fbfc;animation:ps-damp-drip 1s ease-in-out infinite}
+.ps-damp-drops i:nth-child(1){left:19%;top:34%;animation-delay:-.28s}
+.ps-damp-drops i:nth-child(2){right:17%;top:51%;animation-delay:-.66s}
+.ps-damp-drops i:nth-child(3){left:36%;top:72%;width:4px;height:6px;animation-delay:-.48s}
+.ps-damp-status{position:absolute;z-index:8;bottom:calc(100% + 8px);left:50%;box-sizing:border-box;max-width:min(300px,calc(100vw - 24px));padding:7px 11px;transform:translateX(-50%);border:1px solid #829b8b66;border-radius:13px;background:#fffdf2;color:#536d58;box-shadow:0 3px 12px #32291825;font:500 13px/1.4 "Noto Sans CJK SC",sans-serif;text-align:center;white-space:nowrap;pointer-events:none}
+@keyframes ps-damp-drip{0%,100%{translate:0 0;opacity:.8}58%{translate:0 4px;opacity:1}82%{translate:0 9px;opacity:.18}}
+@media (prefers-reduced-motion:reduce){.ps-damp-drops i{animation:none}}
+@keyframes ps-trash-can-wiggle{0%,100%{rotate:0deg}25%{rotate:-4deg}75%{rotate:4deg}}
+@keyframes ps-waste-wiggle{0%,88%,100%{rotate:0deg;translate:-50% -50%}92%{rotate:-5deg;translate:calc(-50% - 1px) -50%}96%{rotate:5deg;translate:calc(-50% + 1px) -50%}}
+@keyframes ps-waste-wrap-over{0%{transform:translateY(12px) scale(.5);opacity:0}45%{transform:translateY(0) scale(1.08);opacity:1}72%{transform:scale(.94)}100%{transform:translateY(0) scale(1);opacity:1}}
+@keyframes ps-waste-wrap-tie{0%,38%{transform:scaleY(0);opacity:0}65%{transform:scaleY(1.15);opacity:1}100%{transform:scaleY(1);opacity:1}}
+@keyframes ps-waste-into-bin{0%{transform:translateY(0) scale(1);opacity:1}22%{transform:translateY(-5px) scale(1.04);opacity:1}100%{transform:translateY(13px) scale(.28);opacity:0}}
+@media (prefers-reduced-motion:reduce){.ps-room-trash-can[data-disposing=true],.ps-room-waste-fresh,.ps-room-waste-wrap::before,.ps-room-waste-wrap i,.ps-room-waste-disposing{animation:none!important;transition-duration:.01ms!important}}
+/* Speech bubbles live above every room layer (furniture, bed, bath station, panda). */
+.ps-bubble-layer{position:fixed;z-index:200;inset:0;overflow:visible;pointer-events:none}
+.ps-bubble-anchor{position:absolute;left:var(--room-x,50%);top:var(--room-y,53%);width:calc(92px * var(--room-scale,.89));height:calc(92px * var(--room-scale,.89));transform:translate(-50%,-100%);pointer-events:none}
+
+/* Room framed in the screen centre; furniture defaults follow the framed room (vars set by PetStage). */
+.ps-room-surface[data-room-only=true]{background-color:#1b1722;background-image:linear-gradient(45deg,#241d2e 25%,transparent 25% 75%,#241d2e 75%),linear-gradient(45deg,#241d2e 25%,transparent 25% 75%,#241d2e 75%);background-size:16px 16px;background-position:0 0,8px 8px}
+.ps-room-surface[data-room-only=true] .ps-room-backdrop{background-color:transparent}
+.ps-room-surface[data-room-only=true] .ps-room-floor{background-color:transparent}
+.ps-room-surface[data-room-only=true]::after{content:"";position:absolute;left:var(--room-left,0);top:var(--room-top,0);width:var(--room-w,100%);height:var(--room-h,100%);box-sizing:border-box;border:6px solid #1d130a;box-shadow:0 0 0 4px #a97c46,0 0 0 8px #1d130a;z-index:3;pointer-events:none}
+.ps-room-outside-boundary{position:fixed;z-index:230;height:3px;translate:0 -50%;background:#171512;box-shadow:0 1px 0 #171512;opacity:.94;pointer-events:none}
+.ps-room-rack{bottom:calc(var(--room-gap-bottom,0px) + var(--room-h,100vh) * .24)}
+.ps-room-bed{top:calc(var(--room-top,0px) + var(--room-h,100vh) * .68);left:calc(var(--room-left,0px) + var(--room-w,100vw) * .26)}
+.ps-bath-station{right:calc(var(--room-gap-right,0px) + var(--room-w,100vw) * .05);bottom:calc(var(--room-gap-bottom,0px) + var(--room-h,100vh) * .12)}
+.ps-space-letter-box{left:calc(var(--room-left,0px) + var(--room-w,100vw) * .05);bottom:calc(var(--room-gap-bottom,0px) + var(--room-h,100vh) * .12)}
+.ps-room-layout-controls{top:calc(var(--room-top,0px) + 14px)}
+
+/* The wand stays in the room; only the laser follows the cursor. */
+.ps-toy{position:fixed;z-index:250;width:0;height:0;pointer-events:none}
+.ps-toy-laser i{position:absolute;left:-6px;top:-6px;width:12px;height:12px;background:#ff3b30;box-shadow:0 0 0 3px #ff3b3055,0 0 0 6px #ff3b3026,0 0 12px 4px #ff3b3088;animation:ps-laser-pulse .5s steps(2) infinite alternate}
+.ps-toy-laser b{display:none}
+.ps-toy-teaser{width:48px;height:128px;pointer-events:auto;cursor:grab;touch-action:none;user-select:none}
+.ps-toy-teaser[data-dragging=true]{cursor:grabbing}
+.ps-toy-teaser img{position:absolute;top:0;left:0;display:block;width:48px;height:128px;object-fit:contain;transform-origin:50% 42%;image-rendering:pixelated;filter:drop-shadow(1px 2px 1px #1d1a1266);pointer-events:none}
+.ps-toy-teaser[data-dragging=true] img{animation:ps-teaser-wiggle .42s steps(2,end) infinite alternate}
+.ps-toy-question{position:absolute;bottom:calc(100% + 3px);left:50%;color:#fff4ba;text-shadow:2px 0 #473421,-2px 0 #473421,0 2px #473421,0 -2px #473421;font:bold 28px monospace;transform:translateX(-50%);pointer-events:none}
+.ps-toy-dizzy-stars{position:absolute;bottom:calc(100% + 4px);left:50%;width:70px;text-align:center;color:#ffe58e;text-shadow:1px 2px #463520;font:bold 23px monospace;animation:ps-toy-stars .8s steps(5,end) infinite;pointer-events:none}
+@keyframes ps-toy-stars{0%{transform:translateX(-60%) rotate(-12deg)}50%{transform:translateX(-40%) rotate(12deg)}100%{transform:translateX(-60%) rotate(-12deg)}}
+@media(prefers-reduced-motion:reduce){.ps-toy-dizzy-stars,.ps-toy-teaser[data-dragging=true] img{animation:none}}
+@keyframes ps-laser-pulse{from{transform:scale(1)}to{transform:scale(1.35)}}
+@keyframes ps-teaser-wiggle{from{transform:rotate(-12deg) translateX(-1px)}to{transform:rotate(12deg) translateX(1px)}}
+.ps-panda[data-truth-potion-comfort="settling"] .ps-body,.ps-panda[data-truth-potion-comfort="sitting"] .ps-body{animation:none!important;transform:none!important;rotate:0deg!important;scale:1!important;translate:0 0!important;filter:none}
+.ps-truth-potion-invitation{position:absolute;z-index:40;left:50%;top:-10px;box-sizing:border-box;width:max-content;max-width:min(280px,78vw);padding:7px 10px;border:2px solid #705238;background:#fff7dc;color:#36563b;box-shadow:2px 3px 0 #4d392b66;font:600 13px/1.4 "Noto Sans CJK SC",sans-serif;text-align:center;white-space:normal;transform:translate(-50%,-100%);pointer-events:none;animation:ps-potion-invite-pop 260ms cubic-bezier(.2,.9,.35,1.25) both}
+@keyframes ps-potion-invite-pop{from{opacity:0;translate:0 7px;scale:.72}to{opacity:1;translate:0 0;scale:1}}
+@media(prefers-reduced-motion:reduce){.ps-truth-potion-invitation{animation:none}}
+.ps-panda[data-sick="true"]:not(.ps-dragging) .ps-body{animation:none!important;filter:none}
+.ps-panda[data-sick="true"]:not(.ps-dragging){cursor:grab}
+
+.ps-arrow-marker{position:absolute;left:50%;bottom:calc(100% + 4px);transform:translateX(-50%);color:#e0242a;font-size:30px;line-height:1;text-shadow:0 2px 0 #7a1014,0 0 4px #fff8;pointer-events:none;z-index:5;animation:ps-arrow-bob 1s ease-in-out infinite}
+@keyframes ps-arrow-bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,5px)}}
+@media (prefers-reduced-motion:reduce){.ps-arrow-marker{animation:none}}

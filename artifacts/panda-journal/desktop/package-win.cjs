@@ -8,6 +8,7 @@ const packageRoot = path.resolve(__dirname, "..");
 const workspaceRoot = path.resolve(packageRoot, "../..");
 const stageRoot = path.join(packageRoot, "dist", "windows-app");
 const outputRoot = path.join(workspaceRoot, "generated-artifacts", "windows-installer");
+const offlineTrial = process.env.PANDA_BUILD_OFFLINE_TRIAL === "1";
 const packageInfo = JSON.parse(fs.readFileSync(path.join(packageRoot, "package.json"), "utf8"));
 const electronVersion = JSON.parse(
   fs.readFileSync(path.join(packageRoot, "node_modules", "electron", "package.json"), "utf8"),
@@ -66,7 +67,11 @@ async function main() {
   fs.mkdirSync(path.join(stageRoot, "desktop"), { recursive: true });
   fs.mkdirSync(outputRoot, { recursive: true });
 
-  for (const file of ["main.cjs", "preload.cjs", "pet.html", "pet.css", "pet-renderer.js", "roaming-geometry.js"]) {
+  for (const file of ["main.cjs", "preload.cjs", "pet.html", "pet.css", "pet-renderer.js", "roaming-geometry.js",
+    "pet-lite.js", "pet-lite-model.js", "pet-lite.css", "platform-model.js", "windows-platforms.cjs", "background-bite.js", "windows-pixel.cjs",
+    "journal-connection.cjs", "journal-targets.json", "wellbeing.cjs", "wellbeing-animation.js",
+    "notebook-store.cjs", "notebook-parser.cjs", "notebook.html", "notebook.css", "notebook.js",
+    "schedule-chat.html", "schedule-chat.css", "schedule-chat.js"]) {
     fs.copyFileSync(path.join(__dirname, file), path.join(stageRoot, "desktop", file));
   }
   copyDirectory(path.join(packageRoot, "dist", "desktop"), path.join(stageRoot, "dist", "desktop"));
@@ -106,6 +111,7 @@ async function main() {
         private: true,
         description: "小熊猫日记 Windows 桌面客户端",
         main: "desktop/main.cjs",
+        ...(offlineTrial ? { offlineDesktopTrial: true } : {}),
       },
       null,
       2,
@@ -147,20 +153,55 @@ async function main() {
     ".bin",
     process.platform === "win32" ? "electron-builder.cmd" : "electron-builder",
   );
+  if (!offlineTrial) {
+    run(
+      builder,
+      ["--config", "electron-builder.json", "--win", "nsis", "--x64"],
+      stageRoot,
+      "Create Windows installer",
+      getBuilderEnvironment(),
+    );
+  } else {
+    builderConfig.appId = "com.xiaoxiongmao.desktoptrial";
+  }
+
+  builderConfig.win = {
+    target: [{ target: "portable", arch: ["x64"] }],
+    artifactName: offlineTrial
+      ? "Xiaoxiongmao-Offline-Trial-${arch}.${ext}"
+      : "${productName}-Portable-${version}-${arch}.${ext}",
+  };
+  delete builderConfig.nsis;
+  fs.writeFileSync(
+    path.join(stageRoot, "electron-builder.json"),
+    `${JSON.stringify(builderConfig, null, 2)}\n`,
+  );
   run(
     builder,
-    ["--config", "electron-builder.json", "--win", "nsis", "--x64"],
+    ["--config", "electron-builder.json", "--win", "portable", "--x64"],
     stageRoot,
-    "Create Windows installer",
+    "Create portable Windows app",
     getBuilderEnvironment(),
   );
 
   const installers = fs
     .readdirSync(outputRoot)
-    .filter((name) => name.toLowerCase().endsWith(".exe"))
+    .filter((name) => offlineTrial ? name === "Xiaoxiongmao-Offline-Trial-x64.exe"
+      : name.endsWith(".exe") && !name.includes("-Offline-Trial-"))
     .map((name) => path.join(outputRoot, name));
   if (!installers.length) throw new Error(`Build succeeded but no .exe was found in ${outputRoot}`);
-  console.log(`Windows installer created:\n${installers.join("\n")}`);
+  fs.writeFileSync(path.join(outputRoot, "BUILD-INFO.json"), `${JSON.stringify({
+    version: packageInfo.version,
+    sourceRevision: process.env.GITHUB_SHA || "local-build",
+    buildRun: process.env.GITHUB_RUN_NUMBER || null,
+    movement: "taskbar-and-window-top-platforms",
+    artifacts: installers.map(file => ({
+      file: path.basename(file),
+      type: offlineTrial ? "offline-trial" : path.basename(file).includes("-Portable-") ? "portable" : "installer",
+      bytes: fs.statSync(file).size,
+    })),
+  }, null, 2)}\n`);
+  console.log(`Windows executables created:\n${installers.join("\n")}`);
 }
 
 main().catch((error) => {

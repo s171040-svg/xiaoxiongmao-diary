@@ -1,3 +1,12 @@
-- [小熊猫日记产品范围](panda-journal-scope.md) — 记录单人本地日记边界及月夜蓝小熊猫之家装修方向。
-- [Electron 开发验证](electron-development.md) — VNC 原生依赖、中文/emoji 字体及异步窗口状态需要单独验证。
+- [小熊猫日记产品范围](panda-journal-scope.md) — 已取消双人；保留单人邮箱与个人宠物存档，聊天日记仅本机。含动作及养成衰减规则。
+- [工作陪伴桌宠方向](office-companion.md) — 新方向为免配置的办公陪伴、一元永久解锁；休息满五分钟回来时放烟花，不自动删除旧网页。
+- [Electron 开发验证](electron-development.md) — VNC 字体、窗口状态、Windows CI 原生依赖及网页/桌面渲染需分别验证。
 - [DeepSeek 连续聊天](deepseek-context.md) — JSON 模式须保持历史回复结构一致，HTTP 200 也可能只有空白内容。
+- [合并后 pnpm 锁文件同步](pnpm-postmerge-lockfile.md) — 任务合并可能造成 workspace 配置与 lockfile 短暂不一致；合并后安装应能自我同步。
+- [GitHub 对象同步校验](github-object-integrity.md) — 经 API 同步源码须验证精确对象；blob 用原始字节，提交消息保留末尾换行。
+- [PixelLab 动画计费与尺寸](pixellab-animation-sizing.md) — 动画可能先放大输入画布再计费；按完成任务返回的尺寸和实际额度估算。
+- [房间闹钟数字](room-alarm-clock.md) — 实时时间只替换背景钟面里的数字，保留闹钟外形、数字尺寸和方向。
+- [行进中的动作过渡](locomotion-transitions.md) — 爬梯转身需保持路线推进，不能和需要停步的驻留过渡共用移动阻断条件。
+- [浏览器单次动画时钟](browser-animation-clock.md) — RAF 时间戳可能略早于 effect 的开始时间；微小负时长不能当作播放结束。
+- [宠物梦境的视觉要求](pet-dream-style.md) — 云朵和云内随机梦境均须为一致的像素画面，不用表情云或纯文字替代。
+- [小白房间主题约束](xiaobai-room-art.md) — 保留完整房间架构和全部物品，仅重设计主题外观；概念图先预览，不直接接入。

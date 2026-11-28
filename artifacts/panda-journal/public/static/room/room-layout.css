@@ -1,5 +1,23 @@
-/* Palette for the native pet's full-window, perspective floor. */
+/*
+ * Shared room geometry for the journal preview and transparent Electron pet.
+ * When replacing room-background.png, adjust --panda-room-floor-height to the
+ * new image's floor line; movement stays inside the room's horizontal bounds.
+ */
 :root {
+  --panda-room-floor-height: 24%;
+  --panda-room-floor-edge: #a58b65;
+  --panda-room-wall-fallback: #dfe8cc;
+
+  --panda-room-desktop-walk-range:
+    clamp(0px, 20cqw, max(0px, calc((100cqw - 176px) / 2 - 8px)));
+  --panda-room-desktop-roll-range:
+    clamp(0px, 14cqw, max(0px, calc((100cqw - 100px) / 2 - 6px)));
+  --panda-room-journal-walk-range:
+    clamp(0px, 35cqw, max(0px, calc((100cqw - 92px) / 2 - 8px)));
+  --panda-room-journal-roll-range:
+    clamp(0px, 4.5cqw, max(0px, calc((100cqw - 92px) / 2 - 8px)));
+
+  /* Palette for the native pet's full-window, perspective floor. */
   --panda-room-floor-far: #e4d6b7;
   --panda-room-floor-mid: #d8c49b;
   --panda-room-floor-near: #c0a77b;

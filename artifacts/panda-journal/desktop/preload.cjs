@@ -9,6 +9,20 @@ function subscribe(channel, callback) {
 }
 
 contextBridge.exposeInMainWorld("pandaDesktop", {
+  desktopPetState: () => ipcRenderer.invoke("desktop-pet:state"),
+  onDesktopPetState: (callback) => subscribe("desktop-pet:state", callback),
+  desktopPlatforms: () => ipcRenderer.invoke("desktop-pet:platforms"),
+  onDesktopPlatforms: (callback) => subscribe("desktop:platforms", callback),
+  syncDesktopCharacter: (selection) => ipcRenderer.send("desktop-pet:character", selection),
+  enterDesktop: () => ipcRenderer.invoke("desktop-pet:enter"),
+  returnHome: () => ipcRenderer.invoke("desktop-pet:home"),
+  openRestMenu: () => ipcRenderer.invoke("desktop-pet:rest-menu"),
+  openNotebook: () => ipcRenderer.invoke("notebook:open"),
+  openScheduleChat: () => ipcRenderer.invoke("schedule-chat:open"),
+  backgroundColor: (left, manual) => ipcRenderer.invoke("desktop-pet:background-color", left, manual),
+  onBiteNow: callback => subscribe("desktop-pet:bite-now", callback),
+  onWellbeing: callback => subscribe("desktop-pet:wellbeing", callback),
+  setPetDragging: (value) => ipcRenderer.send("desktop-pet:dragging", Boolean(value)),
   chat: (input) => ipcRenderer.invoke("companion:chat", input),
   companionMotion: (effect) => ipcRenderer.send("companion:motion", effect),
   notifyMessage: (text) => ipcRenderer.send("companion:message", text),
@@ -31,4 +45,22 @@ contextBridge.exposeInMainWorld("pandaDesktop", {
   onPetMotion: (callback) => subscribe("pet:motion", callback),
   onPetMessage: (callback) => subscribe("pet:message", callback),
   onDesktopObstacles: (callback) => subscribe("desktop:obstacles", callback),
+});
+
+contextBridge.exposeInMainWorld("pandaNotebook", {
+  list: () => ipcRenderer.invoke("notebook:list"),
+  save: input => ipcRenderer.invoke("notebook:save", input),
+  remove: id => ipcRenderer.invoke("notebook:remove", id),
+  close: () => ipcRenderer.invoke("notebook:close"),
+  setDirty: dirty => ipcRenderer.send("notebook:dirty", Boolean(dirty)),
+  onChanged: callback => subscribe("notebook:changed", callback),
+});
+
+contextBridge.exposeInMainWorld("pandaScheduleChat", {
+  parse: text => ipcRenderer.invoke("schedule-chat:parse", text),
+  save: input => ipcRenderer.invoke("schedule-chat:save", input),
+  openNotebook: () => ipcRenderer.invoke("schedule-chat:manager"),
+  hide: () => ipcRenderer.invoke("schedule-chat:hide"),
+  setDirty: dirty => ipcRenderer.send("schedule-chat:dirty", Boolean(dirty)),
+  onChanged: callback => subscribe("notebook:changed", callback),
 });

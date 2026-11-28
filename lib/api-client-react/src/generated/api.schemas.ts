@@ -5,6 +5,331 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type PetSaveSnapshotPet = {[key: string]: unknown};
+
+export type CoopGiftKind = typeof CoopGiftKind[keyof typeof CoopGiftKind];
+
+
+export const CoopGiftKind = {
+  vitamin: 'vitamin',
+} as const;
+
+export interface CoopGift {
+  /** @maxLength 120 */
+  id: string;
+  /** @maxLength 16 */
+  emoji: string;
+  /** @maxLength 120 */
+  item: string;
+  /** @maxLength 120 */
+  animal: string;
+  /** @maxLength 1200 */
+  story: string;
+  /** @minimum 0 */
+  receivedAt: number;
+  favorite?: boolean;
+  /** @minimum 0 */
+  fedAt?: number;
+  kind?: CoopGiftKind;
+}
+
+export interface CoopRoomPoint {
+  /**
+     * @minimum 0
+     * @maximum 1
+     */
+  x: number;
+  /**
+     * @minimum 0
+     * @maximum 1
+     */
+  y: number;
+}
+
+export type CoopCareStatCategory = typeof CoopCareStatCategory[keyof typeof CoopCareStatCategory];
+
+
+export const CoopCareStatCategory = {
+  health: 'health',
+  bond: 'bond',
+  growth: 'growth',
+} as const;
+
+export interface CoopCareStats {
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  growth: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  health: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  bond: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  hunger?: number;
+  /** @minimum 0 */
+  hungerUpdatedAt?: number;
+  /** @minimum 0 */
+  lastInteractionAt: number;
+  /** @minimum 0 */
+  lastDecayAt: number;
+  /** @minimum 0 */
+  revision: number;
+  lastInteractionCategory: CoopCareStatCategory;
+  /**
+     * @maxItems 128
+     * @items.minLength 1
+     * @items.maxLength 80
+     */
+  recentInteractionIds: string[];
+}
+
+export type CoopWorldEcologyStateFallCycle = typeof CoopWorldEcologyStateFallCycle[keyof typeof CoopWorldEcologyStateFallCycle];
+
+
+export const CoopWorldEcologyStateFallCycle = {
+  first: 'first',
+  'needs-clean': 'needs-clean',
+  'after-clean': 'after-clean',
+} as const;
+
+export interface CoopWorldEcologyState {
+  /** @minimum 0 */
+  lastAttentionAt: number;
+  /** @minimum 0 */
+  lastPetPoopAt?: number;
+  sick?: boolean;
+  /**
+     * @minimum 0
+     * @maximum 3
+     */
+  vitaminsFed?: number;
+  fallCycle: CoopWorldEcologyStateFallCycle;
+  /** @minimum 0 */
+  lastFallRollAt?: number;
+  /** @minimum 0 */
+  dirtySince?: number;
+  /** @minimum 0 */
+  dirtyHealthAppliedMinutes: number;
+  /** @minimum 0 */
+  updatedAt: number;
+}
+
+export type CoopFoxMerchantLetterStatus = typeof CoopFoxMerchantLetterStatus[keyof typeof CoopFoxMerchantLetterStatus];
+
+
+export const CoopFoxMerchantLetterStatus = {
+  captured: 'captured',
+  reset: 'reset',
+  rescued: 'rescued',
+} as const;
+
+export interface CoopFoxMerchantLetter {
+  /** @maxLength 120 */
+  id: string;
+  /** @minimum 0 */
+  sentAt: number;
+  /** @maxLength 40 */
+  petName: string;
+  /** @maxLength 80 */
+  foxName: string;
+  status: CoopFoxMerchantLetterStatus;
+  /** @minimum 0 */
+  snacksAtCapture: number;
+  /** @minimum 0 */
+  openedAt?: number;
+  /** @minimum 0 */
+  resolvedAt?: number;
+}
+
+export type CoopSharedStateFurnitureLayout = {
+  bed?: CoopRoomPoint;
+  rack?: CoopRoomPoint;
+  mailbox?: CoopRoomPoint;
+  bathStation?: CoopRoomPoint;
+  trashCan?: CoopRoomPoint;
+};
+
+export type CoopSharedStatePlacedProps = {[key: string]: boolean};
+
+export interface CoopSharedState {
+  /** @maxItems 300 */
+  gifts: CoopGift[];
+  furnitureLayout: CoopSharedStateFurnitureLayout;
+  placedProps: CoopSharedStatePlacedProps;
+  careStats?: CoopCareStats;
+  worldEcology?: CoopWorldEcologyState;
+  foxMerchantLetter?: CoopFoxMerchantLetter;
+}
+
+export interface PetSaveSnapshot {
+  room: CoopSharedState;
+  pet: PetSaveSnapshotPet;
+}
+
+export interface PetSaveInput {
+  snapshot: PetSaveSnapshot;
+  /** @minimum 0 */
+  revision: number;
+}
+
+export interface PetSaveRecord {
+  snapshot: PetSaveSnapshot | null;
+  /** @minimum 0 */
+  revision: number;
+  migrated?: boolean;
+}
+
+export type PetCharacterInputCharacterId = typeof PetCharacterInputCharacterId[keyof typeof PetCharacterInputCharacterId];
+
+
+export const PetCharacterInputCharacterId = {
+  panda: 'panda',
+  xiaobai: 'xiaobai',
+} as const;
+
+export interface PetCharacterInput {
+  characterId: PetCharacterInputCharacterId;
+}
+
+/**
+ * @nullable
+ */
+export type PetCharacterSelectionCharacterId = typeof PetCharacterSelectionCharacterId[keyof typeof PetCharacterSelectionCharacterId] | null;
+
+
+export const PetCharacterSelectionCharacterId = {
+  panda: 'panda',
+  xiaobai: 'xiaobai',
+} as const;
+
+export interface PetCharacterSelection {
+  /** @nullable */
+  characterId: PetCharacterSelectionCharacterId;
+  locked: boolean;
+  shared: boolean;
+}
+
+export interface CoopCareStatInteractionInput {
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  interactionId: string;
+  category: CoopCareStatCategory;
+  /** @minimum 0 */
+  occurredAt: number;
+}
+
+export interface CoopCareStatInteractionResponse {
+  careStats: CoopCareStats;
+}
+
+export type CoopShareNoteCategory = typeof CoopShareNoteCategory[keyof typeof CoopShareNoteCategory];
+
+
+export const CoopShareNoteCategory = {
+  daily: 'daily',
+  idea: 'idea',
+  worry: 'worry',
+} as const;
+
+export interface CoopShareNote {
+  id: string;
+  category: CoopShareNoteCategory;
+  /** @maxLength 48 */
+  title: string;
+  /** @maxLength 180 */
+  message: string;
+  excluded: boolean;
+  /** @minimum 0 */
+  createdAt: number;
+  automatic: boolean;
+}
+
+export type CoopHouseholdResponsePlayerNumber = typeof CoopHouseholdResponsePlayerNumber[keyof typeof CoopHouseholdResponsePlayerNumber];
+
+
+export const CoopHouseholdResponsePlayerNumber = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+} as const;
+
+export type CoopHouseholdResponseMemberCount = typeof CoopHouseholdResponseMemberCount[keyof typeof CoopHouseholdResponseMemberCount];
+
+
+export const CoopHouseholdResponseMemberCount = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+} as const;
+
+export interface CoopHouseholdResponse {
+  householdId: string;
+  playerNumber: CoopHouseholdResponsePlayerNumber;
+  memberCount: CoopHouseholdResponseMemberCount;
+  sharedState: CoopSharedState;
+  queuedNotes: CoopShareNote[];
+  inbox: CoopShareNote[];
+}
+
+export interface CoopHouseholdInput {
+  sharedState: CoopSharedState;
+}
+
+export interface CoopInvitationResponse {
+  /**
+     * @minLength 8
+     * @maxLength 12
+     */
+  code: string;
+  /** @minimum 0 */
+  expiresAt: number;
+}
+
+export interface CoopJoinInput {
+  /**
+     * @minLength 8
+     * @maxLength 12
+     */
+  code: string;
+}
+
+export interface CoopStateInput {
+  sharedState: CoopSharedState;
+}
+
+export interface CoopStateResponse {
+  sharedState: CoopSharedState;
+  /** @minimum 0 */
+  updatedAt: number;
+}
+
+export interface CoopShareNoteInput {
+  /**
+     * @minLength 1
+     * @maxLength 1200
+     */
+  text: string;
+}
+
+export interface CoopShareNoteUpdate {
+  excluded: boolean;
+}
+
+export interface CoopDeliveryResponse {
+  delivered: boolean;
+  note?: CoopShareNote;
+}
+
 export type CompanionContextRole = typeof CompanionContextRole[keyof typeof CompanionContextRole];
 
 
@@ -50,6 +375,8 @@ export interface CompanionInput {
   userName: string;
   /** @maxItems 24 */
   memories: CompanionMemory[];
+  /** Enable the clear-mind support prompt for this reply only. */
+  clearMindMode?: boolean;
 }
 
 export type CompanionResponseAction = typeof CompanionResponseAction[keyof typeof CompanionResponseAction];

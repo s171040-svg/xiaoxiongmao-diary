@@ -573,12 +573,656 @@ content_type = "image/png"
 id = "Vs9JOyhkL3SikGsPUDvNT"
 uri = "file://artifacts/panda-journal/public/static/panda/startled.png"
 type = "image"
-title = "小熊猫被鼠标吓到的炸毛姿势"
-description = "PixelLab 生成的 96×96 透明底棕红小熊猫受惊图：耳朵竖起、眼睛睁大、身体和尾巴蓬起；网页房间受惊时使用。"
+title = "小熊猫受惊炸毛姿势"
+description = "96×96 透明像素图；可见轮廓与普通待机图一致。"
 logical_id = "621bb6ad-7264-42a9-976d-8e9e5be59a92"
-content_hash = "sha256:4484ba19a5a5d246130a6dff2665b99eae0754a2a19abd81052506639678a28d"
-size = 3878
-mtime_ms = 1792124263766
-storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/621bb6ad-7264-42a9-976d-8e9e5be59a92/f05a4be5-2849-4a14-b38f-d25e6ec899c3"
-storage_version_token = "1792124345952013"
+content_hash = "sha256:72629de7a251f6c239c08081af843b9bf9d42fd47135f052c8a325c5993254b6"
+size = 3366
+mtime_ms = 1792640594831
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/621bb6ad-7264-42a9-976d-8e9e5be59a92/87a2ad34-a135-42cf-b33a-456b1ca383b9"
+storage_version_token = "1792640703607835"
+content_type = "image/png"
+
+[[outputs]]
+id = "Ssh5D5ETWqM7aIXvd2jcK"
+uri = "file://artifacts/panda-journal/public/static/panda/captured-dazed.png"
+type = "image"
+title = "小熊猫·被找回后发懵"
+description = "96×96 像素姿势更新：可怜、发懵、头脸灰污、毛发蓬乱；已接入网页房间，并配有 6 帧衔接。"
+logical_id = "8996ff3e-b29f-44b0-a02f-921ad9394dfe"
+content_hash = "sha256:85a5fcdab6051b2daf0f4e54369b2618a728dda022043409346aee7a8395a97e"
+size = 3134
+mtime_ms = 1792214484331
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/8996ff3e-b29f-44b0-a02f-921ad9394dfe/a3c0340b-b514-4094-a8cf-2f704af66fd4"
+storage_version_token = "1792214691090371"
+content_type = "image/png"
+
+[[outputs]]
+id = "YyllWKWIkA60GOhtRYxG1"
+uri = "file://generated-artifacts/panda-home-layout-preview.png"
+type = "image"
+title = "小熊猫的小家 · 布局预览"
+description = "用现有的窝床、晾衣架、浴缸、浴球箱和时空信箱组成的独立预览；约三分之二地面留给活动，不接入当前应用。"
+logical_id = "c220a2d7-6841-452d-a45d-32bf22df81df"
+content_hash = "sha256:e755aa0fde6aa8c18eca44d22d3d42ebec151ad8550865ccacfb5d2b0ebbfbeb"
+size = 494527
+mtime_ms = 1792222626228
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/c220a2d7-6841-452d-a45d-32bf22df81df/96f1ffd4-75c2-493a-bfd6-e63dcb14d80a"
+storage_version_token = "1792222649355231"
+content_type = "image/png"
+
+[[outputs]]
+id = "MLhKq4qywhNpqIruGqhCx"
+uri = "file://generated-artifacts/panda-wall-dizzy.gif"
+type = "image"
+title = "撞墙后眩晕跌坐动画"
+description = "原版棕红小熊猫：星星绕头、眩晕眼，失去平衡后跌坐。已接入网页房间的撞墙眩晕动作。"
+logical_id = "e3a45e0f-7fc9-424f-a6dd-ace6bb11560e"
+content_hash = "sha256:72a3697bc34606275fe2aea5f78eff98025ced2c8b2af6e46902ffadbc31a4ec"
+size = 216323
+mtime_ms = 1792505706118
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/e3a45e0f-7fc9-424f-a6dd-ace6bb11560e/b09f00ea-8b4a-471f-b461-76109ee89b5f"
+storage_version_token = "1792505757970302"
+content_type = "image/gif"
+
+[[outputs]]
+id = "5jEQlwTTASpjHwN3gZRjk"
+uri = "file://artifacts/panda-journal/public/static/room/room-background-pixellab.png"
+type = "image"
+title = "当前房间原始背景图"
+description = "1024 × 576 PNG，未缩放、未裁剪。用于手动制作前景遮挡图层。"
+logical_id = "38b19c54-17a2-4699-8bb1-74b6693de81e"
+content_hash = "sha256:b2c8a849954150c3acb793e7949de9c46502ec64e84667ed76b0f4de837c14fe"
+size = 979997
+mtime_ms = 1792289014893
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/38b19c54-17a2-4699-8bb1-74b6693de81e/724a5871-2de0-43ee-902a-9e3b8b354bb9"
+storage_version_token = "1792506812564045"
+content_type = "image/png"
+
+[[outputs]]
+id = "IvkzDReWjQB7W1h-5KWMR"
+uri = "file://generated-artifacts/panda-night-room-pixellab-preview.png"
+type = "image"
+title = "PixelLab 夜间卧室预览（未接入）"
+description = "384 × 216 概念预览。PixelLab 本次重绘偏离现有房间布局，窗外也没有明显月亮；仅供查看，不是可直接使用的日夜切换素材。"
+logical_id = "0db12712-9156-4a9b-b38c-f841e6fcaae2"
+content_hash = "sha256:504d016fd6553de300c99588603edafe5f6ddda6977f1ad43f0dc09ab81e3e72"
+size = 90727
+mtime_ms = 1792512129474
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/0db12712-9156-4a9b-b38c-f841e6fcaae2/1eb479d2-48f7-4369-9c9c-bf078d5ef098"
+storage_version_token = "1792512143003245"
+content_type = "image/png"
+
+[[outputs]]
+id = "ViIUJxzahxyMNE6aWBpCd"
+uri = "file://generated-artifacts/panda-back-pawing-preview.gif"
+type = "image"
+title = "仰躺挠天花 · 动画预览"
+description = "小熊猫背部贴地，四肢朝上伸爪和蹬腿的透明背景循环动画。"
+logical_id = "629a686b-bf9a-48e8-bd41-1bc9a42d2521"
+content_hash = "sha256:9f6671258ff50c0aa6b7db858679d7f1d11bb68aaa17cd730a2eedc966924ffb"
+size = 63081
+mtime_ms = 1792594404671
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/629a686b-bf9a-48e8-bd41-1bc9a42d2521/80342115-fb59-4bff-a1de-1ec92ffbba44"
+storage_version_token = "1792594693551499"
+content_type = "image/gif"
+
+[[outputs]]
+id = "6BSrlhZ8sF_b__4XQC9r2"
+uri = "file://artifacts/panda-journal/public/static/room/trash-can.png"
+type = "image"
+title = "新绘制的像素垃圾桶"
+description = "透明底像素素材；已接入房间并保留便便袋清理用途。"
+logical_id = "73f85e3a-e5c6-44a3-beb2-1ebb1113b404"
+content_hash = "sha256:3572e8491bca36b5639bfcb6048434c06ac97384b96a657b28d8eea46fc3f7fa"
+size = 2082
+mtime_ms = 1792642367895
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/73f85e3a-e5c6-44a3-beb2-1ebb1113b404/8325b12d-ad1a-4975-93de-c3ea0c304fcb"
+storage_version_token = "1792642774187500"
+content_type = "image/png"
+
+[[outputs]]
+id = "bLMtjqFp4Ycbile1lLQjf"
+uri = "file://attached_assets/panda-climb-up-pixen-comparison.png"
+type = "image"
+title = "爬梯背影试改前后对比"
+description = "左侧是原始帧，右侧是 PixelLab 单帧试改；仅供检查，未替换项目素材。"
+logical_id = "38f970b2-0495-43b3-a9da-9f5722117fd5"
+content_hash = "sha256:d9426fad3c85fe7325d378bd22b071e24e6949fc6bfb40d75571a01916f3bf2a"
+size = 123832
+mtime_ms = 1794285197879
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/38f970b2-0495-43b3-a9da-9f5722117fd5/c42914eb-f3d7-4ecb-b330-c780eb44970f"
+storage_version_token = "1794285207425304"
+content_type = "image/png"
+
+[[outputs]]
+id = "u1btpa1gbDyrsaENY-iEj"
+uri = "file://attached_assets/panda-climb-up-pixen-preview.png"
+type = "image"
+title = "PixelLab 爬梯背影试改帧"
+description = "96×96 透明 PNG；单帧预览，未接入项目。"
+logical_id = "dca18966-642c-483e-bd37-43dd14099eb5"
+content_hash = "sha256:863bd275afb7e26d63487d732551d7ebb3df6ad73df20a6a6c61f711611b4848"
+size = 2410
+mtime_ms = 1794285197863
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/dca18966-642c-483e-bd37-43dd14099eb5/cac2bc79-f302-439c-9aef-1376ef4a1880"
+storage_version_token = "1794285208732914"
+content_type = "image/png"
+
+[[outputs]]
+id = "-mO0D3RjvKMCfRU7UOKvq"
+uri = "file://attached_assets/panda-climb-up-left-facing-seed.png"
+type = "image"
+title = "楼梯左上方向镜像参考帧"
+description = "从右上朝向改为左上，仅左右翻转；96×96 透明 PNG，仅用于预览，未接入项目。"
+logical_id = "5a24ef26-ec55-4fa6-8ab1-c6db0f158d2d"
+content_hash = "sha256:83d1cb4318db943285198cea2b4b93a863246f721395e2db9513e69174f941c3"
+size = 1485
+mtime_ms = 1794317812220
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/5a24ef26-ec55-4fa6-8ab1-c6db0f158d2d/d8cdadfb-2385-42a9-975a-bb47eea733d0"
+storage_version_token = "1794317838963096"
+content_type = "image/png"
+
+[[outputs]]
+id = "d-ygdiCX-Plnn0lR8MPvC"
+uri = "file://attached_assets/panda-stair-walk-preview.gif"
+type = "image"
+title = "爬梯左上行走动画预览"
+description = "PixelLab 生成 8 帧，连同镜像首帧共 9 帧；96×96 透明原帧放大 4 倍，仅供预览，未接入项目。"
+logical_id = "acee0b61-6540-42fc-98dc-36ac01df12a4"
+content_hash = "sha256:fcfbf45604f8a532d4787c6b6af03efd6e6f528148b1d900fa45026d0c66f19e"
+size = 52234
+mtime_ms = 1794318308900
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/acee0b61-6540-42fc-98dc-36ac01df12a4/adf3bb14-6897-4b59-859c-4a8622517703"
+storage_version_token = "1794318327597774"
+content_type = "image/gif"
+
+[[outputs]]
+id = "tT32DfC_7uiWoZ57k16pO"
+uri = "file://attached_assets/panda-stair-walk-frames.png"
+type = "image"
+title = "爬梯行走逐帧检查表"
+description = "按播放顺序排列的 9 帧，便于检查脚步、朝向和尺寸稳定性。"
+logical_id = "67fd8b39-8fc9-4445-a294-eaa26160bd79"
+content_hash = "sha256:a378bab90bcb359daf0223c00868de55a2f07058f420a2a17993a1d1409dec66"
+size = 357875
+mtime_ms = 1794318308944
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/67fd8b39-8fc9-4445-a294-eaa26160bd79/63000e48-f00f-462b-ba71-a7100558701a"
+storage_version_token = "1794318328991964"
+content_type = "image/png"
+
+[[outputs]]
+id = "O52UOqjw0lmBxAp4w2NZg"
+uri = "file://attached_assets/generated_images/panda-pomeranian-comparison.png"
+type = "image"
+title = "白色博美角色初稿｜与小熊猫对比"
+description = "左边是现有小熊猫，右边是白色博美初稿；同为 96×96 画布，按相同比例放大，便于检查体型与像素风格。"
+logical_id = "5c2b3247-7d76-48d4-951b-6751d3a095f0"
+content_hash = "sha256:f64b302a78a80bcc8c3f6204b0abdb7f9d8d9b941cb5674758f7d847bd9fd08d"
+size = 4604
+mtime_ms = 1795081809073
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/5c2b3247-7d76-48d4-951b-6751d3a095f0/99e68a27-a6f9-4a58-b5d3-35e868f7ff62"
+storage_version_token = "1795081840989017"
+content_type = "image/png"
+
+[[outputs]]
+id = "3vRTDNtRktlLHI9u93Ut4"
+uri = "file://attached_assets/generated_images/white-pomeranian-draft.png"
+type = "image"
+title = "白色博美｜透明底原始图"
+description = "96×96 像素静态角色初稿，尚未替换游戏角色或制作动画。"
+logical_id = "0ea849aa-ceb0-4db0-80dd-041a422a7283"
+content_hash = "sha256:496eb9a8651351d98843e8f02c65e3eb6768bde300e4e51752a3baf24093baf6"
+size = 1875
+mtime_ms = 1795081790801
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/0ea849aa-ceb0-4db0-80dd-041a422a7283/d00cf088-0ef6-4191-ab7c-6a96b1c88aac"
+storage_version_token = "1795081842316220"
+content_type = "image/png"
+
+[[outputs]]
+id = "e2qct9hwahwaFMw--zLmg"
+uri = "file://attached_assets/generated_images/white-pomeranian-big-eyes-preview.png"
+type = "image"
+title = "白色博美重新设计｜大眼睛、毛球尾"
+description = "重新生成犬类造型，圆润蓬松的脸、大眼睛和短小白色毛球尾；仅为静态预览，未替换游戏角色。"
+logical_id = "b556b1c7-c33b-4cab-8205-d3b6e75dccb1"
+content_hash = "sha256:72184727bedc704bd0444b84c24c687b1de8445c949484d9357e662de7b56283"
+size = 4376
+mtime_ms = 1795082008696
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/b556b1c7-c33b-4cab-8205-d3b6e75dccb1/53b45d71-efa0-4e3a-bdf8-3dfa96453a61"
+storage_version_token = "1795082040574681"
+content_type = "image/png"
+
+[[outputs]]
+id = "431pevpbIhk4ilCOYyJLl"
+uri = "file://attached_assets/generated_images/panda-pomeranian-redesign-comparison.png"
+type = "image"
+title = "与现有小熊猫对比"
+description = "左边为原小熊猫，右边为新设计，均使用 96×96 画布并按相同倍率放大。"
+logical_id = "bad7011d-1575-4cd1-8b55-efa5423ec719"
+content_hash = "sha256:99bd4cdbc6e32d3a4e4f0db0ea73774b6fa35dafa1a7e95337aeea802a05b9a2"
+size = 5869
+mtime_ms = 1795082008984
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/bad7011d-1575-4cd1-8b55-efa5423ec719/a34e2f4f-9bd1-4fc4-bed9-a4328c287f68"
+storage_version_token = "1795082041876071"
+content_type = "image/png"
+
+[[outputs]]
+id = "sMRkCKoJb59QeRlnLWJLY"
+uri = "file://attached_assets/generated_images/pomeranian-five-options.png"
+type = "image"
+title = "白色小狗｜5 款卡通像素形象"
+description = "左上为当前小熊猫，其余按 01–05 编号。保持粗像素与短腿体型，探索不同脸型、耳朵和表情，统一使用白色毛球尾。"
+logical_id = "59a91ec7-48f8-43d8-91ca-b8d8d8790435"
+content_hash = "sha256:836f02ad56a07d7b8835dcb6e0fad0aee99f61ed6f730b766218373b2814161c"
+size = 46544
+mtime_ms = 1795082397944
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/59a91ec7-48f8-43d8-91ca-b8d8d8790435/79f52811-444c-41cf-84d3-1ccd8c83c444"
+storage_version_token = "1795082465206057"
+content_type = "image/png"
+
+[[outputs]]
+id = "LZVACz0qky3x9IkjqAuFi"
+uri = "file://attached_assets/generated_images/pomeranian-five-transparent-sheet.png"
+type = "image"
+title = "5 款白色小狗｜透明底原尺寸"
+description = "从左至右为 01–05，每格 96×96 像素。仅角色设计预览，未接入动画或替换现有小熊猫。"
+logical_id = "591d94f4-7d8f-452d-bc70-b400d55027fa"
+content_hash = "sha256:39ad101261c9a2fce753ad701f78e69d6c8d20b32932fa83be09ee45efbdb7a9"
+size = 5683
+mtime_ms = 1795082451396
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/591d94f4-7d8f-452d-bc70-b400d55027fa/8a580193-b3b8-43b1-b277-122d8ebe0095"
+storage_version_token = "1795082466485413"
+content_type = "image/png"
+
+[[outputs]]
+id = "bZAcqeNMR9AprUaN_2QMG"
+uri = "file://generated-artifacts/xiaobai-preview/action-preview.gif"
+type = "image"
+title = "小白首批动作预览"
+description = "行走、小跳、仰躺蹬爪、洗澡搓洗、趴着撒娇、吃胡萝卜六组动作。"
+logical_id = "a7ce403a-c098-4242-8ddf-2e86e500db58"
+content_hash = "sha256:360dd9a04b2f7f601e5e5c9f3ce35ee425bca33ddae34fa3be4687b878b7eeaa"
+size = 134648
+mtime_ms = 1795085313843
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/a7ce403a-c098-4242-8ddf-2e86e500db58/926775c2-3304-45be-8dfd-1f2289a2331d"
+storage_version_token = "1795085327608860"
+content_type = "image/gif"
+
+[[outputs]]
+id = "4EFbJQ3ulvlr6erGJpU0A"
+uri = "file://generated-artifacts/xiaobai-preview/pose-sheet.png"
+type = "image"
+title = "小白姿势一览"
+description = "查看首批重绘的12个姿势，原小熊猫素材保持不变。"
+logical_id = "758e67f9-3cb3-4109-a3a5-8875fc9c88b1"
+content_hash = "sha256:9b290017840b8aa369f258d02d37d4598f68c2f876d81b2d10cb8bda81426d25"
+size = 86834
+mtime_ms = 1795085304283
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/758e67f9-3cb3-4109-a3a5-8875fc9c88b1/4b61aff8-2a8a-4cc0-92ae-1b025692eb7a"
+storage_version_token = "1795085328959138"
+content_type = "image/png"
+
+[[outputs]]
+id = "q4cxcqLrtCA9RNJ1oB7-e"
+uri = "file://generated-artifacts/xiaobai-roll-preview/xiaobai-roll-preview.gif"
+type = "image"
+title = "小白滚动动作 · 第一套预览"
+description = "从左向右滚动：身体先翻、头部随后跟上，末尾保持侧躺。仅为预览，尚未接入房间。"
+logical_id = "d036294a-55b5-4890-95fa-99f73df7f0f9"
+content_hash = "sha256:02060b5b2d51647667033f7b0eb9dd7d0633cff02fd05b85b90b713e95752f23"
+size = 105809
+mtime_ms = 1795086836215
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/d036294a-55b5-4890-95fa-99f73df7f0f9/3515868c-eb35-4eaf-bedb-d641a205767b"
+storage_version_token = "1795086904439602"
+content_type = "image/gif"
+
+[[outputs]]
+id = "DywYGvqUYV44tUhW90FZP"
+uri = "file://generated-artifacts/xiaobai-roll-preview/key-poses.png"
+type = "image"
+title = "滚动关键姿势对照"
+description = "查看身体与头部的先后关系，以及最后头身同轴的侧躺姿势。"
+logical_id = "4a32e32e-739e-42b4-a51e-9d5dd1a44d04"
+content_hash = "sha256:be4edc5790f88b4dd8119e75bc72a71006d615000508b999f13bf9be8a900d42"
+size = 464321
+mtime_ms = 1795086837623
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/4a32e32e-739e-42b4-a51e-9d5dd1a44d04/a149d70d-2cf1-4e68-a554-62a94209897e"
+storage_version_token = "1795086905834649"
+content_type = "image/png"
+
+[[outputs]]
+id = "5dc9xRcB9M7pRzg6Cj7Ra"
+uri = "file://generated-artifacts/xiaobai-grab-redesign/xiaobai-scruff-dazed.gif"
+type = "image"
+title = "小白 · 发懵吊起过渡"
+description = "新版表情与6帧吊起衔接，已替换网页中的普通吊起姿势。夹子由网页单独绘制在角色身后。"
+logical_id = "345fd4ab-b711-487c-a53e-f7b2c6274207"
+content_hash = "sha256:d38eefab074b41d5f0494664036eb4b6018b6f652c006f6268e21d143d04b2f5"
+size = 86725
+mtime_ms = 1795089575580
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/345fd4ab-b711-487c-a53e-f7b2c6274207/8fdb8c48-6716-4cc3-ac2a-4898b412dc8b"
+storage_version_token = "1795089810944971"
+content_type = "image/gif"
+
+[[outputs]]
+id = "BlXB1pBzui-BwcIODQava"
+uri = "file://generated-artifacts/xiaobai-grab-redesign/layer-check.jpg"
+type = "image"
+title = "吊起姿势与夹子层级效果"
+description = "使用网页实际样式核对左右朝向和原尺寸；夹子在小白后层。"
+logical_id = "ba210e8b-f7bb-402b-80d2-e4a7853f4ced"
+content_hash = "sha256:0c8f71672fa3ac688e867abd1728eaa0c98f25e18726927dbc31774a6b5a7c3b"
+size = 31517
+mtime_ms = 1795089680906
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/ba210e8b-f7bb-402b-80d2-e4a7853f4ced/f4eae95d-9fd4-441c-a016-991a6679a462"
+storage_version_token = "1795089812253605"
+content_type = "image/jpeg"
+
+[[outputs]]
+id = "U2d3PIT981iCETW3IuvIJ"
+uri = "file://generated-artifacts/bath-occlusion-check.jpg"
+type = "image"
+title = "浴缸遮挡修复前后对照"
+description = "使用实际浴缸、宠物素材和网页样式核对，小白的下半身已藏到前缸沿后；同时对照了小熊猫。"
+logical_id = "7d222e49-ec5b-4e86-b0f9-a5dc96cbc12d"
+content_hash = "sha256:8c46a9349c9141b6a119844318048a79ee6cabe936e4672c9cd1fae78218203f"
+size = 40048
+mtime_ms = 1795090871001
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/7d222e49-ec5b-4e86-b0f9-a5dc96cbc12d/5346fd80-6f9b-4e26-ad06-eb46b780e48c"
+storage_version_token = "1795090952431872"
+content_type = "image/jpeg"
+
+[[outputs]]
+id = "M13POTvCI5cZEe2lEsfeE"
+uri = "file://generated-artifacts/xiaobai-cute-grab/cute-grab.gif"
+type = "image"
+title = "小白新版提起表情"
+description = "圆眼、微微朝下的视线与小嘴，保留发懵感；含六帧提起过渡。"
+logical_id = "f5655806-cc68-4ac4-b304-f0dcae9ccd51"
+content_hash = "sha256:79eb58a4678c446ae122047fbb8a8545d0de611a213bd2795746def7fe13faba"
+size = 39824
+mtime_ms = 1795095781751
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/f5655806-cc68-4ac4-b304-f0dcae9ccd51/6f6ad0b6-a4cb-4ae1-8d68-d9b4bcf77105"
+storage_version_token = "1795095831202784"
+content_type = "image/gif"
+
+[[outputs]]
+id = "pHnnUHkdm93J_wd0tQprM"
+uri = "file://generated-artifacts/desktop-walking-v1/native-home-prompt.png"
+type = "image"
+title = "桌宠首版：点击询问是否回家"
+description = "原生窗口实测截图。小白支持慢走、长按拖动和回家选择；浅色底仅用于 Replit Linux 预览。"
+logical_id = "97f17765-d3e9-4a2c-a628-fb57be304f13"
+content_hash = "sha256:e235eac7c31dfcf1475c944e59b0990fdfe782e2f073e71f1fee013401aa4bea"
+size = 14797
+mtime_ms = 1795149976347
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/97f17765-d3e9-4a2c-a628-fb57be304f13/513fd4b5-dbc1-47b1-a48c-11ee6bedfc7d"
+storage_version_token = "1795150195873180"
+content_type = "image/png"
+
+[[outputs]]
+id = "cmWu5B1z-ux6lpUlt5UDd"
+uri = "file://generated-artifacts/desktop-platforms-v020/native-window-platform.png"
+type = "image"
+title = "桌宠沿窗口上沿行走"
+description = "原生窗口中的模拟平台检查截图；已验证上沿行走、支撑窗口移动和垂直下落。不是用户电脑的截图。"
+logical_id = "98890306-a332-4e22-a250-f24462967561"
+content_hash = "sha256:ec935805b25b64aa8669dfe3f91e53a81457787d35a10abc713d73f0fe9a6f2b"
+size = 5816
+mtime_ms = 1795155214606
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/98890306-a332-4e22-a250-f24462967561/26872db9-4846-427b-8035-49ace44ead8f"
+storage_version_token = "1795155873225102"
+content_type = "image/png"
+
+[[outputs]]
+id = "K7lyZutxt4lovWPVAp0U7"
+uri = "file://generated-artifacts/panda-shake-preview/final/panda-three-shakes-preview.gif"
+type = "image"
+title = "小熊猫 · 甩三次变干净"
+description = "约8秒循环动图：脏兮兮回来，三次闭眼甩毛、间隔停顿，第三次结束后恢复干净。预览缩短了等待间隔，未接入网页、桌面程序或安装包。"
+logical_id = "da8afe1a-bc22-4d58-9bd0-d5a71661bb8b"
+content_hash = "sha256:976d322e33b0ce29e3b573813fb82e930ee89aaf02f95a590d47e096cfdbbdf8"
+size = 273497
+mtime_ms = 1795156536170
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/da8afe1a-bc22-4d58-9bd0-d5a71661bb8b/aaae001a-b9e5-4ebf-98d3-9625c62f28d2"
+storage_version_token = "1795156617409349"
+content_type = "image/gif"
+
+[[outputs]]
+id = "R3L_wclOLMmNQm41cZR4Z"
+uri = "file://generated-artifacts/panda-punch/panda-punch-preview.gif"
+type = "image"
+title = "小熊猫 · 挨拳后仰再爬起"
+description = "完整25帧像素动作。此动图循环便于查看；应用中单击只播放一次。"
+logical_id = "a42847a0-9bd6-4d0f-a1f4-d4eb367adad2"
+content_hash = "sha256:6815ecc3b745eff444f9191bbb9cda156c9994fe102961178f6a4339e59136bd"
+size = 161766
+mtime_ms = 1795168578486
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/a42847a0-9bd6-4d0f-a1f4-d4eb367adad2/177de667-7b0f-4866-bc5a-0f0e732da371"
+storage_version_token = "1795169462871320"
+content_type = "image/gif"
+
+[[outputs]]
+id = "3d_-PmADLWUSgpyUFFNwS"
+uri = "file://generated-artifacts/dream-ui-check/pixel-dream-preview.png"
+type = "image"
+title = "像素云朵与随机梦境预览"
+description = "云里直接显示像素小画面，点击可放大或换一个梦。"
+logical_id = "4a58cb2f-380f-4cd1-a6eb-10fe3d7cbeb2"
+content_hash = "sha256:3b74813c86556422813d5c7d16a97697f281673dddb815062c623d8bb0d0a8ec"
+size = 28914
+mtime_ms = 1795171057721
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/4a58cb2f-380f-4cd1-a6eb-10fe3d7cbeb2/38770743-92d9-4694-b7ef-dc2747e4a58a"
+storage_version_token = "1795171096589876"
+content_type = "image/png"
+
+[[outputs]]
+id = "JhxMWOQY7n6GaMCyb71kj"
+uri = "file://generated-artifacts/chat-entry-check/panda-toolbar.png"
+type = "image"
+title = "小熊猫趴在工具栏上的实际截图"
+description = "使用小熊猫自己的棕红像素素材；趴满1分钟后恢复其他活动。"
+logical_id = "1c8f076a-88d6-4766-8114-3d217aff77f7"
+content_hash = "sha256:a10a1d273d485dc2c00285b178bb41208133ed3b95009799cd479eedd045b318"
+size = 83238
+mtime_ms = 1795173401280
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/1c8f076a-88d6-4766-8114-3d217aff77f7/0b03e9dd-5c1c-46a0-ace2-6c54a5f6f2b2"
+storage_version_token = "1795173465305953"
+content_type = "image/png"
+
+[[outputs]]
+id = "LSLsOaKiVNIKuPHwjKQz5"
+uri = "file://generated-artifacts/chat-entry-check/leaf-platform-playing.png"
+type = "image"
+title = "叶子平台实际效果"
+description = "小熊猫会在这块木平台上随机睡觉或抬爪玩叶子，长按抓下来才会离开。"
+logical_id = "7fa2eb44-9761-4bba-a654-1020e527ab66"
+content_hash = "sha256:ba9f7885ebb07991df567bf1824096d40be7cf3f3a199bc7972e7e0f80fa6aa0"
+size = 109084
+mtime_ms = 1795176324135
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/7fa2eb44-9761-4bba-a654-1020e527ab66/0d8a98a0-77a0-4c40-8617-88a90320dd2b"
+storage_version_token = "1795176365476644"
+content_type = "image/png"
+
+[[outputs]]
+id = "_WwajKbVKGiF4xSHX4QyK"
+uri = "file://generated-artifacts/xiaobai-room-preview/xiaobai-room-concept.png"
+type = "image"
+title = "小白专属房间｜概念预览"
+description = "PixelLab 普通模式生成并做局部修整：奶油白、浅木色与柔和绿色，加入小白头像和爪印装饰，保留房间架构与原有家具道具。原图400×224，按像素放大到1200×672，仅供预览，未接入应用。"
+logical_id = "1fa8d23b-86f5-4aa0-afc0-f152e0983d65"
+content_hash = "sha256:df4046051887dc4e9faf7293af3db3efd2da1e02c8175c2707adb5333e8fafa7"
+size = 177419
+mtime_ms = 1795177814098
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/1fa8d23b-86f5-4aa0-afc0-f152e0983d65/93268e14-3674-465a-9f9c-febd610253b6"
+storage_version_token = "1795177844090211"
+content_type = "image/png"
+
+[[outputs]]
+id = "AtQmJya1vte0baJ-jspAD"
+uri = "file://generated-artifacts/xiaobai-room-preview/xiaobai-room-crisp-native.png"
+type = "image"
+title = "小白房间清晰画风样张｜布局未对齐"
+description = "PixelLab 普通模式直接生成的680×384原生图，未经放大。清晰度改善，但家具和布局未完整保留，只供看画风，不是完成稿，也未接入项目。"
+logical_id = "8c535fdc-cd5e-43e2-a76d-a7b4b57b4350"
+content_hash = "sha256:f9346e495dfb4b4190541e968a7c847060e6169b0aa4cbd3b3c428dc7767e424"
+size = 100255
+mtime_ms = 1795178785774
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/8c535fdc-cd5e-43e2-a76d-a7b4b57b4350/e728fbb7-6044-400a-a94f-54b202334a56"
+storage_version_token = "1795179238627210"
+content_type = "image/png"
+
+[[outputs]]
+id = "Ht2EjfSQUy3LHyWUFq7A6"
+uri = "file://generated-artifacts/desktop-punch-v022/native-dirty-shake.png"
+type = "image"
+title = "桌面版甩毛动作运行截图"
+description = "实际 Electron 桌宠中的甩毛动作；已验证三次分别播放、第三次清洁完成。"
+logical_id = "3a974dd0-4471-41cd-8baf-6376fcab5f69"
+content_hash = "sha256:037ad22238a56060c530de9e1cf52adbb9cd57c04058d29b70d56a70c2128d58"
+size = 2772
+mtime_ms = 1795237005040
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/3a974dd0-4471-41cd-8baf-6376fcab5f69/207f08bf-f57c-450d-873e-de0ddaf4062b"
+storage_version_token = "1795237089975218"
+content_type = "image/png"
+
+[[outputs]]
+id = "cshqrDzk9sv5DyxkpMZ21"
+uri = "file://generated-artifacts/bath-entry-preview.gif"
+type = "image"
+title = "浴缸入浴与探头甩水预览"
+description = "网页房间实录：垂直落水、探头甩水，再接洗澡循环。"
+logical_id = "aba290cc-853a-4f59-935c-b6796f55d76f"
+content_hash = "sha256:e0b5cf4e39abc5e70ad113643ea3bce2a2b680fbd1dc03852fb7a2852e6c28f8"
+size = 62570
+mtime_ms = 1795248500200
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/aba290cc-853a-4f59-935c-b6796f55d76f/015d97a1-ea08-4104-a2a3-2fc00e369140"
+storage_version_token = "1795248578819668"
+content_type = "image/gif"
+
+[[outputs]]
+id = "OzaX9a0D0a6CFbm466KX_"
+uri = "file://generated-artifacts/xiaobai-carrot/%E5%B0%8F%E7%99%BD%E5%90%83%E8%83%A1%E8%90%9D%E5%8D%9C%E4%BF%AE%E6%AD%A3%E7%89%88.gif"
+type = "image"
+title = "小白吃胡萝卜 · 修正版"
+description = "改为坐姿进食：两只前爪抱胡萝卜，两只后脚着地，保留白色球尾巴。8 帧动画已替换网页素材。"
+logical_id = "28a64425-ae5f-41ae-8b58-6e45cd0cab3c"
+content_hash = "sha256:5ace21f444c6558ac15a35fcbb72d8ca6fd4389028a368b78a4673de4682e571"
+size = 49777
+mtime_ms = 1795354760064
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/28a64425-ae5f-41ae-8b58-6e45cd0cab3c/7fa7ebc8-b340-4105-b284-7f5685e67b1a"
+storage_version_token = "1795354860446293"
+content_type = "image/gif"
+
+[[outputs]]
+id = "Qmv_Jrl0J3onSeFLe_ZMD"
+uri = "file://generated-artifacts/plush-play/panda-%E7%8E%A9%E7%86%8A%E7%8C%AB%E7%8E%A9%E5%81%B6.gif"
+type = "image"
+title = "小熊猫 · 坐着玩熊猫玩偶"
+description = "坐下、轻抱和抬起黑白熊猫玩偶，再起身的短循环预览。网页中待机随机触发，每次 60 秒。"
+logical_id = "2827046f-0a79-4a82-8908-dbe8c7ebb09d"
+content_hash = "sha256:ea3ee5ea5a4e88fd44efdcc9e256c1534f42106b0459d691a4d2b393c2382c64"
+size = 294090
+mtime_ms = 1795357200777
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/2827046f-0a79-4a82-8908-dbe8c7ebb09d/c9479362-e608-4f0b-b5f7-b63b9e1ef218"
+storage_version_token = "1795357395653804"
+content_type = "image/gif"
+
+[[outputs]]
+id = "svN2tuLpfW5X4a4IF_OjC"
+uri = "file://generated-artifacts/plush-play/xiaobai-%E7%8E%A9%E7%86%8A%E7%8C%AB%E7%8E%A9%E5%81%B6.gif"
+type = "image"
+title = "小白 · 坐着玩熊猫玩偶"
+description = "小白独立绘制的抱玩偶、轻拍和抬起循环，保留白色球尾。网页中每次 60 秒，可拖动打断。"
+logical_id = "7642ec62-f63c-4b48-93d8-b05d4910c1d0"
+content_hash = "sha256:2d2b0b17967720f1c5b968e65470bb66593d9b7af791e910b792ae7033f5e266"
+size = 200733
+mtime_ms = 1795357202933
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/7642ec62-f63c-4b48-93d8-b05d4910c1d0/5f1e3ce0-a7b7-47b1-ad58-1fa78d795440"
+storage_version_token = "1795357396949975"
+content_type = "image/gif"
+
+[[outputs]]
+id = "yGnPItfiVxdqPwGH2Fi-O"
+uri = "file://generated-artifacts/panda-desktop-landing.gif"
+type = "image"
+title = "桌宠落地动画预览"
+description = "保留提起和垂直下落，碰到任务栏后先趴下，再用前爪撑起来。"
+logical_id = "67e91dff-5221-4e72-a6b9-4e901f884ac1"
+content_hash = "sha256:268fb801903d74aaff1e9753da0d694a722b73a2e10cf58ec109240688ad22bf"
+size = 45492
+mtime_ms = 1795520152898
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/67e91dff-5221-4e72-a6b9-4e901f884ac1/ff1203b5-a6d1-4dd6-bc25-3c79f73ea970"
+storage_version_token = "1795520205346000"
+content_type = "image/gif"
+
+[[outputs]]
+id = "aJQkPhk4aYHnILaSD4l0f"
+uri = "file://generated-artifacts/panda-desktop-edge-climb.gif"
+type = "image"
+title = "小熊猫贴着桌面边缘爬的动图"
+description = "用实际像素帧演示抬爪、贴边爬升、停一下，再沿原路爬回任务栏。预览略加速。"
+logical_id = "d4e3a05b-5daf-4a59-8637-f51da61bb64e"
+content_hash = "sha256:bdbedcf5b43596dda0f9537080b4aa7eb8bdf65a2594c91c32d388a3d2f6f019"
+size = 57160
+mtime_ms = 1795523614462
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/d4e3a05b-5daf-4a59-8637-f51da61bb64e/fac0ee93-1a03-42af-b80b-7d0ba5b0f62e"
+storage_version_token = "1795523645530293"
+content_type = "image/gif"
+
+[[outputs]]
+id = "sJGraR0CNNwlqyACfCS79"
+uri = "file://generated-artifacts/panda-desktop-dock-greeting.png"
+type = "image"
+title = "小熊猫：我想你咧"
+description = "桌宠实拍：小熊猫趴在任务栏上沿，短暂冒出一句「我想你咧」。"
+logical_id = "d46ee060-9730-4200-8a15-ee4627c8a28b"
+content_hash = "sha256:6ce9cad7a178ffde3a6093b56bf914b3e6b90282063d13a4da8475bbd52c79a9"
+size = 8986
+mtime_ms = 1795524373666
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/d46ee060-9730-4200-8a15-ee4627c8a28b/2d22b974-ed34-430b-981d-49d77e3f7803"
+storage_version_token = "1795524405365760"
+content_type = "image/png"
+
+[[outputs]]
+id = "_fEh_5bzLnPYzzbyrU_G0"
+uri = "file://generated-artifacts/wellbeing/healthy-celebration.gif"
+type = "image"
+title = "小熊猫：健康最重要！"
+description = "休息归来庆祝动作预览：坐下举起小烟花棒，身旁绽放像素烟花，结束后恢复陪伴。预览已放大，桌面实际保持原有尺寸。"
+logical_id = "f73642c2-ea58-4d1c-b602-d1f1f03b142e"
+content_hash = "sha256:bacadf9a4dbb2fc24b512ad9ebaad79a7b1f8077a2026b82fac17b27e7e170e5"
+size = 142127
+mtime_ms = 1795601142728
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/f73642c2-ea58-4d1c-b602-d1f1f03b142e/ceb03acd-02bf-49c2-8e28-01f609ddd04a"
+storage_version_token = "1795601207925785"
+content_type = "image/gif"
+
+[[outputs]]
+id = "TxLYBmS4YiIJjhIlKnHiv"
+uri = "file://generated-artifacts/notebook/local-notebook.png"
+type = "image"
+title = "小熊猫的本子 · 桌面记事预览"
+description = "真实桌面开发版截图：记录今天18:00开会，并安排17:30提醒。当前仅本机记事，不接AI、不上传。"
+logical_id = "dfdef0ba-ec11-4348-a560-4434168f061a"
+content_hash = "sha256:5938016593aa0d05fecdef1d9c54928ade8e37c457082b9d5471ea8193c4a6e8"
+size = 67705
+mtime_ms = 1795602575063
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/dfdef0ba-ec11-4348-a560-4434168f061a/438a96b3-999b-45f1-8b53-e7089c390914"
+storage_version_token = "1795602675940330"
+content_type = "image/png"
+
+[[outputs]]
+id = "8Do02zMpx_fD9gYFzWHIb"
+uri = "file://generated-artifacts/notebook/schedule-chat.png"
+type = "image"
+title = "小熊猫日程助手预览"
+description = "双击桌宠后的一句话日程输入窗，展示识别结果和提前一小时的提醒时间。"
+logical_id = "08a3e008-388d-4fc5-8c91-fd1249f5ec1c"
+content_hash = "sha256:2900de90d53a9d3b236d45fa4937bbf01b26a1fd59d6c8931baa6ad606f357d3"
+size = 34514
+mtime_ms = 1795676647779
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:7656f5f2-f8c1-442e-b040-96d97d308f6c/08a3e008-388d-4fc5-8c91-fd1249f5ec1c/819e9f55-7cea-40f4-9c96-dbbbe932759c"
+storage_version_token = "1795677409614956"
 content_type = "image/png"

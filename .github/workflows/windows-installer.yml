@@ -7,6 +7,7 @@ on:
       - main
       - master
       - github-snapshot
+      - "desktop-walking-*"
     paths:
       - ".github/workflows/windows-installer.yml"
       - "artifacts/panda-journal/**"
@@ -41,13 +42,47 @@ jobs:
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build installer
+      - name: Check desktop walking and packaged assets
+        run: node --test artifacts/panda-journal/desktop/pet-lite-model.test.cjs artifacts/panda-journal/desktop/platform-model.test.cjs artifacts/panda-journal/desktop/windows-platforms.test.cjs artifacts/panda-journal/desktop/background-bite.test.cjs artifacts/panda-journal/desktop/wellbeing.test.cjs artifacts/panda-journal/desktop/notebook-parser.test.cjs artifacts/panda-journal/desktop/notebook-store.test.cjs
+
+      - name: Build Windows desktop package
+        env:
+          PANDA_BUILD_OFFLINE_TRIAL: ${{ github.ref == 'refs/heads/desktop-walking-offline-trial' && '1' || '0' }}
         run: pnpm --filter @workspace/panda-journal run desktop:installer:win
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
           name: xiaoxiongmao-journal-windows-x64
-          path: generated-artifacts/windows-installer/*.exe
+          path: |
+            generated-artifacts/windows-installer/*.exe
+            generated-artifacts/windows-installer/BUILD-INFO.json
           if-no-files-found: error
           retention-days: 30
+
+  publish-portable-test:
+    name: Publish public offline trial download
+    if: github.ref == 'refs/heads/desktop-walking-offline-trial'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Windows build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: xiaoxiongmao-journal-windows-x64
+          path: generated-artifacts/windows-installer
+
+      - name: Publish portable executable as a prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "desktop-offline-trial-${GITHUB_RUN_NUMBER}" \
+            generated-artifacts/windows-installer/Xiaoxiongmao-Offline-Trial-x64.exe \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --latest=false \
+            --title "小熊猫桌宠 · Windows 离线试玩" \
+            --notes "Windows x64 免安装桌宠试玩，不联网、不登录、不使用正式宠物存档。桌宠沿任务栏和窗口上沿活动；小熊猫可从屏幕边缘偶尔踏空，短暂消失后从同一侧回来，落稳后甩毛三次并清洁干净。自动坐着、睡觉、玩熊猫玩偶和趴工具栏的待机姿势会各自停留三分钟。右键菜单可切换安静模式，也可试玩咬屏幕动作。取色仅在本机读取一个像素，不保存或上传画面。此为公开测试版，Windows 可能对未签名程序显示安全提示。"

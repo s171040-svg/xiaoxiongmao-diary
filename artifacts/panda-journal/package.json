@@ -1,6 +1,6 @@
 {
   "name": "@workspace/panda-journal",
-  "version": "0.0.0",
+  "version": "0.2.4",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,10 +8,15 @@
     "desktop:dev": "node desktop/launch.cjs --dev",
     "desktop:build": "node desktop/build.cjs",
     "desktop:start": "node desktop/launch.cjs",
+    "desktop:wellbeing:test": "node --test desktop/wellbeing.test.cjs",
+    "desktop:notebook:test": "node --test desktop/notebook-parser.test.cjs desktop/notebook-store.test.cjs",
     "desktop:installer:win": "node desktop/package-win.cjs",
-    "desktop:test": "node --test desktop/ai.test.cjs desktop/roaming-geometry.test.cjs ../../lib/companion-ai/src/index.test.cjs && pnpm --filter @workspace/api-server exec esbuild ../panda-journal/src/lib/companion-store.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/panda-companion-unit.cjs && node /tmp/panda-companion-unit.cjs && pnpm --filter @workspace/api-server exec esbuild ../panda-journal/src/lib/room-plane.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/panda-room-plane-unit.cjs && node /tmp/panda-room-plane-unit.cjs && pnpm --filter @workspace/api-server exec esbuild ../panda-journal/src/lib/panda-grab-motion.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/panda-grab-motion-unit.cjs && node /tmp/panda-grab-motion-unit.cjs && node desktop/smoke.cjs",
+    "desktop:test": "node --test desktop/ai.test.cjs desktop/roaming-geometry.test.cjs desktop/pet-lite-model.test.cjs ../../lib/companion-ai/src/index.test.cjs && pnpm --filter @workspace/api-server exec esbuild ../panda-journal/src/lib/companion-store.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/panda-companion-unit.cjs && node /tmp/panda-companion-unit.cjs && pnpm --filter @workspace/api-server exec esbuild ../panda-journal/src/lib/room-plane.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/panda-room-plane-unit.cjs && node /tmp/panda-room-plane-unit.cjs && pnpm --filter @workspace/api-server exec esbuild ../panda-journal/src/lib/room-furniture-layout.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/panda-room-furniture-unit.cjs && node /tmp/panda-room-furniture-unit.cjs && pnpm --filter @workspace/api-server exec esbuild ../panda-journal/src/lib/panda-grab-motion.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/panda-grab-motion-unit.cjs && node /tmp/panda-grab-motion-unit.cjs && pnpm --filter @workspace/api-server exec esbuild ../panda-journal/src/lib/pixel-transition.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/panda-pixel-transition-unit.cjs && node /tmp/panda-pixel-transition-unit.cjs && pnpm --filter @workspace/api-server exec esbuild ../panda-journal/src/lib/panda-animation-manifest.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/panda-animation-manifest-unit.cjs && node /tmp/panda-animation-manifest-unit.cjs && node desktop/pet-lite-smoke.cjs",
     "build": "vite build --config vite.config.ts",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
+    "hunger:test": "pnpm --filter @workspace/api-server exec esbuild ../panda-journal/src/lib/hunger.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/panda-hunger-unit.cjs && node /tmp/panda-hunger-unit.cjs",
+    "account-save:test": "pnpm --filter @workspace/api-server exec esbuild ../panda-journal/src/lib/account-pet-save.test.ts --bundle --platform=node --format=cjs --outfile=/tmp/panda-account-save-unit.cjs && node /tmp/panda-account-save-unit.cjs",
+    "plush:test": "pnpm --filter @workspace/api-server exec esbuild ../panda-journal/src/lib/plush-play.test.ts --bundle --platform=node --format=cjs --define:import.meta.env.BASE_URL='\"/\"' --outfile=/tmp/panda-plush-unit.cjs && node /tmp/panda-plush-unit.cjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
@@ -82,5 +87,9 @@
     "vite": "catalog:",
     "wouter": "^3.3.5",
     "zod": "catalog:"
+  },
+  "dependencies": {
+    "@clerk/react": "^6.17.8",
+    "@clerk/themes": "^2.4.57"
   }
 }
