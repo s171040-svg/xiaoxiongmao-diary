@@ -175,7 +175,7 @@ test("a clean red panda can step off either screen edge and returns on the same 
   assert.equal(model.shouldFallAtEdge(0, () => .25), false);
   assert.equal(model.shouldFallAtEdge(1, () => 0), false);
   for (const [side, x, sign] of [["left", 20, -1], ["right", 980, 1]]) {
-    const start = { side, x, groundY: 720 };
+    const start = { side, x, groundY: 720, returnX: x + 14 * -sign, returnY: 760, landingY: 720 };
     const exit = model.edgeFallAt(start, 300), drop = model.edgeFallAt(start, 750);
     assert.equal(exit.phase, "exit");
     assert.equal(exit.point.y, 720, "the feet stay on the taskbar before the drop");
@@ -185,9 +185,20 @@ test("a clean red panda can step off either screen edge and returns on the same 
     assert.equal(model.edgeFallAt(start, 1000).phase, "away");
     const returning = model.edgeFallAt(start, 1500);
     assert.equal(returning.phase, "return");
-    assert.equal(returning.point.x, x - 14 * sign);
-    assert(returning.point.y < 0);
+    assert(returning.point.x > Math.min(x, start.returnX) && returning.point.x < Math.max(x, start.returnX));
+    assert(returning.point.y > start.landingY, "the pet re-enters from below the taskbar");
+    const cry = model.edgeFallAt(start, 1420 + model.edgeFallReturnMs + 100);
+    assert.equal(cry.phase, "cry");
+    assert.equal(cry.point.x, x);
+    assert.equal(cry.point.y, start.landingY);
+    assert.equal(model.edgeFallAt(start, 1420 + model.edgeFallReturnMs + model.edgeFallCryMs + 1).phase, "complete");
   }
+  const climbStart = { side: "left", x: 20, topY: 80, groundY: 720 };
+  const midClimbFall = model.edgeFallRouteAtHeight(climbStart, 310);
+  assert.equal(midClimbFall.side, "left");
+  assert.equal(midClimbFall.x, 20);
+  assert.equal(model.edgeFallAt(midClimbFall, 300).point.y, 310,
+    "a fatigue-triggered world fall starts at the climbing height, not the taskbar");
 });
 
 test("quiet prone poses preserve their scale and align with the same floor", () => {

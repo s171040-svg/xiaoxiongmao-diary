@@ -1,6 +1,6 @@
 - [小熊猫日记产品范围](panda-journal-scope.md) — 已取消双人；保留单人邮箱与个人宠物存档，聊天日记仅本机。含动作及养成衰减规则。
 - [工作陪伴桌宠方向](office-companion.md) — 新方向为免配置的办公陪伴、一元永久解锁；休息满五分钟回来时放烟花，不自动删除旧网页。
-- [Electron 开发验证](electron-development.md) — VNC 字体、窗口状态、Windows CI 原生依赖及网页/桌面渲染需分别验证。
+- [Electron 开发验证](electron-development.md) — VNC 字体、窗口状态、随机动作测试、Windows CI 原生依赖及网页/桌面渲染需分别验证。
 - [DeepSeek 连续聊天](deepseek-context.md) — JSON 模式须保持历史回复结构一致，HTTP 200 也可能只有空白内容。
 - [合并后 pnpm 锁文件同步](pnpm-postmerge-lockfile.md) — 任务合并可能造成 workspace 配置与 lockfile 短暂不一致；合并后安装应能自我同步。
 - [GitHub 对象同步校验](github-object-integrity.md) — 经 API 同步源码须验证精确对象；blob 用原始字节，提交消息保留末尾换行。

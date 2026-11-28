@@ -136,6 +136,7 @@ async function run() {
   assert.deepEqual(await toggleQuiet(), { label: "取消安静模式", checked: true, pauseEnabled: false });
   await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.motion === "lying"
     && document.querySelector("#panda-sprite").src.endsWith("/peeking.png"));
+  await pet.evaluate(() => { Math.random = () => .99; });
   const quietStart = await position();
   await pet.locator("#panda").click();
   await pet.waitForFunction(() => document.querySelector("#panda-sprite").dataset.sprite === "punch");
@@ -246,23 +247,42 @@ async function run() {
   await until(async () => { const s = await state(); return s.pet && !s.room; }, "closing room keeps the desktop pet alive");
   assert.equal(await pet.locator(".pet-presence").getAttribute("data-character"), "panda");
   await pet.emulateMedia({ reducedMotion: "no-preference" });
+  await pet.waitForFunction(() => {
+    const presence = document.querySelector(".pet-presence");
+    return presence.dataset.platform && !presence.dataset.edgeClimb && !presence.dataset.edgeFall;
+  });
+  await pet.addInitScript(() => { Math.random = () => .99; });
+  await pet.evaluate(() => { Math.random = () => .99; });
   async function exerciseCleaningPass(remaining) {
-    await pet.evaluate(remainingShakes => {
+    const requestedDirt = await pet.evaluate(remainingShakes => {
       const state = JSON.parse(localStorage.getItem("panda.desktop.dirt.v1"))
         || { remainingShakes, nextShakeAt: 0 };
       state.remainingShakes = remainingShakes;
-      state.nextShakeAt = Date.now() + 350;
+      state.nextShakeAt = Date.now() + 5000;
       localStorage.setItem("panda.desktop.dirt.v1", JSON.stringify(state));
+      return JSON.parse(localStorage.getItem("panda.desktop.dirt.v1"));
     }, remaining);
     await pet.reload();
-    await pet.waitForFunction(() => document.querySelector(".pet-presence").dataset.character === "panda");
-    await pet.waitForFunction(expected => {
+    await pet.waitForFunction(() => {
       const presence = document.querySelector(".pet-presence");
-      return presence.dataset.shaking === "true"
-        && new RegExp(`/desktop-shake/${expected}/\\d+\\.png`).test(
-          document.querySelector("#panda-sprite").src,
-        );
-    }, remaining, { timeout: 10000 });
+      return presence.dataset.character === "panda" && presence.dataset.identityReady === "true";
+    });
+    try {
+      await pet.waitForFunction(expected => {
+        const presence = document.querySelector(".pet-presence");
+        return presence.dataset.shaking === "true"
+          && new RegExp(`/desktop-shake/${expected}/\\d+\\.png`).test(
+            document.querySelector("#panda-sprite").src,
+          );
+      }, remaining, { timeout: 10000 });
+    } catch (error) {
+      const state = await pet.evaluate(() => ({
+        presence: { ...document.querySelector(".pet-presence").dataset },
+        dirt: JSON.parse(localStorage.getItem("panda.desktop.dirt.v1")),
+        sprite: document.querySelector("#panda-sprite").src,
+      }));
+      throw new Error(`${error.message}; cleaning state=${JSON.stringify(state)}`);
+    }
     if (remaining === 3) await pet.screenshot({ path: path.join(output, "native-dirty-shake.png") });
     await pet.waitForFunction(expected => {
       const presence = document.querySelector(".pet-presence");

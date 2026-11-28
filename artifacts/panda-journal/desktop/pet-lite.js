@@ -73,7 +73,9 @@
       : model.punchFrame(now - punchStarted, manifest, preference.matches);
     const landing = landingStarted === null ? null
       : model.landingFrame(state.characterId, now - landingStarted, preference.matches);
-    presence.dataset.motion = edgeFrame ? "edge-climb" : landing ? "landing" : punchFrame === null ? motion : "punch";
+    const returningCry = edgeFall?.phase === "cry";
+    presence.dataset.motion = returningCry ? "world-return-cry"
+      : edgeFrame ? "edge-climb" : landing ? "landing" : punchFrame === null ? motion : "punch";
     presence.dataset.landing = landing?.phase ?? "";
     presence.dataset.edgeClimb = edgeFrame?.phase ?? "";
     presence.dataset.edgeFall = edgeFall?.phase ?? "";
@@ -101,7 +103,8 @@
     presence.dataset.celebrating = String(Boolean(celebrationSource));
     fireworks.hidden = !celebrationSource || preference.matches;
     if (celebrationSource) wellbeingAnimation.draw(fireworksContext, now - celebrationStarted, preference.matches);
-    const source = celebrationSource ?? (edgeFrame ? edgeFrame.source : landing ? landing.source : biteFrame ? biteFrame.source : punchFrame === null
+    const source = celebrationSource ?? (returningCry ? "../public/static/panda/dirty-return.png"
+      : edgeFrame ? edgeFrame.source : landing ? landing.source : biteFrame ? biteFrame.source : punchFrame === null
       ? motion === "shake" && shakeIndex !== null
         ? `../public/static/panda/desktop-shake/${desktopDirt.remainingShakes}/${shakeIndex + 1}.png`
         : transitionFrames[transitionIndex] ?? model.sprite(state.characterId, motion, frame, manifest)
@@ -114,7 +117,8 @@
     else delete presence.dataset.edgeFlip;
     if (biteFrame) image.dataset.biteFlip = String(biteFrame.nativeLeft !== backgroundBite.left);
     else delete image.dataset.biteFlip;
-    image.dataset.sprite = celebrationSource ? "celebrate" : edgeFrame ? "edge-climb" : landing ? "landing" : biting ? "background-bite" : punchFrame === null ? motion : "punch";
+    image.dataset.sprite = returningCry ? "world-return-cry"
+      : celebrationSource ? "celebrate" : edgeFrame ? "edge-climb" : landing ? "landing" : biting ? "background-bite" : punchFrame === null ? motion : "punch";
     image.dataset.frame = String(punchFrame ?? frame);
     if (dirt) {
       const dirtyLevel = desktopDirt.remainingShakes;
@@ -123,7 +127,7 @@
         if (dirtSource) dirt.setAttribute("src", dirtSource);
         else dirt.removeAttribute("src");
       }
-      dirt.hidden = !dirtyLevel || motion === "shake" || state.characterId !== "panda";
+      dirt.hidden = !dirtyLevel || motion === "shake" || state.characterId !== "panda" || returningCry;
       const clipped = (landing || edgeFrame || motion === "dock-prone") && !dirt.hidden;
       // Keep stains inside the active silhouette during a pose change.
       dirt.style.top = clipped ? image.style.top : "";
@@ -167,7 +171,15 @@
     transitionFrames = [];
   }
   function startEdgeFall(route, now) {
-    edgeFall = { route, elapsed: 0, phase: "exit" };
+    const landingSupport = surfaces.find(surface => surface.ownerId === "taskbar") ?? surfaces[0];
+    const outward = route.side === "left" ? -1 : 1;
+    const returnRoute = {
+      ...route,
+      returnX: route.x - outward * 14,
+      returnY: innerHeight + 44,
+      landingY: landingSupport.y,
+    };
+    edgeFall = { route: returnRoute, landingSupport, elapsed: 0, phase: "exit" };
     support = null; velocity = 0; fallOriginY = null;
     nextEdgeAt = model.nextEdgeClimbAt(now);
     bridge.setIgnoreMouseEvents(true);
@@ -442,23 +454,28 @@
       if (cancelEdgeFall()) needsRender = true;
     }
     if (physical && edgeFall) {
-      if (edgeFall.phase !== "return") {
-        edgeFall.elapsed += Math.max(0, Math.min(delta, .05)) * 1000;
-        const step = model.edgeFallAt(edgeFall.route, edgeFall.elapsed);
-        edgeFall.phase = step.phase;
-        if (step.point) point = step.point;
-        if (step.phase === "return") presence.dataset.facing = edgeFall.route.side === "left" ? "right" : "left";
-        if (step.phase !== "exit") setMotion("grab", false);
-      } else {
-        const falling = geometry.fall(point, velocity, delta, surfaces);
-        point = falling.point; velocity = falling.velocity; support = falling.support;
-        if (support) {
-          edgeFall = null;
-          makeDirty(Date.now());
-          touchDown(now);
-          nextWalk = now + 1800;
-          publishRegions();
-        }
+      const previousPhase = edgeFall.phase;
+      edgeFall.elapsed += Math.max(0, Math.min(delta, .05)) * 1000;
+      const step = model.edgeFallAt(edgeFall.route, edgeFall.elapsed);
+      edgeFall.phase = step.phase;
+      if (step.point) point = step.point;
+      if (step.phase === "return") presence.dataset.facing = edgeFall.route.side === "left" ? "right" : "left";
+      if (step.phase === "cry" && previousPhase !== "cry") {
+        support = edgeFall.landingSupport;
+        point = { x: edgeFall.route.x, y: support.y };
+        makeDirty(Date.now());
+      }
+      if (step.phase === "complete") {
+        const completedFall = edgeFall;
+        edgeFall = null;
+        support = completedFall.landingSupport;
+        point = { x: completedFall.route.x, y: support.y };
+        velocity = 0; nextWalk = now + 1800;
+        shakeStartedAt = now;
+        setMotion("shake", false);
+        publishRegions();
+      } else if (step.phase !== "exit" && step.phase !== "cry") {
+        setMotion("grab", false);
       }
       needsRender = true;
     } else if (physical && edgeClimb) {
@@ -468,9 +485,17 @@
       point = { x: route.x, y: edgeFrame?.y ?? route.groundY };
       if (edgeFrame?.phase === "up" && edgeClimb.fatigueProgress !== null
         && edgeFrame.progress >= edgeClimb.fatigueProgress) {
+        const fallsOutOfWorld = model.shouldFallAtEdge(desktopDirt.remainingShakes);
         edgeClimb = null; edgeFrame = null; support = null; velocity = 0;
-        destination = null; fallOriginY = null; climbFallPending = true;
-        setMotion("grab", false);
+        destination = null; fallOriginY = null;
+        if (fallsOutOfWorld) {
+          climbFallPending = false;
+          startEdgeFall(model.edgeFallRouteAtHeight(route, point.y), now);
+          setMotion("grab", false);
+        } else {
+          climbFallPending = true;
+          setMotion("grab", false);
+        }
       } else if (!edgeFrame) {
         edgeClimb = null; support = geometry.supportAt(point, surfaces);
         nextWalk = now + model.AUTO_REST_DURATION_MS;

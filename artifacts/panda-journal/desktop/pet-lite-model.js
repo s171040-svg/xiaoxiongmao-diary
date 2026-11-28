@@ -168,9 +168,12 @@
   function shouldFallAtEdge(remainingShakes, random = Math.random) {
     return remainingShakes === 0 && random() < .25;
   }
+  function edgeFallRouteAtHeight(route, height) {
+    return { ...route, groundY: height };
+  }
   function edgeFallAt(route, elapsed) {
     const outward = route.side === "left" ? -1 : 1;
-    const exit = 440, drop = 330, away = 650;
+    const exit = 440, drop = 330, away = 650, returnMs = 800, cryMs = 1100;
     if (elapsed < exit) {
       return { phase: "exit", point: { x: route.x + outward * 14 * Math.max(0, elapsed) / exit, y: route.groundY } };
     }
@@ -179,7 +182,21 @@
       return { phase: "drop", point: { x: route.x + outward * (14 + 33 * t), y: route.groundY + 56 * t * t } };
     }
     if (elapsed < exit + drop + away) return { phase: "away" };
-    return { phase: "return", point: { x: route.x - outward * 14, y: -2 } };
+    elapsed -= exit + drop + away;
+    const returnX = route.returnX ?? route.x - outward * 14;
+    const returnY = route.returnY ?? -2;
+    const landingY = route.landingY ?? route.groundY;
+    if (elapsed < returnMs) {
+      const t = Math.max(0, elapsed / returnMs);
+      const eased = 1 - (1 - t) ** 3;
+      return { phase: "return", point: {
+        x: returnX + (route.x - returnX) * eased,
+        y: returnY + (landingY - returnY) * eased,
+      } };
+    }
+    elapsed -= returnMs;
+    if (elapsed < cryMs) return { phase: "cry", point: { x: route.x, y: landingY } };
+    return { phase: "complete", point: { x: route.x, y: landingY } };
   }
   function companionRest(now, random = Math.random) {
     const choice = random();
@@ -196,7 +213,8 @@
   return { sprite, spriteTop, advance, transition, quietRest, punchFrame,
     dirtyReturn, shakeFrame, finishShake, lostWorldFall, shakeFrameCount, shakeFrameIntervalMs,
     landingFrame, landingSources, edgeClimbAt, edgeClimbSources, nextEdgeClimbAt, companionRest,
-    shouldFallAtEdge, edgeFallAt, edgeClimbFatigueProgress, climbFatigueFallChance,
+    shouldFallAtEdge, edgeFallAt, edgeFallRouteAtHeight, edgeClimbFatigueProgress, climbFatigueFallChance,
+    edgeFallReturnMs: 800, edgeFallCryMs: 1100,
     dockSources, dockGreetingMs, nextDockRestAt, dockRestUntil,
     AUTO_REST_DURATION_MS, plushSources };
 });
