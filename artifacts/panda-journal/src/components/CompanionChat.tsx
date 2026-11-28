@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { ChevronDown, ChevronUp, ImagePlus, Mail, Pause, Play, RotateCw, SendHorizontal, Trash2, X } from 'lucide-react';
+import { CalendarClock, ChevronDown, ChevronUp, ImagePlus, Mail, Pause, Play, RotateCw, SendHorizontal, Trash2, X } from 'lucide-react';
 import type { CompanionController } from '@/hooks/use-companion';
 import { usePetCharacter, usePetNarration } from '@/hooks/use-pet-character';
 import { XIAOBAI_SHARED_ACTION_NOTE } from '@/lib/pet-character-assets';
@@ -9,6 +9,7 @@ import { canFeedGift, isVitaminGift } from '@/lib/companion-store';
 import { splitReply } from '@/lib/reply-rhythm';
 import { VoiceButton } from '@/components/VoiceButton';
 import { PetStage } from '@/components/PetStage';
+import { RoomScheduleAssistant } from '@/components/RoomScheduleAssistant';
 import { TopPixelIcon } from '@/components/TopPixelIcon';
 import { EmotionCheckIn } from '@/components/EmotionCheckIn';
 import './CompanionChat.css';
@@ -258,11 +259,12 @@ function Bubble({ m, canRetry, c }: { m: ChatMessage; canRetry: boolean; c: Comp
   );
 }
 
-export function CompanionChat({ companion: c, roomOnly = false, roomToolbarExtras, roomInteractionLocked = false }: {
+export function CompanionChat({ companion: c, roomOnly = false, roomToolbarExtras, roomInteractionLocked = false, scheduleStorageKey }: {
   companion: CompanionController;
   roomOnly?: boolean;
   roomToolbarExtras?: ReactNode;
   roomInteractionLocked?: boolean;
+  scheduleStorageKey?: string;
 }) {
   const isWebRoom = roomOnly && !window.pandaDesktop;
   const [toolbarCollapsed, setToolbarCollapsed] = useState(false);
@@ -283,6 +285,7 @@ export function CompanionChat({ companion: c, roomOnly = false, roomToolbarExtra
   const [devActionResult, setDevActionResult] = useState<{ label: string; started: boolean; durationMs: number; persistent?: boolean } | null>(null);
   const devActionToken = useRef(0);
   const [roomChatOpen, setRoomChatOpen] = useState(false);
+  const [roomScheduleOpen, setRoomScheduleOpen] = useState(false);
   const [pandaArrowShown, setPandaArrowShown] = useState(false);
   const roomChatWasOpenRef = useRef(false);
   const [clearMindMode, setClearMindMode] = useState(false);
@@ -501,6 +504,10 @@ export function CompanionChat({ companion: c, roomOnly = false, roomToolbarExtra
           hidden={roomOnly && toolbarCollapsed}>
         <div className="cc-actions" inert={roomInteractionLocked}>
           <button type="button" onClick={() => setPanel('diary')} data-testid="button-diary" aria-label="日记本" title="日记本"><TopPixelIcon name="diary" /></button>
+          {isWebRoom && scheduleStorageKey && (
+            <button type="button" onClick={() => setRoomScheduleOpen(true)} data-testid="button-open-web-schedule"
+              aria-label="日程助手" title="日程助手"><CalendarClock size={18} /></button>
+          )}
           {import.meta.env.DEV && c.performTestAction && (
             <button type="button" onClick={() => setDevActionOpen(true)} data-testid="button-dev-action" aria-label="动画检视" title="动画检视"><TopPixelIcon name="inspect" /></button>
           )}
@@ -534,6 +541,7 @@ export function CompanionChat({ companion: c, roomOnly = false, roomToolbarExtra
          onDrinkTruthPotion={roomOnly && !window.pandaDesktop ? () => setClearMindMode(true) : undefined}
         interactionBubbleText={roomOnly && roomDialogue ? narrate(removeActionAsides(roomDialogue)) : undefined}
         onChatModeChange={roomOnly ? onRoomChatModeChange : undefined}
+         onDoubleClickPanda={isWebRoom && scheduleStorageKey ? () => setRoomScheduleOpen(true) : undefined}
         onCareInteraction={c.recordCareStatInteraction}
         onPlayerAttention={roomOnly && !window.pandaDesktop ? c.recordPetAttention : undefined}
         worldEcology={roomOnly && !window.pandaDesktop ? c.state.worldEcology : undefined}
@@ -584,6 +592,10 @@ export function CompanionChat({ companion: c, roomOnly = false, roomToolbarExtra
         onChooseSnack={(giftId) => { setSelectedSnackId(giftId); setPanel(null); }}
         medicalTreatment={isWebRoom} petName={characterName}
         onExchangeSnacksForVitamin={isWebRoom ? c.exchangeSnacksForVitamin : undefined} />}
+      {isWebRoom && scheduleStorageKey && (
+        <RoomScheduleAssistant open={roomScheduleOpen} storageKey={scheduleStorageKey}
+          onOpenChange={setRoomScheduleOpen} />
+      )}
       {isWebRoom && foxMerchantLetterOpen && foxMerchantLetter && (
         <Modal title="被狐贩子用糖拐跑了！"
           sub={`${foxMerchantLetter.foxName} · ${fmt.format(foxMerchantLetter.sentAt)}`}

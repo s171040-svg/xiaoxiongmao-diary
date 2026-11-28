@@ -127,6 +127,7 @@ function Room() {
   const companionRef = useRef(companion);
   companionRef.current = companion;
   const [desktopError, setDesktopError] = useState('');
+  const { userId } = useAuth();
   const { signOut } = useClerk();
   const save = useAccountPetSave();
   useEffect(() => {
@@ -146,6 +147,7 @@ function Room() {
   }, []);
   return <div className="room-page">
     <CompanionChat companion={companion} roomOnly
+      scheduleStorageKey={userId ? `xiaoxiongmao:web-schedules:v1:${userId}` : undefined}
       roomInteractionLocked={!petCharacter.selection?.locked || petCharacter.isLoading || !!petCharacter.error}
       roomToolbarExtras={<nav className="room-toolbar-account" aria-label="房间与账号功能">
         {isDesktop() && <button type="button" className="room-coop-open"

@@ -1,0 +1,153 @@
+.rsa-dialog {
+  width: min(520px, calc(100vw - 24px));
+  max-height: min(82dvh, 680px);
+  padding: 20px;
+}
+.rsa-dialog .cc-dhead { align-items: flex-start; margin-bottom: 12px; }
+.rsa-dialog .cc-dhead h2 { font-size: 21px; }
+.rsa-dialog .cc-dhead p { max-width: 340px; line-height: 1.55; }
+.rsa-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  margin-bottom: 14px;
+  border: 1px solid #dedbc9;
+  border-radius: 14px;
+  background: #e9e5d6;
+}
+.rsa-tabs button {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #596b5c;
+  cursor: pointer;
+  font: inherit;
+}
+.rsa-tabs button.active { background: #fffdf4; color: #284536; box-shadow: 0 1px 4px #263a301c; }
+.rsa-tabs button span {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #dbe6d8;
+  font-size: 12px;
+}
+.rsa-compose { display: grid; gap: 10px; }
+.rsa-compose label { color: #314b3c; font-size: 14px; font-weight: 650; }
+.rsa-compose textarea {
+  width: 100%;
+  min-height: 92px;
+  resize: vertical;
+  padding: 12px 13px;
+  border: 1px solid #c7d1c3;
+  border-radius: 14px;
+  outline: 0;
+  background: #fffdf7;
+  color: #293b31;
+  font: inherit;
+  line-height: 1.6;
+}
+.rsa-compose textarea:focus { border-color: #68866b; box-shadow: 0 0 0 3px #91ae8b33; }
+.rsa-parse {
+  display: grid;
+  gap: 5px;
+  min-height: 54px;
+  padding: 10px 12px;
+  border: 1px dashed #c9c5b4;
+  border-radius: 12px;
+  color: #69756b;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.rsa-parse.success { border-style: solid; border-color: #c4d8c0; background: #f0f6eb; color: #35533e; }
+.rsa-parse strong { font-size: 14px; }
+.rsa-parse span { display: flex; align-items: center; gap: 5px; }
+.rsa-saved,.rsa-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.rsa-saved { color: #356540; }
+.rsa-error { color: #a74439; }
+.rsa-privacy { margin: 0; color: #758077; font-size: 11px; line-height: 1.5; }
+.rsa-submit { width: 100%; justify-content: center; margin-top: 2px; }
+.rsa-submit:disabled { opacity: .48; cursor: not-allowed; }
+.rsa-list { max-height: min(54dvh, 430px); overflow: auto; }
+.rsa-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 4px;
+  border-bottom: 1px solid #dedbc9;
+}
+.rsa-item > div:first-child { display: grid; min-width: 0; gap: 4px; }
+.rsa-item strong { color: #2e4939; font-size: 14px; overflow-wrap: anywhere; }
+.rsa-item time,.rsa-status { color: #748074; font-size: 12px; }
+.rsa-status.cancelled { color: #a27c50; }
+.rsa-status.completed { color: #859088; }
+.rsa-item-actions { display: flex; flex-shrink: 0; gap: 5px; }
+.rsa-item-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 5px 8px;
+  border: 1px solid #d4d8cc;
+  border-radius: 9px;
+  background: #fffdf7;
+  color: #526151;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+.rsa-item-actions button.danger { color: #9b4d42; }
+.rsa-reminder-stack {
+  position: fixed;
+  z-index: 1000;
+  top: max(14px, env(safe-area-inset-top));
+  left: 50%;
+  display: grid;
+  width: min(460px, calc(100vw - 24px));
+  gap: 8px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.rsa-reminder {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid #c9d7bf;
+  border-radius: 15px;
+  background: #fffdf4;
+  color: #314d3d;
+  box-shadow: 0 10px 32px #18251f33;
+  pointer-events: auto;
+}
+.rsa-reminder > svg { flex: 0 0 auto; color: #648365; }
+.rsa-reminder span { display: grid; flex: 1; gap: 2px; font-size: 13px; }
+.rsa-reminder strong { font-size: 12px; }
+.rsa-reminder button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #596b5c;
+  cursor: pointer;
+}
+@media(max-width: 540px) {
+  .rsa-dialog { padding: 16px; }
+  .rsa-item { align-items: flex-start; flex-direction: column; }
+}
